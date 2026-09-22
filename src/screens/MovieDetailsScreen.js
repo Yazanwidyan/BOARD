@@ -327,9 +327,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.successSoft,
     },
     chipText: {
-      ...typography.caption,
+      ...typography.bodyBold,
       fontSize: 11,
-      fontWeight: "700",
       color: colors.textPrimary,
     },
     content: {

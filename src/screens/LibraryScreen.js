@@ -370,9 +370,8 @@ const createStyles = (colors) => StyleSheet.create({
     gap: 3,
   },
   ratingValue: {
-    ...typography.caption,
+    ...typography.bodyBold,
     fontSize: 12,
-    fontWeight: '700',
     color: colors.textPrimary,
   },
   notRated: {

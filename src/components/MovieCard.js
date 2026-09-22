@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.hero,
-    fontSize: 28,
+    fontSize: 24,
     marginTop: 4,
     color: colors.textPrimary,
   },

@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   Activity as ActivityIcon,
@@ -7,20 +6,17 @@ import {
   Dices,
   Settings as SettingsIcon,
 } from "lucide-react-native";
+import { Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
-import { MOVIES } from "../data/movies";
-import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { TAB_BAR_BOTTOM_OFFSET, radius, spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
-import { shuffle } from "../utils/shuffle";
 
-const PICK_TEN_COUNT = 10;
 const CENTER_BADGE_SIZE = 48;
 const CENTER_BADGE_LIFT = 18;
 const CENTER_BADGE_OUTER_PADDING = 7;
@@ -62,8 +58,15 @@ const FloatingTabBar = ({ state, navigation, onPickTenPress }) => {
             <Fragment key={route.key}>
               {index === 2 && (
                 <View style={styles.centerBadgeOuter}>
-                  <Pressable onPress={onPickTenPress} style={styles.centerBadge}>
-                    <Dices size={21} color={colors.background} strokeWidth={2.2} />
+                  <Pressable
+                    onPress={onPickTenPress}
+                    style={styles.centerBadge}
+                  >
+                    <Dices
+                      size={21}
+                      color={colors.background}
+                      strokeWidth={2.2}
+                    />
                   </Pressable>
                 </View>
               )}
@@ -80,9 +83,7 @@ const FloatingTabBar = ({ state, navigation, onPickTenPress }) => {
 
 export const TabNavigator = ({ navigation }) => {
   const handlePickTen = () => {
-    const movies = shuffle(MOVIES).slice(0, PICK_TEN_COUNT);
-    useSessionStore.getState().startSession(movies);
-    navigation.navigate("Swipe");
+    navigation.navigate("Preferences");
   };
 
   return (
@@ -115,8 +116,8 @@ const createStyles = (colors, mode) =>
       justifyContent: "space-between",
       gap: spacing.md,
       backgroundColor: mode === "dark" ? "#000000" : "#FFFFFF",
-      borderRadius: radius.lg,
-      paddingHorizontal: spacing.md,
+      borderRadius: radius.md,
+      paddingHorizontal: 26,
       paddingVertical: spacing.sm,
       // Not clipped — the center badge is meant to poke out above this box.
       overflow: "visible",

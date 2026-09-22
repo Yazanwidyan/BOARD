@@ -118,7 +118,6 @@ const createStyles = (colors) => StyleSheet.create({
   },
   title: {
     ...typography.hero,
-    fontSize: 30,
     color: colors.textPrimary,
     textAlign: 'center',
   },

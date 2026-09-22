@@ -491,7 +491,7 @@ const createStyles = (colors, bg) =>
     },
     stampText: {
       ...typography.hero,
-      fontSize: 32,
+      fontSize: 27,
       letterSpacing: 3,
     },
     likeStampText: {
@@ -539,7 +539,6 @@ const createStyles = (colors, bg) =>
     },
     transitionMessage: {
       ...typography.hero,
-      fontSize: 26,
       color: colors.textPrimary,
       textAlign: "center",
     },

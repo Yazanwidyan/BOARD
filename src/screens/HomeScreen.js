@@ -9,9 +9,11 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { MoviePoster } from "../components/MoviePoster";
 import { RatingBadge } from "../components/RatingBadge";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { getMovieById } from "../data/movies";
+import { MOVIES, getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
+
+const RAIL_MOVIES = MOVIES.slice(0, 12);
 
 export const HomeScreen = ({ navigation }) => {
   const colors = useColors();
@@ -55,8 +57,15 @@ export const HomeScreen = ({ navigation }) => {
               style={styles.pickedPoster}
             />
             <LinearGradient
-              colors={["transparent", "rgba(2,0,2,0.55)", "rgba(2,0,2,0.92)"]}
-              locations={[0.3, 0.7, 1]}
+              colors={[
+                "transparent",
+                "rgba(2, 0, 2, 0.1)",
+                "rgba(2, 0, 2, 0.55)",
+                "rgba(2, 0, 2, 0.92)",
+              ]}
+              locations={[0.35, 0.55, 0.8, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
               style={styles.pickedGradient}
             />
             <View style={styles.pickedInfo}>
@@ -103,6 +112,30 @@ export const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Explore the Top {MOVIES.length}</Text>
+          <Pressable onPress={() => navigation.navigate("BrowseMovies")}>
+            <Text style={styles.sectionLink}>See all</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.railContent}
+        >
+          {RAIL_MOVIES.map((movie) => (
+            <Pressable
+              key={movie.id}
+              style={styles.railItem}
+              onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+            >
+              <MoviePoster uri={movie.poster} shadow radius={radius.sm} style={styles.railPoster} />
+              <Text style={styles.railTitle} numberOfLines={1}>{movie.title}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </ScrollView>
       <ScreenBottomFade />
     </SafeAreaView>
@@ -130,7 +163,7 @@ const createStyles = (colors) =>
     pickedCard: {
       width: "100%",
       marginTop: spacing.xl,
-      aspectRatio: 2 / 3,
+      aspectRatio: 4 / 3,
       borderRadius: radius.lg,
       overflow: "hidden",
       backgroundColor: colors.card,
@@ -220,6 +253,37 @@ const createStyles = (colors) =>
       textAlign: "center",
       lineHeight: 18,
       maxWidth: 260,
+    },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: spacing.xl,
+      marginBottom: spacing.md,
+    },
+    sectionTitle: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+    },
+    sectionLink: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    railContent: {
+      paddingRight: spacing.md,
+      gap: spacing.md,
+    },
+    railItem: {
+      width: 104,
+    },
+    railPoster: {
+      width: 104,
+      aspectRatio: 2 / 3,
+    },
+    railTitle: {
+      ...typography.caption,
+      color: colors.textPrimary,
+      marginTop: spacing.xs,
     },
   });
 

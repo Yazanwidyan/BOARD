@@ -1,40 +1,44 @@
+// `fontFamily` points at a specific Sora weight file (loaded in App.js via
+// expo-font), so `fontWeight` is intentionally omitted — pairing a numeric
+// fontWeight with an already-weighted custom font file makes Android ignore
+// the custom font and fall back to the system one.
 export const typography = {
   display: {
-    fontSize: 38,
-    fontWeight: '800',
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 32,
     letterSpacing: -0.8,
-    lineHeight: 42,
-  },
-  hero: {
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
     lineHeight: 36,
   },
+  hero: {
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 26,
+    letterSpacing: -0.6,
+    lineHeight: 31,
+  },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
+    fontSize: 19,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 15,
   },
   body: {
-    fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
+    fontSize: 14,
   },
   bodyBold: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 14,
   },
   caption: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
+    fontSize: 12,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
+    fontSize: 11,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
