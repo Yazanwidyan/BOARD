@@ -1,17 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
-  Modal, Pressable, StyleSheet, View, useWindowDimensions,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
-import { useThemeStore } from '../store/themeStore';
-import { radius, spacing } from '../theme/spacing';
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { radius, spacing } from "../theme/spacing";
+import { useColors } from "../theme/useColors";
 
 const OPEN_DURATION = 320;
 const CLOSE_DURATION = 260;
@@ -24,9 +29,8 @@ const DISMISS_VELOCITY = 800;
 // as janky. The backdrop is a plain, non-transforming view (not part of the
 // sheet's translateY), so only the sheet itself slides.
 export const BottomSheet = ({ visible, onClose, children }) => {
-  const mode = useThemeStore((state) => state.mode);
-  const sheetColor = mode === 'dark' ? '#000000' : '#FFFFFF';
-  const styles = createStyles(sheetColor);
+  const colors = useColors();
+  const styles = createStyles(colors.background);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const sheetHeight = height - insets.top - spacing.sm;
@@ -35,9 +39,13 @@ export const BottomSheet = ({ visible, onClose, children }) => {
   const translateY = useSharedValue(sheetHeight);
 
   const close = () => {
-    translateY.value = withTiming(sheetHeight, { duration: CLOSE_DURATION }, (finished) => {
-      if (finished) runOnJS(setIsMounted)(false);
-    });
+    translateY.value = withTiming(
+      sheetHeight,
+      { duration: CLOSE_DURATION },
+      (finished) => {
+        if (finished) runOnJS(setIsMounted)(false);
+      },
+    );
   };
 
   useEffect(() => {
@@ -55,7 +63,10 @@ export const BottomSheet = ({ visible, onClose, children }) => {
       translateY.value = Math.max(0, event.translationY);
     })
     .onEnd((event) => {
-      if (event.translationY > DISMISS_DISTANCE || event.velocityY > DISMISS_VELOCITY) {
+      if (
+        event.translationY > DISMISS_DISTANCE ||
+        event.velocityY > DISMISS_VELOCITY
+      ) {
         runOnJS(onClose)();
       } else {
         translateY.value = withTiming(0, { duration: 200 });
@@ -73,7 +84,9 @@ export const BottomSheet = ({ visible, onClose, children }) => {
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        <Animated.View style={[styles.sheet, { height: sheetHeight }, sheetStyle]}>
+        <Animated.View
+          style={[styles.sheet, { height: sheetHeight }, sheetStyle]}
+        >
           <GestureDetector gesture={pan}>
             <View style={styles.handleZone}>
               <View style={styles.handle} />
@@ -87,34 +100,35 @@ export const BottomSheet = ({ visible, onClose, children }) => {
   );
 };
 
-const createStyles = (sheetColor) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  sheet: {
-    backgroundColor: sheetColor,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    overflow: 'hidden',
-  },
-  handleZone: {
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-    alignItems: 'center',
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(128, 128, 128, 0.4)',
-  },
-  content: {
-    flex: 1,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-});
+const createStyles = (sheetColor) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    sheet: {
+      backgroundColor: sheetColor,
+      borderTopLeftRadius: radius.sm,
+      borderTopRightRadius: radius.sm,
+      overflow: "hidden",
+    },
+    handleZone: {
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xs,
+      alignItems: "center",
+    },
+    handle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: "rgba(128, 128, 128, 0.4)",
+    },
+    content: {
+      flex: 1,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+  });
 
 export default BottomSheet;

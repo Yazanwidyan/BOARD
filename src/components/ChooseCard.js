@@ -4,9 +4,10 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useColors } from "../theme/useColors";
-import { typography } from "../theme/typography";
+
 import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 import { RatingBadge } from "./RatingBadge";
 
@@ -49,7 +50,7 @@ export const ChooseCard = ({
         <MoviePoster
           uri={movie.poster}
           style={[styles.poster, { width: cardWidth }]}
-          radius={radius.md}
+          radius={radius.sm}
           shadow
         />
         <Text style={styles.title} numberOfLines={2}>
@@ -99,7 +100,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.sm,
       paddingVertical: 5,
-      borderRadius: radius.pill,
+      borderRadius: radius.sm,
     },
     genreText: {
       ...typography.caption,

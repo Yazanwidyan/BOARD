@@ -1,5 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   Image,
   StyleSheet,
@@ -46,63 +53,60 @@ const getStackOffset = (index) => {
   };
 };
 
-export const MovieCard = ({
-  movie,
-  cardWidth,
-  cardHeight,
-  index = 0,
-  active = false,
-  onSwipeLeft,
-  onSwipeRight,
-  onPress,
-  swipeX,
-}) => {
-  const { width } = useWindowDimensions();
-  const swipeThreshold = width * 0.28;
-  const stackOffset = getStackOffset(index);
-  const isFront = index === 0;
+export const MovieCard = forwardRef(
+  (
+    {
+      movie,
+      cardWidth,
+      cardHeight,
+      index = 0,
+      active = false,
+      onSwipeLeft,
+      onSwipeRight,
+      onPress,
+      swipeX,
+    },
+    ref,
+  ) => {
+    const { width } = useWindowDimensions();
+    const swipeThreshold = width * 0.28;
+    const stackOffset = getStackOffset(index);
+    const isFront = index === 0;
 
-  // The active card can be driven by a shared value owned by the screen
-  // (so it can mirror the drag for UI that lives outside the card, like a
-  // stamp above the stack) instead of always tracking its own local one.
-  const localTranslateX = useSharedValue(0);
-  const translateX = swipeX ?? localTranslateX;
-  const translateY = useSharedValue(0);
-  const stackScale = useSharedValue(stackOffset.scale);
-  const stackLift = useSharedValue(stackOffset.lift);
-  const [isExiting, setIsExiting] = useState(false);
-  const hasExited = useRef(false);
+    // The active card can be driven by a shared value owned by the screen
+    // (so it can mirror the drag for UI that lives outside the card, like a
+    // stamp above the stack) instead of always tracking its own local one.
+    const localTranslateX = useSharedValue(0);
+    const translateX = swipeX ?? localTranslateX;
+    const translateY = useSharedValue(0);
+    const stackScale = useSharedValue(stackOffset.scale);
+    const stackLift = useSharedValue(stackOffset.lift);
+    const [isExiting, setIsExiting] = useState(false);
+    const hasExited = useRef(false);
 
-  useEffect(() => {
-    stackScale.value = withTiming(stackOffset.scale, { duration: 220 });
-    stackLift.value = withTiming(stackOffset.lift, { duration: 220 });
-  }, [stackOffset.scale, stackOffset.lift, stackScale, stackLift]);
+    useEffect(() => {
+      stackScale.value = withTiming(stackOffset.scale, { duration: 220 });
+      stackLift.value = withTiming(stackOffset.lift, { duration: 220 });
+    }, [stackOffset.scale, stackOffset.lift, stackScale, stackLift]);
 
-  const handleSwipeLeft = () => onSwipeLeft?.(movie);
-  const handleSwipeRight = () => onSwipeRight?.(movie);
+    const handleSwipeLeft = () => onSwipeLeft?.(movie);
+    const handleSwipeRight = () => onSwipeRight?.(movie);
 
-  const pan = Gesture.Pan()
-    .enabled(active && !isExiting)
-    .onUpdate((event) => {
-      translateX.value = event.translationX;
-      translateY.value = event.translationY * 0.35;
-    })
-    .onEnd((event) => {
-      const swipedRight =
-        event.translationX > swipeThreshold || event.velocityX > 900;
-      const swipedLeft =
-        event.translationX < -swipeThreshold || event.velocityX < -900;
-
-      if (swipedRight || swipedLeft) {
-        runOnJS(setIsExiting)(true);
-        const destinationX = (swipedRight ? 1 : -1) * width * 1.5;
+    // Shared by the drag gesture's onEnd and the imperative `triggerSwipe`
+    // (used by the on-screen like/dislike buttons), so both paths play the
+    // exact same exit animation and completion callback.
+    const runExit = useCallback(
+      (isRight) => {
+        setIsExiting(true);
+        const destinationX = (isRight ? 1 : -1) * width * 1.5;
         translateX.value = withTiming(
           destinationX,
           { duration: SWIPE_OUT_DURATION },
           (finished) => {
+            "worklet";
             if (finished && !hasExited.current) {
               hasExited.current = true;
-              if (swipedRight) {
+              if (isRight) {
                 runOnJS(handleSwipeRight)();
               } else {
                 runOnJS(handleSwipeLeft)();
@@ -110,124 +114,165 @@ export const MovieCard = ({
             }
           },
         );
-      } else {
-        translateX.value = withTiming(0, { duration: 220 });
-        translateY.value = withTiming(0, { duration: 220 });
-      }
-    });
-
-  const tap = Gesture.Tap()
-    .enabled(active && !isExiting)
-    .maxDistance(10)
-    .onEnd(() => {
-      if (onPress) {
-        runOnJS(onPress)();
-      }
-    });
-
-  const composedGesture = Gesture.Exclusive(pan, tap);
-
-  const cardStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      translateX.value,
-      [-width, 0, width],
-      [-14, 0, 14],
-      Extrapolation.CLAMP,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      },
+      [width, translateX],
     );
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value + stackLift.value },
-        { rotate: `${rotate}deg` },
-        { scale: stackScale.value },
-      ],
-    };
-  });
 
-  return (
-    <GestureDetector gesture={composedGesture}>
-      <Animated.View
-        style={[
-          styles.cardWrapper,
-          { width: cardWidth, height: cardHeight },
-          cardStyle,
-        ]}
-      >
-        <View style={styles.card}>
-          <Image
-            source={{ uri: movie.poster }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+    useImperativeHandle(
+      ref,
+      () => ({
+        triggerSwipe: (direction) => {
+          if (!active || isExiting) return;
+          runExit(direction === "right");
+        },
+      }),
+      [active, isExiting, runExit],
+    );
 
-          {/* A shaded left edge fading back into the poster, a thin
+    const pan = Gesture.Pan()
+      .enabled(active && !isExiting)
+      .onUpdate((event) => {
+        translateX.value = event.translationX;
+        translateY.value = event.translationY * 0.35;
+      })
+      .onEnd((event) => {
+        const swipedRight =
+          event.translationX > swipeThreshold || event.velocityX > 900;
+        const swipedLeft =
+          event.translationX < -swipeThreshold || event.velocityX < -900;
+
+        if (swipedRight || swipedLeft) {
+          runOnJS(runExit)(swipedRight);
+        } else {
+          translateX.value = withTiming(0, { duration: 220 });
+          translateY.value = withTiming(0, { duration: 220 });
+        }
+      });
+
+    const tap = Gesture.Tap()
+      .enabled(active && !isExiting)
+      .maxDistance(10)
+      .onEnd(() => {
+        if (onPress) {
+          runOnJS(onPress)();
+        }
+      });
+
+    const composedGesture = Gesture.Exclusive(pan, tap);
+
+    const cardStyle = useAnimatedStyle(() => {
+      const rotate = interpolate(
+        translateX.value,
+        [-width, 0, width],
+        [-14, 0, 14],
+        Extrapolation.CLAMP,
+      );
+      return {
+        transform: [
+          { translateX: translateX.value },
+          { translateY: translateY.value + stackLift.value },
+          { rotate: `${rotate}deg` },
+          { scale: stackScale.value },
+        ],
+      };
+    });
+
+    return (
+      <GestureDetector gesture={composedGesture}>
+        <Animated.View
+          style={[
+            styles.cardWrapper,
+            { width: cardWidth, height: cardHeight },
+            cardStyle,
+          ]}
+        >
+          <View style={styles.card}>
+            <Image
+              source={{ uri: movie.poster }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+
+            {/* A shaded left edge fading back into the poster, a thin
               highlight line marking the case's fold, and a soft sheen along
               the top — together read as the front face of a boxed case
               catching light, not a flat sheet. */}
-          <LinearGradient
-            pointerEvents="none"
-            colors={["rgba(0, 0, 0, 0.55)", "rgba(0, 0, 0, 0.08)", "transparent"]}
-            locations={[0, 0.6, 1]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.spine}
-          />
-          <View pointerEvents="none" style={styles.spineHighlight} />
-          <LinearGradient
-            pointerEvents="none"
-            colors={["rgba(255, 255, 255, 0.16)", "transparent"]}
-            style={styles.topSheen}
-          />
-
-          {!isFront && (
-            <View
+            <LinearGradient
               pointerEvents="none"
-              style={[
-                styles.backTint,
-                { backgroundColor: `rgba(2,0,2,${stackOffset.tint})` },
+              colors={[
+                "rgba(0, 0, 0, 0.55)",
+                "rgba(0, 0, 0, 0.08)",
+                "transparent",
               ]}
+              locations={[0, 0.6, 1]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.spine}
             />
-          )}
+            <View pointerEvents="none" style={styles.spineHighlight} />
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(255, 255, 255, 0.16)", "transparent"]}
+              style={styles.topSheen}
+            />
 
-          {isFront && (
-            <>
-              <LinearGradient
-                colors={["transparent", "rgba(2,0,2,0.55)", colors.background]}
-                locations={[0.4, 0.75, 1]}
-                style={styles.gradient}
+            {!isFront && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.backTint,
+                  { backgroundColor: `rgba(2,0,2,${stackOffset.tint})` },
+                ]}
               />
+            )}
 
-              <View style={styles.chips}>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>
-                    {formatRuntime(movie.runtime)}
+            {isFront && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "transparent",
+                    "rgba(2,0,2,0.55)",
+                    colors.background,
+                  ]}
+                  locations={[0.4, 0.75, 1]}
+                  style={styles.gradient}
+                />
+
+                <View style={styles.chips}>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>
+                      {formatRuntime(movie.runtime)}
+                    </Text>
+                  </View>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>{movie.genres[0]}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.info}>
+                  <Text style={styles.eyebrow} numberOfLines={1}>
+                    DIRECTED BY {movie.director.toUpperCase()}
                   </Text>
+                  <Text style={styles.title} numberOfLines={2}>
+                    {movie.title.toUpperCase()}
+                  </Text>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.metaText}>{movie.year}</Text>
+                    <Text style={styles.dot}>{"·"}</Text>
+                    <RatingBadge rating={movie.rating} size="sm" />
+                  </View>
                 </View>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>{movie.genres[0]}</Text>
-                </View>
-              </View>
+              </>
+            )}
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    );
+  },
+);
 
-              <View style={styles.info}>
-                <Text style={styles.eyebrow} numberOfLines={1}>
-                  DIRECTED BY {movie.director.toUpperCase()}
-                </Text>
-                <Text style={styles.title} numberOfLines={2}>
-                  {movie.title.toUpperCase()}
-                </Text>
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaText}>{movie.year}</Text>
-                  <Text style={styles.dot}>{"·"}</Text>
-                  <RatingBadge rating={movie.rating} size="sm" />
-                </View>
-              </View>
-            </>
-          )}
-        </View>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
+MovieCard.displayName = "MovieCard";
 
 const styles = StyleSheet.create({
   // Carries the shadow (kept off the clipping `card` view below, since
@@ -235,7 +280,7 @@ const styles = StyleSheet.create({
   // break rendering) so the card visibly lifts off the stack like a box.
   cardWrapper: {
     position: "absolute",
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
@@ -244,7 +289,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     backgroundColor: colors.card,
     overflow: "hidden",
   },
@@ -296,7 +341,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
   },
   chipText: {
     ...typography.caption,

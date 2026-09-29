@@ -1,161 +1,216 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  Activity as ActivityIcon,
-  Bookmark,
-  Compass,
-  Dices,
-  Settings as SettingsIcon,
-} from "lucide-react-native";
-import { Fragment } from "react";
+import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
-import { ActivityScreen } from "../screens/ActivityScreen";
-import { HomeScreen } from "../screens/HomeScreen";
+import {
+  CompassIcon,
+  LayersIcon,
+  LibraryIcon,
+  SearchAltIcon,
+  ShuffleIcon,
+  UserIcon,
+} from "../components/icons/TabIcons";
+import { CollectionsScreen } from "../screens/CollectionsScreen";
+import { DecideScreen } from "../screens/DecideScreen";
+import { ExploreScreen } from "../screens/ExploreScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
-import { SettingsScreen } from "../screens/SettingsScreen";
-import { useThemeStore } from "../store/themeStore";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { TAB_BAR_BOTTOM_OFFSET, radius, spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 
-const CENTER_BADGE_SIZE = 48;
-const CENTER_BADGE_LIFT = 18;
-const CENTER_BADGE_OUTER_PADDING = 7;
+// Side margin the floating row keeps from the screen edges.
+const TAB_BAR_MARGIN = spacing.md;
+const SEARCH_BUTTON_SIZE = 52;
 
 const Tab = createBottomTabNavigator();
 
 const ICONS = {
-  Discover: Compass,
-  Library: Bookmark,
-  Activity: ActivityIcon,
-  Settings: SettingsIcon,
+  Explore: CompassIcon,
+  Decide: ShuffleIcon,
+  Collections: LayersIcon,
+  Library: LibraryIcon,
+  Profile: UserIcon,
 };
 
-const FloatingTabBar = ({ state, navigation, onPickTenPress }) => {
+const TabBarItem = ({ isFocused, IconComponent, styles, onPress }) => {
+  const progress = useSharedValue(isFocused ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = withSpring(isFocused ? 1 : 0, {
+      damping: 16,
+      stiffness: 220,
+    });
+  }, [isFocused, progress]);
+
+  const contentStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      ["rgba(0, 0, 0, 0)", "#000000"],
+    ),
+    transform: [{ scale: 1 + progress.value * 0.06 }],
+  }));
+
+  return (
+    <Pressable style={styles.item} onPress={onPress}>
+      <Animated.View style={[styles.itemContent, contentStyle]}>
+        <IconComponent size={20} color={isFocused ? "#FFFFFF" : "#000000"} />
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+const FloatingTabBar = ({ state, navigation, onSearchPress }) => {
   const colors = useColors();
-  const mode = useThemeStore((themeState) => themeState.mode);
-  const styles = createStyles(colors, mode);
+  const styles = createStyles(colors);
+
+  const handleSearchPress = () => {
+    Haptics.selectionAsync();
+    onSearchPress();
+  };
+
+  const selectIndex = (index) => {
+    const route = state.routes[index];
+    const event = navigation.emit({
+      type: "tabPress",
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (index !== state.index && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+    Haptics.selectionAsync();
+  };
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.bar}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
-          const IconComponent = ICONS[route.name];
-          const tintColor = isFocused ? colors.textPrimary : colors.textMuted;
+      <View style={styles.row}>
+        <View style={styles.barShadowWrap}>
+          <View style={styles.bar}>
+            {state.routes.map((route, index) => {
+              const isFocused = state.index === index;
+              const IconComponent = ICONS[route.name];
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+              return (
+                <TabBarItem
+                  key={route.key}
+                  isFocused={isFocused}
+                  IconComponent={IconComponent}
+                  styles={styles}
+                  onPress={() => selectIndex(index)}
+                />
+              );
+            })}
+          </View>
+        </View>
 
-          return (
-            <Fragment key={route.key}>
-              {index === 2 && (
-                <View style={styles.centerBadgeOuter}>
-                  <Pressable
-                    onPress={onPickTenPress}
-                    style={styles.centerBadge}
-                  >
-                    <Dices
-                      size={21}
-                      color={colors.background}
-                      strokeWidth={2.2}
-                    />
-                  </Pressable>
-                </View>
-              )}
-              <Pressable onPress={onPress} style={styles.item}>
-                <IconComponent size={20} color={tintColor} strokeWidth={2.2} />
-              </Pressable>
-            </Fragment>
-          );
-        })}
+        <Pressable onPress={handleSearchPress} style={styles.searchButtonWrap}>
+          <View style={styles.searchButton}>
+            <SearchAltIcon size={20} color="#000000" />
+          </View>
+        </Pressable>
       </View>
     </View>
   );
 };
 
-export const TabNavigator = ({ navigation }) => {
-  const handlePickTen = () => {
-    navigation.navigate("Preferences");
-  };
+export const TabNavigator = ({ navigation }) => (
+  <Tab.Navigator
+    // "fade" instead of "shift" — with drag-through selection, a fast swipe
+    // fires navigate() for every tab it crosses, and "shift"'s sliding
+    // transition per intermediate stop is what read as flicker. "fade" is
+    // the only other built-in option besides "none" for @react-navigation/
+    // bottom-tabs, so it's this or no animation at all.
+    screenOptions={{ headerShown: false, animation: "fade" }}
+    tabBar={(props) => (
+      <FloatingTabBar
+        {...props}
+        onSearchPress={() => navigation.navigate("Search")}
+      />
+    )}
+  >
+    <Tab.Screen name="Explore" component={ExploreScreen} />
+    <Tab.Screen name="Decide" component={DecideScreen} />
+    <Tab.Screen name="Collections" component={CollectionsScreen} />
+    <Tab.Screen name="Library" component={LibraryScreen} />
+    <Tab.Screen name="Profile" component={ProfileScreen} />
+  </Tab.Navigator>
+);
 
-  return (
-    <Tab.Navigator
-      screenOptions={{ headerShown: false, animation: "shift" }}
-      tabBar={(props) => (
-        <FloatingTabBar {...props} onPickTenPress={handlePickTen} />
-      )}
-    >
-      <Tab.Screen name="Discover" component={HomeScreen} />
-      <Tab.Screen name="Library" component={LibraryScreen} />
-      <Tab.Screen name="Activity" component={ActivityScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
-    </Tab.Navigator>
-  );
-};
-
-const createStyles = (colors, mode) =>
+const createStyles = (colors) =>
   StyleSheet.create({
     container: {
       position: "absolute",
       left: 0,
       right: 0,
       bottom: TAB_BAR_BOTTOM_OFFSET,
-      alignItems: "center",
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      marginHorizontal: TAB_BAR_MARGIN,
+      gap: spacing.sm,
+    },
+    // Shadows and `overflow: hidden` (needed to clip the blur to the pill
+    // shape) fight each other on iOS, so the shadow lives on this
+    // non-clipping wrapper and the blur/radius lives on the child below.
+    barShadowWrap: {
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 20,
+      elevation: 10,
     },
     bar: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      gap: spacing.md,
-      backgroundColor: mode === "dark" ? "#000000" : "#FFFFFF",
-      borderRadius: radius.md,
-      paddingHorizontal: 26,
-      paddingVertical: spacing.sm,
-      // Not clipped — the center badge is meant to poke out above this box.
-      overflow: "visible",
-      // Explicit here (not the shared `shadows` preset, which is disabled
-      // app-wide) since the floating bar needs to visually lift off the
-      // screen behind it, unlike everything else.
-      shadowColor: "#000000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 16,
-      elevation: 4,
+      gap: spacing.xs,
+      backgroundColor: "#FFFFFF",
+      borderRadius: radius.sm,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: "rgba(2, 0, 2, 0.1)",
+      paddingHorizontal: 3,
+      paddingVertical: 3,
     },
     item: {
-      width: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    itemContent: {
+      width: 54,
       height: 44,
       alignItems: "center",
       justifyContent: "center",
+      borderRadius: radius.sm,
     },
-    // Same fill as the bar itself, sized a bit larger than the badge it
-    // wraps, so the badge reads as poking through a cutout in the bar
-    // rather than just floating above a hard edge. Pulled up via negative
-    // margin so it pokes above the bar's own top edge.
-    centerBadgeOuter: {
-      width: CENTER_BADGE_SIZE + CENTER_BADGE_OUTER_PADDING * 2,
-      height: CENTER_BADGE_SIZE + CENTER_BADGE_OUTER_PADDING * 2,
-      borderRadius: radius.xl + CENTER_BADGE_OUTER_PADDING,
+    searchButtonWrap: {
+      width: SEARCH_BUTTON_SIZE,
+      height: SEARCH_BUTTON_SIZE,
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    searchButton: {
+      width: "100%",
+      height: "100%",
+      backgroundColor: "#FFFFFF",
+      borderRadius: radius.sm,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: "rgba(2, 0, 2, 0.1)",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: mode === "dark" ? "#000000" : "#FFFFFF",
-      marginTop: -(CENTER_BADGE_LIFT + CENTER_BADGE_OUTER_PADDING),
-    },
-    centerBadge: {
-      width: CENTER_BADGE_SIZE,
-      height: CENTER_BADGE_SIZE,
-      borderRadius: radius.xl,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.textPrimary,
     },
   });
 

@@ -1,15 +1,17 @@
+import { Film } from "lucide-react-native";
 import { useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { Film } from "lucide-react-native";
-import { useColors } from "../theme/useColors";
-import { radius } from "../theme/spacing";
+
 import { shadows } from "../theme/shadows";
+import { radius } from "../theme/spacing";
+import { useColors } from "../theme/useColors";
 
 export const MoviePoster = ({
   uri,
   style,
-  radius: cornerRadius = radius.md,
+  radius: cornerRadius = radius.sm,
   shadow = false,
+  blurRadius,
 }) => {
   const [failed, setFailed] = useState(false);
   const colors = useColors();
@@ -32,6 +34,7 @@ export const MoviePoster = ({
           source={{ uri }}
           style={[styles.image, { borderRadius: cornerRadius }]}
           onError={() => setFailed(true)}
+          blurRadius={blurRadius}
         />
       )}
     </View>

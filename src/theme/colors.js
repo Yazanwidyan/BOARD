@@ -1,8 +1,7 @@
-// Static fallback (dark palette). Components should use `useColors()`
-// instead so they react to the light/dark mode setting; this export exists
-// only for non-component code that can't call a hook.
-import { dark } from './palettes';
+// Static re-export for non-component code that can't call the `useColors()`
+// hook. Components should still prefer `useColors()`.
+import { colors } from './palettes';
 
-export const colors = dark;
+export { colors };
 
 export default colors;

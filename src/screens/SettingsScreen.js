@@ -1,4 +1,14 @@
 import {
+  Bookmark,
+  CheckCircle,
+  ChevronRight,
+  Clapperboard,
+  Info,
+  RotateCcw,
+  Shuffle,
+  SlidersHorizontal,
+} from "lucide-react-native";
+import {
   Alert,
   Pressable,
   ScrollView,
@@ -6,27 +16,18 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Bookmark,
-  CheckCircle,
-  ChevronRight,
-  Clapperboard,
-  Info,
-  Moon,
-  RotateCcw,
-  Shuffle,
-  SlidersHorizontal,
-  Sun,
-} from "lucide-react-native";
-import { useColors } from "../theme/useColors";
-import { typography } from "../theme/typography";
-import { radius, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useUserStore } from "../store/userStore";
-import { useThemeStore } from "../store/themeStore";
-import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 
 const APP_VERSION = "1.0.0";
 
@@ -70,8 +71,6 @@ export const SettingsScreen = ({ navigation }) => {
   const clearWatched = useMovieStore((state) => state.clearWatched);
   const endSession = useSessionStore((state) => state.endSession);
   const replayOnboarding = useUserStore((state) => state.replayOnboarding);
-  const mode = useThemeStore((state) => state.mode);
-  const toggleMode = useThemeStore((state) => state.toggleMode);
   const insets = useSafeAreaInsets();
 
   return (
@@ -79,27 +78,11 @@ export const SettingsScreen = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
+          { paddingTop: insets.top, paddingBottom: insets.bottom + spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Settings</Text>
-
-        <Text style={styles.sectionLabel}>Appearance</Text>
-        <View style={styles.section}>
-          <SettingsRow
-            icon={
-              mode === "dark" ? (
-                <Moon size={18} color={colors.textPrimary} />
-              ) : (
-                <Sun size={18} color={colors.textPrimary} />
-              )
-            }
-            label="Theme"
-            value={mode === "dark" ? "Dark" : "Light"}
-            onPress={toggleMode}
-          />
-        </View>
 
         <Text style={styles.sectionLabel}>Discovery</Text>
         <View style={styles.section}>
@@ -213,7 +196,7 @@ const createStyles = (colors) =>
     },
     section: {
       backgroundColor: colors.card,
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
       overflow: "hidden",
     },
     row: {

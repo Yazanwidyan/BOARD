@@ -1,32 +1,40 @@
-import { useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
-import { useColors } from '../theme/useColors';
-import { typography } from '../theme/typography';
-import { radius, spacing } from '../theme/spacing';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { useUserStore } from '../store/userStore';
-import { useMovieStore } from '../store/movieStore';
-import { useSessionStore } from '../store/sessionStore';
-import { generateRecommendations } from '../services/recommendations';
-import { DECADE_RANGES, RUNTIME_RANGES } from '../utils/movieFilters';
+} from "react-native-reanimated";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { PrimaryButton } from "../components/PrimaryButton";
+import { generateRecommendations } from "../services/recommendations";
+import { useMovieStore } from "../store/movieStore";
+import { useSessionStore } from "../store/sessionStore";
+import { useUserStore } from "../store/userStore";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
+import { DECADE_RANGES, RUNTIME_RANGES } from "../utils/movieFilters";
 
 const GENRES = [
-  'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Drama',
-  'Fantasy', 'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller',
+  "Action",
+  "Adventure",
+  "Animation",
+  "Comedy",
+  "Crime",
+  "Drama",
+  "Fantasy",
+  "Horror",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Thriller",
 ];
 const DECADES = Object.keys(DECADE_RANGES);
 const RUNTIMES = Object.keys(RUNTIME_RANGES);
@@ -39,16 +47,15 @@ const THUMB_SIZE = 24;
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const xToValue = (x, trackWidth) => {
-  'worklet';
+  "worklet";
   const ratio = trackWidth > 0 ? x / trackWidth : 0;
   const raw = RATING_MIN + ratio * (RATING_MAX - RATING_MIN);
   const snapped = Math.round(raw * 2) / 2;
   return Math.min(RATING_MAX, Math.max(RATING_MIN, snapped));
 };
 
-const valueToX = (value, trackWidth) => (
-  ((value - RATING_MIN) / (RATING_MAX - RATING_MIN)) * trackWidth
-);
+const valueToX = (value, trackWidth) =>
+  ((value - RATING_MIN) / (RATING_MAX - RATING_MIN)) * trackWidth;
 
 const Chip = ({ label, selected, onPress }) => {
   const colors = useColors();
@@ -59,7 +66,9 @@ const Chip = ({ label, selected, onPress }) => {
       onPress={onPress}
       style={[styles.chip, selected && styles.chipSelected]}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+        {label}
+      </Text>
     </Pressable>
   );
 };
@@ -84,7 +93,9 @@ const RatingSlider = ({ value, onChangeEnd }) => {
     })
     .onEnd(() => {
       const finalValue = xToValue(thumbX.value, trackWidth);
-      thumbX.value = withTiming(valueToX(finalValue, trackWidth), { duration: 150 });
+      thumbX.value = withTiming(valueToX(finalValue, trackWidth), {
+        duration: 150,
+      });
       runOnJS(setDisplayValue)(finalValue);
       runOnJS(onChangeEnd)(finalValue);
     });
@@ -150,16 +161,23 @@ export const PreferencesScreen = ({ navigation }) => {
     setIsGenerating(true);
     setTimeout(() => {
       const { bucketList } = useMovieStore.getState();
-      const movies = generateRecommendations(preferences, SWIPE_SIZE, bucketList);
+      const movies = generateRecommendations(
+        preferences,
+        SWIPE_SIZE,
+        bucketList,
+      );
       startSession(movies);
-      navigation.replace('Swipe');
+      navigation.replace("Swipe");
     }, 600);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>What are you in the mood for?</Text>
@@ -209,7 +227,9 @@ export const PreferencesScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: spacing.md + insets.bottom }]}>
+      <View
+        style={[styles.footer, { paddingBottom: spacing.md + insets.bottom }]}
+      >
         {isGenerating ? (
           <FindingMoviesLoader />
         ) : (
@@ -220,114 +240,115 @@ export const PreferencesScreen = ({ navigation }) => {
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginTop: spacing.md,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  sectionLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
-  },
-  chipSelected: {
-    backgroundColor: colors.textPrimary,
-  },
-  chipText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  // Opposite of `chipSelected`'s background (textPrimary), so this stays
-  // legible whichever way textPrimary/background flip between themes.
-  chipTextSelected: {
-    color: colors.background,
-  },
-  section: {
-    marginTop: spacing.xl,
-  },
-  sliderLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  sliderLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  sliderValue: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-  },
-  track: {
-    height: THUMB_SIZE,
-    justifyContent: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.pill,
-  },
-  trackFill: {
-    position: 'absolute',
-    left: 0,
-    top: '50%',
-    marginTop: -2,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textPrimary,
-  },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: THUMB_SIZE / 2,
-    backgroundColor: colors.textPrimary,
-  },
-  footer: {
-    padding: spacing.md,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  loadingDots: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  loadingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.textPrimary,
-  },
-  loadingText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+    },
+    subtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    sectionLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
+    },
+    chipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+    },
+    chip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    chipSelected: {
+      backgroundColor: colors.textPrimary,
+    },
+    chipText: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    // Opposite of `chipSelected`'s background (textPrimary), so this stays
+    // legible whichever way textPrimary/background flip between themes.
+    chipTextSelected: {
+      color: colors.background,
+    },
+    section: {
+      marginTop: spacing.xl,
+    },
+    sliderLabelRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    sliderLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+    },
+    sliderValue: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    track: {
+      height: THUMB_SIZE,
+      justifyContent: "center",
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+    },
+    trackFill: {
+      position: "absolute",
+      left: 0,
+      top: "50%",
+      marginTop: -2,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.textPrimary,
+    },
+    thumb: {
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
+      borderRadius: THUMB_SIZE / 2,
+      backgroundColor: colors.textPrimary,
+    },
+    footer: {
+      padding: spacing.md,
+    },
+    loadingContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    loadingDots: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    loadingDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.textPrimary,
+    },
+    loadingText: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+  });
 
 export default PreferencesScreen;

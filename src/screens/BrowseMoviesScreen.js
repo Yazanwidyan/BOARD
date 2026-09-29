@@ -1,3 +1,4 @@
+import { Bookmark, BookmarkCheck, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   FlatList,
@@ -7,20 +8,19 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Bookmark,
-  BookmarkCheck,
-  Search,
-} from "lucide-react-native";
-import { useColors } from "../theme/useColors";
-import { typography } from "../theme/typography";
-import { radius, spacing } from "../theme/spacing";
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { BackButton } from "../components/BackButton";
 import { MoviePoster } from "../components/MoviePoster";
 import { RatingBadge } from "../components/RatingBadge";
-import { BackButton } from "../components/BackButton";
 import { MOVIES } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 
 const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
   const colors = useColors();
@@ -28,7 +28,11 @@ const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
 
   return (
     <Pressable style={styles.row} onPress={onPress}>
-      <MoviePoster uri={movie.poster} style={styles.rowPoster} />
+      <MoviePoster
+        uri={movie.poster}
+        radius={radius.sm}
+        style={styles.rowPoster}
+      />
       <View style={styles.rowInfo}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {movie.title}
@@ -92,7 +96,10 @@ export const BrowseMoviesScreen = ({ navigation }) => {
       <FlatList
         data={filteredMovies}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.xl }]}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + spacing.xl },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
@@ -137,9 +144,9 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
       marginHorizontal: spacing.md,
-      marginTop: spacing.md,
+      marginTop: spacing.sm,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
@@ -157,7 +164,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
       padding: spacing.sm,
       marginBottom: spacing.sm,
     },
@@ -189,7 +196,7 @@ const createStyles = (colors) =>
       borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: colors.card,
     },
     toggleButtonActive: {
       backgroundColor: colors.surfaceSoft,

@@ -37,7 +37,7 @@ const createStyles = (colors) => StyleSheet.create({
   header: {
     paddingHorizontal: spacing.md,
     marginTop: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     alignItems: 'center',
   },
   title: {

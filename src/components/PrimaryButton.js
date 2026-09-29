@@ -4,10 +4,11 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { useColors } from "../theme/useColors";
-import { typography } from "../theme/typography";
-import { radius, spacing } from "../theme/spacing";
+
 import { shadows } from "../theme/shadows";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -44,6 +45,7 @@ export const PrimaryButton = ({
   variant = "primary",
   icon,
   disabled = false,
+  dense = false,
   style,
   textStyle,
 }) => {
@@ -78,7 +80,7 @@ export const PrimaryButton = ({
         style,
       ]}
     >
-      <View style={[styles.base, variantStyle.container]}>
+      <View style={[styles.base, dense && styles.baseDense, variantStyle.container]}>
         {icon}
         <Text
           style={[
@@ -103,8 +105,12 @@ const createStyles = (colors) =>
       justifyContent: "center",
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
       overflow: "hidden",
+    },
+    baseDense: {
+      paddingVertical: spacing.xs + 2,
+      paddingHorizontal: spacing.md,
     },
     disabled: {
       opacity: 0.4,

@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Clapperboard, Heart, Shuffle, Trophy, X } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
+  Pressable,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Clapperboard, Trophy } from "lucide-react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -19,28 +19,29 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-import { useColors } from "../theme/useColors";
-import { useThemeStore } from "../store/themeStore";
-import { typography } from "../theme/typography";
-import { radius, spacing } from "../theme/spacing";
-import { MovieCard } from "../components/MovieCard";
-import { PrimaryButton } from "../components/PrimaryButton";
-import { MoviePoster } from "../components/MoviePoster";
-import { ChooseCard } from "../components/ChooseCard";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
 import { BackButton } from "../components/BackButton";
-import { useSessionStore } from "../store/sessionStore";
+import { ChooseCard } from "../components/ChooseCard";
+import { MovieCard } from "../components/MovieCard";
+import { MoviePoster } from "../components/MoviePoster";
+import { PrimaryButton } from "../components/PrimaryButton";
 import { useMovieStore } from "../store/movieStore";
+import { useSessionStore } from "../store/sessionStore";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 
 const TRANSITION_AUTO_ADVANCE_MS = 1800;
 const CAROUSEL_GAP = spacing.md;
 
-const useScreenBg = () => {
-  const mode = useThemeStore((state) => state.mode);
-  return {
-    bg: mode === "dark" ? "#000000" : "#FFFFFF",
-    bgSoft: mode === "dark" ? "#0D0D0D" : "#FAFAFA",
-  };
-};
+const useScreenBg = () => ({
+  bg: "#000000",
+  bgSoft: "#0D0D0D",
+});
 
 const FadeInView = ({ children, style, delay = 0 }) => {
   const opacity = useSharedValue(0);
@@ -209,6 +210,26 @@ export const SwipeScreen = ({ navigation }) => {
     swipe("left");
   }, [swipe]);
 
+  // The active card plays its normal exit animation for a button tap too
+  // (see MovieCard's `triggerSwipe`), so LIKE/NOPE buttons feel identical
+  // to actually swiping instead of just instantly cutting to the next card.
+  const activeCardRef = useRef(null);
+  const handleLikePress = useCallback(() => {
+    activeCardRef.current?.triggerSwipe("right");
+  }, []);
+  const handleDislikePress = useCallback(() => {
+    activeCardRef.current?.triggerSwipe("left");
+  }, []);
+
+  // Skips the round-by-round narrowing entirely and picks a winner straight
+  // out of whatever's still left in the current round.
+  const handleRandomPick = useCallback(() => {
+    if (stackMovies.length === 0) return;
+    const randomMovie =
+      stackMovies[Math.floor(Math.random() * stackMovies.length)];
+    chooseFinal(randomMovie);
+  }, [stackMovies, chooseFinal]);
+
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
@@ -256,12 +277,11 @@ export const SwipeScreen = ({ navigation }) => {
   if (phase === "transition" && transition) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[bgSoft, bg]}
-          style={StyleSheet.absoluteFill}
-        />
+        <LinearGradient colors={[bgSoft, bg]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={styles.container} edges={["bottom"]}>
-          <FadeInView style={[styles.transitionContainer, { paddingTop: insets.top }]}>
+          <FadeInView
+            style={[styles.transitionContainer, { paddingTop: insets.top }]}
+          >
             <Text style={styles.transitionMessage}>{transition.message}</Text>
             <Text style={styles.transitionCounts}>
               {transition.fromCount} movies &rarr; {transition.toCount}{" "}
@@ -305,12 +325,11 @@ export const SwipeScreen = ({ navigation }) => {
   if (phase === "final" && finalMovie) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[bgSoft, bg]}
-          style={StyleSheet.absoluteFill}
-        />
+        <LinearGradient colors={[bgSoft, bg]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={styles.container} edges={["bottom"]}>
-          <FadeInView style={[styles.finalContainer, { paddingTop: insets.top }]}>
+          <FadeInView
+            style={[styles.finalContainer, { paddingTop: insets.top }]}
+          >
             <View style={styles.finalIconBadge}>
               <Trophy size={26} color={colors.textPrimary} strokeWidth={1.8} />
             </View>
@@ -318,7 +337,7 @@ export const SwipeScreen = ({ navigation }) => {
             <MoviePoster
               uri={finalMovie.poster}
               style={styles.finalPoster}
-              radius={radius.md}
+              radius={radius.sm}
               shadow
             />
             <Text style={styles.finalTitle}>{finalMovie.title}</Text>
@@ -365,7 +384,7 @@ export const SwipeScreen = ({ navigation }) => {
                 variant="ghost"
                 onPress={() => {
                   endSession();
-                  navigation.navigate("Main", { screen: "Discover" });
+                  navigation.navigate("Main", { screen: "Explore" });
                 }}
                 style={styles.button}
               />
@@ -417,6 +436,7 @@ export const SwipeScreen = ({ navigation }) => {
           ))}
         {activeMovie && (
           <MovieCard
+            ref={activeCardRef}
             key={activeMovie.id}
             movie={activeMovie}
             cardWidth={cardWidth}
@@ -430,6 +450,32 @@ export const SwipeScreen = ({ navigation }) => {
           />
         )}
       </View>
+
+      <View style={styles.actionsRow}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={handleDislikePress}
+          disabled={!activeMovie}
+        >
+          <X size={26} color={colors.textPrimary} strokeWidth={2.4} />
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={handleLikePress}
+          disabled={!activeMovie}
+        >
+          <Heart size={24} color={colors.success} fill={colors.success} />
+        </Pressable>
+      </View>
+
+      <Pressable
+        style={styles.randomPickLink}
+        onPress={handleRandomPick}
+        disabled={!activeMovie}
+      >
+        <Shuffle size={14} color={colors.textSecondary} strokeWidth={2.2} />
+        <Text style={styles.randomPickText}>Pick One For Me</Text>
+      </Pressable>
     </SafeAreaView>
   );
 };
@@ -455,7 +501,7 @@ const createStyles = (colors, bg) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       height: 40,
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
     },
     remainingBadgeCount: {
       ...typography.title,
@@ -504,6 +550,34 @@ const createStyles = (colors, bg) =>
       flex: 1,
       alignItems: "center",
       justifyContent: "flex-end",
+    },
+    actionsRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: spacing.xl,
+      paddingTop: spacing.md,
+    },
+    actionButton: {
+      width: 60,
+      height: 60,
+      borderRadius: radius.sm,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.card,
+    },
+    randomPickLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "center",
+      gap: 4,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+      padding: spacing.xs,
+    },
+    randomPickText: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     chooseHeading: {
       ...typography.title,

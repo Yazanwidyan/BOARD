@@ -1,9 +1,5 @@
-import { useThemeStore } from '../store/themeStore';
-import { palettes } from './palettes';
+import { colors } from './palettes';
 
-export const useColors = () => {
-  const mode = useThemeStore((state) => state.mode);
-  return palettes[mode];
-};
+export const useColors = () => colors;
 
 export default useColors;

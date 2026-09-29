@@ -1,20 +1,25 @@
-import { useState } from 'react';
+import { useNavigation } from "@react-navigation/native";
+import { CheckCircle, Circle, Clock, Search, X } from "lucide-react-native";
+import { useState } from "react";
 import {
-  Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  CheckCircle, Circle, Clock, Search, X,
-} from 'lucide-react-native';
-import { useColors } from '../theme/useColors';
-import { typography } from '../theme/typography';
-import { radius, spacing } from '../theme/spacing';
-import { BottomSheet } from './BottomSheet';
-import { MoviePoster } from './MoviePoster';
-import { RatingBadge } from './RatingBadge';
-import { MOVIES } from '../data/movies';
-import { useMovieStore } from '../store/movieStore';
-import { useRecentSearchStore } from '../store/recentSearchStore';
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { MOVIES } from "../data/movies";
+import { useMovieStore } from "../store/movieStore";
+import { useRecentSearchStore } from "../store/recentSearchStore";
+import { radius, spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
+import { BottomSheet } from "./BottomSheet";
+import { MoviePoster } from "./MoviePoster";
+import { RatingBadge } from "./RatingBadge";
 
 const RESULTS_LIMIT = 40;
 
@@ -22,7 +27,8 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState('');
+  const navigation = useNavigation();
+  const [query, setQuery] = useState("");
   const watched = useMovieStore((state) => state.watched);
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
   const recentSearches = useRecentSearchStore((state) => state.recentSearches);
@@ -33,17 +39,26 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
 
   const trimmed = query.trim().toLowerCase();
   const results = trimmed
-    ? MOVIES.filter((movie) => movie.title.toLowerCase().includes(trimmed)).slice(0, RESULTS_LIMIT)
+    ? MOVIES.filter((movie) =>
+        movie.title.toLowerCase().includes(trimmed),
+      ).slice(0, RESULTS_LIMIT)
     : [];
 
   const handleClose = () => {
-    setQuery('');
+    setQuery("");
     onClose();
   };
 
   const handleSelectMovie = (movieId) => {
     if (trimmed) addSearch(query);
+    const wasWatched = watchedIds.includes(movieId);
     toggleWatched(movieId);
+    // Only jump to Details when newly marking it watched — un-marking an
+    // already-watched movie from this list should just toggle in place.
+    if (!wasWatched) {
+      handleClose();
+      navigation.navigate("MovieDetails", { movieId });
+    }
   };
 
   return (
@@ -84,15 +99,26 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
                 style={styles.row}
                 onPress={() => handleSelectMovie(movie.id)}
               >
-                <MoviePoster uri={movie.poster} style={styles.rowPoster} />
+                <MoviePoster
+                  uri={movie.poster}
+                  radius={radius.sm}
+                  style={styles.rowPoster}
+                />
                 <View style={styles.rowInfo}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>{movie.title}</Text>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {movie.title}
+                  </Text>
                   <View style={styles.rowMeta}>
                     <Text style={styles.rowYear}>{movie.year}</Text>
                     <RatingBadge rating={movie.rating} size="sm" />
                   </View>
                 </View>
-                <View style={[styles.toggleButton, isWatched && styles.toggleButtonActive]}>
+                <View
+                  style={[
+                    styles.toggleButton,
+                    isWatched && styles.toggleButtonActive,
+                  ]}
+                >
                   {isWatched ? (
                     <CheckCircle size={18} color={colors.textPrimary} />
                   ) : (
@@ -118,7 +144,9 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
           </View>
 
           {recentSearches.length === 0 ? (
-            <Text style={styles.empty}>Your recent searches will appear here.</Text>
+            <Text style={styles.empty}>
+              Your recent searches will appear here.
+            </Text>
           ) : (
             recentSearches.map((term) => (
               <Pressable
@@ -137,106 +165,107 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  title: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    color: colors.textPrimary,
-    ...typography.body,
-  },
-  list: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  rowPoster: {
-    width: 44,
-    aspectRatio: 2 / 3,
-  },
-  rowInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  rowTitle: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-  },
-  rowMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: 2,
-  },
-  rowYear: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  toggleButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundSecondary,
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.surfaceSoft,
-  },
-  empty: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: spacing.xl,
-  },
-  recentHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  recentTitle: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
-  },
-  recentClear: {
-    ...typography.caption,
-    color: colors.textPrimary,
-  },
-  recentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  recentTerm: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    title: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+    },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.md,
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      color: colors.textPrimary,
+      ...typography.body,
+    },
+    list: {
+      flex: 1,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.background,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    rowPoster: {
+      width: 44,
+      aspectRatio: 2 / 3,
+    },
+    rowInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    rowTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    rowMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: 2,
+    },
+    rowYear: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    toggleButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.card,
+    },
+    toggleButtonActive: {
+      backgroundColor: colors.surfaceSoft,
+    },
+    empty: {
+      ...typography.body,
+      color: colors.textMuted,
+      textAlign: "center",
+      paddingVertical: spacing.xl,
+    },
+    recentHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    recentTitle: {
+      ...typography.bodyBold,
+      color: colors.textSecondary,
+    },
+    recentClear: {
+      ...typography.caption,
+      color: colors.textPrimary,
+    },
+    recentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    recentTerm: {
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+  });
 
 export default AddToWatchedSheet;
