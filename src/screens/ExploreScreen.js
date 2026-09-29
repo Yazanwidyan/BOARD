@@ -25,7 +25,7 @@ import { useUserStore } from "../store/userStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { matchesGenres } from "../utils/movieFilters";
+import { formatRuntime, matchesGenres } from "../utils/movieFilters";
 
 const RAIL_COUNT = 10;
 // No real view/watch-count data to rank by, so "trending" is honestly
@@ -50,78 +50,83 @@ const TOP_SCIFI = bestOfGenre("Sci-Fi");
 
 const showAskAiStub = () => Alert.alert("Ask AI", "Coming soon.");
 
-// Flat, hard-edged "2D" shadow — a solid offset block behind the card
-// instead of a soft blurred drop shadow — so the card itself shrinks by
-// this amount to leave room for the block to peek out bottom-right.
-const HERO_SHADOW_OFFSET = 6;
+// Same nested double-card "frame" as the Collections "Continue" card: a
+// darker outer shape with a fixed padding gap, and the lighter card
+// floating inside it — the gap itself is the frame, not a drawn border.
+const HERO_FRAME_PADDING = 4;
 
+// A poster + info panel instead of a full-bleed backdrop with text over
+// it — no photo means no scrim/gradient/shadow juggling to keep the title
+// legible, and it reuses the same rating-badge treatment every other
+// poster in the app already has.
 const Hero = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const { width } = useWindowDimensions();
   const pickedMovieId = useMovieStore((state) => state.pickedMovie);
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
+  const watched = useMovieStore((state) => state.watched);
 
   const pickedMovie = pickedMovieId ? getMovieById(pickedMovieId) : null;
-  const cardWidth = width - spacing.md * 2 - HERO_SHADOW_OFFSET;
-  const heroHeight = cardWidth * 0.75;
 
   if (!pickedMovie) return null;
 
+  const userRating = watched.find(
+    (entry) => entry.movieId === pickedMovie.id,
+  )?.rating;
+
   return (
-    <View
-      style={[
-        styles.heroWrap,
-        { height: heroHeight + HERO_SHADOW_OFFSET },
-      ]}
-    >
-      <View
-        style={[
-          styles.heroShadow,
-          { width: cardWidth, height: heroHeight },
-        ]}
-      />
-      <View style={[styles.hero, { width: cardWidth, height: heroHeight }]}>
-        <MoviePoster
-          uri={pickedMovie.backdrop}
-          radius={0}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <Pressable
-          style={StyleSheet.absoluteFillObject}
-          onPress={() =>
-            navigation.navigate("MovieDetails", { movieId: pickedMovie.id })
-          }
-        >
-          <View style={styles.heroScrim} />
-          <LinearGradient
-            colors={["transparent", "rgba(2, 0, 2, 0.55)", "rgba(2, 0, 2, 0.96)"]}
-            locations={[0, 0.55, 1]}
-            style={styles.heroGradient}
+    <View style={styles.heroFrame}>
+      <Pressable
+        style={styles.hero}
+        onPress={() =>
+          navigation.navigate("MovieDetails", { movieId: pickedMovie.id })
+        }
+      >
+        <View style={styles.heroPosterWrap}>
+          <MoviePoster
+            uri={pickedMovie.poster}
+            radius={radius.md}
+            style={styles.heroPoster}
           />
-          <View style={[styles.heroContent, { paddingBottom: spacing.md }]}>
-            <Text style={styles.heroEyebrow}>TONIGHT&apos;S PICK</Text>
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {pickedMovie.title}
+          <View style={styles.imdbBadge}>
+            <Star size={10} color={colors.rating} fill={colors.rating} />
+            <Text style={styles.imdbBadgeText}>
+              {pickedMovie.rating.toFixed(1)}
             </Text>
-            <View style={styles.heroMetaRow}>
-              <Star size={13} color="#FFFFFF" fill="#FFFFFF" />
-              <Text style={styles.heroMetaText}>
-                {pickedMovie.rating.toFixed(1)} · {pickedMovie.year} ·{" "}
-                {pickedMovie.genres[0]}
+          </View>
+          {userRating != null && (
+            <View style={styles.userRatingBadge}>
+              <Star
+                size={10}
+                color={colors.accentContrast}
+                fill={colors.accentContrast}
+              />
+              <Text style={styles.userRatingBadgeText}>
+                {userRating.toFixed(1)}
               </Text>
             </View>
-            <PrimaryButton
-              label="Mark as Watched"
-              onPress={() => {
-                toggleWatched(pickedMovie.id);
-                navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
-              }}
-              style={styles.heroActionButton}
-            />
-          </View>
-        </Pressable>
-      </View>
+          )}
+        </View>
+        <View style={styles.heroInfo}>
+          <Text style={styles.heroEyebrow}>TONIGHT&apos;S PICK</Text>
+          <Text style={styles.heroTitle} numberOfLines={3}>
+            {pickedMovie.title}
+          </Text>
+          <Text style={styles.heroMetaText} numberOfLines={1}>
+            {pickedMovie.year} · {formatRuntime(pickedMovie.runtime)} ·{" "}
+            {pickedMovie.genres[0]}
+          </Text>
+          <PrimaryButton
+            label="Mark as Watched"
+            dense
+            onPress={() => {
+              toggleWatched(pickedMovie.id);
+              navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
+            }}
+            style={styles.heroActionButton}
+          />
+        </View>
+      </Pressable>
     </View>
   );
 };
@@ -360,65 +365,44 @@ const createStyles = (colors) =>
       ...typography.title,
       color: colors.textPrimary,
     },
-    heroWrap: {
+    heroFrame: {
       marginTop: spacing.md,
       marginHorizontal: spacing.md,
-      position: "relative",
-    },
-    heroShadow: {
-      position: "absolute",
-      top: HERO_SHADOW_OFFSET,
-      left: HERO_SHADOW_OFFSET,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      padding: HERO_FRAME_PADDING,
     },
     hero: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      borderRadius: radius.sm,
-      overflow: "hidden",
-      backgroundColor: colors.card,
-      borderWidth: 2.5,
-      borderColor: colors.border,
-    },
-    heroScrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: "rgba(2, 0, 2, 0.4)",
-    },
-    heroGradient: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: "85%",
-    },
-    heroContent: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
+      flexDirection: "row",
+      gap: spacing.md,
       padding: spacing.md,
-      alignItems: "flex-start",
+      borderRadius: radius.lg,
+      overflow: "hidden",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    heroPosterWrap: {
+      width: 108,
+    },
+    heroPoster: {
+      width: 108,
+      aspectRatio: 2 / 3,
+    },
+    heroInfo: {
+      flex: 1,
+      justifyContent: "center",
+      gap: 4,
     },
     heroEyebrow: {
       ...typography.label,
-      color: "rgba(255, 255, 255, 0.85)",
+      color: colors.accentLight,
     },
     heroTitle: {
-      ...typography.display,
-      color: "#FFFFFF",
-      marginTop: 4,
-    },
-    heroMetaRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      marginTop: spacing.sm,
+      ...typography.title,
+      color: colors.textPrimary,
     },
     heroMetaText: {
-      ...typography.bodyBold,
-      color: "#FFFFFF",
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     heroActionButton: {
       alignSelf: "flex-start",
