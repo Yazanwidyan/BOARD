@@ -8,18 +8,70 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Clapperboard } from 'lucide-react-native';
+import { CompassIcon, HomeIcon, LayersIcon } from '../components/icons/TabIcons';
+import { RankGemIcon } from '../components/icons/RankGemIcon';
 import { useColors } from '../theme/useColors';
 import { typography } from '../theme/typography';
-import { spacing } from '../theme/spacing';
+import { radius, spacing } from '../theme/spacing';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useUserStore } from '../store/userStore';
 
+// Four slides walk through BOARD's actual loop — discover, watch, build
+// progress through collections and challenges, level up — instead of the
+// old generic "swipe through movies" pitch. Rank is shown via the real
+// RankGemIcon (its own multi-tone faceted color) rather than the flat
+// single-color badge the other three slides use, since forcing it into a
+// solid accent circle would just look like a broken version of the icon
+// that already represents rank everywhere else in the app.
 const SLIDES = [
-  { title: 'Stop scrolling.' },
-  { title: 'Swipe through great movies.' },
-  { title: 'Find something worth watching.' },
+  {
+    key: 'welcome',
+    Icon: HomeIcon,
+    title: "Bored? Let's fix that.",
+    subtitle: 'BOARD turns deciding what to watch into a game.',
+  },
+  {
+    key: 'discover',
+    Icon: CompassIcon,
+    title: "Discover what's next.",
+    subtitle:
+      'Track everything you watch, rate it, and keep a running watchlist.',
+  },
+  {
+    key: 'progress',
+    Icon: LayersIcon,
+    title: 'Turn watching into a game.',
+    subtitle:
+      'Unlock collections, complete challenges, and earn XP for every movie.',
+  },
+  {
+    key: 'rank',
+    isRank: true,
+    title: 'Level up. Rank up.',
+    subtitle: 'Climb from Rookie all the way to Master as you go.',
+  },
 ];
+
+const SlideIcon = ({ slide, colors, styles }) => {
+  if (slide.isRank) {
+    return (
+      <View style={styles.iconGlow}>
+        <View style={styles.iconBadgeNeutral}>
+          <RankGemIcon size={56} color={colors.accent} />
+        </View>
+      </View>
+    );
+  }
+
+  const { Icon } = slide;
+  return (
+    <View style={styles.iconGlow}>
+      <View style={styles.iconBadge}>
+        <Icon size={40} color={colors.accentContrast} />
+      </View>
+    </View>
+  );
+};
 
 export const OnboardingScreen = () => {
   const colors = useColors();
@@ -66,9 +118,10 @@ export const OnboardingScreen = () => {
         style={styles.scroll}
       >
         {SLIDES.map((slide) => (
-          <View key={slide.title} style={[styles.slide, { width }]}>
-            <Clapperboard size={56} color={colors.textPrimary} strokeWidth={1.5} />
+          <View key={slide.key} style={[styles.slide, { width }]}>
+            <SlideIcon slide={slide} colors={colors} styles={styles} />
             <Text style={styles.title}>{slide.title}</Text>
+            <Text style={styles.subtitle}>{slide.subtitle}</Text>
           </View>
         ))}
       </ScrollView>
@@ -77,7 +130,7 @@ export const OnboardingScreen = () => {
         <View style={styles.dots}>
           {SLIDES.map((slide, index) => (
             <View
-              key={slide.title}
+              key={slide.key}
               style={[styles.dot, index === pageIndex && styles.dotActive]}
             />
           ))}
@@ -90,6 +143,9 @@ export const OnboardingScreen = () => {
     </SafeAreaView>
   );
 };
+
+const ICON_BADGE_SIZE = 96;
+const ICON_GLOW_SIZE = 148;
 
 const createStyles = (colors) => StyleSheet.create({
   container: {
@@ -116,10 +172,44 @@ const createStyles = (colors) => StyleSheet.create({
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
   },
+  iconGlow: {
+    width: ICON_GLOW_SIZE,
+    height: ICON_GLOW_SIZE,
+    borderRadius: ICON_GLOW_SIZE / 2,
+    backgroundColor: colors.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  iconBadge: {
+    width: ICON_BADGE_SIZE,
+    height: ICON_BADGE_SIZE,
+    borderRadius: ICON_BADGE_SIZE / 2,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBadgeNeutral: {
+    width: ICON_BADGE_SIZE,
+    height: ICON_BADGE_SIZE,
+    borderRadius: ICON_BADGE_SIZE / 2,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     ...typography.hero,
     color: colors.textPrimary,
     textAlign: 'center',
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: spacing.md,
   },
   footer: {
     paddingHorizontal: spacing.xl,
@@ -138,7 +228,7 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.border,
   },
   dotActive: {
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.accent,
     width: 20,
   },
 });

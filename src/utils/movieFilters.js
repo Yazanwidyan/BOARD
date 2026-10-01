@@ -52,3 +52,12 @@ export const formatRuntime = (minutes) => {
 };
 
 export const formatGenres = (genres) => genres.join(' · ');
+
+// `bucketList` entries are `{ movieId, addedAt }` — this is the one place
+// that knows that shape, so screens just ask "is this id in there" without
+// re-deriving the id list themselves.
+export const isInBucketList = (bucketList, movieId) => (
+  bucketList.some((entry) => entry.movieId === movieId)
+);
+
+export const bucketListIds = (bucketList) => bucketList.map((entry) => entry.movieId);

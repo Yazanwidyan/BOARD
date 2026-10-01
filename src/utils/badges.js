@@ -43,6 +43,24 @@ const COLLECTION_TIERS = [
   { id: 'master-curator', label: 'Master Curator', threshold: 20 },
 ];
 
+// Completed challenges — a different axis of engagement than raw watch
+// volume: taking on and finishing what BOARD suggests, not just watching.
+const CHALLENGE_TIERS = [
+  { id: 'challenge-accepted', label: 'Challenge Accepted', threshold: 1 },
+  { id: 'challenge-hunter', label: 'Challenge Hunter', threshold: 25 },
+  { id: 'challenge-master', label: 'Challenge Master', threshold: 100 },
+];
+
+// Counts DISTINCT movies rewatched at least once, not total rewatch volume
+// — rewarding breadth ("how many different movies you loved enough to
+// watch again") rather than letting one endlessly-rewatched favorite climb
+// the ladder alone.
+const REWATCH_TIERS = [
+  { id: 'rewatcher', label: 'Rewatcher', threshold: 1 },
+  { id: 'comfort-viewer', label: 'Comfort Viewer', threshold: 10 },
+  { id: 'devoted-fan', label: 'Devoted Fan', threshold: 25 },
+];
+
 // A few specific franchise collections get their own named badge on top of
 // the generic ladder above — a nicer payoff for finishing something
 // specific ("Middle-earth Complete") than just another number ticking up.
@@ -81,6 +99,8 @@ export const getBadges = ({
   ratedCount,
   queuedCount,
   completedCollectionsCount,
+  completedChallengesCount = 0,
+  rewatchedCount = 0,
   watchedIds,
 }) => ([
   ...buildTierBadges(WATCHED_TIERS, 'watched', watchedCount),
@@ -94,7 +114,38 @@ export const getBadges = ({
     earned: queuedCount >= 10,
   },
   ...buildTierBadges(COLLECTION_TIERS, 'collections', completedCollectionsCount),
+  ...buildTierBadges(CHALLENGE_TIERS, 'challenges', completedChallengesCount),
+  ...buildTierBadges(REWATCH_TIERS, 'watched', rewatchedCount),
   ...buildMarqueeBadges(watchedIds),
 ]);
+
+// Which badges flipped from unearned to earned between two snapshots of
+// the same params shape getBadges() takes — the one thing that makes "you
+// just earned this" a knowable moment even though badges themselves are
+// pure derived booleans with no earned-at timestamp. Callers snapshot
+// params right before and right after whatever action might move a count
+// (a watch, a rating, a challenge completing).
+export const getNewlyEarnedBadges = (beforeParams, afterParams) => {
+  const before = getBadges(beforeParams);
+  const after = getBadges(afterParams);
+  const earnedBefore = new Set(
+    before.filter((badge) => badge.earned).map((badge) => badge.id),
+  );
+  return after.filter(
+    (badge) => badge.earned && !earnedBefore.has(badge.id),
+  );
+};
+
+// No earn-timestamp is tracked (badges are pure derived booleans, same as
+// everything else here), so "latest" is approximated as the single most
+// demanding badge currently earned — a reasonable stand-in, not a claim
+// about exactly when it was unlocked.
+export const getLatestBadge = (badges) => {
+  const earned = badges.filter((badge) => badge.earned);
+  if (earned.length === 0) return null;
+  return earned.reduce((best, badge) => (
+    badge.threshold > best.threshold ? badge : best
+  ));
+};
 
 export default getBadges;

@@ -12,7 +12,7 @@ export const useProfileStore = create(
       setBio: (bio) => set({ bio: bio.trim().slice(0, 140) }),
     }),
     {
-      name: 'urwatch:profile-store',
+      name: 'board:profile-store',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

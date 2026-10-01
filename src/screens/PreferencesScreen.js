@@ -20,7 +20,7 @@ import { useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { DECADE_RANGES, RUNTIME_RANGES } from "../utils/movieFilters";
+import { DECADE_RANGES, RUNTIME_RANGES, bucketListIds } from "../utils/movieFilters";
 
 const GENRES = [
   "Action",
@@ -164,7 +164,7 @@ export const PreferencesScreen = ({ navigation }) => {
       const movies = generateRecommendations(
         preferences,
         SWIPE_SIZE,
-        bucketList,
+        bucketListIds(bucketList),
       );
       startSession(movies);
       navigation.replace("Swipe");

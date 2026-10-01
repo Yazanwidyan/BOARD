@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const STORAGE_KEYS = {
-  ONBOARDING: 'urwatch:onboarding',
-  PREFERENCES: 'urwatch:preferences',
-  MOVIE_STORE: 'urwatch:movie-store',
-  SESSION_STORE: 'urwatch:session-store',
+  ONBOARDING: "board:onboarding",
+  PREFERENCES: "board:preferences",
+  MOVIE_STORE: "board:movie-store",
+  SESSION_STORE: "board:session-store",
 };
 
 export const loadJSON = async (key, fallback = null) => {

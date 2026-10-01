@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "URWatch",
-    "slug": "URWatch",
+    "name": "BOARD",
+    "slug": "BOARD",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.anonymous.URWatch"
+      "package": "com.anonymous.board"
     },
     "web": {
       "favicon": "./assets/favicon.png"

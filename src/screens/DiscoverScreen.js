@@ -1,8 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Sparkles, Star } from "lucide-react-native";
+import { Search, Star } from "lucide-react-native";
 import { useRef } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,7 +15,6 @@ import {
 } from "react-native-safe-area-context";
 
 import { MoviePoster } from "../components/MoviePoster";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { MOVIES, getMovieById } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
@@ -25,7 +23,7 @@ import { useUserStore } from "../store/userStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { formatRuntime, matchesGenres } from "../utils/movieFilters";
+import { matchesGenres } from "../utils/movieFilters";
 
 const RAIL_COUNT = 10;
 // No real view/watch-count data to rank by, so "trending" is honestly
@@ -47,89 +45,6 @@ const bestOfGenre = (genre) =>
     .slice(0, RAIL_COUNT);
 const TOP_DRAMA = bestOfGenre("Drama");
 const TOP_SCIFI = bestOfGenre("Sci-Fi");
-
-const showAskAiStub = () => Alert.alert("Ask AI", "Coming soon.");
-
-// Same nested double-card "frame" as the Collections "Continue" card: a
-// darker outer shape with a fixed padding gap, and the lighter card
-// floating inside it — the gap itself is the frame, not a drawn border.
-const HERO_FRAME_PADDING = 4;
-
-// A poster + info panel instead of a full-bleed backdrop with text over
-// it — no photo means no scrim/gradient/shadow juggling to keep the title
-// legible, and it reuses the same rating-badge treatment every other
-// poster in the app already has.
-const Hero = ({ navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const pickedMovieId = useMovieStore((state) => state.pickedMovie);
-  const toggleWatched = useMovieStore((state) => state.toggleWatched);
-  const watched = useMovieStore((state) => state.watched);
-
-  const pickedMovie = pickedMovieId ? getMovieById(pickedMovieId) : null;
-
-  if (!pickedMovie) return null;
-
-  const userRating = watched.find(
-    (entry) => entry.movieId === pickedMovie.id,
-  )?.rating;
-
-  return (
-    <View style={styles.heroFrame}>
-      <Pressable
-        style={styles.hero}
-        onPress={() =>
-          navigation.navigate("MovieDetails", { movieId: pickedMovie.id })
-        }
-      >
-        <View style={styles.heroPosterWrap}>
-          <MoviePoster
-            uri={pickedMovie.poster}
-            radius={radius.md}
-            style={styles.heroPoster}
-          />
-          <View style={styles.imdbBadge}>
-            <Star size={10} color={colors.rating} fill={colors.rating} />
-            <Text style={styles.imdbBadgeText}>
-              {pickedMovie.rating.toFixed(1)}
-            </Text>
-          </View>
-          {userRating != null && (
-            <View style={styles.userRatingBadge}>
-              <Star
-                size={10}
-                color={colors.accentContrast}
-                fill={colors.accentContrast}
-              />
-              <Text style={styles.userRatingBadgeText}>
-                {userRating.toFixed(1)}
-              </Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.heroInfo}>
-          <Text style={styles.heroEyebrow}>TONIGHT&apos;S PICK</Text>
-          <Text style={styles.heroTitle} numberOfLines={3}>
-            {pickedMovie.title}
-          </Text>
-          <Text style={styles.heroMetaText} numberOfLines={1}>
-            {pickedMovie.year} · {formatRuntime(pickedMovie.runtime)} ·{" "}
-            {pickedMovie.genres[0]}
-          </Text>
-          <PrimaryButton
-            label="Mark as Watched"
-            dense
-            onPress={() => {
-              toggleWatched(pickedMovie.id);
-              navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
-            }}
-            style={styles.heroActionButton}
-          />
-        </View>
-      </Pressable>
-    </View>
-  );
-};
 
 const TRENDING_CARD_RATIO = 0.78;
 const TRENDING_GAP = spacing.sm;
@@ -226,7 +141,7 @@ const TrendingSection = ({ movies, navigation }) => {
   );
 };
 
-const ExploreRail = ({ title, movies, navigation }) => {
+const DiscoverRail = ({ title, movies, navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const watched = useMovieStore((state) => state.watched);
@@ -285,7 +200,37 @@ const ExploreRail = ({ title, movies, navigation }) => {
   );
 };
 
-export const ExploreScreen = ({ navigation }) => {
+// The most recently watched movie's top genre, minus anything already seen
+// — a light, honest "because you watched X" personalization, not a real
+// recommendation engine.
+const BecauseYouWatched = ({ navigation }) => {
+  const watched = useMovieStore((state) => state.watched);
+  if (watched.length === 0) return null;
+
+  const recentMovie = getMovieById(watched[0].movieId);
+  if (!recentMovie) return null;
+
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const genre = recentMovie.genres[0];
+  const related = MOVIES.filter(
+    (movie) => movie.id !== recentMovie.id
+      && !watchedIds.has(movie.id)
+      && movie.genres.includes(genre),
+  )
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, RAIL_COUNT);
+  if (related.length === 0) return null;
+
+  return (
+    <DiscoverRail
+      title={`Because you watched ${recentMovie.title}`}
+      movies={related}
+      navigation={navigation}
+    />
+  );
+};
+
+export const DiscoverScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -294,7 +239,7 @@ export const ExploreScreen = ({ navigation }) => {
   const preferences = useUserStore((state) => state.preferences);
 
   const seenIds = new Set([
-    ...bucketList,
+    ...bucketList.map((entry) => entry.movieId),
     ...watched.map((entry) => entry.movieId),
   ]);
   const recommended = generateRecommendations(preferences, RAIL_COUNT).filter(
@@ -304,10 +249,13 @@ export const ExploreScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <View style={{ width: 40 }} />
-        <Text style={styles.title}>Explore</Text>
-        <Pressable style={styles.heroIconButton} onPress={showAskAiStub}>
-          <Sparkles size={18} color="#FFFFFF" strokeWidth={2.2} />
+        <Text style={styles.title}>Discover</Text>
+        <Pressable
+          style={styles.searchButton}
+          onPress={() => navigation.navigate("Search")}
+          hitSlop={8}
+        >
+          <Search size={18} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
       </View>
       <ScrollView
@@ -316,25 +264,24 @@ export const ExploreScreen = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Hero navigation={navigation} />
-
         <TrendingSection movies={TRENDING} navigation={navigation} />
-        <ExploreRail
+        <BecauseYouWatched navigation={navigation} />
+        <DiscoverRail
           title="Top Rated"
           movies={TOP_RATED}
           navigation={navigation}
         />
-        <ExploreRail
+        <DiscoverRail
           title="Recommended For You"
           movies={recommended}
           navigation={navigation}
         />
-        <ExploreRail
+        <DiscoverRail
           title="Best of Drama"
           movies={TOP_DRAMA}
           navigation={navigation}
         />
-        <ExploreRail
+        <DiscoverRail
           title="Best of Sci-Fi"
           movies={TOP_SCIFI}
           navigation={navigation}
@@ -365,58 +312,13 @@ const createStyles = (colors) =>
       ...typography.title,
       color: colors.textPrimary,
     },
-    heroFrame: {
-      marginTop: spacing.md,
-      marginHorizontal: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: radius.lg,
-      padding: HERO_FRAME_PADDING,
-    },
-    hero: {
-      flexDirection: "row",
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radius.lg,
-      overflow: "hidden",
-      backgroundColor: colors.cardElevatedLight,
-    },
-    heroPosterWrap: {
-      width: 108,
-    },
-    heroPoster: {
-      width: 108,
-      aspectRatio: 2 / 3,
-    },
-    heroInfo: {
-      flex: 1,
-      justifyContent: "center",
-      gap: 4,
-    },
-    heroEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
-    },
-    heroTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    heroMetaText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    heroActionButton: {
-      alignSelf: "flex-start",
-      marginTop: spacing.md,
-    },
-    heroIconButton: {
-      width: 40,
-      height: 40,
-      borderRadius: radius.md,
+    searchButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.cardElevated,
-      borderWidth: 1,
-      borderColor: colors.border,
+      backgroundColor: colors.cardElevatedLight,
     },
     rail: {
       marginTop: spacing.xl,
@@ -518,4 +420,4 @@ const createStyles = (colors) =>
     },
   });
 
-export default ExploreScreen;
+export default DiscoverScreen;

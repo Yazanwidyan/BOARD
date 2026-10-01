@@ -17,7 +17,7 @@ const PLACEHOLDER_POSTERS = [
 
 const buildPoster = (index) =>
   PLACEHOLDER_POSTERS[index % PLACEHOLDER_POSTERS.length];
-const buildBackdrop = (seed) => `${IMAGE_BASE_URL}/urwatch-${seed}-bg/1280/720`;
+const buildBackdrop = (seed) => `${IMAGE_BASE_URL}/board-${seed}-bg/1280/720`;
 
 // [title, year, runtimeMinutes, director, genres[], description]
 const RAW_MOVIES = [

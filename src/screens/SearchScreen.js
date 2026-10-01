@@ -22,6 +22,8 @@ import { useMovieStore } from "../store/movieStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
+import { isInBucketList } from "../utils/movieFilters";
 
 const RESULTS_LIMIT = 60;
 
@@ -57,7 +59,6 @@ export const SearchScreen = ({ navigation }) => {
   const [pasteText, setPasteText] = useState("");
   const [pasteResult, setPasteResult] = useState(null);
   const bucketList = useMovieStore((state) => state.bucketList);
-  const toggleBucketList = useMovieStore((state) => state.toggleBucketList);
 
   const trimmed = query.trim().toLowerCase();
   const results = useMemo(() => {
@@ -74,8 +75,8 @@ export const SearchScreen = ({ navigation }) => {
   const handleAddMatched = () => {
     if (!pasteResult) return;
     pasteResult.matched
-      .filter((movie) => !bucketList.includes(movie.id))
-      .forEach((movie) => toggleBucketList(movie.id));
+      .filter((movie) => !isInBucketList(bucketList, movie.id))
+      .forEach((movie) => toggleBucketListWithFeedback(movie.id));
     setPasteMode(false);
     setPasteText("");
     setPasteResult(null);
@@ -131,8 +132,8 @@ export const SearchScreen = ({ navigation }) => {
             renderItem={({ item }) => (
               <MovieListRow
                 movie={item}
-                inQueue={bucketList.includes(item.id)}
-                onToggleQueue={() => toggleBucketList(item.id)}
+                inQueue={isInBucketList(bucketList, item.id)}
+                onToggleQueue={() => toggleBucketListWithFeedback(item.id)}
                 onPress={() =>
                   navigation.navigate("MovieDetails", { movieId: item.id })
                 }

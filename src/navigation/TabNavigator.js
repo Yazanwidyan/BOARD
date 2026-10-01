@@ -1,80 +1,65 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   CompassIcon,
-  LayersIcon,
+  HomeIcon,
   LibraryIcon,
-  SearchAltIcon,
-  ShuffleIcon,
+  TargetIcon,
   UserIcon,
 } from "../components/icons/TabIcons";
-import { CollectionsScreen } from "../screens/CollectionsScreen";
 import { DecideScreen } from "../screens/DecideScreen";
-import { ExploreScreen } from "../screens/ExploreScreen";
+import { DiscoverScreen } from "../screens/DiscoverScreen";
+import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { TAB_BAR_BOTTOM_OFFSET, radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
-
-// Side margin the floating row keeps from the screen edges.
-const TAB_BAR_MARGIN = spacing.md;
-const SEARCH_BUTTON_SIZE = 52;
 
 const Tab = createBottomTabNavigator();
 
+// Deliberately plain — five equal, identically-styled tabs. No blur, no
+// raised badge, no gradients: just an icon, a label, and a color change on
+// the active one. Decide holds Swipe, Spin, and Challenges together — all
+// three are "I don't know what to watch, decide for me," just with
+// different textures — instead of Swipe/Spin being secondary cards buried
+// on Home. Library holds Watched, Watchlist, and Collections as three tabs
+// on one screen — neither gets its own bottom-tab slot anymore.
 const ICONS = {
-  Explore: CompassIcon,
-  Decide: ShuffleIcon,
-  Collections: LayersIcon,
+  Home: HomeIcon,
+  Discover: CompassIcon,
+  Decide: TargetIcon,
   Library: LibraryIcon,
   Profile: UserIcon,
 };
+const LABELS = {
+  Home: "Home",
+  Discover: "Discover",
+  Decide: "Decide",
+  Library: "Library",
+  Profile: "Profile",
+};
 
-const TabBarItem = ({ isFocused, IconComponent, styles, onPress }) => {
-  const progress = useSharedValue(isFocused ? 1 : 0);
-
-  useEffect(() => {
-    progress.value = withSpring(isFocused ? 1 : 0, {
-      damping: 16,
-      stiffness: 220,
-    });
-  }, [isFocused, progress]);
-
-  const contentStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      progress.value,
-      [0, 1],
-      ["rgba(0, 0, 0, 0)", "#000000"],
-    ),
-    transform: [{ scale: 1 + progress.value * 0.06 }],
-  }));
+const TabBarItem = ({ route, isFocused, styles, colors, onPress }) => {
+  const IconComponent = ICONS[route.name];
+  const color = isFocused ? colors.accentLight : colors.textMuted;
 
   return (
     <Pressable style={styles.item} onPress={onPress}>
-      <Animated.View style={[styles.itemContent, contentStyle]}>
-        <IconComponent size={20} color={isFocused ? "#FFFFFF" : "#000000"} />
-      </Animated.View>
+      <IconComponent size={22} color={color} />
+      <Text numberOfLines={1} style={[styles.label, { color }]}>
+        {LABELS[route.name]}
+      </Text>
     </Pressable>
   );
 };
 
-const FloatingTabBar = ({ state, navigation, onSearchPress }) => {
+const BottomTabBar = ({ state, navigation }) => {
   const colors = useColors();
-  const styles = createStyles(colors);
-
-  const handleSearchPress = () => {
-    Haptics.selectionAsync();
-    onSearchPress();
-  };
+  const insets = useSafeAreaInsets();
+  const styles = createStyles(colors, insets);
 
   const selectIndex = (index) => {
     const route = state.routes[index];
@@ -90,127 +75,56 @@ const FloatingTabBar = ({ state, navigation, onSearchPress }) => {
   };
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.row}>
-        <View style={styles.barShadowWrap}>
-          <View style={styles.bar}>
-            {state.routes.map((route, index) => {
-              const isFocused = state.index === index;
-              const IconComponent = ICONS[route.name];
-
-              return (
-                <TabBarItem
-                  key={route.key}
-                  isFocused={isFocused}
-                  IconComponent={IconComponent}
-                  styles={styles}
-                  onPress={() => selectIndex(index)}
-                />
-              );
-            })}
-          </View>
-        </View>
-
-        <Pressable onPress={handleSearchPress} style={styles.searchButtonWrap}>
-          <View style={styles.searchButton}>
-            <SearchAltIcon size={20} color="#000000" />
-          </View>
-        </Pressable>
-      </View>
+    <View style={styles.container}>
+      {state.routes.map((route, index) => (
+        <TabBarItem
+          key={route.key}
+          route={route}
+          isFocused={state.index === index}
+          styles={styles}
+          colors={colors}
+          onPress={() => selectIndex(index)}
+        />
+      ))}
     </View>
   );
 };
 
-export const TabNavigator = ({ navigation }) => (
+export const TabNavigator = () => (
   <Tab.Navigator
-    // "fade" instead of "shift" — with drag-through selection, a fast swipe
-    // fires navigate() for every tab it crosses, and "shift"'s sliding
-    // transition per intermediate stop is what read as flicker. "fade" is
-    // the only other built-in option besides "none" for @react-navigation/
-    // bottom-tabs, so it's this or no animation at all.
     screenOptions={{ headerShown: false, animation: "fade" }}
-    tabBar={(props) => (
-      <FloatingTabBar
-        {...props}
-        onSearchPress={() => navigation.navigate("Search")}
-      />
-    )}
+    tabBar={(props) => <BottomTabBar {...props} />}
   >
-    <Tab.Screen name="Explore" component={ExploreScreen} />
+    <Tab.Screen name="Home" component={HomeScreen} />
+    <Tab.Screen name="Discover" component={DiscoverScreen} />
     <Tab.Screen name="Decide" component={DecideScreen} />
-    <Tab.Screen name="Collections" component={CollectionsScreen} />
     <Tab.Screen name="Library" component={LibraryScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
 );
 
-const createStyles = (colors) =>
+const createStyles = (colors, insets) =>
   StyleSheet.create({
     container: {
       position: "absolute",
       left: 0,
       right: 0,
-      bottom: TAB_BAR_BOTTOM_OFFSET,
-    },
-    row: {
+      bottom: 0,
       flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "center",
-      marginHorizontal: TAB_BAR_MARGIN,
-      gap: spacing.sm,
-    },
-    // Shadows and `overflow: hidden` (needed to clip the blur to the pill
-    // shape) fight each other on iOS, so the shadow lives on this
-    // non-clipping wrapper and the blur/radius lives on the child below.
-    barShadowWrap: {
-      shadowColor: "#000000",
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4,
-      shadowRadius: 20,
-      elevation: 10,
-    },
-    bar: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xs,
-      backgroundColor: "#FFFFFF",
-      borderRadius: radius.sm,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: "rgba(2, 0, 2, 0.1)",
-      paddingHorizontal: 3,
-      paddingVertical: 3,
+      backgroundColor: colors.card,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: spacing.sm,
+      paddingBottom: insets.bottom + spacing.xs,
     },
     item: {
+      flex: 1,
       alignItems: "center",
-      justifyContent: "center",
+      gap: 4,
     },
-    itemContent: {
-      width: 54,
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.sm,
-    },
-    searchButtonWrap: {
-      width: SEARCH_BUTTON_SIZE,
-      height: SEARCH_BUTTON_SIZE,
-      shadowColor: "#000000",
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4,
-      shadowRadius: 20,
-      elevation: 10,
-    },
-    searchButton: {
-      width: "100%",
-      height: "100%",
-      backgroundColor: "#FFFFFF",
-      borderRadius: radius.sm,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: "rgba(2, 0, 2, 0.1)",
-      alignItems: "center",
-      justifyContent: "center",
+    label: {
+      fontSize: 11,
+      fontWeight: "600",
     },
   });
 

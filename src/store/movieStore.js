@@ -5,16 +5,34 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const useMovieStore = create(
   persist(
     (set) => ({
-      bucketList: [], // manually curated "want to watch someday"
+      bucketList: [], // manually curated "want to watch someday" — [{ movieId, addedAt }]
       pickedMovie: null, // single movie id — approved after a pick session
-      watched: [], // [{ movieId, timestamp, rating: 0.5-5 in 0.5 steps | null }]
+      // [{ movieId, timestamp, rating: 0.5-5 in 0.5 steps | null, watchCount }]
+      // One entry per movie, never duplicated — a rewatch bumps watchCount
+      // and timestamp on the same entry rather than adding a second one, so
+      // every existing "one entry per movie" assumption elsewhere (badges,
+      // XP, collections, the Library grid's keying by movie id) keeps
+      // working untouched. watchCount is absent on entries created before
+      // this existed; every reader treats that as 1 via `?? 1`.
+      watched: [],
+      // Collection ids the user explicitly chose to track from the "See
+      // All Collections" browser, before having watched anything in them —
+      // a manual opt-in layered on top of the automatic "you've watched
+      // something in it" unlock, same OR relationship as a watchlist pick.
+      unlockedCollections: [],
+
+      toggleUnlockedCollection: (collectionId) => set((state) => ({
+        unlockedCollections: state.unlockedCollections.includes(collectionId)
+          ? state.unlockedCollections.filter((id) => id !== collectionId)
+          : [...state.unlockedCollections, collectionId],
+      })),
 
       toggleBucketList: (movieId) => set((state) => {
-        const isInList = state.bucketList.includes(movieId);
+        const isInList = state.bucketList.some((entry) => entry.movieId === movieId);
         return {
           bucketList: isInList
-            ? state.bucketList.filter((id) => id !== movieId)
-            : [...state.bucketList, movieId],
+            ? state.bucketList.filter((entry) => entry.movieId !== movieId)
+            : [...state.bucketList, { movieId, addedAt: Date.now() }],
         };
       }),
 
@@ -33,8 +51,11 @@ export const useMovieStore = create(
           return { watched: state.watched.filter((entry) => entry.movieId !== movieId) };
         }
         return {
-          watched: [{ movieId, timestamp: Date.now(), rating: null }, ...state.watched],
-          bucketList: state.bucketList.filter((id) => id !== movieId),
+          watched: [
+            { movieId, timestamp: Date.now(), rating: null, watchCount: 1 },
+            ...state.watched,
+          ],
+          bucketList: state.bucketList.filter((entry) => entry.movieId !== movieId),
           pickedMovie: state.pickedMovie === movieId ? null : state.pickedMovie,
         };
       }),
@@ -45,12 +66,33 @@ export const useMovieStore = create(
         )),
       })),
 
+      // Distinct from toggleWatched on purpose — a rewatch of something
+      // already watched, not a re-mark. Bumps timestamp to now too, so it
+      // surfaces in "Recently Watched" the same way a first watch would;
+      // you just watched it again, that's genuinely recent activity.
+      rewatchMovie: (movieId) => set((state) => {
+        const existing = state.watched.find((entry) => entry.movieId === movieId);
+        if (!existing) return {};
+        const updated = {
+          ...existing,
+          watchCount: (existing.watchCount ?? 1) + 1,
+          timestamp: Date.now(),
+        };
+        return {
+          watched: [
+            updated,
+            ...state.watched.filter((entry) => entry.movieId !== movieId),
+          ],
+        };
+      }),
+
       clearBucketList: () => set({ bucketList: [] }),
       clearPickedMovie: () => set({ pickedMovie: null }),
       clearWatched: () => set({ watched: [] }),
+      clearUnlockedCollections: () => set({ unlockedCollections: [] }),
     }),
     {
-      name: 'urwatch:movie-store',
+      name: 'board:movie-store',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

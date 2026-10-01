@@ -15,12 +15,12 @@ export const radius = {
   pill: 999,
 };
 
-// The bottom tab bar floats above content (position: absolute) and is now
-// translucent, so screens only need enough clearance to keep buttons out of
-// its touch zone — the last bit of scrollable content is meant to peek up
-// behind the bar and show through it, not stop short of it entirely.
-export const TAB_BAR_HEIGHT = 74;
-export const TAB_BAR_BOTTOM_OFFSET = 27;
+// The bottom tab bar is a plain, flush full-width row (its own safe-area
+// padding is added inside the bar itself) — screens just need enough
+// scroll clearance to clear its content height so the last item isn't
+// hidden behind it.
+export const TAB_BAR_HEIGHT = 52;
+export const TAB_BAR_BOTTOM_OFFSET = 0;
 export const TAB_BAR_CLEARANCE = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 
 export default spacing;

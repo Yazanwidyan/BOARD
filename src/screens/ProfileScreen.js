@@ -1,6 +1,7 @@
 import {
   Award,
   Bell,
+  Bookmark,
   CheckCircle,
   Plus,
   Settings as SettingsIcon,
@@ -10,7 +11,7 @@ import {
   X,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -28,9 +29,12 @@ import {
 } from "react-native-safe-area-context";
 
 import { BottomSheet } from "../components/BottomSheet";
+import { LayersIcon, TargetIcon } from "../components/icons/TabIcons";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
+import { LevelRankCard } from "../components/LevelRankCard";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
@@ -38,14 +42,19 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getBadges } from "../utils/badges";
 import { getCompletedCollectionsCount } from "../utils/collections";
+import { TIERS, getRank } from "../utils/league";
 import {
-  COLLECTION_POINTS,
-  QUEUED_POINTS,
-  RATED_POINTS,
-  TIERS,
-  WATCHED_POINTS,
-  getLeagueRank,
-} from "../utils/league";
+  BADGE_XP,
+  COLLECTION_XP,
+  RATE_XP,
+  REWATCH_XP,
+  WATCH_XP,
+  getChallengeXP,
+  getCompletedChallengesCount,
+  getLevel,
+  getRewatchXP,
+  getUserXP,
+} from "../utils/xp";
 
 const BIO_MAX_LENGTH = 140;
 
@@ -54,6 +63,7 @@ const BADGE_SECTIONS = [
   { category: "critic", title: "Critic" },
   { category: "watchlist", title: "Watchlist" },
   { category: "collections", title: "Collections" },
+  { category: "challenges", title: "Challenges" },
 ];
 
 const showAddFriendsStub = () => Alert.alert("Add Friends", "Coming soon.");
@@ -84,7 +94,7 @@ const BadgeRow = ({ badge, colors, styles }) => (
   </View>
 );
 
-export const ProfileScreen = ({ navigation }) => {
+export const ProfileScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -93,35 +103,53 @@ export const ProfileScreen = ({ navigation }) => {
   const [isBadgesSheetOpen, setIsBadgesSheetOpen] = useState(false);
   const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
 
-  const bucketListIds = useMovieStore((state) => state.bucketList);
+  // "View Details" on the watched/challenge XP alert deep-links straight
+  // into this sheet instead of just landing on the plain profile page.
+  useEffect(() => {
+    if (route?.params?.openLeagueSheet) {
+      setIsLeagueSheetOpen(true);
+      navigation.setParams({ openLeagueSheet: undefined });
+    }
+  }, [route?.params?.openLeagueSheet, navigation]);
+
+  const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const setBio = useProfileStore((state) => state.setBio);
+  const challengeHistory = useChallengeStore((state) => state.history);
 
-  const queuedCount = bucketListIds.length;
+  const queuedCount = bucketListEntries.length;
   const watchedCount = watched.length;
   const ratedCount = watched.filter((entry) => entry.rating != null).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
+  const completedChallengesCount = getCompletedChallengesCount(challengeHistory);
+  const rewatchedCount = watched.filter((entry) => (entry.watchCount ?? 1) > 1).length;
   const badges = getBadges({
     watchedCount,
     ratedCount,
     queuedCount,
     completedCollectionsCount,
+    completedChallengesCount,
+    rewatchedCount,
     watchedIds,
   });
   const earnedBadgeCount = badges.filter((badge) => badge.earned).length;
-  const rank = getLeagueRank({
+  const xp = getUserXP({
     watchedCount,
     ratedCount,
-    queuedCount,
+    challengeXP: getChallengeXP(challengeHistory),
+    rewatchXP: getRewatchXP(watched),
     completedCollectionsCount,
+    earnedBadgeCount,
   });
+  const rank = getRank(xp);
+  const level = getLevel(xp);
 
   const handleShare = () => {
     Share.share({
-      message: `I'm queuing up movies on URWatch — ${queuedCount} on my watchlist, ${watchedCount} watched so far.`,
+      message: `I'm queuing up movies on BOARD — ${queuedCount} on my watchlist, ${watchedCount} watched so far.`,
     });
   };
 
@@ -188,34 +216,71 @@ export const ProfileScreen = ({ navigation }) => {
             </Pressable>
           </View>
 
+          {/* Level (numeric, fine-grained) and Rank (permanent, coarse) are
+              kept visually distinct per the product spec — same underlying
+              XP, two different lenses on it. */}
+          <View style={styles.progressWrap}>
+            <LevelRankCard
+              level={level}
+              rank={rank}
+              onPress={() => setIsLeagueSheetOpen(true)}
+            />
+          </View>
+
           <View style={styles.statsRow}>
             <Pressable
               style={styles.statTile}
               onPress={() => goToLibrary("watched")}
             >
               <CheckCircle
-                size={26}
+                size={20}
                 color={colors.textPrimary}
                 strokeWidth={1.8}
               />
               <Text style={styles.statValue}>{watchedCount}</Text>
-              <Text style={styles.statLabel}>Watched</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Watched
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.statTile}
+              onPress={() => goToLibrary("bucketlist")}
+            >
+              <Bookmark size={20} color={colors.textPrimary} strokeWidth={1.8} />
+              <Text style={styles.statValue}>{queuedCount}</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Watchlist
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.statTile}
+              onPress={() => goToLibrary("collections")}
+            >
+              <LayersIcon size={20} color={colors.textPrimary} />
+              <Text style={styles.statValue}>{completedCollectionsCount}</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Collections
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.statTile}
+              onPress={() => navigation.navigate("Decide")}
+            >
+              <TargetIcon size={20} color={colors.textPrimary} />
+              <Text style={styles.statValue}>{completedChallengesCount}</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Challenges
+              </Text>
             </Pressable>
             <Pressable
               style={styles.statTile}
               onPress={() => setIsBadgesSheetOpen(true)}
             >
-              <Award size={26} color={colors.textPrimary} strokeWidth={1.8} />
+              <Award size={20} color={colors.textPrimary} strokeWidth={1.8} />
               <Text style={styles.statValue}>{earnedBadgeCount}</Text>
-              <Text style={styles.statLabel}>Badges</Text>
-            </Pressable>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => setIsLeagueSheetOpen(true)}
-            >
-              <RankGemIcon size={26} color={rank.color} />
-              <Text style={styles.statValue}>{rank.tier}</Text>
-              <Text style={styles.statLabel}>League</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Badges
+              </Text>
             </Pressable>
           </View>
 
@@ -352,7 +417,7 @@ export const ProfileScreen = ({ navigation }) => {
         onClose={() => setIsLeagueSheetOpen(false)}
       >
         <View style={styles.sheetHeaderRow}>
-          <Text style={styles.sheetTitle}>League</Text>
+          <Text style={styles.sheetTitle}>Level &amp; Rank</Text>
           <Pressable onPress={() => setIsLeagueSheetOpen(false)} hitSlop={8}>
             <X size={20} color={colors.textMuted} />
           </Pressable>
@@ -361,31 +426,45 @@ export const ProfileScreen = ({ navigation }) => {
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.leagueSummary}>
             <RankGemIcon size={64} color={rank.color} />
-            <Text style={styles.leagueSummaryLabel}>{rank.label}</Text>
-            <Text style={styles.leagueSummaryScore}>{rank.score} pts</Text>
+            <Text style={styles.leagueSummaryLabel}>
+              Level {level.level} · {level.name}
+            </Text>
+            <Text style={[styles.leagueSummaryRank, { color: rank.color }]}>
+              {rank.tier} Rank
+            </Text>
+            <Text style={styles.leagueSummaryScore}>
+              {xp.toLocaleString()} XP total
+            </Text>
             {rank.nextLabel ? (
               <Text style={styles.leagueSummaryNext}>
-                {rank.pointsToNext} pts to {rank.nextLabel}
+                {rank.xpToNext.toLocaleString()} XP to {rank.nextLabel}
               </Text>
             ) : (
               <Text style={styles.leagueSummaryNext}>Top rank reached</Text>
             )}
           </View>
 
-          <Text style={styles.badgeSectionTitle}>How it&apos;s scored</Text>
+          <Text style={styles.badgeSectionTitle}>How XP is earned</Text>
           <View style={styles.leagueFormulaCard}>
             <Text style={styles.leagueFormulaRow}>
-              Watched movie · {WATCHED_POINTS} pts each ({watchedCount})
+              Watched movie · {WATCH_XP} XP each ({watchedCount})
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Rated movie · {RATED_POINTS} pts each ({ratedCount})
+              Rated movie · {RATE_XP} XP each ({ratedCount})
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Watchlisted movie · {QUEUED_POINTS} pt each ({queuedCount})
+              Rewatched movie · {REWATCH_XP} XP each ({rewatchedCount})
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Completed collection · {COLLECTION_POINTS} pts each (
+              Completed challenge · varies by difficulty (
+              {completedChallengesCount})
+            </Text>
+            <Text style={styles.leagueFormulaRow}>
+              Completed collection · {COLLECTION_XP} XP each (
               {completedCollectionsCount})
+            </Text>
+            <Text style={styles.leagueFormulaRow}>
+              Earned badge · {BADGE_XP} XP each ({earnedBadgeCount})
             </Text>
           </View>
 
@@ -401,7 +480,9 @@ export const ProfileScreen = ({ navigation }) => {
               >
                 {tier.tier}
               </Text>
-              <Text style={styles.leagueTierMin}>{tier.min}+ pts</Text>
+              <Text style={styles.leagueTierMin}>
+                {tier.min.toLocaleString()}+ XP
+              </Text>
             </View>
           ))}
 
@@ -561,6 +642,10 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: spacing.sm,
     },
+    leagueSummaryRank: {
+      ...typography.bodyBold,
+      marginTop: 2,
+    },
     leagueSummaryScore: {
       ...typography.body,
       color: colors.textSecondary,
@@ -612,28 +697,33 @@ const createStyles = (colors) =>
       borderColor: "#FFFFFF",
       borderRadius: radius.sm,
     },
+    progressWrap: {
+      width: "100%",
+      marginTop: spacing.md + spacing.xs,
+    },
     statsRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       width: "100%",
       marginTop: spacing.md + spacing.xs,
-      gap: spacing.md,
+      gap: spacing.xs,
     },
     statTile: {
       flex: 1,
       alignItems: "center",
-      paddingVertical: spacing.md + spacing.sm,
+      paddingVertical: spacing.md,
+      paddingHorizontal: 2,
       borderRadius: radius.sm,
       backgroundColor: colors.card,
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     statValue: {
-      ...typography.title,
+      ...typography.subtitle,
       color: colors.textPrimary,
     },
     statLabel: {
       ...typography.caption,
-      fontSize: 12,
+      fontSize: 10,
       color: colors.textSecondary,
     },
     friendsSection: {

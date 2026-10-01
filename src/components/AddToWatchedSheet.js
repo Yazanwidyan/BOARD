@@ -17,6 +17,7 @@ import { useRecentSearchStore } from "../store/recentSearchStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { giveWatchedFeedback } from "../utils/achievementFeedback";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { RatingBadge } from "./RatingBadge";
@@ -52,10 +53,13 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
   const handleSelectMovie = (movieId) => {
     if (trimmed) addSearch(query);
     const wasWatched = watchedIds.includes(movieId);
+    const { watched: watchedBefore, bucketList: bucketListBefore } =
+      useMovieStore.getState();
     toggleWatched(movieId);
     // Only jump to Details when newly marking it watched — un-marking an
     // already-watched movie from this list should just toggle in place.
     if (!wasWatched) {
+      giveWatchedFeedback(movieId, watchedBefore, bucketListBefore);
       handleClose();
       navigation.navigate("MovieDetails", { movieId });
     }

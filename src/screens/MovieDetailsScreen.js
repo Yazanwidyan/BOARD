@@ -5,6 +5,7 @@ import {
   CheckCircle,
   Clapperboard,
   Play,
+  RotateCw,
   Share2,
   Star,
 } from "lucide-react-native";
@@ -36,7 +37,13 @@ import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { formatRuntime } from "../utils/movieFilters";
+import {
+  giveRatingFeedback,
+  giveWatchedFeedback,
+  rewatchMovieWithFeedback,
+  toggleBucketListWithFeedback,
+} from "../utils/achievementFeedback";
+import { formatRuntime, isInBucketList } from "../utils/movieFilters";
 
 const POSTER_WIDTH = 108;
 const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
@@ -54,9 +61,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const inBucketList = useMovieStore((state) =>
-    state.bucketList.includes(movieId),
+    isInBucketList(state.bucketList, movieId),
   );
-  const toggleBucketList = useMovieStore((state) => state.toggleBucketList);
   const watchedEntry = useMovieStore((state) =>
     state.watched.find((entry) => entry.movieId === movieId),
   );
@@ -65,6 +71,24 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const isPicked = useMovieStore((state) => state.pickedMovie === movieId);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const isWatched = !!watchedEntry;
+
+  const handleToggleWatched = () => {
+    const wasWatched = isWatched;
+    const { watched: watchedBefore, bucketList: bucketListBefore } =
+      useMovieStore.getState();
+    toggleWatched(movieId);
+    if (!wasWatched) {
+      giveWatchedFeedback(movieId, watchedBefore, bucketListBefore);
+    }
+  };
+
+  const handleRate = (rating) => {
+    const { watched: watchedBefore } = useMovieStore.getState();
+    setWatchedRating(movieId, rating);
+    giveRatingFeedback(watchedBefore);
+  };
+
+  const handleRewatch = () => rewatchMovieWithFeedback(movieId);
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {
@@ -84,7 +108,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
   const handleShare = () => {
     Share.share({
-      message: `Check out ${movie.title} (${movie.year}) on URWatch — rated ${movie.rating.toFixed(1)}.`,
+      message: `Check out ${movie.title} (${movie.year}) on BOARD — rated ${movie.rating.toFixed(1)}.`,
     });
   };
 
@@ -160,7 +184,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               {!isWatched && (
                 <Pressable
                   style={styles.heroIconButton}
-                  onPress={() => toggleBucketList(movie.id)}
+                  onPress={() => toggleBucketListWithFeedback(movie.id)}
                   hitSlop={6}
                 >
                   {inBucketList ? (
@@ -281,7 +305,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   />
                 ) : undefined
               }
-              onPress={() => toggleWatched(movie.id)}
+              onPress={handleToggleWatched}
               style={styles.watchedButton}
             />
           </View>
@@ -297,8 +321,20 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.ratingLabel}>Your rating</Text>
               <RatingInput
                 rating={watchedEntry.rating}
-                onRate={(rating) => setWatchedRating(movie.id, rating)}
+                onRate={handleRate}
               />
+            </View>
+          )}
+
+          {isWatched && (
+            <View style={styles.rewatchRow}>
+              <Text style={styles.ratingLabel}>
+                Watched {watchedEntry.watchCount ?? 1}×
+              </Text>
+              <Pressable style={styles.rewatchButton} onPress={handleRewatch}>
+                <RotateCw size={14} color={colors.textPrimary} strokeWidth={2.2} />
+                <Text style={styles.rewatchButtonText}>Rewatch</Text>
+              </Pressable>
             </View>
           )}
 
@@ -548,6 +584,30 @@ const createStyles = (colors) =>
     },
     ratingLabel: {
       ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    rewatchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      marginTop: spacing.sm,
+    },
+    rewatchButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+      backgroundColor: colors.cardElevatedLight,
+    },
+    rewatchButtonText: {
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.textPrimary,
     },
     sectionLabel: {

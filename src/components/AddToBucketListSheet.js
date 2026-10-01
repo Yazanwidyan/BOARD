@@ -16,6 +16,8 @@ import { useRecentSearchStore } from "../store/recentSearchStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
+import { isInBucketList } from "../utils/movieFilters";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { RatingBadge } from "./RatingBadge";
@@ -28,7 +30,6 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
   const bucketList = useMovieStore((state) => state.bucketList);
-  const toggleBucketList = useMovieStore((state) => state.toggleBucketList);
   const recentSearches = useRecentSearchStore((state) => state.recentSearches);
   const addSearch = useRecentSearchStore((state) => state.addSearch);
   const clearSearches = useRecentSearchStore((state) => state.clearSearches);
@@ -47,7 +48,7 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
 
   const handleSelectMovie = (movieId) => {
     if (trimmed) addSearch(query);
-    toggleBucketList(movieId);
+    toggleBucketListWithFeedback(movieId);
   };
 
   return (
@@ -81,7 +82,7 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
           keyboardShouldPersistTaps="handled"
         >
           {results.map((movie) => {
-            const inBucketList = bucketList.includes(movie.id);
+            const inBucketList = isInBucketList(bucketList, movie.id);
             return (
               <Pressable
                 key={movie.id}

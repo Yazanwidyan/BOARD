@@ -19,7 +19,7 @@ export const useRecentSearchStore = create(
       clearSearches: () => set({ recentSearches: [] }),
     }),
     {
-      name: 'urwatch:recent-search-store',
+      name: 'board:recent-search-store',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

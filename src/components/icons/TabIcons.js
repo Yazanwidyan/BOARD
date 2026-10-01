@@ -96,6 +96,26 @@ export const LayersIcon = ({ size = 24, color = "#000000" }) => (
   </Svg>
 );
 
+export const HomeIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M10 20V14H14V20H19V12H22L12 3L2 12H5V20H10Z"
+      fill={color}
+    />
+  </Svg>
+);
+
+// Concentric rings instead of a dice/pip glyph — a pip-based die needs a
+// second contrasting color to punch through, which breaks this tab bar's
+// single-`color`-prop swap between active/inactive states.
+export const TargetIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={2} fill="none" />
+    <Circle cx="12" cy="12" r="5" stroke={color} strokeWidth={2} fill="none" />
+    <Circle cx="12" cy="12" r="1.8" fill={color} />
+  </Svg>
+);
+
 export const UserIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Circle cx="12" cy="8" r="4" fill={color} />

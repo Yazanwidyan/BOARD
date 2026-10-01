@@ -2,14 +2,18 @@ import {
   ArrowDownWideNarrow,
   Bookmark,
   CheckCircle,
+  Circle,
   Dices,
   Filter,
+  Layers,
+  ListPlus,
   Plus,
   Star,
   X,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +29,7 @@ import {
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { BottomSheet } from "../components/BottomSheet";
+import { CollectionContinueCard } from "../components/CollectionContinueCard";
 import { EmptyState } from "../components/EmptyState";
 import { MovieGrid } from "../components/MovieGrid";
 import { MoviePoster } from "../components/MoviePoster";
@@ -35,6 +40,12 @@ import { useSessionStore } from "../store/sessionStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import {
+  getCollectionProgress,
+  getCollectionSections,
+  getCurrentCollection,
+  getUnlockedCollectionSections,
+} from "../utils/collections";
 import { matchesGenres } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
 
@@ -59,6 +70,96 @@ const GENRES = [
 // its icon/text need a fixed dark color to stay legible on it.
 const TOOLBAR_ON_LIGHT_TEXT = "#131313";
 
+const SWITCH_OPTIONS = [
+  { key: "bucketlist", label: "Watchlist", Icon: Bookmark },
+  { key: "watched", label: "Watched", Icon: CheckCircle },
+  { key: "collections", label: "Collections", Icon: Layers },
+];
+
+const SORT_OPTIONS = [
+  { key: "recent", label: "Recently Watched" },
+  { key: "rating", label: "Highest Rated" },
+  { key: "watchCount", label: "Most Watched" },
+];
+
+const CollectionCollage = ({ movies, styles }) => (
+  <View style={styles.collectionCollage}>
+    {movies.slice(0, 3).map((movie, index) => (
+      <MoviePoster
+        key={movie.id}
+        uri={movie.poster}
+        radius={radius.xs}
+        style={[
+          styles.collectionCollagePoster,
+          { left: index * 16, zIndex: 3 - index },
+        ]}
+      />
+    ))}
+  </View>
+);
+
+const CollectionCard = ({ collection, watchedIds, onPress, styles }) => {
+  const { watchedCount, total, progress } = getCollectionProgress(
+    collection,
+    watchedIds,
+  );
+
+  return (
+    <Pressable style={styles.collectionCard} onPress={onPress}>
+      <CollectionCollage movies={collection.movies} styles={styles} />
+      <View style={styles.collectionInfo}>
+        <Text style={styles.collectionTitle} numberOfLines={1}>
+          {collection.title}
+        </Text>
+        <View style={styles.collectionBarTrack}>
+          <View
+            style={[styles.collectionBarFill, { width: `${progress * 100}%` }]}
+          />
+        </View>
+        <Text style={styles.collectionProgressText}>
+          {watchedCount}/{total} watched
+        </Text>
+      </View>
+    </Pressable>
+  );
+};
+
+// Rows in the "See All Collections" browser — same collage+info layout as
+// CollectionCard, plus a trailing toggle. A collection with real progress
+// always reads as unlocked here regardless of the manual toggle's own
+// state, since visibility elsewhere is progress>0 OR manually-added; tapping
+// one just manages the manual side of that OR.
+const BrowseCollectionRow = ({ collection, watchedIds, isUnlocked, onToggle, styles, colors }) => {
+  const { watchedCount, total, progress } = getCollectionProgress(
+    collection,
+    watchedIds,
+  );
+
+  return (
+    <Pressable style={styles.collectionCard} onPress={onToggle}>
+      <CollectionCollage movies={collection.movies} styles={styles} />
+      <View style={styles.collectionInfo}>
+        <Text style={styles.collectionTitle} numberOfLines={1}>
+          {collection.title}
+        </Text>
+        <View style={styles.collectionBarTrack}>
+          <View
+            style={[styles.collectionBarFill, { width: `${progress * 100}%` }]}
+          />
+        </View>
+        <Text style={styles.collectionProgressText}>
+          {watchedCount}/{total} watched
+        </Text>
+      </View>
+      {isUnlocked ? (
+        <CheckCircle size={22} color={colors.success} />
+      ) : (
+        <Circle size={22} color={colors.textMuted} />
+      )}
+    </Pressable>
+  );
+};
+
 export const LibraryScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -69,7 +170,11 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [isAddWatchedOpen, setIsAddWatchedOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState([]);
-  const [sortByRating, setSortByRating] = useState(false);
+  const [sortBy, setSortBy] = useState("recent");
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortAnchor, setSortAnchor] = useState({ top: 0, right: spacing.md });
+  const sortButtonRef = useRef(null);
+  const [isAllCollectionsOpen, setIsAllCollectionsOpen] = useState(false);
 
   // The tab screen stays mounted between visits, so a fresh `initialTab`
   // param (e.g. tapping a stat a second time) needs to actually switch the
@@ -80,18 +185,24 @@ export const LibraryScreen = ({ navigation, route }) => {
     }
   }, [route?.params?.initialTab]);
 
-  const bucketListIds = useMovieStore((state) => state.bucketList);
+  const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
+  const unlockedCollectionIds = useMovieStore((state) => state.unlockedCollections);
+  const toggleUnlockedCollection = useMovieStore(
+    (state) => state.toggleUnlockedCollection,
+  );
   const startSession = useSessionStore((state) => state.startSession);
 
-  const bucketListMovies = bucketListIds
-    .map(getMovieById)
+  const bucketListMovies = bucketListEntries
+    .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean)
     .reverse();
   const watchedMovies = watched
     .map((entry) => {
       const movie = getMovieById(entry.movieId);
-      return movie ? { movie, rating: entry.rating } : null;
+      return movie
+        ? { movie, rating: entry.rating, watchCount: entry.watchCount ?? 1 }
+        : null;
     })
     .filter(Boolean);
 
@@ -101,12 +212,24 @@ export const LibraryScreen = ({ navigation, route }) => {
   const visibleWatchedMovies = watchedMovies
     .filter(({ movie }) => matchesGenres(movie, selectedGenres))
     .sort((a, b) => {
-      if (!sortByRating) return 0;
-      return (b.rating ?? -1) - (a.rating ?? -1);
+      if (sortBy === "rating") return (b.rating ?? -1) - (a.rating ?? -1);
+      if (sortBy === "watchCount") return b.watchCount - a.watchCount;
+      return 0;
     });
 
   const canPick = bucketListMovies.length >= PICK_MIN;
   const hasActiveFilter = selectedGenres.length > 0;
+
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const currentCollection = getCurrentCollection(watchedIds);
+  const unlockedSections = getUnlockedCollectionSections(
+    watchedIds,
+    unlockedCollectionIds,
+  );
+  const allCollectionSections = getCollectionSections();
+  const hasUnlockedCollections = unlockedSections.length > 0;
+  const openCollection = (collectionId) =>
+    navigation.navigate("CollectionDetails", { collectionId });
 
   const toggleGenre = (genre) => {
     setSelectedGenres((current) =>
@@ -135,127 +258,176 @@ export const LibraryScreen = ({ navigation, route }) => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.title}>Library</Text>
       </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={[styles.switcherWrap, { marginTop: spacing.md }]}>
           <View style={styles.switcher}>
-            <Pressable
-              style={[
-                styles.switchOption,
-                tab === "bucketlist" && styles.switchOptionActive,
-              ]}
-              onPress={() => setTab("bucketlist")}
-            >
-              <Bookmark
-                size={15}
-                color={
-                  tab === "bucketlist"
-                    ? TOOLBAR_ON_LIGHT_TEXT
-                    : colors.textSecondary
-                }
-                strokeWidth={2.2}
-              />
-              <Text
+            {SWITCH_OPTIONS.map(({ key, label, Icon }) => (
+              <Pressable
+                key={key}
                 style={[
-                  styles.switchText,
-                  tab === "bucketlist" && styles.switchTextActive,
+                  styles.switchOption,
+                  tab === key && styles.switchOptionActive,
                 ]}
+                onPress={() => setTab(key)}
               >
-                Watchlist
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.switchOption,
-                tab === "watched" && styles.switchOptionActive,
-              ]}
-              onPress={() => setTab("watched")}
-            >
-              <CheckCircle
-                size={15}
-                color={
-                  tab === "watched"
-                    ? TOOLBAR_ON_LIGHT_TEXT
-                    : colors.textSecondary
-                }
-                strokeWidth={2.2}
-              />
-              <Text
-                style={[
-                  styles.switchText,
-                  tab === "watched" && styles.switchTextActive,
-                ]}
-              >
-                Watched
-              </Text>
-            </Pressable>
+                <Icon
+                  size={15}
+                  color={tab === key ? TOOLBAR_ON_LIGHT_TEXT : colors.textSecondary}
+                  strokeWidth={2.2}
+                />
+                <Text
+                  style={[styles.switchText, tab === key && styles.switchTextActive]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-        </View>
-        <View style={styles.actionsRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>
-              {tab === "bucketlist" ? "Watchlist" : "Watched"}
-            </Text>
-            <Text style={styles.subtitle}>
-              {tab === "bucketlist"
-                ? `${visibleBucketListMovies.length} movies`
-                : `${visibleWatchedMovies.length} movies`}
-            </Text>
-          </View>
-          <Pressable
-            style={styles.iconButton}
-            onPress={() =>
-              tab === "bucketlist"
-                ? setIsAddOpen(true)
-                : setIsAddWatchedOpen(true)
-            }
-          >
-            <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
-          </Pressable>
-          <Pressable
-            style={styles.iconButton}
-            onPress={() => setIsFilterOpen(true)}
-          >
-            <Filter size={17} color={colors.textPrimary} strokeWidth={2.2} />
-            {hasActiveFilter && <View style={styles.iconButtonDot} />}
-          </Pressable>
-          {tab === "bucketlist" ? (
-            <Pressable
-              style={[styles.iconButton, !canPick && styles.iconButtonDisabled]}
-              onPress={handlePickFromList}
-              disabled={!canPick}
-            >
-              <Dices size={18} color={colors.textPrimary} strokeWidth={2.2} />
-            </Pressable>
-          ) : (
-            <Pressable
-              style={styles.iconButton}
-              onPress={() => setSortByRating((current) => !current)}
-            >
-              <ArrowDownWideNarrow
-                size={18}
-                color={colors.textPrimary}
-                strokeWidth={2.2}
-              />
-              {sortByRating && <View style={styles.iconButtonDot} />}
-            </Pressable>
-          )}
         </View>
 
-        {tab === "bucketlist" ? (
+        {tab !== "collections" && (
+          <View style={styles.actionsRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>
+                {tab === "bucketlist" ? "Watchlist" : "Watched"}
+              </Text>
+              <Text style={styles.subtitle}>
+                {tab === "bucketlist"
+                  ? `${visibleBucketListMovies.length} movies`
+                  : `${visibleWatchedMovies.length} movies`}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() =>
+                tab === "bucketlist"
+                  ? setIsAddOpen(true)
+                  : setIsAddWatchedOpen(true)
+              }
+            >
+              <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
+            </Pressable>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => setIsFilterOpen(true)}
+            >
+              <Filter size={17} color={colors.textPrimary} strokeWidth={2.2} />
+              {hasActiveFilter && <View style={styles.iconButtonDot} />}
+            </Pressable>
+            {tab === "bucketlist" ? (
+              <Pressable
+                style={[styles.iconButton, !canPick && styles.iconButtonDisabled]}
+                onPress={handlePickFromList}
+                disabled={!canPick}
+              >
+                <Dices size={18} color={colors.textPrimary} strokeWidth={2.2} />
+              </Pressable>
+            ) : (
+              <Pressable
+                ref={sortButtonRef}
+                style={styles.iconButton}
+                onPress={() => {
+                  sortButtonRef.current?.measureInWindow((x, y, buttonWidth, buttonHeight) => {
+                    setSortAnchor({
+                      top: y + buttonHeight + spacing.xs,
+                      right: width - (x + buttonWidth),
+                    });
+                    setIsSortOpen(true);
+                  });
+                }}
+              >
+                <ArrowDownWideNarrow
+                  size={18}
+                  color={colors.textPrimary}
+                  strokeWidth={2.2}
+                />
+                {sortBy !== "recent" && <View style={styles.iconButtonDot} />}
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {tab === "collections" ? (
+          <>
+            <View style={styles.actionsRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>Collections</Text>
+                <Text style={styles.subtitle}>
+                  {unlockedSections.reduce(
+                    (sum, section) => sum + section.collections.length,
+                    0,
+                  )}{" "}
+                  unlocked
+                </Text>
+              </View>
+              <Pressable
+                style={styles.seeAllButton}
+                onPress={() => setIsAllCollectionsOpen(true)}
+              >
+                <ListPlus size={16} color={colors.textPrimary} strokeWidth={2.2} />
+                <Text style={styles.seeAllButtonText}>See All</Text>
+              </Pressable>
+            </View>
+
+            {currentCollection && (
+              <View style={styles.continueSection}>
+                <Text style={styles.sectionTitle}>Continue</Text>
+                <CollectionContinueCard
+                  collection={currentCollection}
+                  watchedIds={watchedIds}
+                  onPress={() => openCollection(currentCollection.id)}
+                />
+              </View>
+            )}
+
+            {!hasUnlockedCollections && (
+              <EmptyState
+                icon={<Layers size={40} color={colors.textMuted} />}
+                title="No collections yet."
+                subtitle="Watch a movie that belongs to one, or browse all collections and pick some to track."
+                actionLabel="See All Collections"
+                onAction={() => setIsAllCollectionsOpen(true)}
+              />
+            )}
+
+            {unlockedSections.map((section) => (
+              <View key={section.type} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                {section.collections.map((collection) => (
+                  <CollectionCard
+                    key={collection.id}
+                    collection={collection}
+                    watchedIds={watchedIds}
+                    styles={styles}
+                    onPress={() => openCollection(collection.id)}
+                  />
+                ))}
+              </View>
+            ))}
+          </>
+        ) : tab === "bucketlist" ? (
           visibleBucketListMovies.length === 0 ? (
             <EmptyState
               icon={<Bookmark size={40} color={colors.textMuted} />}
-              title={hasActiveFilter ? "No matches" : "Your watchlist is empty"}
+              title={
+                hasActiveFilter
+                  ? "No matches"
+                  : "Your board is empty."
+              }
               subtitle={
                 hasActiveFilter
                   ? "No watchlist movies match the selected genres."
-                  : "Explore our Top 250 movies and add them to your watchlist."
+                  : "That's either impressive or a problem."
               }
-              actionLabel={hasActiveFilter ? undefined : "Explore Movies"}
+              actionLabel={hasActiveFilter ? undefined : "Find Something"}
               onAction={
                 hasActiveFilter
                   ? undefined
-                  : () => navigation.navigate("Explore")
+                  : () => navigation.navigate("Discover")
               }
             />
           ) : (
@@ -267,18 +439,18 @@ export const LibraryScreen = ({ navigation, route }) => {
         ) : visibleWatchedMovies.length === 0 ? (
           <EmptyState
             icon={<CheckCircle size={40} color={colors.textMuted} />}
-            title={hasActiveFilter ? "No matches" : "Nothing watched yet"}
+            title={hasActiveFilter ? "No matches" : "Nothing watched yet."}
             subtitle={
               hasActiveFilter
                 ? "No watched movies match the selected genres."
-                : "Mark movies as watched from their details page."
+                : "Let's change that."
             }
           />
         ) : (
           <View
             style={[styles.grid, { paddingHorizontal: horizontalPadding, gap }]}
           >
-            {visibleWatchedMovies.map(({ movie, rating }) => (
+            {visibleWatchedMovies.map(({ movie, rating, watchCount }) => (
               <Pressable
                 key={movie.id}
                 onPress={() => openDetails(movie.id)}
@@ -309,6 +481,13 @@ export const LibraryScreen = ({ navigation, route }) => {
                       />
                       <Text style={styles.userRatingBadgeText}>
                         {rating.toFixed(1)}
+                      </Text>
+                    </View>
+                  )}
+                  {watchCount > 1 && (
+                    <View style={styles.rewatchBadge}>
+                      <Text style={styles.rewatchBadgeText}>
+                        ×{watchCount}
                       </Text>
                     </View>
                   )}
@@ -382,6 +561,87 @@ export const LibraryScreen = ({ navigation, route }) => {
           </Text>
         </Pressable>
       </BottomSheet>
+
+      <Modal
+        visible={isSortOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsSortOpen(false)}
+      >
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setIsSortOpen(false)}
+        >
+          <View
+            style={[
+              styles.sortDropdown,
+              { top: sortAnchor.top, right: sortAnchor.right },
+            ]}
+          >
+            {SORT_OPTIONS.map((option) => {
+              const selected = sortBy === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  style={styles.sortRow}
+                  onPress={() => {
+                    setSortBy(option.key);
+                    setIsSortOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[styles.sortRowText, selected && styles.sortRowTextActive]}
+                    numberOfLines={1}
+                  >
+                    {option.label}
+                  </Text>
+                  {selected && <CheckCircle size={16} color={colors.accentLight} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
+
+      <BottomSheet
+        visible={isAllCollectionsOpen}
+        onClose={() => setIsAllCollectionsOpen(false)}
+      >
+        <View style={styles.headerRow}>
+          <Text style={styles.sheetTitle}>All Collections</Text>
+          <Pressable onPress={() => setIsAllCollectionsOpen(false)} hitSlop={8}>
+            <X size={20} color={colors.textMuted} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + spacing.md }}
+        >
+          {allCollectionSections.map((section) => (
+            <View key={section.type} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.collections.map((collection) => {
+                const isUnlocked = (
+                  getCollectionProgress(collection, watchedIds).progress > 0
+                  || unlockedCollectionIds.includes(collection.id)
+                );
+                return (
+                  <BrowseCollectionRow
+                    key={collection.id}
+                    collection={collection}
+                    watchedIds={watchedIds}
+                    isUnlocked={isUnlocked}
+                    onToggle={() => toggleUnlockedCollection(collection.id)}
+                    styles={styles}
+                    colors={colors}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </ScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 };
@@ -391,6 +651,14 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    // flexGrow (not just the ScrollView's own height) so an EmptyState
+    // inside this content — whose own styles rely on flex:1 to center
+    // itself — actually has real remaining height to expand into and
+    // center within, instead of sizing to its own content and sitting
+    // stuck at the top with dead space below it.
+    scrollContent: {
+      flexGrow: 1,
     },
     header: {
       flexDirection: "row",
@@ -416,6 +684,62 @@ const createStyles = (colors) =>
       marginBottom: spacing.md,
       flexDirection: "row",
       gap: spacing.sm,
+    },
+    continueSection: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.sm,
+    },
+    section: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xl,
+    },
+    sectionTitle: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    collectionCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    collectionCollage: {
+      width: 76,
+      height: 60,
+    },
+    collectionCollagePoster: {
+      position: "absolute",
+      top: 0,
+      width: 44,
+      aspectRatio: 2 / 3,
+    },
+    collectionInfo: {
+      flex: 1,
+      gap: 6,
+    },
+    collectionTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    collectionBarTrack: {
+      height: 6,
+      borderRadius: 2,
+      backgroundColor: colors.surfaceSoft,
+      overflow: "hidden",
+    },
+    collectionBarFill: {
+      height: "100%",
+      borderRadius: 2,
+      backgroundColor: colors.accentLight,
+    },
+    collectionProgressText: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
     },
     switcherWrap: {
       paddingHorizontal: spacing.md,
@@ -472,6 +796,20 @@ const createStyles = (colors) =>
       borderRadius: 3,
       backgroundColor: colors.textPrimary,
     },
+    seeAllButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      height: 40,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    seeAllButtonText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -523,6 +861,20 @@ const createStyles = (colors) =>
       fontSize: 10,
       color: colors.accentContrast,
     },
+    rewatchBadge: {
+      position: "absolute",
+      bottom: 6,
+      right: 6,
+      paddingHorizontal: 5,
+      paddingVertical: 3,
+      borderRadius: radius.sm,
+      backgroundColor: "rgba(2, 0, 2, 0.65)",
+    },
+    rewatchBadgeText: {
+      ...typography.label,
+      fontSize: 10,
+      color: "#FFFFFF",
+    },
     headerRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -565,6 +917,36 @@ const createStyles = (colors) =>
     },
     clearTextDisabled: {
       color: colors.textMuted,
+    },
+    sortDropdown: {
+      position: "absolute",
+      minWidth: 180,
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      paddingVertical: spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 14,
+      elevation: 8,
+    },
+    sortRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+    },
+    sortRowText: {
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    sortRowTextActive: {
+      ...typography.bodyBold,
+      color: colors.accentLight,
     },
   });
 

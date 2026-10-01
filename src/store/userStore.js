@@ -13,9 +13,11 @@ export const useUserStore = create(
   persist(
     (set) => ({
       hasCompletedOnboarding: false,
+      hasSeeded: false,
       preferences: DEFAULT_PREFERENCES,
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+      markSeeded: () => set({ hasSeeded: true }),
       replayOnboarding: () => set({ hasCompletedOnboarding: false }),
       setPreferences: (preferences) => set((state) => ({
         preferences: { ...state.preferences, ...preferences },
@@ -23,7 +25,7 @@ export const useUserStore = create(
       resetPreferences: () => set({ preferences: DEFAULT_PREFERENCES }),
     }),
     {
-      name: 'urwatch:user-store',
+      name: 'board:user-store',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

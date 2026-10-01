@@ -384,7 +384,7 @@ export const SwipeScreen = ({ navigation }) => {
                 variant="ghost"
                 onPress={() => {
                   endSession();
-                  navigation.navigate("Main", { screen: "Explore" });
+                  navigation.navigate("Main", { screen: "Home" });
                 }}
                 style={styles.button}
               />

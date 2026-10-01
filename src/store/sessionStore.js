@@ -129,7 +129,7 @@ export const useSessionStore = create(
       endSession: () => set(initialState),
     }),
     {
-      name: 'urwatch:session-store',
+      name: 'board:session-store',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

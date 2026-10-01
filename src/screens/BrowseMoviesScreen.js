@@ -21,6 +21,8 @@ import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
+import { isInBucketList } from "../utils/movieFilters";
 
 const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
   const colors = useColors();
@@ -63,7 +65,6 @@ export const BrowseMoviesScreen = ({ navigation }) => {
   const [query, setQuery] = useState("");
   const insets = useSafeAreaInsets();
   const bucketList = useMovieStore((state) => state.bucketList);
-  const toggleBucketList = useMovieStore((state) => state.toggleBucketList);
 
   const filteredMovies = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -105,8 +106,8 @@ export const BrowseMoviesScreen = ({ navigation }) => {
         renderItem={({ item }) => (
           <MovieRow
             movie={item}
-            inBucketList={bucketList.includes(item.id)}
-            onToggle={() => toggleBucketList(item.id)}
+            inBucketList={isInBucketList(bucketList, item.id)}
+            onToggle={() => toggleBucketListWithFeedback(item.id)}
             onPress={() =>
               navigation.navigate("MovieDetails", { movieId: item.id })
             }

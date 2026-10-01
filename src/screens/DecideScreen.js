@@ -1,70 +1,69 @@
-import {
-  Bot,
-  ChevronRight,
-  GalleryHorizontal,
-  ListChecks,
-  RotateCw,
-} from "lucide-react-native";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { CheckCircle, Dices, RotateCw, Shuffle, X } from "lucide-react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { ChallengeCard } from "../components/ChallengeCard";
+import { FeatureCard } from "../components/FeatureCard";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { getMovieById } from "../data/movies";
+import { useChallengeStore } from "../store/challengeStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 
-const showComingSoon = (feature) => Alert.alert(feature, "Coming soon.");
-
-// The two real, usable ways to decide — full-width feature cards with a
-// solid accent badge and a large translucent "ghost" icon in the corner, so
-// they read as the primary content on this screen.
-const FeatureCard = ({ icon, ghostIcon, title, subtitle, onPress }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
+const HistoryRow = ({ entry, styles, colors }) => {
+  const movie = getMovieById(entry.targetMovieId);
+  const isCompleted = entry.status === "completed";
 
   return (
-    <Pressable style={styles.featureCard} onPress={onPress}>
-      <View style={styles.featureGhost}>{ghostIcon}</View>
-      <View style={styles.featureIconBadge}>{icon}</View>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureSubtitle}>{subtitle}</Text>
+    <View style={styles.historyRow}>
+      <View
+        style={[
+          styles.historyIcon,
+          isCompleted ? styles.historyIconDone : styles.historyIconSkipped,
+        ]}
+      >
+        {isCompleted ? (
+          <CheckCircle size={16} color={colors.success} />
+        ) : (
+          <X size={16} color={colors.textMuted} />
+        )}
       </View>
-      <ChevronRight size={20} color={colors.textMuted} />
-    </Pressable>
+      <View style={styles.historyInfo}>
+        <Text style={styles.historyTitle} numberOfLines={1}>
+          {entry.title}
+        </Text>
+        <Text style={styles.historySubtitle} numberOfLines={1}>
+          {movie ? movie.title : "—"}
+        </Text>
+      </View>
+      {isCompleted && (
+        <Text style={styles.historyXp}>+{entry.xpReward} XP</Text>
+      )}
+    </View>
   );
 };
 
-// The not-yet-real ways to decide — small, muted, and clearly secondary so
-// they never compete with the two features that actually work.
-const SoonTile = ({ icon, label, onPress }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-
-  return (
-    <Pressable style={styles.soonTile} onPress={onPress}>
-      {icon}
-      <Text style={styles.soonLabel}>{label}</Text>
-      <View style={styles.soonBadge}>
-        <Text style={styles.soonBadgeText}>Soon</Text>
-      </View>
-    </Pressable>
-  );
-};
-
+// Swipe, Spin, and Challenges are all the same underlying job — "I don't
+// know what to watch, decide for me" — just with different textures
+// (casual/random vs. goal-oriented), so they share one screen instead of
+// Swipe/Spin being secondary cards buried on Home.
 export const DecideScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const activeChallenge = useChallengeStore((state) => state.activeChallenge);
+  const skipChallenge = useChallengeStore((state) => state.skipChallenge);
+  const history = useChallengeStore((state) => state.history);
+
+  const handleCreate = () => {
+    if (activeChallenge) skipChallenge();
+    openChallengeGenerator(navigation);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -78,60 +77,72 @@ export const DecideScreen = ({ navigation }) => {
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
-        <Text style={styles.intro}>
-          Not sure what to watch tonight? Pick a way to decide.
-        </Text>
-
-        <FeatureCard
-          icon={
-            <GalleryHorizontal
-              size={26}
-              color={colors.accentContrast}
-              strokeWidth={2}
-            />
-          }
-          ghostIcon={
-            <GalleryHorizontal
-              size={96}
-              color={colors.textPrimary}
-              strokeWidth={1.2}
-            />
-          }
-          title="Swipe to Decide"
-          subtitle="Set your mood, then swipe through picks until one wins."
-          onPress={() => navigation.navigate("Preferences")}
-        />
-        <FeatureCard
-          icon={
-            <RotateCw size={26} color={colors.accentContrast} strokeWidth={2} />
-          }
-          ghostIcon={
-            <RotateCw size={96} color={colors.textPrimary} strokeWidth={1.2} />
-          }
-          title="Spin to Decide"
-          subtitle="Spin the wheel through your watchlist for a random pick."
-          onPress={() => navigation.navigate("Spin")}
-        />
-
-        <Text style={styles.sectionLabel}>More ways to decide</Text>
-        <View style={styles.soonRow}>
-          <SoonTile
-            icon={<Bot size={22} color={colors.textMuted} strokeWidth={1.8} />}
-            label="Ask AI"
-            onPress={() => showComingSoon("Ask AI")}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Quick Pick</Text>
+          <FeatureCard
+            icon={<Shuffle size={24} color={colors.accentContrast} />}
+            ghostIcon={<Shuffle size={100} color={colors.textPrimary} />}
+            title="Swipe to Decide"
+            subtitle="Browse 10 picks matched to your taste, one at a time."
+            onPress={() => navigation.navigate("Swipe")}
           />
-          <SoonTile
-            icon={
-              <ListChecks
-                size={22}
-                color={colors.textMuted}
-                strokeWidth={1.8}
-              />
-            }
-            label="Collaborative Lists"
-            onPress={() => showComingSoon("Collaborative Lists")}
+          <FeatureCard
+            icon={<RotateCw size={24} color={colors.accentContrast} />}
+            ghostIcon={<RotateCw size={100} color={colors.textPrimary} />}
+            title="Spin to Decide"
+            subtitle="Same 10 picks — the wheel lands on one instantly."
+            onPress={() => navigation.navigate("Spin")}
           />
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Active Challenge</Text>
+          {activeChallenge ? (
+            <ChallengeCard
+              challenge={activeChallenge}
+              mode="active"
+              onContinue={() =>
+                navigation.navigate("MovieDetails", {
+                  movieId: activeChallenge.targetMovieId,
+                })
+              }
+            />
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No active challenges.</Text>
+              <Text style={styles.emptySubtitle}>Bored?</Text>
+              <PrimaryButton
+                label="Create a Challenge"
+                icon={<Dices size={18} color={colors.accentContrast} />}
+                onPress={handleCreate}
+                style={styles.emptyButton}
+              />
+            </View>
+          )}
+          {activeChallenge && (
+            <PrimaryButton
+              label="New Challenge"
+              variant="ghost"
+              dense
+              onPress={handleCreate}
+              style={styles.newChallengeButton}
+            />
+          )}
+        </View>
+
+        {history.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>History</Text>
+            {history.map((entry) => (
+              <HistoryRow
+                key={entry.id}
+                entry={entry}
+                styles={styles}
+                colors={colors}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -157,93 +168,75 @@ const createStyles = (colors) =>
       ...typography.title,
       color: colors.textPrimary,
     },
-    intro: {
-      ...typography.body,
-      color: colors.textSecondary,
+    section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
-      marginBottom: spacing.md,
-    },
-    featureCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: spacing.md,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-      overflow: "hidden",
-    },
-    featureGhost: {
-      position: "absolute",
-      right: -18,
-      top: -18,
-      opacity: 0.06,
-    },
-    featureIconBadge: {
-      width: 56,
-      height: 56,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.md,
-    },
-    featureText: {
-      flex: 1,
-      gap: 4,
-      marginRight: spacing.sm,
-    },
-    featureTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    featureSubtitle: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      lineHeight: 16,
+      marginTop: spacing.xl,
     },
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
-      marginTop: spacing.xl,
       marginBottom: spacing.sm,
-      marginLeft: spacing.md,
     },
-    soonRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
+    emptyCard: {
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      paddingVertical: spacing.xl,
       paddingHorizontal: spacing.md,
     },
-    soonTile: {
-      flex: 1,
-      alignItems: "flex-start",
-      gap: spacing.xs,
+    emptyTitle: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+    },
+    emptySubtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+    },
+    emptyButton: {
+      marginTop: spacing.md,
+    },
+    newChallengeButton: {
+      marginTop: spacing.sm,
+    },
+    historyRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
       backgroundColor: colors.card,
       borderRadius: radius.sm,
-      padding: spacing.md,
-      opacity: 0.6,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
     },
-    soonLabel: {
+    historyIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    historyIconDone: {
+      backgroundColor: colors.successSoft,
+    },
+    historyIconSkipped: {
+      backgroundColor: colors.surfaceSoft,
+    },
+    historyInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    historyTitle: {
       ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textMuted,
+      color: colors.textPrimary,
     },
-    soonBadge: {
-      position: "absolute",
-      top: spacing.sm,
-      right: spacing.sm,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.background,
+    historySubtitle: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
-    soonBadgeText: {
-      ...typography.label,
-      fontSize: 9,
-      color: colors.textMuted,
+    historyXp: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.success,
     },
   });
 

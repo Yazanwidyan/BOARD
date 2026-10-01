@@ -7,6 +7,7 @@ import {
   RotateCcw,
   Shuffle,
   SlidersHorizontal,
+  Trash,
 } from "lucide-react-native";
 import {
   Alert,
@@ -28,6 +29,7 @@ import { useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { resetAppData } from "../utils/resetAppData";
 
 const APP_VERSION = "1.0.0";
 
@@ -142,6 +144,18 @@ export const SettingsScreen = ({ navigation }) => {
               )
             }
           />
+          <SettingsRow
+            icon={<Trash size={18} color={colors.textPrimary} />}
+            label="Reset App (Start Fresh)"
+            destructive
+            onPress={() =>
+              confirmAction(
+                "Reset App",
+                "This wipes everything — watched, watchlist, XP, badges, challenges, profile — and takes you back through onboarding like a brand-new install. This can't be undone.",
+                resetAppData,
+              )
+            }
+          />
         </View>
 
         <Text style={styles.sectionLabel}>App</Text>
@@ -156,8 +170,8 @@ export const SettingsScreen = ({ navigation }) => {
             label="About"
             onPress={() =>
               Alert.alert(
-                "URWatch",
-                "URWatch helps you decide what to watch by swiping through a curated Top 250 list.",
+                "BOARD",
+                "BOARD turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.",
               )
             }
           />

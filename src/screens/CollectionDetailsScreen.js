@@ -1,4 +1,4 @@
-import { CheckCircle } from "lucide-react-native";
+import { CheckCircle, Dices } from "lucide-react-native";
 import {
   Pressable,
   ScrollView,
@@ -20,11 +20,18 @@ import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionById, getCollectionProgress } from "../utils/collections";
+import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 
 const NODE_SIZE = 72;
 const RING_SIZE = NODE_SIZE + 8;
 const ROW_HEIGHT = 124;
-const DOT_SPACING = 26;
+const DOT_SPACING = 64;
+const DOT_RADIUS = 4;
+// A shade darker than colors.background itself — nothing in the shared
+// palette is darker than background (border/card/etc are all lighter), so
+// this is a one-off just for this screen's dot texture, not a design-
+// system token.
+const DOT_COLOR = "#16172A";
 // Fractional x-position (of the path's content width) each node sits at,
 // cycling to produce the winding, snake-like layout instead of a straight
 // line — center, right, center, left, repeat.
@@ -77,7 +84,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const watched = useMovieStore((state) => state.watched);
 
   if (!collection) {
@@ -125,20 +132,47 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     pathD += ` C ${prev.cx} ${c1y}, ${pos.cx} ${c2y}, ${pos.cx} ${pos.cy}`;
   });
 
+  // Static — sized to the screen itself, not the scrollable content, and
+  // rendered outside the ScrollView so it doesn't move as the user scrolls.
   const dots = [];
-  for (let y = 14; y < canvasHeight; y += DOT_SPACING) {
-    for (let x = 14; x < contentWidth; x += DOT_SPACING) {
+  for (let y = 14; y < height; y += DOT_SPACING) {
+    for (let x = 14; x < width; x += DOT_SPACING) {
       dots.push({ x, y });
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
+      <Svg
+        width={width}
+        height={height}
+        style={styles.dotBackground}
+        pointerEvents="none"
+      >
+        {dots.map((dot) => (
+          <Circle
+            key={`${dot.x}-${dot.y}`}
+            cx={dot.x}
+            cy={dot.y}
+            r={DOT_RADIUS}
+            fill={DOT_COLOR}
+          />
+        ))}
+      </Svg>
+
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.headerTitle} numberOfLines={1}>
           {collection.title}
         </Text>
+        {!isComplete && (
+          <Pressable
+            style={styles.headerIconButton}
+            onPress={() => openChallengeGenerator(navigation)}
+          >
+            <Dices size={18} color={colors.textPrimary} />
+          </Pressable>
+        )}
       </View>
 
       <ScrollView
@@ -168,15 +202,6 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             height={canvasHeight}
             style={StyleSheet.absoluteFillObject}
           >
-            {dots.map((dot) => (
-              <Circle
-                key={`${dot.x}-${dot.y}`}
-                cx={dot.x}
-                cy={dot.y}
-                r={1.3}
-                fill={colors.border}
-              />
-            ))}
             <Path
               d={pathD}
               stroke={colors.border}
@@ -211,6 +236,12 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    dotBackground: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+    },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -225,6 +256,14 @@ const createStyles = (colors) =>
       ...typography.title,
       color: colors.textPrimary,
       flex: 1,
+    },
+    headerIconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.card,
     },
     summary: {
       alignItems: "center",
