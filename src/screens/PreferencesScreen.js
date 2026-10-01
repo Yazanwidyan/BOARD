@@ -20,7 +20,11 @@ import { useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { DECADE_RANGES, RUNTIME_RANGES, bucketListIds } from "../utils/movieFilters";
+import {
+  DECADE_RANGES,
+  RUNTIME_RANGES,
+  bucketListIds,
+} from "../utils/movieFilters";
 
 const GENRES = [
   "Action",
@@ -176,7 +180,7 @@ export const PreferencesScreen = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top },
+          { paddingTop: insets.top + spacing.sm },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -263,7 +267,7 @@ const createStyles = (colors) =>
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       marginBottom: spacing.sm,
     },
     chipRow: {
@@ -290,7 +294,7 @@ const createStyles = (colors) =>
       color: colors.background,
     },
     section: {
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     sliderLabelRow: {
       flexDirection: "row",

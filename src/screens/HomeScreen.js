@@ -1,4 +1,4 @@
-import { Dices, Star } from "lucide-react-native";
+import { Compass, Star } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
@@ -6,11 +6,10 @@ import {
 } from "react-native-safe-area-context";
 
 import { ChallengeCard } from "../components/ChallengeCard";
+import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
 import { CollectionContinueCard } from "../components/CollectionContinueCard";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
-import { LevelRankCard } from "../components/LevelRankCard";
 import { MoviePoster } from "../components/MoviePoster";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { getMovieById } from "../data/movies";
@@ -113,8 +112,11 @@ export const HomeScreen = ({ navigation }) => {
   const ratedCount = watched.filter((entry) => entry.rating != null).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
-  const completedChallengesCount = getCompletedChallengesCount(challengeHistory);
-  const rewatchedCount = watched.filter((entry) => (entry.watchCount ?? 1) > 1).length;
+  const completedChallengesCount =
+    getCompletedChallengesCount(challengeHistory);
+  const rewatchedCount = watched.filter(
+    (entry) => (entry.watchCount ?? 1) > 1,
+  ).length;
   const badges = getBadges({
     watchedCount,
     ratedCount,
@@ -137,6 +139,11 @@ export const HomeScreen = ({ navigation }) => {
   const level = getLevel(xp);
   const latestBadge = getLatestBadge(badges);
   const inProgressCollections = getInProgressCollections(watchedIds, 4);
+  const isFreshAccount =
+    !pickedMovieId &&
+    !activeChallenge &&
+    watchedCount === 0 &&
+    queuedCount === 0;
 
   const handleCreateChallenge = () => {
     if (activeChallenge) skipChallenge();
@@ -145,9 +152,18 @@ export const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text style={styles.greeting}>Hey, {displayName}</Text>
-        <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.headerText}>
+          <Text style={styles.greeting}>Hey, {displayName}</Text>
+          <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
+        </View>
+        <Pressable
+          style={styles.levelBadge}
+          onPress={() => navigation.navigate("Profile")}
+        >
+          <RankGemIcon size={18} color={rank.color} />
+          <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -162,12 +178,19 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
-        <View
-          style={[
-            styles.section,
-            !pickedMovieId && styles.firstSection,
-          ]}
-        >
+        {isFreshAccount && (
+          <View style={[styles.section, styles.firstSection]}>
+            <ChallengeEmptyCard
+              title="Nothing to Watch Yet"
+              subtitle="Discover movies to build your watchlist and start earning XP."
+              buttonLabel="Start Discovering"
+              icon={<Compass size={18} color={colors.accentContrast} />}
+              onPress={() => navigation.navigate("Discover")}
+            />
+          </View>
+        )}
+
+        <View style={[styles.section, !pickedMovieId && styles.firstSection]}>
           {activeChallenge ? (
             <>
               <Text style={styles.sectionLabel}>Your Challenge</Text>
@@ -179,31 +202,12 @@ export const HomeScreen = ({ navigation }) => {
                     movieId: activeChallenge.targetMovieId,
                   })
                 }
-              />
-              <PrimaryButton
-                label="New Challenge"
-                variant="ghost"
-                dense
-                icon={<Dices size={16} color={colors.textSecondary} />}
-                onPress={handleCreateChallenge}
-                style={styles.newChallengeButton}
+                onNewChallenge={handleCreateChallenge}
               />
             </>
           ) : (
-            <PrimaryButton
-              label="Create a Challenge"
-              icon={<Dices size={18} color={colors.accentContrast} />}
-              onPress={handleCreateChallenge}
-            />
+            <ChallengeEmptyCard onPress={handleCreateChallenge} />
           )}
-        </View>
-
-        <View style={[styles.section, styles.progressSection]}>
-          <LevelRankCard
-            level={level}
-            rank={rank}
-            onPress={() => navigation.navigate("Profile")}
-          />
         </View>
 
         {inProgressCollections.length > 0 && (
@@ -252,9 +256,7 @@ export const HomeScreen = ({ navigation }) => {
             >
               <RankGemIcon size={40} color={colors.accent} />
               <View style={styles.achievementInfo}>
-                <Text style={styles.achievementLabel}>
-                  {latestBadge.label}
-                </Text>
+                <Text style={styles.achievementLabel}>{latestBadge.label}</Text>
                 <Text style={styles.achievementSubtitle}>Unlocked</Text>
               </View>
             </Pressable>
@@ -273,11 +275,17 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+    },
+    headerText: {
+      flex: 1,
     },
     greeting: {
       ...typography.body,
@@ -288,25 +296,37 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: 2,
     },
+    levelBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: radius.pill,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      marginLeft: spacing.sm,
+    },
+    levelBadgeText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     // Same vertical rhythm as `section`, but no horizontal padding — used
     // for the two horizontal-scroll rails, so the scrollable row itself
     // reaches both screen edges. Only the label above it keeps the normal
     // margin, via railLabelPadding.
     railSection: {
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     railLabelPadding: {
       paddingHorizontal: spacing.md,
     },
     firstSection: {
       marginTop: spacing.md,
-    },
-    progressSection: {
-      marginTop: spacing.xl,
     },
     sectionLabel: {
       ...typography.label,
@@ -322,10 +342,6 @@ const createStyles = (colors) =>
       ...typography.label,
       color: colors.accentLight,
       marginBottom: spacing.sm,
-    },
-    newChallengeButton: {
-      marginTop: spacing.sm,
-      alignSelf: "flex-start",
     },
     railContent: {
       paddingHorizontal: spacing.md,

@@ -84,7 +84,7 @@ export const SearchScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <View style={styles.searchBar}>
           <Search size={16} color={colors.textSecondary} />

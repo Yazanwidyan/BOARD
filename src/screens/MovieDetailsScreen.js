@@ -319,10 +319,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           {isWatched && (
             <View style={styles.ratingRow}>
               <Text style={styles.ratingLabel}>Your rating</Text>
-              <RatingInput
-                rating={watchedEntry.rating}
-                onRate={handleRate}
-              />
+              <RatingInput rating={watchedEntry.rating} onRate={handleRate} />
             </View>
           )}
 
@@ -332,7 +329,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 Watched {watchedEntry.watchCount ?? 1}×
               </Text>
               <Pressable style={styles.rewatchButton} onPress={handleRewatch}>
-                <RotateCw size={14} color={colors.textPrimary} strokeWidth={2.2} />
+                <RotateCw
+                  size={14}
+                  color={colors.textPrimary}
+                  strokeWidth={2.2}
+                />
                 <Text style={styles.rewatchButtonText}>Rewatch</Text>
               </Pressable>
             </View>
@@ -613,7 +614,7 @@ const createStyles = (colors) =>
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       marginBottom: spacing.xs,
     },
     description: {

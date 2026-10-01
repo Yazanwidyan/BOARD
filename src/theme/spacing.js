@@ -15,11 +15,11 @@ export const radius = {
   pill: 999,
 };
 
-// The bottom tab bar is a plain, flush full-width row (its own safe-area
-// padding is added inside the bar itself) — screens just need enough
-// scroll clearance to clear its content height so the last item isn't
-// hidden behind it.
-export const TAB_BAR_HEIGHT = 52;
+// The bottom tab bar is a floating, elevated pill inset from the screen
+// edges, sitting a small gap above the safe area (screens add insets.bottom
+// to this separately) — clearance needs to cover that gap plus the pill's
+// own content height so the last scrollable item isn't hidden behind it.
+export const TAB_BAR_HEIGHT = 70;
 export const TAB_BAR_BOTTOM_OFFSET = 0;
 export const TAB_BAR_CLEARANCE = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 

@@ -1,3 +1,4 @@
+import * as Clipboard from "expo-clipboard";
 import {
   Award,
   Bell,
@@ -10,7 +11,6 @@ import {
   UserRound,
   X,
 } from "lucide-react-native";
-import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -29,8 +29,8 @@ import {
 } from "react-native-safe-area-context";
 
 import { BottomSheet } from "../components/BottomSheet";
-import { LayersIcon, TargetIcon } from "../components/icons/TabIcons";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
+import { LayersIcon, TargetIcon } from "../components/icons/TabIcons";
 import { LevelRankCard } from "../components/LevelRankCard";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -69,6 +69,9 @@ const BADGE_SECTIONS = [
 const showAddFriendsStub = () => Alert.alert("Add Friends", "Coming soon.");
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
+const DEFAULT_FRIEND_ONE = require("../../assets/friend-1.png");
+const DEFAULT_FRIEND_TWO = require("../../assets/friend-2.png");
+const DEFAULT_FRIEND_THREE = require("../../assets/friend-3.png");
 
 const getHandle = (name) =>
   `@${
@@ -81,10 +84,15 @@ const getHandle = (name) =>
 const BadgeRow = ({ badge, colors, styles }) => (
   <View style={styles.badgeRow}>
     <View style={!badge.earned && styles.badgeGemLocked}>
-      <RankGemIcon size={32} color={badge.earned ? colors.accent : colors.textMuted} />
+      <RankGemIcon
+        size={32}
+        color={badge.earned ? colors.accent : colors.textMuted}
+      />
     </View>
     <View style={styles.badgeInfo}>
-      <Text style={[styles.badgeLabel, !badge.earned && styles.badgeLabelLocked]}>
+      <Text
+        style={[styles.badgeLabel, !badge.earned && styles.badgeLabelLocked]}
+      >
         {badge.label}
       </Text>
       <Text style={styles.badgeProgress}>
@@ -124,8 +132,11 @@ export const ProfileScreen = ({ navigation, route }) => {
   const ratedCount = watched.filter((entry) => entry.rating != null).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
-  const completedChallengesCount = getCompletedChallengesCount(challengeHistory);
-  const rewatchedCount = watched.filter((entry) => (entry.watchCount ?? 1) > 1).length;
+  const completedChallengesCount =
+    getCompletedChallengesCount(challengeHistory);
+  const rewatchedCount = watched.filter(
+    (entry) => (entry.watchCount ?? 1) > 1,
+  ).length;
   const badges = getBadges({
     watchedCount,
     ratedCount,
@@ -174,14 +185,14 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable
           style={styles.headerIconButton}
           onPress={() => navigation.navigate("Activity")}
         >
           <Bell size={18} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
-        <Text style={[styles.title, { paddingTop: spacing.md }]}>Profile</Text>
+        <Text style={styles.title}>Profile</Text>
         <Pressable
           style={styles.headerIconButton}
           onPress={() => navigation.navigate("Settings")}
@@ -193,7 +204,10 @@ export const ProfileScreen = ({ navigation, route }) => {
         <View style={[styles.profileWrap, { marginTop: spacing.md }]}>
           <View style={styles.identityRow}>
             <View style={styles.avatar}>
-              <Image source={DEFAULT_AVATAR_SOURCE} style={styles.avatarImage} />
+              <Image
+                source={DEFAULT_AVATAR_SOURCE}
+                style={styles.avatarImage}
+              />
             </View>
             <Text style={styles.name}>{displayName}</Text>
             <Pressable onPress={handleCopyHandle} hitSlop={6}>
@@ -246,7 +260,11 @@ export const ProfileScreen = ({ navigation, route }) => {
               style={styles.statTile}
               onPress={() => goToLibrary("bucketlist")}
             >
-              <Bookmark size={20} color={colors.textPrimary} strokeWidth={1.8} />
+              <Bookmark
+                size={20}
+                color={colors.textPrimary}
+                strokeWidth={1.8}
+              />
               <Text style={styles.statValue}>{queuedCount}</Text>
               <Text style={styles.statLabel} numberOfLines={1}>
                 Watchlist
@@ -289,11 +307,7 @@ export const ProfileScreen = ({ navigation, route }) => {
             variant="outline"
             dense
             icon={
-              <Share2
-                size={16}
-                color={colors.textPrimary}
-                strokeWidth={2.2}
-              />
+              <Share2 size={16} color={colors.textPrimary} strokeWidth={2.2} />
             }
             onPress={handleShare}
             style={styles.shareButton}
@@ -318,24 +332,16 @@ export const ProfileScreen = ({ navigation, route }) => {
           <View style={styles.friendsComingSoon}>
             <View style={styles.friendsAvatarRow}>
               <View style={[styles.friendsAvatar, styles.friendsAvatarBack]}>
-                <UserRound
-                  size={22}
-                  color={colors.textMuted}
-                  strokeWidth={1.8}
-                />
+                <Image source={DEFAULT_FRIEND_ONE} style={styles.avatarImage} />
               </View>
+
               <View style={[styles.friendsAvatar, styles.friendsAvatarFront]}>
-                <UserRound
-                  size={24}
-                  color={colors.textSecondary}
-                  strokeWidth={1.8}
-                />
+                <Image source={DEFAULT_FRIEND_TWO} style={styles.avatarImage} />
               </View>
               <View style={[styles.friendsAvatar, styles.friendsAvatarBack]}>
-                <UserRound
-                  size={22}
-                  color={colors.textMuted}
-                  strokeWidth={1.8}
+                <Image
+                  source={DEFAULT_FRIEND_THREE}
+                  style={styles.avatarImage}
                 />
               </View>
             </View>
@@ -472,11 +478,17 @@ export const ProfileScreen = ({ navigation, route }) => {
           {TIERS.map((tier) => (
             <View
               key={tier.tier}
-              style={[styles.leagueTierRow, tier.tier === rank.tier && styles.leagueTierRowActive]}
+              style={[
+                styles.leagueTierRow,
+                tier.tier === rank.tier && styles.leagueTierRowActive,
+              ]}
             >
               <RankGemIcon size={24} color={tier.color} />
               <Text
-                style={[styles.leagueTierLabel, tier.tier === rank.tier && styles.leagueTierLabelActive]}
+                style={[
+                  styles.leagueTierLabel,
+                  tier.tier === rank.tier && styles.leagueTierLabelActive,
+                ]}
               >
                 {tier.tier}
               </Text>
@@ -728,7 +740,7 @@ const createStyles = (colors) =>
     },
     friendsSection: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     friendsHeaderRow: {
       flexDirection: "row",
@@ -761,21 +773,18 @@ const createStyles = (colors) =>
     },
     friendsAvatarRow: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "space-between",
       marginBottom: spacing.md,
     },
     friendsAvatar: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      backgroundColor: colors.surfaceSoft,
-      borderWidth: 2,
-      borderColor: colors.background,
+      width: 58,
+      height: 58,
+      borderRadius: 29,
       alignItems: "center",
       justifyContent: "center",
     },
     friendsAvatarBack: {
-      marginHorizontal: -10,
+      marginHorizontal: 0,
     },
     friendsAvatarFront: {
       zIndex: 1,

@@ -280,7 +280,10 @@ export const SwipeScreen = ({ navigation }) => {
         <LinearGradient colors={[bgSoft, bg]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={styles.container} edges={["bottom"]}>
           <FadeInView
-            style={[styles.transitionContainer, { paddingTop: insets.top }]}
+            style={[
+              styles.transitionContainer,
+              { paddingTop: insets.top + spacing.sm },
+            ]}
           >
             <Text style={styles.transitionMessage}>{transition.message}</Text>
             <Text style={styles.transitionCounts}>
@@ -328,7 +331,10 @@ export const SwipeScreen = ({ navigation }) => {
         <LinearGradient colors={[bgSoft, bg]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={styles.container} edges={["bottom"]}>
           <FadeInView
-            style={[styles.finalContainer, { paddingTop: insets.top }]}
+            style={[
+              styles.finalContainer,
+              { paddingTop: insets.top + spacing.sm },
+            ]}
           >
             <View style={styles.finalIconBadge}>
               <Trophy size={26} color={colors.textPrimary} strokeWidth={1.8} />
@@ -599,7 +605,7 @@ const createStyles = (colors, bg) =>
     carouselButtons: {
       width: "100%",
       paddingHorizontal: spacing.xl,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       gap: spacing.sm,
     },
     carouselButton: {
@@ -624,7 +630,7 @@ const createStyles = (colors, bg) =>
     },
     transitionButton: {
       width: "100%",
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     finalContainer: {
       flex: 1,
@@ -669,7 +675,7 @@ const createStyles = (colors, bg) =>
     },
     buttons: {
       width: "100%",
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       gap: spacing.sm,
     },
     button: {

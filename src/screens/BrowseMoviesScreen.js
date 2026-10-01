@@ -76,7 +76,7 @@ export const BrowseMoviesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.headerTitle}>Browse Movies</Text>
         <View style={styles.backButton} />

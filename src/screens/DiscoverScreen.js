@@ -1,14 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Search, Star } from "lucide-react-native";
-import { useRef } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -26,15 +17,6 @@ import { useColors } from "../theme/useColors";
 import { matchesGenres } from "../utils/movieFilters";
 
 const RAIL_COUNT = 10;
-// No real view/watch-count data to rank by, so "trending" is honestly
-// derived from what the dataset actually has: the most recent, highest
-// rated titles — new-ish and well-liked, rather than a fabricated signal.
-const RECENT_YEARS_WINDOW = 5;
-const latestYear = Math.max(...MOVIES.map((movie) => movie.year));
-const TRENDING = [...MOVIES]
-  .filter((movie) => movie.year > latestYear - RECENT_YEARS_WINDOW)
-  .sort((a, b) => b.rating - a.rating)
-  .slice(0, RAIL_COUNT);
 const TOP_RATED = [...MOVIES]
   .sort((a, b) => b.rating - a.rating)
   .slice(0, RAIL_COUNT);
@@ -45,101 +27,6 @@ const bestOfGenre = (genre) =>
     .slice(0, RAIL_COUNT);
 const TOP_DRAMA = bestOfGenre("Drama");
 const TOP_SCIFI = bestOfGenre("Sci-Fi");
-
-const TRENDING_CARD_RATIO = 0.78;
-const TRENDING_GAP = spacing.sm;
-
-const TrendingCard = ({ movie, cardWidth, navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const cardHeight = cardWidth * 0.62;
-
-  return (
-    <Pressable
-      style={[styles.trendingCard, { width: cardWidth, height: cardHeight }]}
-      onPress={() =>
-        navigation.navigate("MovieDetails", { movieId: movie.id })
-      }
-    >
-      <MoviePoster
-        uri={movie.backdrop}
-        radius={0}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <View style={styles.trendingScrim} />
-      <LinearGradient
-        colors={["transparent", "rgba(2, 0, 2, 0.55)", "rgba(2, 0, 2, 0.96)"]}
-        locations={[0, 0.55, 1]}
-        style={styles.trendingGradient}
-      />
-      <View style={styles.trendingContent}>
-        <Text style={styles.trendingEyebrow}>TRENDING</Text>
-        <Text style={styles.trendingTitle} numberOfLines={1}>
-          {movie.title}
-        </Text>
-        <View style={styles.trendingMetaRow}>
-          <Star size={11} color="#FFFFFF" fill="#FFFFFF" />
-          <Text style={styles.trendingMetaText}>
-            {movie.rating.toFixed(1)} · {movie.year}
-          </Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-};
-
-const TrendingSection = ({ movies, navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const { width } = useWindowDimensions();
-  const scrollRef = useRef(null);
-
-  if (movies.length === 0) return null;
-
-  const cardWidth = width * TRENDING_CARD_RATIO;
-  const itemWidth = cardWidth + TRENDING_GAP;
-  const loopWidth = itemWidth * movies.length;
-  // Three back-to-back copies of the same small real list, so scrolling
-  // past either edge of the middle copy can be silently snapped back into
-  // the middle without an animation — the seam is invisible since it's the
-  // same content — creating an endless loop out of a finite dataset.
-  const loopedMovies = [...movies, ...movies, ...movies];
-
-  const handleScrollEnd = (event) => {
-    const x = event.nativeEvent.contentOffset.x;
-    if (x < loopWidth) {
-      scrollRef.current?.scrollTo({ x: x + loopWidth, animated: false });
-    } else if (x >= loopWidth * 2) {
-      scrollRef.current?.scrollTo({ x: x - loopWidth, animated: false });
-    }
-  };
-
-  return (
-    <View style={styles.rail}>
-      <Text style={styles.railTitle}>Trending Now</Text>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={itemWidth}
-        decelerationRate="fast"
-        contentContainerStyle={[styles.railContent, { gap: TRENDING_GAP }]}
-        contentOffset={{ x: loopWidth, y: 0 }}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={handleScrollEnd}
-      >
-        {loopedMovies.map((movie, index) => (
-          <TrendingCard
-            key={`${movie.id}-${index}`}
-            movie={movie}
-            cardWidth={cardWidth}
-            navigation={navigation}
-          />
-        ))}
-      </ScrollView>
-    </View>
-  );
-};
 
 const DiscoverRail = ({ title, movies, navigation }) => {
   const colors = useColors();
@@ -213,9 +100,10 @@ const BecauseYouWatched = ({ navigation }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const genre = recentMovie.genres[0];
   const related = MOVIES.filter(
-    (movie) => movie.id !== recentMovie.id
-      && !watchedIds.has(movie.id)
-      && movie.genres.includes(genre),
+    (movie) =>
+      movie.id !== recentMovie.id &&
+      !watchedIds.has(movie.id) &&
+      movie.genres.includes(genre),
   )
     .sort((a, b) => b.rating - a.rating)
     .slice(0, RAIL_COUNT);
@@ -248,7 +136,8 @@ export const DiscoverScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.headerSpacer} />
         <Text style={styles.title}>Discover</Text>
         <Pressable
           style={styles.searchButton}
@@ -264,7 +153,6 @@ export const DiscoverScreen = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <TrendingSection movies={TRENDING} navigation={navigation} />
         <BecauseYouWatched navigation={navigation} />
         <DiscoverRail
           title="Top Rated"
@@ -313,15 +201,22 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     searchButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
+      backgroundColor: colors.background,
+    },
+    // Invisible same-size counterpart to searchButton on the opposite side,
+    // so space-between centers the title relative to the whole header
+    // instead of the title sitting flush-left next to a lone right button.
+    headerSpacer: {
+      width: 40,
+      height: 40,
     },
     rail: {
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     railTitle: {
       ...typography.subtitle,

@@ -37,6 +37,13 @@ const getVariantStyles = (colors) => ({
     text: { color: colors.textSecondary },
     shadow: null,
   },
+  // White pill for use on top of a solid accent-colored surface (e.g. a
+  // filled promo-style card) — inverse of `primary`.
+  light: {
+    container: { backgroundColor: colors.accentContrast },
+    text: { color: colors.background },
+    shadow: null,
+  },
 });
 
 export const PrimaryButton = ({

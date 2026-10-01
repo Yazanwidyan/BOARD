@@ -62,7 +62,8 @@ const truncateTitle = (title, max = 16) =>
 
 const Wheel = ({ candidates, rotatorStyle }) => {
   const sliceAngle = 360 / candidates.length;
-  const labelPoint = (angleDeg) => polarToCartesian(angleDeg, WHEEL_RADIUS * 0.62);
+  const labelPoint = (angleDeg) =>
+    polarToCartesian(angleDeg, WHEEL_RADIUS * 0.62);
 
   return (
     <Animated.View style={rotatorStyle}>

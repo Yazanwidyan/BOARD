@@ -3,14 +3,25 @@ import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 // Solid-glyph icons from assets/*.svg (SVG Repo), rendered via react-native-svg
 // primitives instead of Image so `color` can recolor them at runtime for the
 // tab bar's active/inactive states.
+const COMPASS_PATH =
+  "M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM14.5981 10.4999C14.0241 9.50566 11.0229 7.85497 9.66659 7.14526C9.35019 6.97969 8.97741 7.19492 8.96259 7.55171C8.89909 9.08112 8.82799 12.5057 9.40199 13.4999C9.976 14.4941 12.9773 16.1448 14.3335 16.8545C14.6499 17.02 15.0227 16.8048 15.0375 16.448C15.101 14.9186 15.1721 11.4941 14.5981 10.4999Z";
+
 export const CompassIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM14.5981 10.4999C14.0241 9.50566 11.0229 7.85497 9.66659 7.14526C9.35019 6.97969 8.97741 7.19492 8.96259 7.55171C8.89909 9.08112 8.82799 12.5057 9.40199 13.4999C9.976 14.4941 12.9773 16.1448 14.3335 16.8545C14.6499 17.02 15.0227 16.8048 15.0375 16.448C15.101 14.9186 15.1721 11.4941 14.5981 10.4999Z"
+      d={COMPASS_PATH}
       fill={color}
     />
+  </Svg>
+);
+
+// Stroke-only twin of CompassIcon — the "inactive" treatment for the
+// Discover tab (vs. CompassIcon's solid fill used when active).
+export const CompassOutlineIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d={COMPASS_PATH} fill="none" stroke={color} strokeWidth={1.5} />
   </Svg>
 );
 
@@ -75,13 +86,23 @@ export const GridIcon = ({ size = 24, color = "#000000" }) => (
   </Svg>
 );
 
+const LIBRARY_PATH =
+  "M5.9897,3 C7.0937,3 7.9897,3.896 7.9897,5 L7.9897,23 C7.9897,24.104 7.0937,25 5.9897,25 L4.0007,25 C2.8957,25 2.0007,24.104 2.0007,23 L2.0007,5 C2.0007,3.896 2.8957,3 4.0007,3 L5.9897,3 Z M12.9897,3 C14.0937,3 14.9897,3.896 14.9897,5 L14.9897,23 C14.9897,24.104 14.0937,25 12.9897,25 L10.9947,25 C9.8897,25 8.9947,24.104 8.9947,23 L8.9947,5 C8.9947,3.896 9.8897,3 10.9947,3 L12.9897,3 Z M22.0701,6.5432 L25.9301,22.0262 C26.1971,23.0972 25.5441,24.1832 24.4731,24.4512 L22.5101,24.9402 C21.4391,25.2072 20.3531,24.5552 20.0861,23.4832 L16.2261,8.0002 C15.9581,6.9282 16.6111,5.8432 17.6821,5.5752 L19.6451,5.0862 C20.7161,4.8182 21.8021,5.4712 22.0701,6.5432 Z";
+
 export const LibraryIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
     <G transform="translate(14 14) scale(0.85) translate(-14 -14)">
-      <Path
-        d="M5.9897,3 C7.0937,3 7.9897,3.896 7.9897,5 L7.9897,23 C7.9897,24.104 7.0937,25 5.9897,25 L4.0007,25 C2.8957,25 2.0007,24.104 2.0007,23 L2.0007,5 C2.0007,3.896 2.8957,3 4.0007,3 L5.9897,3 Z M12.9897,3 C14.0937,3 14.9897,3.896 14.9897,5 L14.9897,23 C14.9897,24.104 14.0937,25 12.9897,25 L10.9947,25 C9.8897,25 8.9947,24.104 8.9947,23 L8.9947,5 C8.9947,3.896 9.8897,3 10.9947,3 L12.9897,3 Z M22.0701,6.5432 L25.9301,22.0262 C26.1971,23.0972 25.5441,24.1832 24.4731,24.4512 L22.5101,24.9402 C21.4391,25.2072 20.3531,24.5552 20.0861,23.4832 L16.2261,8.0002 C15.9581,6.9282 16.6111,5.8432 17.6821,5.5752 L19.6451,5.0862 C20.7161,4.8182 21.8021,5.4712 22.0701,6.5432 Z"
-        fill={color}
-      />
+      <Path d={LIBRARY_PATH} fill={color} />
+    </G>
+  </Svg>
+);
+
+// Stroke-only twin of LibraryIcon — the "inactive" treatment for the
+// Library tab (vs. LibraryIcon's solid fill used when active).
+export const LibraryOutlineIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+    <G transform="translate(14 14) scale(0.85) translate(-14 -14)">
+      <Path d={LIBRARY_PATH} fill="none" stroke={color} strokeWidth={1.5} />
     </G>
   </Svg>
 );
@@ -105,6 +126,17 @@ export const HomeIcon = ({ size = 24, color = "#000000" }) => (
   </Svg>
 );
 
+// The Home tab is literally named "Board" — a hand-drafted angular
+// logomark (zigzag stem + rounded bowl) instead of a plain letterform or a
+// house glyph. Solid-only (no outline twin): it's a single brand mark, not
+// a glyph meant to read differently active vs. inactive.
+export const BoardBIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M14 3 L18 3 L11 13 L15 13 L8 21 L4 21 L11 11 L7 11 Z" fill={color} />
+    <Path d="M12 9 H14.5 A5.5 5.5 0 0 1 14.5 20 H12 Z" fill={color} />
+  </Svg>
+);
+
 // Concentric rings instead of a dice/pip glyph — a pip-based die needs a
 // second contrasting color to punch through, which breaks this tab bar's
 // single-`color`-prop swap between active/inactive states.
@@ -116,6 +148,29 @@ export const TargetIcon = ({ size = 24, color = "#000000" }) => (
   </Svg>
 );
 
+// A rounded screen with a play triangle cut out of its center via an
+// evenodd compound path — the same single-path trick CompassIcon uses for
+// its needle, so the triangle reads as a hole in the solid screen (active)
+// and as its own outline alongside the screen's when just stroked (inactive).
+const SCREEN_PLAY_PATH =
+  "M6 3 H18 A3 3 0 0 1 21 6 V15 A3 3 0 0 1 18 18 H6 A3 3 0 0 1 3 15 V6 A3 3 0 0 1 6 3 Z M9.5 7.5 L9.5 13.5 L15.5 10.5 Z";
+
+export const PlayScreenIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path fillRule="evenodd" clipRule="evenodd" d={SCREEN_PLAY_PATH} fill={color} />
+    <Path d="M9 21H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
+// Stroke-only twin of PlayScreenIcon — the "inactive" treatment for the
+// Decide tab (vs. PlayScreenIcon's solid fill used when active).
+export const PlayScreenOutlineIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d={SCREEN_PLAY_PATH} fill="none" stroke={color} strokeWidth={1.5} />
+    <Path d="M9 21H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
 export const UserIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Circle cx="12" cy="8" r="4" fill={color} />
@@ -123,6 +178,43 @@ export const UserIcon = ({ size = 24, color = "#000000" }) => (
       d="M5.33788 17.3206C5.99897 14.5269 8.77173 13 11.6426 13H12.3574C15.2283 13 18.001 14.5269 18.6621 17.3206C18.79 17.8611 18.8917 18.4268 18.9489 19.0016C19.0036 19.5512 18.5523 20 18 20H6C5.44772 20 4.99642 19.5512 5.0511 19.0016C5.1083 18.4268 5.20997 17.8611 5.33788 17.3206Z"
       fill={color}
     />
+  </Svg>
+);
+
+// Ring + head + shoulders share one set of coordinates between the outline
+// and filled variants below, sized to sit inside a r=10 ring — matching
+// CompassIcon's ring radius so Profile reads at the same visual size/weight
+// as the other tab icons instead of looking smaller — so switching active
+// state only toggles fill, never the shape itself, and the stroke width
+// (1.5) matches the rest of this file's outline icons instead of a lucide
+// default. The body path has no closing "Z" — left open at the bottom
+// instead of a flat closing edge, so the stroked (inactive) version reads
+// as an open collar.
+const PROFILE_HEAD = { cx: 12, cy: 8.7, r: 4.2 };
+const PROFILE_BODY_PATH = "M6.4 19.2 Q6.4 15.9 12 15.9 Q17.6 15.9 17.6 19.2";
+// Filled variant needs an explicit close — react-native-svg doesn't
+// auto-close an open subpath for fill the way browser SVG does, which left
+// a sliver of background showing through near the open end.
+const PROFILE_BODY_PATH_SOLID = `${PROFILE_BODY_PATH} Z`;
+
+// The "inactive" treatment for the Profile tab — a plain outline, replacing
+// lucide's CircleUserRound so geometry and stroke width stay in sync with
+// the solid-fill "active" version below.
+export const CircleUserOutlineIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={1.5} fill="none" />
+    <Circle {...PROFILE_HEAD} stroke={color} strokeWidth={1.5} fill="none" />
+    <Path d={PROFILE_BODY_PATH} stroke={color} strokeWidth={1.5} fill="none" />
+  </Svg>
+);
+
+// Same ring/head/shoulders geometry as CircleUserOutlineIcon, head and
+// shoulders solid-filled — the "active" treatment for the Profile tab.
+export const CircleUserFilledIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={1.5} fill="none" />
+    <Circle {...PROFILE_HEAD} fill={color} />
+    <Path d={PROFILE_BODY_PATH_SOLID} fill={color} />
   </Svg>
 );
 

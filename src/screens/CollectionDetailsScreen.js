@@ -303,7 +303,7 @@ const createStyles = (colors) =>
       color: colors.success,
     },
     pathContainer: {
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       marginHorizontal: spacing.md,
     },
     pathNode: {

@@ -1,3 +1,4 @@
+import { Film } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
@@ -7,78 +8,83 @@ import { useColors } from "../theme/useColors";
 import { PrimaryButton } from "./PrimaryButton";
 import { MoviePoster } from "./MoviePoster";
 
-const DIFFICULTY_COLOR = (colors) => ({
-  EASY: colors.success,
-  MEDIUM: colors.rating,
-  HARD: colors.danger,
-  EXTREME: colors.accentLight,
-});
-
 // Two modes: "reveal" (fresh out of the generator — Accept / Give Me
-// Another) and "active" (already accepted — a single Continue action).
+// Another) and "active" (already accepted — View Movie / New Challenge).
 // Same card either way so a challenge always looks the same wherever it
-// shows up (Home, Challenges tab, Movie Details).
+// shows up (Home, Decide, Movie Details).
 export const ChallengeCard = ({
   challenge,
   mode = "active",
   onAccept,
   onSkip,
   onContinue,
+  onNewChallenge,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const difficultyColor = DIFFICULTY_COLOR(colors)[challenge.difficulty];
   const movie = getMovieById(challenge.targetMovieId);
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title} numberOfLines={1}>
-          {challenge.title}
-        </Text>
-        <View style={[styles.difficultyPill, { borderColor: difficultyColor }]}>
-          <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-            {challenge.difficultyLabel}
-          </Text>
+      {movie && (
+        <MoviePoster
+          uri={movie.poster}
+          radius={radius.sm}
+          shadow
+          style={styles.decoPoster}
+        />
+      )}
+
+      <View style={styles.pillRow}>
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>{challenge.difficultyLabel}</Text>
+        </View>
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>+{challenge.xpReward} XP</Text>
         </View>
       </View>
 
+      <Text style={styles.title}>{challenge.title}</Text>
       <Text style={styles.description}>{challenge.description}</Text>
 
       {movie && (
-        <View style={styles.movieRow}>
-          <MoviePoster uri={movie.poster} radius={radius.xs} style={styles.moviePoster} />
-          <View style={styles.movieInfo}>
-            <Text style={styles.movieTitle} numberOfLines={1}>
-              {movie.title}
-            </Text>
-            <Text style={styles.movieMeta}>{movie.year}</Text>
-          </View>
+        <View style={styles.movieLine}>
+          <Film size={14} color="rgba(255, 255, 255, 0.85)" />
+          <Text style={styles.movieLineText} numberOfLines={1}>
+            {movie.title} · {movie.year}
+          </Text>
         </View>
       )}
 
-      <View style={styles.xpPill}>
-        <Text style={styles.xpText}>+{challenge.xpReward} XP</Text>
-      </View>
-
       {mode === "reveal" ? (
         <View style={styles.actions}>
-          <PrimaryButton label="Accept Challenge" onPress={onAccept} />
+          <PrimaryButton label="Accept Challenge" variant="light" onPress={onAccept} />
           <PrimaryButton
             label="Give Me Another"
             variant="ghost"
             dense
+            textStyle={styles.skipText}
             onPress={onSkip}
           />
         </View>
       ) : (
-        <PrimaryButton
-          label="View Movie"
-          variant="secondary"
-          dense
-          onPress={onContinue}
-          style={styles.continueButton}
-        />
+        <View style={styles.actionsRow}>
+          <PrimaryButton
+            label="View Movie"
+            variant="light"
+            onPress={onContinue}
+            style={styles.flexButton}
+          />
+          {onNewChallenge && (
+            <PrimaryButton
+              label="Change"
+              variant="ghost"
+              onPress={onNewChallenge}
+              style={styles.changeButton}
+              textStyle={styles.skipText}
+            />
+          )}
+        </View>
       )}
     </View>
   );
@@ -87,81 +93,77 @@ export const ChallengeCard = ({
 const createStyles = (colors) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.card,
+      backgroundColor: colors.accent,
       borderRadius: radius.lg,
       padding: spacing.md,
+      overflow: "hidden",
     },
-    headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: spacing.sm,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-      flex: 1,
-    },
-    difficultyPill: {
-      borderWidth: 1,
-      borderRadius: radius.pill,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-    },
-    difficultyText: {
-      ...typography.label,
-      fontSize: 10,
-    },
-    description: {
-      ...typography.body,
-      color: colors.textSecondary,
-      lineHeight: 20,
-      marginTop: spacing.sm,
-    },
-    movieRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      backgroundColor: colors.cardElevatedLight,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginTop: spacing.md,
-    },
-    moviePoster: {
-      width: 40,
+    decoPoster: {
+      position: "absolute",
+      top: spacing.md,
+      right: spacing.md,
+      width: 56,
       aspectRatio: 2 / 3,
+      transform: [{ rotate: "6deg" }],
     },
-    movieInfo: {
-      flex: 1,
-      gap: 2,
+    pillRow: {
+      flexDirection: "row",
+      gap: spacing.xs,
     },
-    movieTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    movieMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    xpPill: {
-      alignSelf: "flex-start",
-      backgroundColor: colors.successSoft,
+    pill: {
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
       borderRadius: radius.pill,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
+    },
+    pillText: {
+      ...typography.label,
+      fontSize: 11,
+      color: colors.accentContrast,
+    },
+    title: {
+      ...typography.title,
+      color: colors.accentContrast,
+      marginTop: spacing.sm,
+      paddingRight: 68,
+    },
+    description: {
+      ...typography.body,
+      color: "rgba(255, 255, 255, 0.85)",
+      lineHeight: 20,
+      marginTop: spacing.xs,
+      paddingRight: 68,
+    },
+    movieLine: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
       marginTop: spacing.md,
     },
-    xpText: {
+    movieLineText: {
       ...typography.bodyBold,
-      fontSize: 12,
-      color: colors.success,
+      color: colors.accentContrast,
+      flex: 1,
     },
     actions: {
+      gap: spacing.xs,
+      marginTop: spacing.md,
+    },
+    actionsRow: {
+      flexDirection: "row",
       gap: spacing.sm,
       marginTop: spacing.md,
     },
-    continueButton: {
-      marginTop: spacing.md,
+    flexButton: {
+      flex: 1,
+    },
+    changeButton: {
+      borderWidth: 1.5,
+      borderColor: "rgba(255, 255, 255, 0.6)",
+      borderRadius: radius.sm,
+    },
+    skipText: {
+      color: "rgba(255, 255, 255, 0.8)",
     },
   });
 

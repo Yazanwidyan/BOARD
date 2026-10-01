@@ -4,43 +4,43 @@
 // the custom font and fall back to the system one.
 export const typography = {
   display: {
-    fontFamily: 'Sora_800ExtraBold',
+    fontFamily: "Sora_800ExtraBold",
     fontSize: 32,
     letterSpacing: -0.8,
     lineHeight: 36,
   },
   hero: {
-    fontFamily: 'Sora_800ExtraBold',
+    fontFamily: "Sora_800ExtraBold",
     fontSize: 26,
     letterSpacing: -0.6,
     lineHeight: 31,
   },
   title: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 19,
+    fontFamily: "Sora_700Bold",
+    fontSize: 18,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: "Sora_600SemiBold",
     fontSize: 15,
   },
   body: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: "Sora_400Regular",
     fontSize: 14,
   },
   bodyBold: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: "Sora_600SemiBold",
     fontSize: 14,
   },
   caption: {
-    fontFamily: 'Sora_500Medium',
+    fontFamily: "Sora_500Medium",
     fontSize: 12,
   },
   label: {
-    fontFamily: 'Sora_700Bold',
+    fontFamily: "Sora_700Bold",
     fontSize: 11,
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
 };
 

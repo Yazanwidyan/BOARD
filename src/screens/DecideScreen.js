@@ -1,4 +1,4 @@
-import { CheckCircle, Dices, RotateCw, Shuffle, X } from "lucide-react-native";
+import { CheckCircle, RotateCw, Shuffle, X } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
@@ -6,8 +6,8 @@ import {
 } from "react-native-safe-area-context";
 
 import { ChallengeCard } from "../components/ChallengeCard";
+import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
 import { FeatureCard } from "../components/FeatureCard";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
@@ -81,14 +81,12 @@ export const DecideScreen = ({ navigation }) => {
           <Text style={styles.sectionLabel}>Quick Pick</Text>
           <FeatureCard
             icon={<Shuffle size={24} color={colors.accentContrast} />}
-            ghostIcon={<Shuffle size={100} color={colors.textPrimary} />}
             title="Swipe to Decide"
             subtitle="Browse 10 picks matched to your taste, one at a time."
             onPress={() => navigation.navigate("Swipe")}
           />
           <FeatureCard
             icon={<RotateCw size={24} color={colors.accentContrast} />}
-            ghostIcon={<RotateCw size={100} color={colors.textPrimary} />}
             title="Spin to Decide"
             subtitle="Same 10 picks — the wheel lands on one instantly."
             onPress={() => navigation.navigate("Spin")}
@@ -106,26 +104,13 @@ export const DecideScreen = ({ navigation }) => {
                   movieId: activeChallenge.targetMovieId,
                 })
               }
+              onNewChallenge={handleCreate}
             />
           ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No active challenges.</Text>
-              <Text style={styles.emptySubtitle}>Bored?</Text>
-              <PrimaryButton
-                label="Create a Challenge"
-                icon={<Dices size={18} color={colors.accentContrast} />}
-                onPress={handleCreate}
-                style={styles.emptyButton}
-              />
-            </View>
-          )}
-          {activeChallenge && (
-            <PrimaryButton
-              label="New Challenge"
-              variant="ghost"
-              dense
+            <ChallengeEmptyCard
+              title="No Active Challenges"
+              subtitle="Bored? Create a challenge to earn XP."
               onPress={handleCreate}
-              style={styles.newChallengeButton}
             />
           )}
         </View>
@@ -170,34 +155,12 @@ const createStyles = (colors) =>
     },
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
     },
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
       marginBottom: spacing.sm,
-    },
-    emptyCard: {
-      alignItems: "center",
-      backgroundColor: colors.card,
-      borderRadius: radius.lg,
-      paddingVertical: spacing.xl,
-      paddingHorizontal: spacing.md,
-    },
-    emptyTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    emptySubtitle: {
-      ...typography.body,
-      color: colors.textSecondary,
-      marginTop: spacing.xs,
-    },
-    emptyButton: {
-      marginTop: spacing.md,
-    },
-    newChallengeButton: {
-      marginTop: spacing.sm,
     },
     historyRow: {
       flexDirection: "row",

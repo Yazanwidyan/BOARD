@@ -41,19 +41,19 @@ export const CollectionContinueCard = ({ collection, watchedIds, onPress }) => {
 const createStyles = (colors) =>
   StyleSheet.create({
     frame: {
-      backgroundColor: colors.card,
+      backgroundColor: "#6E3EC8",
       borderRadius: radius.lg,
       padding: 4,
       paddingBottom: 10, // extra room for the progress bar to peek out
     },
     card: {
-      backgroundColor: colors.cardElevatedLight,
+      backgroundColor: "#885ADE",
       borderRadius: radius.lg,
       padding: 20,
     },
     label: {
       ...typography.body,
-      color: colors.textSecondary,
+      color: colors.textPrimary,
     },
     title: {
       ...typography.title,

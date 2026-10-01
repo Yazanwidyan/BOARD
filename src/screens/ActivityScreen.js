@@ -1,11 +1,15 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Activity } from 'lucide-react-native';
-import { useColors } from '../theme/useColors';
-import { typography } from '../theme/typography';
-import { spacing } from '../theme/spacing';
-import { EmptyState } from '../components/EmptyState';
-import { ScreenBottomFade } from '../components/ScreenBottomFade';
+import { Activity } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { EmptyState } from "../components/EmptyState";
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
+import { useColors } from "../theme/useColors";
 
 export const ActivityScreen = () => {
   const colors = useColors();
@@ -14,7 +18,7 @@ export const ActivityScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.title}>Activity</Text>
       </View>
 
@@ -29,22 +33,23 @@ export const ActivityScreen = () => {
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-    alignItems: 'center',
-  },
-  title: {
-    ...typography.title,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+      alignItems: "center",
+    },
+    title: {
+      ...typography.title,
+      color: colors.textPrimary,
+      textAlign: "center",
+    },
+  });
 
 export default ActivityScreen;

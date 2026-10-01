@@ -4,54 +4,85 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  BoardBIcon,
+  CircleUserFilledIcon,
+  CircleUserOutlineIcon,
   CompassIcon,
-  HomeIcon,
+  CompassOutlineIcon,
   LibraryIcon,
-  TargetIcon,
-  UserIcon,
+  LibraryOutlineIcon,
+  PlayScreenIcon,
+  PlayScreenOutlineIcon,
 } from "../components/icons/TabIcons";
 import { DecideScreen } from "../screens/DecideScreen";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { spacing } from "../theme/spacing";
+import { radius, spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 
 const Tab = createBottomTabNavigator();
 
-// Deliberately plain — five equal, identically-styled tabs. No blur, no
-// raised badge, no gradients: just an icon, a label, and a color change on
-// the active one. Decide holds Swipe, Spin, and Challenges together — all
-// three are "I don't know what to watch, decide for me," just with
-// different textures — instead of Swipe/Spin being secondary cards buried
-// on Home. Library holds Watched, Watchlist, and Collections as three tabs
-// on one screen — neither gets its own bottom-tab slot anymore.
+// Home's "B" logomark is a single brand mark, always solid — no
+// outline/active split. The other tabs' icons are a thin outline when
+// inactive and switch to a solid fill when active.
 const ICONS = {
-  Home: HomeIcon,
+  Home: BoardBIcon,
+};
+const OUTLINE_ICONS = {
+  Discover: CompassOutlineIcon,
+  Decide: PlayScreenOutlineIcon,
+  Library: LibraryOutlineIcon,
+  Profile: CircleUserOutlineIcon,
+};
+const SOLID_ICONS = {
   Discover: CompassIcon,
-  Decide: TargetIcon,
+  Decide: PlayScreenIcon,
   Library: LibraryIcon,
-  Profile: UserIcon,
+  Profile: CircleUserFilledIcon,
 };
 const LABELS = {
-  Home: "Home",
+  Home: "Board",
   Discover: "Discover",
   Decide: "Decide",
   Library: "Library",
   Profile: "Profile",
 };
+const ICON_SIZES = {
+  Discover: 23.5,
+  Library: 25,
+};
+const DEFAULT_ICON_SIZE = 24;
+
+const TabLabel = ({ label, isFocused, styles }) => (
+  <Text
+    numberOfLines={1}
+    style={[styles.label, isFocused && styles.labelActive]}
+  >
+    {label}
+  </Text>
+);
 
 const TabBarItem = ({ route, isFocused, styles, colors, onPress }) => {
-  const IconComponent = ICONS[route.name];
-  const color = isFocused ? colors.accentLight : colors.textMuted;
+  const IconComponent =
+    ICONS[route.name] ??
+    (isFocused ? SOLID_ICONS[route.name] : OUTLINE_ICONS[route.name]);
+  const color = isFocused ? colors.accentLight : "#e2e3f7";
 
   return (
     <Pressable style={styles.item} onPress={onPress}>
-      <IconComponent size={22} color={color} />
-      <Text numberOfLines={1} style={[styles.label, { color }]}>
-        {LABELS[route.name]}
-      </Text>
+      <View style={styles.iconSlot}>
+        <IconComponent
+          size={ICON_SIZES[route.name] ?? DEFAULT_ICON_SIZE}
+          color={color}
+        />
+      </View>
+      <TabLabel
+        label={LABELS[route.name]}
+        isFocused={isFocused}
+        styles={styles}
+      />
     </Pressable>
   );
 };
@@ -107,24 +138,47 @@ const createStyles = (colors, insets) =>
   StyleSheet.create({
     container: {
       position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
+      borderWidth: 1,
+      borderColor: colors.border,
+      width: "87%",
+      alignSelf: "center",
+      bottom: Math.max(0, insets.bottom - 10),
       flexDirection: "row",
-      backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      paddingTop: spacing.sm,
-      paddingBottom: insets.bottom + spacing.xs,
+      backgroundColor: "#1d1e36de",
+      borderRadius: radius.pill,
+      paddingLeft: spacing.sm,
+      paddingRight: spacing.sm,
+      paddingTop: 12,
+      paddingBottom: 12,
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 10,
     },
     item: {
       flex: 1,
       alignItems: "center",
-      gap: 4,
+      gap: 2,
+    },
+    // Fixed-height slot the icon centers inside, so per-tab size overrides
+    // (ICON_SIZES) change how big the glyph looks without shifting the
+    // label below it — otherwise a taller icon pushes its own label down
+    // relative to the other tabs' labels.
+    iconSlot: {
+      width: 26,
+      height: 26,
+      justifyContent: "center",
+      alignItems: "center",
     },
     label: {
-      fontSize: 11,
-      fontWeight: "600",
+      fontSize: 10,
+      fontWeight: "500",
+      color: "#e2e3f7",
+    },
+    labelActive: {
+      color: colors.accentLight,
+      fontWeight: "500",
     },
   });
 

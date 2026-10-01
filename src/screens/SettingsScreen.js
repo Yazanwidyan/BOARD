@@ -205,7 +205,7 @@ const createStyles = (colors) =>
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
-      marginTop: spacing.xl,
+      marginTop: spacing.md,
       marginBottom: spacing.sm,
     },
     section: {

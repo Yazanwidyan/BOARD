@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
-import { ChallengeCard } from "../components/ChallengeCard";
 import { BackButton } from "../components/BackButton";
+import { ChallengeCard } from "../components/ChallengeCard";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
@@ -66,7 +69,10 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
 
       <View style={styles.content}>
         {challenge ? (
-          <Animated.View entering={FadeIn.duration(300)} style={styles.cardWrap}>
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            style={styles.cardWrap}
+          >
             <ChallengeCard
               challenge={challenge}
               mode="reveal"
