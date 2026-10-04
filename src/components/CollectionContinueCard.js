@@ -1,25 +1,23 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight } from "lucide-react-native";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionProgress } from "../utils/collections";
 
-// Curated art for the two collection types that have it — real per-movie
-// backdrops are generic stock placeholders (see data/movies.js), so these
-// two read as noticeably more "designed" than the rest until real art
-// exists. Franchise/genre collections still fall back to a movie backdrop.
-const TYPE_PLACEHOLDERS = {
-  director: require("../../assets/collection-placeholder-director.png"),
-  decade: require("../../assets/collection-placeholder-decade.png"),
+const EYEBROWS = {
+  franchise: "FRANCHISE",
+  director: "DIRECTOR",
+  decade: "DECADE",
+  genre: "GENRE",
 };
 
-// A full-bleed backdrop behind a dark gradient, title/progress overlaid at
-// the bottom — shared by the Collections tab's "Continue" spot and Home's
-// "Continue a Collection" section, so both read as the exact same feature
-// rather than two designs.
+// Same nested double-card frame and info styling as Tonight's Pick, so the
+// two Home cards read as one family. Shared by the Collections tab's
+// "Continue" spot and Home's "Continue a Collection" rail.
+const FRAME_PADDING = 4;
+
 export const CollectionContinueCard = ({ collection, watchedIds, onPress }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -27,105 +25,82 @@ export const CollectionContinueCard = ({ collection, watchedIds, onPress }) => {
     collection,
     watchedIds,
   );
-  const backdrop = collection.movies[0]?.backdrop;
-  const imageSource =
-    TYPE_PLACEHOLDERS[collection.type] ?? (backdrop ? { uri: backdrop } : null);
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      {imageSource && (
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
-      )}
-      <LinearGradient
-        colors={["transparent", "#252746"]}
-        style={styles.detailsVignette}
-        pointerEvents="none"
-      />
-
-      <View style={styles.content}>
-        <View style={styles.textBlock}>
+    <View style={styles.frame}>
+      <Pressable style={styles.card} onPress={onPress}>
+        <View style={styles.info}>
+          <Text style={styles.eyebrow}>
+            {EYEBROWS[collection.type] ?? "COLLECTION"}
+          </Text>
           <Text style={styles.title} numberOfLines={1}>
             {collection.title}
           </Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.metaText} numberOfLines={1}>
             {watchedCount} / {total} watched
           </Text>
+          <View style={styles.barTrack}>
+            <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
+          </View>
         </View>
         <View style={styles.arrowButton}>
-          <ArrowRight size={18} color="#FFFFFF" />
+          <ArrowRight size={18} color={colors.textPrimary} />
         </View>
-      </View>
-
-      <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    frame: {
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      padding: FRAME_PADDING,
+    },
     card: {
-      height: 150,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.md,
       borderRadius: radius.sm,
       overflow: "hidden",
-      backgroundColor: colors.card,
-      justifyContent: "flex-end",
-      borderWidth: 1,
-      borderColor: colors.border,
+      backgroundColor: colors.cardElevatedLight,
     },
-    image: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    detailsVignette: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: "65%",
-    },
-    content: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "space-between",
-      padding: spacing.md,
-    },
-    textBlock: {
+    info: {
       flex: 1,
-      marginRight: spacing.sm,
+      gap: 4,
+    },
+    eyebrow: {
+      ...typography.label,
+      color: colors.accentLight,
     },
     title: {
-      ...typography.subtitle,
-      color: "#FFFFFF",
+      ...typography.title,
+      color: colors.textPrimary,
     },
-    subtitle: {
+    metaText: {
       ...typography.caption,
-      color: "rgba(255, 255, 255, 0.85)",
-      marginTop: 2,
+      color: colors.textSecondary,
+    },
+    barTrack: {
+      height: 4,
+      marginTop: 4,
+      borderRadius: 2,
+      overflow: "hidden",
+      backgroundColor: colors.border,
+    },
+    barFill: {
+      height: "100%",
+      backgroundColor: colors.accentLight,
     },
     arrowButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: colors.card,
       alignItems: "center",
       justifyContent: "center",
-    },
-    barTrack: {
-      height: 4,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
-      borderRadius: 2,
-      overflow: "hidden",
-      backgroundColor: "rgba(255, 255, 255, 0.25)",
-    },
-    barFill: {
-      height: "100%",
-      backgroundColor: colors.accentLight,
     },
   });
 

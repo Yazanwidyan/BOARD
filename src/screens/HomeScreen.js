@@ -8,7 +8,6 @@ import {
 import { ChallengeCard } from "../components/ChallengeCard";
 import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
 import { CollectionContinueCard } from "../components/CollectionContinueCard";
-import { BoardBIcon } from "../components/icons/TabIcons";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -155,9 +154,9 @@ export const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <View style={styles.topRow}>
-          <View style={styles.brandRow}>
-            <BoardBIcon size={20} color={colors.accent} />
-            <Text style={styles.brandText}>BOARD</Text>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Hey, {displayName}</Text>
+            <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
           </View>
           <Pressable
             style={styles.levelBadge}
@@ -166,10 +165,6 @@ export const HomeScreen = ({ navigation }) => {
             <RankGemIcon size={18} color={rank.color} />
             <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
           </Pressable>
-        </View>
-        <View style={styles.headerText}>
-          <Text style={styles.greeting}>Hey, {displayName}</Text>
-          <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
         </View>
       </View>
 
@@ -293,19 +288,9 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
-    brandRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-    brandText: {
-      ...typography.title,
-      fontSize: 15,
-      letterSpacing: 1,
-      color: colors.textPrimary,
-    },
     headerText: {
-      marginTop: spacing.sm,
+      flex: 1,
+      marginRight: spacing.sm,
     },
     greeting: {
       ...typography.body,
@@ -332,14 +317,14 @@ const createStyles = (colors) =>
     },
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     // Same vertical rhythm as `section`, but no horizontal padding — used
     // for the two horizontal-scroll rails, so the scrollable row itself
     // reaches both screen edges. Only the label above it keeps the normal
     // margin, via railLabelPadding.
     railSection: {
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     railLabelPadding: {
       paddingHorizontal: spacing.md,

@@ -216,7 +216,7 @@ const createStyles = (colors) =>
       height: 40,
     },
     rail: {
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     railTitle: {
       ...typography.subtitle,

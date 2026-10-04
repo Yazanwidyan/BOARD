@@ -581,7 +581,7 @@ const createStyles = (colors) =>
     },
     friendsSection: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     friendsHeaderRow: {
       flexDirection: "row",

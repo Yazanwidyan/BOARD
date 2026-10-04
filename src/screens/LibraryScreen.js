@@ -709,7 +709,7 @@ const createStyles = (colors) =>
     },
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     sectionTitle: {
       ...typography.label,

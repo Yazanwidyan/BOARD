@@ -68,10 +68,11 @@ const TabBarItem = ({ route, isFocused, styles, colors, onPress }) => {
   const IconComponent =
     ICONS[route.name] ??
     (isFocused ? SOLID_ICONS[route.name] : OUTLINE_ICONS[route.name]);
-  const color = isFocused ? colors.accentLight : "#e2e3f7";
+  const color = isFocused ? colors.accentLight : "#e8e9fa";
+  const bg = isFocused ? "#e8e9fa21" : "";
 
   return (
-    <Pressable style={styles.item} onPress={onPress}>
+    <Pressable style={[styles.item, { backgroundColor: bg }]} onPress={onPress}>
       <View style={styles.iconSlot}>
         <IconComponent
           size={ICON_SIZES[route.name] ?? DEFAULT_ICON_SIZE}
@@ -144,12 +145,12 @@ const createStyles = (colors, insets) =>
       alignSelf: "center",
       bottom: Math.max(0, insets.bottom - 10),
       flexDirection: "row",
-      backgroundColor: "#1d1e36de",
+      backgroundColor: "#101422ea",
       borderRadius: radius.pill,
-      paddingLeft: spacing.sm,
-      paddingRight: spacing.sm,
-      paddingTop: 12,
-      paddingBottom: 12,
+      paddingLeft: 6,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
       shadowColor: "#000000",
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.3,
@@ -157,14 +158,14 @@ const createStyles = (colors, insets) =>
       elevation: 10,
     },
     item: {
+      backgroundColor: "red",
+      borderRadius: radius.pill,
+      paddingTop: 4,
+      paddingBottom: 4,
       flex: 1,
       alignItems: "center",
       gap: 2,
     },
-    // Fixed-height slot the icon centers inside, so per-tab size overrides
-    // (ICON_SIZES) change how big the glyph looks without shifting the
-    // label below it — otherwise a taller icon pushes its own label down
-    // relative to the other tabs' labels.
     iconSlot: {
       width: 26,
       height: 26,
