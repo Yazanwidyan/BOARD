@@ -22,6 +22,13 @@ import { useColors } from "../theme/useColors";
 import { getCollectionById, getCollectionProgress } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 
+const TYPE_LABELS = {
+  franchise: "Franchise",
+  director: "Director",
+  decade: "Decade",
+  genre: "Genre",
+};
+
 const NODE_SIZE = 72;
 const RING_SIZE = NODE_SIZE + 8;
 const ROW_HEIGHT = 124;
@@ -50,6 +57,7 @@ const PathNode = ({ movie, cx, cy, state, onPress, styles, colors }) => {
       onPress={onPress}
       style={[
         styles.pathNode,
+        state === "next" && styles.pathNodeNext,
         {
           left: cx - RING_SIZE / 2,
           top: cy - RING_SIZE / 2,
@@ -59,7 +67,7 @@ const PathNode = ({ movie, cx, cy, state, onPress, styles, colors }) => {
     >
       <MoviePoster
         uri={movie.poster}
-        radius={NODE_SIZE / 2}
+        radius={0}
         style={[
           styles.pathNodePoster,
           state === "remaining" && styles.pathNodeDimmed,
@@ -120,6 +128,9 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const canvasHeight =
     RING_SIZE + (collection.movies.length - 1) * ROW_HEIGHT + spacing.xl;
 
+  // Right-angle "elbow" segments (down, across, down) instead of a smooth
+  // curve, matching a skill-tree path — strokeLinejoin="round" on the Path
+  // softens the corners rather than hand-rounding the geometry itself.
   let pathD = "";
   nodePositions.forEach((pos, index) => {
     if (index === 0) {
@@ -127,9 +138,8 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
       return;
     }
     const prev = nodePositions[index - 1];
-    const c1y = prev.cy + ROW_HEIGHT / 2;
-    const c2y = pos.cy - ROW_HEIGHT / 2;
-    pathD += ` C ${prev.cx} ${c1y}, ${pos.cx} ${c2y}, ${pos.cx} ${pos.cy}`;
+    const midY = (prev.cy + pos.cy) / 2;
+    pathD += ` L ${prev.cx} ${midY} L ${pos.cx} ${midY} L ${pos.cx} ${pos.cy}`;
   });
 
   // Static — sized to the screen itself, not the scrollable content, and
@@ -179,15 +189,21 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
-        <View style={styles.summary}>
-          <Text style={styles.summaryStat}>
-            {watchedCount} / {total} watched
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>
+            {TYPE_LABELS[collection.type] ?? "Collection"}
+          </Text>
+          <Text style={styles.summaryTitle} numberOfLines={1}>
+            {collection.title}
           </Text>
           <View style={styles.summaryBarTrack}>
             <View
               style={[styles.summaryBarFill, { width: `${progress * 100}%` }]}
             />
           </View>
+          <Text style={styles.summaryStat}>
+            {watchedCount} / {total} watched
+          </Text>
           {isComplete && (
             <View style={styles.completeBanner}>
               <CheckCircle size={14} color={colors.success} />
@@ -208,6 +224,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               strokeWidth={4}
               fill="none"
               strokeLinecap="round"
+              strokeLinejoin="round"
             />
           </Svg>
           {nodePositions.map(({ movie, cx, cy, state }) => (
@@ -265,14 +282,27 @@ const createStyles = (colors) =>
       justifyContent: "center",
       backgroundColor: colors.card,
     },
-    summary: {
-      alignItems: "center",
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xl,
+    summaryCard: {
+      alignItems: "flex-start",
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: radius.lg,
+      margin: spacing.md,
+      padding: spacing.md,
     },
-    summaryStat: {
+    summaryLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+    },
+    summaryTitle: {
       ...typography.title,
       color: colors.textPrimary,
+      marginTop: 2,
+      alignSelf: "stretch",
+    },
+    summaryStat: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
     },
     summaryBarTrack: {
       width: "100%",
@@ -280,7 +310,7 @@ const createStyles = (colors) =>
       borderRadius: 2,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
-      marginTop: spacing.sm,
+      marginTop: spacing.md,
     },
     summaryBarFill: {
       height: "100%",
@@ -294,7 +324,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.successSoft,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       marginTop: spacing.md,
     },
     completeBannerText: {
@@ -310,11 +340,15 @@ const createStyles = (colors) =>
       position: "absolute",
       width: RING_SIZE,
       height: RING_SIZE,
-      borderRadius: RING_SIZE / 2,
+      borderRadius: radius.lg,
       borderWidth: 3,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.background,
+    },
+    pathNodeNext: {
+      borderWidth: 4,
+      backgroundColor: colors.cardElevatedLight,
     },
     pathNodePoster: {
       width: NODE_SIZE,

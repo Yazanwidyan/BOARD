@@ -105,7 +105,7 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
               >
                 <MoviePoster
                   uri={movie.poster}
-                  radius={radius.sm}
+                  radius={0}
                   style={styles.rowPoster}
                 />
                 <View style={styles.rowInfo}>

@@ -19,7 +19,12 @@ export const resetAppData = () => {
   });
   useChallengeStore.setState({ activeChallenge: null, history: [] });
   useSessionStore.getState().endSession();
-  useProfileStore.setState({ displayName: 'You', bio: '' });
+  useProfileStore.setState({
+    displayName: 'You',
+    bio: '',
+    email: '',
+    avatarUri: null,
+  });
   useRecentSearchStore.getState().clearSearches();
   useUserStore.setState({
     hasCompletedOnboarding: false,

@@ -1,9 +1,12 @@
+import * as ImagePicker from "expo-image-picker";
 import {
   Bookmark,
   CheckCircle,
   ChevronRight,
   Clapperboard,
+  Gift,
   Info,
+  Pencil,
   RotateCcw,
   Shuffle,
   SlidersHorizontal,
@@ -11,10 +14,12 @@ import {
 } from "lucide-react-native";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -22,8 +27,10 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { BackButton } from "../components/BackButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useMovieStore } from "../store/movieStore";
+import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
@@ -32,6 +39,10 @@ import { useColors } from "../theme/useColors";
 import { resetAppData } from "../utils/resetAppData";
 
 const APP_VERSION = "1.0.0";
+const BIO_MAX_LENGTH = 140;
+const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
+
+const showStub = (title, message) => Alert.alert(title, message);
 
 const SettingsRow = ({ icon, label, onPress, destructive, value }) => {
   const colors = useColors();
@@ -73,18 +84,110 @@ export const SettingsScreen = ({ navigation }) => {
   const clearWatched = useMovieStore((state) => state.clearWatched);
   const endSession = useSessionStore((state) => state.endSession);
   const replayOnboarding = useUserStore((state) => state.replayOnboarding);
+  const displayName = useProfileStore((state) => state.displayName);
+  const setDisplayName = useProfileStore((state) => state.setDisplayName);
+  const bio = useProfileStore((state) => state.bio);
+  const setBio = useProfileStore((state) => state.setBio);
+  const email = useProfileStore((state) => state.email);
+  const setEmail = useProfileStore((state) => state.setEmail);
+  const avatarUri = useProfileStore((state) => state.avatarUri);
+  const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const insets = useSafeAreaInsets();
+
+  const handleNameBlur = () => {
+    if (!displayName.trim()) setDisplayName("You");
+  };
+
+  const handleBioBlur = () => {
+    if (bio.trim() !== bio) setBio(bio.trim());
+  };
+
+  const handlePickAvatar = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showStub(
+        "Photo Access Needed",
+        "Allow access to your photos in system settings to set a profile picture.",
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <BackButton onPress={() => navigation.goBack()} />
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top, paddingBottom: insets.bottom + spacing.xl },
+          { paddingBottom: insets.bottom + spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Settings</Text>
+        <View style={styles.avatarWrap}>
+          <Pressable style={styles.avatarPressable} onPress={handlePickAvatar}>
+            <View style={styles.avatar}>
+              <Image
+                source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
+                style={styles.avatarImage}
+              />
+            </View>
+            <View style={styles.avatarEditBadge}>
+              <Pencil size={13} color={colors.accentContrast} strokeWidth={2.2} />
+            </View>
+          </Pressable>
+        </View>
+
+        <Text style={styles.fieldLabel}>Your name</Text>
+        <View style={styles.fieldBox}>
+          <TextInput
+            value={displayName}
+            onChangeText={setDisplayName}
+            onBlur={handleNameBlur}
+            placeholder="Your name"
+            placeholderTextColor={colors.textMuted}
+            style={styles.fieldInput}
+          />
+        </View>
+
+        <Text style={styles.fieldLabel}>About you</Text>
+        <View style={styles.fieldBox}>
+          <TextInput
+            value={bio}
+            onChangeText={setBio}
+            onBlur={handleBioBlur}
+            placeholder="Tell people what you love to watch..."
+            placeholderTextColor={colors.textMuted}
+            style={styles.fieldInput}
+            maxLength={BIO_MAX_LENGTH}
+          />
+        </View>
+
+        <Text style={styles.fieldLabel}>Email</Text>
+        <View style={styles.fieldBox}>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            placeholderTextColor={colors.textMuted}
+            style={styles.fieldInput}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+        </View>
 
         <Text style={styles.sectionLabel}>Discovery</Text>
         <View style={styles.section}>
@@ -109,7 +212,7 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.sectionLabel}>Your Data</Text>
         <View style={styles.section}>
           <SettingsRow
-            icon={<Bookmark size={18} color={colors.textPrimary} />}
+            icon={<Bookmark size={18} color={colors.danger} />}
             label="Clear Watchlist"
             destructive
             onPress={() =>
@@ -121,7 +224,7 @@ export const SettingsScreen = ({ navigation }) => {
             }
           />
           <SettingsRow
-            icon={<Clapperboard size={18} color={colors.textPrimary} />}
+            icon={<Clapperboard size={18} color={colors.danger} />}
             label="Clear Current Pick"
             destructive
             onPress={() =>
@@ -133,7 +236,7 @@ export const SettingsScreen = ({ navigation }) => {
             }
           />
           <SettingsRow
-            icon={<CheckCircle size={18} color={colors.textPrimary} />}
+            icon={<CheckCircle size={18} color={colors.danger} />}
             label="Clear Watched History"
             destructive
             onPress={() =>
@@ -141,18 +244,6 @@ export const SettingsScreen = ({ navigation }) => {
                 "Clear Watched History",
                 "This will remove all movies marked as watched.",
                 clearWatched,
-              )
-            }
-          />
-          <SettingsRow
-            icon={<Trash size={18} color={colors.textPrimary} />}
-            label="Reset App (Start Fresh)"
-            destructive
-            onPress={() =>
-              confirmAction(
-                "Reset App",
-                "This wipes everything — watched, watchlist, XP, badges, challenges, profile — and takes you back through onboarding like a brand-new install. This can't be undone.",
-                resetAppData,
               )
             }
           />
@@ -175,12 +266,38 @@ export const SettingsScreen = ({ navigation }) => {
               )
             }
           />
+        </View>
+
+        <Text style={styles.sectionLabel}>Friend Invites</Text>
+        <View style={styles.section}>
           <SettingsRow
-            icon={<Info size={18} color={colors.textPrimary} />}
-            label="Version"
-            value={APP_VERSION}
+            icon={<Gift size={18} color={colors.textPrimary} />}
+            label="Enter referral code"
+            onPress={() =>
+              showStub(
+                "Referral Codes",
+                "BOARD doesn't have referral codes yet.",
+              )
+            }
           />
         </View>
+
+        <View style={styles.section}>
+          <SettingsRow
+            icon={<Trash size={18} color={colors.danger} />}
+            label="Delete Account"
+            destructive
+            onPress={() =>
+              confirmAction(
+                "Delete Account",
+                "BOARD doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
+                resetAppData,
+              )
+            }
+          />
+        </View>
+
+        <Text style={styles.footerText}>Version {APP_VERSION}</Text>
       </ScrollView>
       <ScreenBottomFade />
     </SafeAreaView>
@@ -193,14 +310,27 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: {
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
-    title: {
+    headerTitle: {
       ...typography.title,
       color: colors.textPrimary,
-      marginTop: spacing.sm,
-      textAlign: "center",
+    },
+    headerSpacer: {
+      width: 40,
+      height: 40,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
     },
     sectionLabel: {
       ...typography.label,
@@ -233,11 +363,69 @@ const createStyles = (colors) =>
       marginLeft: spacing.sm,
     },
     rowLabelDestructive: {
-      color: colors.textPrimary,
+      color: colors.danger,
     },
     rowValue: {
       ...typography.caption,
       color: colors.textSecondary,
+    },
+    footerText: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.md,
+    },
+    avatarWrap: {
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    avatarPressable: {
+      width: 88,
+      height: 88,
+    },
+    avatar: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      backgroundColor: colors.card,
+      overflow: "hidden",
+    },
+    avatarImage: {
+      width: "100%",
+      height: "100%",
+    },
+    avatarEditBadge: {
+      position: "absolute",
+      bottom: 0,
+      right: 0,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.accent,
+      borderWidth: 2,
+      borderColor: colors.background,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    fieldLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    fieldBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.md,
+      minHeight: 48,
+    },
+    fieldInput: {
+      ...typography.body,
+      flex: 1,
+      color: colors.textPrimary,
+      paddingVertical: spacing.sm,
     },
   });
 

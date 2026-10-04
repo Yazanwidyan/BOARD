@@ -2,10 +2,11 @@ import { ChevronLeft } from "lucide-react-native";
 import { Pressable, StyleSheet } from "react-native";
 
 import colors from "../theme/palettes";
-import { radius } from "../theme/spacing";
 
 // Same solid black badge every back button in the app uses, so it reads as
-// one consistent control — just the chevron, no label.
+// one consistent control — just the chevron, no label. Fully circular
+// (radius is always half the size) to match the other circular header
+// icon buttons across the app.
 export const BackButton = ({ onPress, size = 40 }) => (
   <Pressable
     onPress={onPress}
@@ -15,7 +16,7 @@ export const BackButton = ({ onPress, size = 40 }) => (
       {
         width: size,
         height: size,
-        borderRadius: radius.sm,
+        borderRadius: size / 2,
         backgroundColor: colors.cardElevated,
         borderWidth: 1,
         borderColor: colors.border,

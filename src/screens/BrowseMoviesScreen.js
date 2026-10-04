@@ -32,7 +32,7 @@ const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
     <Pressable style={styles.row} onPress={onPress}>
       <MoviePoster
         uri={movie.poster}
-        radius={radius.sm}
+        radius={0}
         style={styles.rowPoster}
       />
       <View style={styles.rowInfo}>

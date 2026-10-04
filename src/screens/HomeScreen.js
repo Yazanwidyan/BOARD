@@ -8,6 +8,7 @@ import {
 import { ChallengeCard } from "../components/ChallengeCard";
 import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
 import { CollectionContinueCard } from "../components/CollectionContinueCard";
+import { BoardBIcon } from "../components/icons/TabIcons";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -64,7 +65,7 @@ const RecentlyWatchedRail = ({ watched, navigation }) => {
             >
               <MoviePoster
                 uri={movie.poster}
-                radius={radius.sm}
+                radius={0}
                 style={styles.railPoster}
               />
               {entry.rating != null && (
@@ -153,17 +154,23 @@ export const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.topRow}>
+          <View style={styles.brandRow}>
+            <BoardBIcon size={20} color={colors.accent} />
+            <Text style={styles.brandText}>BOARD</Text>
+          </View>
+          <Pressable
+            style={styles.levelBadge}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            <RankGemIcon size={18} color={rank.color} />
+            <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
+          </Pressable>
+        </View>
         <View style={styles.headerText}>
           <Text style={styles.greeting}>Hey, {displayName}</Text>
           <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
         </View>
-        <Pressable
-          style={styles.levelBadge}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <RankGemIcon size={18} color={rank.color} />
-          <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
-        </Pressable>
       </View>
 
       <ScrollView
@@ -275,17 +282,30 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
+    topRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    brandRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    brandText: {
+      ...typography.title,
+      fontSize: 15,
+      letterSpacing: 1,
+      color: colors.textPrimary,
+    },
     headerText: {
-      flex: 1,
+      marginTop: spacing.sm,
     },
     greeting: {
       ...typography.body,
@@ -304,7 +324,6 @@ const createStyles = (colors) =>
       borderRadius: radius.pill,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
-      marginLeft: spacing.sm,
     },
     levelBadgeText: {
       ...typography.bodyBold,

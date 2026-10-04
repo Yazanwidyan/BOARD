@@ -35,7 +35,7 @@ const createStyles = (colors) =>
     card: {
       alignItems: "center",
       backgroundColor: "transparent",
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       borderWidth: 2,
       borderStyle: "dashed",
       borderColor: colors.border,

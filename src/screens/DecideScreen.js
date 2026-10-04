@@ -1,4 +1,10 @@
-import { CheckCircle, RotateCw, Shuffle, X } from "lucide-react-native";
+import {
+  CheckCircle,
+  RotateCw,
+  Shuffle,
+  Sparkles,
+  X,
+} from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
@@ -68,7 +74,14 @@ export const DecideScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text style={styles.title}>Decide</Text>
+        <View style={styles.eyebrowRow}>
+          <Sparkles size={13} color={colors.accentLight} />
+          <Text style={styles.eyebrow}>Decide</Text>
+        </View>
+        <Text style={styles.headline}>
+          You don&apos;t need to know what you want.
+        </Text>
+        <Text style={styles.subtitle}>Just let BOARD decide.</Text>
       </View>
 
       <ScrollView
@@ -79,18 +92,26 @@ export const DecideScreen = ({ navigation }) => {
       >
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Quick Pick</Text>
-          <FeatureCard
-            icon={<Shuffle size={24} color={colors.accentContrast} />}
-            title="Swipe to Decide"
-            subtitle="Browse 10 picks matched to your taste, one at a time."
-            onPress={() => navigation.navigate("Swipe")}
-          />
-          <FeatureCard
-            icon={<RotateCw size={24} color={colors.accentContrast} />}
-            title="Spin to Decide"
-            subtitle="Same 10 picks — the wheel lands on one instantly."
-            onPress={() => navigation.navigate("Spin")}
-          />
+          <View style={styles.quickPickRow}>
+            <FeatureCard
+              icon={<Shuffle size={20} color={colors.accentLight} />}
+              title="Swipe"
+              subtitle="Pick from 10 movies at a time."
+              onPress={() => navigation.navigate("Swipe")}
+            />
+            <FeatureCard
+              icon={<RotateCw size={20} color={colors.accentLight} />}
+              title="Spin"
+              subtitle="Let the wheel choose for you."
+              onPress={() => navigation.navigate("Spin")}
+            />
+            <FeatureCard
+              icon={<Sparkles size={20} color={colors.accentLight} />}
+              title="AI"
+              subtitle="Let BOARD choose based on your taste."
+              onPress={() => navigation.navigate("Preferences")}
+            />
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -140,18 +161,28 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
     },
-    title: {
-      ...typography.title,
+    eyebrowRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    eyebrow: {
+      ...typography.label,
+      color: colors.accentLight,
+    },
+    headline: {
+      ...typography.hero,
       color: colors.textPrimary,
+      marginTop: spacing.sm,
+    },
+    subtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
     },
     section: {
       paddingHorizontal: spacing.md,
@@ -161,6 +192,9 @@ const createStyles = (colors) =>
       ...typography.label,
       color: colors.textSecondary,
       marginBottom: spacing.sm,
+    },
+    quickPickRow: {
+      gap: spacing.sm,
     },
     historyRow: {
       flexDirection: "row",

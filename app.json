@@ -36,6 +36,12 @@
             "backgroundColor": "#FFFFFF"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BOARD needs access to your photos so you can set a profile picture."
+        }
       ]
     ]
   }

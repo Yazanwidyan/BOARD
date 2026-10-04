@@ -39,7 +39,12 @@ export const AchievementModal = () => {
   };
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={hideAchievement}>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={hideAchievement}
+    >
       <Animated.View
         entering={FadeIn.duration(180)}
         exiting={FadeOut.duration(150)}
@@ -113,7 +118,7 @@ const createStyles = (colors) =>
       width: "100%",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       paddingTop: spacing.xl,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.xl,

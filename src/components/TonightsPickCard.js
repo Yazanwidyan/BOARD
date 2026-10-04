@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Star } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
@@ -82,7 +82,11 @@ export const TonightsPickCard = ({ navigation }) => {
               const { watched: watchedBefore, bucketList: bucketListBefore } =
                 useMovieStore.getState();
               toggleWatched(pickedMovie.id);
-              giveWatchedFeedback(pickedMovie.id, watchedBefore, bucketListBefore);
+              giveWatchedFeedback(
+                pickedMovie.id,
+                watchedBefore,
+                bucketListBefore,
+              );
               navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
             }}
             style={styles.actionButton}
@@ -97,14 +101,14 @@ const createStyles = (colors) =>
   StyleSheet.create({
     frame: {
       backgroundColor: colors.card,
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       padding: FRAME_PADDING,
     },
     card: {
       flexDirection: "row",
       gap: spacing.md,
       padding: spacing.md,
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       overflow: "hidden",
       backgroundColor: colors.cardElevatedLight,
     },

@@ -20,7 +20,6 @@ import {
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
@@ -56,16 +55,6 @@ import {
   getUserXP,
 } from "../utils/xp";
 
-const BIO_MAX_LENGTH = 140;
-
-const BADGE_SECTIONS = [
-  { category: "watched", title: "Watched Movies" },
-  { category: "critic", title: "Critic" },
-  { category: "watchlist", title: "Watchlist" },
-  { category: "collections", title: "Collections" },
-  { category: "challenges", title: "Challenges" },
-];
-
 const showAddFriendsStub = () => Alert.alert("Add Friends", "Coming soon.");
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
@@ -81,34 +70,10 @@ const getHandle = (name) =>
       .replace(/[^a-z0-9]+/g, "") || "you"
   }`;
 
-const BadgeRow = ({ badge, colors, styles }) => (
-  <View style={styles.badgeRow}>
-    <View style={!badge.earned && styles.badgeGemLocked}>
-      <RankGemIcon
-        size={32}
-        color={badge.earned ? colors.accent : colors.textMuted}
-      />
-    </View>
-    <View style={styles.badgeInfo}>
-      <Text
-        style={[styles.badgeLabel, !badge.earned && styles.badgeLabelLocked]}
-      >
-        {badge.label}
-      </Text>
-      <Text style={styles.badgeProgress}>
-        {Math.min(badge.progress, badge.threshold)}/{badge.threshold}
-      </Text>
-    </View>
-  </View>
-);
-
 export const ProfileScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const [isBioSheetOpen, setIsBioSheetOpen] = useState(false);
-  const [bioDraft, setBioDraft] = useState("");
-  const [isBadgesSheetOpen, setIsBadgesSheetOpen] = useState(false);
   const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
 
   // "View Details" on the watched/challenge XP alert deep-links straight
@@ -124,7 +89,7 @@ export const ProfileScreen = ({ navigation, route }) => {
   const watched = useMovieStore((state) => state.watched);
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
-  const setBio = useProfileStore((state) => state.setBio);
+  const avatarUri = useProfileStore((state) => state.avatarUri);
   const challengeHistory = useChallengeStore((state) => state.history);
 
   const queuedCount = bucketListEntries.length;
@@ -173,16 +138,6 @@ export const ProfileScreen = ({ navigation, route }) => {
     navigation.navigate("Library", { initialTab });
   };
 
-  const openBioSheet = () => {
-    setBioDraft(bio);
-    setIsBioSheetOpen(true);
-  };
-
-  const handleSaveBio = () => {
-    setBio(bioDraft);
-    setIsBioSheetOpen(false);
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
@@ -205,7 +160,7 @@ export const ProfileScreen = ({ navigation, route }) => {
           <View style={styles.identityRow}>
             <View style={styles.avatar}>
               <Image
-                source={DEFAULT_AVATAR_SOURCE}
+                source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
                 style={styles.avatarImage}
               />
             </View>
@@ -214,7 +169,7 @@ export const ProfileScreen = ({ navigation, route }) => {
               <Text style={styles.handle}>{getHandle(displayName)}</Text>
             </Pressable>
             <Pressable
-              onPress={openBioSheet}
+              onPress={() => navigation.navigate("Settings")}
               hitSlop={6}
               style={styles.bioButton}
             >
@@ -292,7 +247,7 @@ export const ProfileScreen = ({ navigation, route }) => {
             </Pressable>
             <Pressable
               style={styles.statTile}
-              onPress={() => setIsBadgesSheetOpen(true)}
+              onPress={() => navigation.navigate("Badges")}
             >
               <Award size={20} color={colors.textPrimary} strokeWidth={1.8} />
               <Text style={styles.statValue}>{earnedBadgeCount}</Text>
@@ -356,69 +311,6 @@ export const ProfileScreen = ({ navigation, route }) => {
       <ScreenBottomFade />
 
       <BottomSheet
-        visible={isBioSheetOpen}
-        onClose={() => setIsBioSheetOpen(false)}
-      >
-        <View style={styles.sheetHeaderRow}>
-          <Text style={styles.sheetTitle}>Edit Bio</Text>
-          <Pressable onPress={() => setIsBioSheetOpen(false)} hitSlop={8}>
-            <X size={20} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
-        <TextInput
-          value={bioDraft}
-          onChangeText={setBioDraft}
-          placeholder="Tell people what you love to watch..."
-          placeholderTextColor={colors.textMuted}
-          style={styles.bioInput}
-          multiline
-          maxLength={BIO_MAX_LENGTH}
-          autoFocus
-        />
-        <Text style={styles.bioCounter}>
-          {bioDraft.length}/{BIO_MAX_LENGTH}
-        </Text>
-
-        <PrimaryButton
-          label="Save"
-          onPress={handleSaveBio}
-          style={styles.bioSaveButton}
-        />
-      </BottomSheet>
-
-      <BottomSheet
-        visible={isBadgesSheetOpen}
-        onClose={() => setIsBadgesSheetOpen(false)}
-      >
-        <View style={styles.sheetHeaderRow}>
-          <Text style={styles.sheetTitle}>Badges</Text>
-          <Pressable onPress={() => setIsBadgesSheetOpen(false)} hitSlop={8}>
-            <X size={20} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {BADGE_SECTIONS.map((section) => (
-            <View key={section.category} style={styles.badgeSection}>
-              <Text style={styles.badgeSectionTitle}>{section.title}</Text>
-              {badges
-                .filter((badge) => badge.category === section.category)
-                .map((badge) => (
-                  <BadgeRow
-                    key={badge.id}
-                    badge={badge}
-                    colors={colors}
-                    styles={styles}
-                  />
-                ))}
-            </View>
-          ))}
-          <View style={{ height: insets.bottom + spacing.md }} />
-        </ScrollView>
-      </BottomSheet>
-
-      <BottomSheet
         visible={isLeagueSheetOpen}
         onClose={() => setIsLeagueSheetOpen(false)}
       >
@@ -453,24 +345,22 @@ export const ProfileScreen = ({ navigation, route }) => {
           <Text style={styles.badgeSectionTitle}>How XP is earned</Text>
           <View style={styles.leagueFormulaCard}>
             <Text style={styles.leagueFormulaRow}>
-              Watched movie · {WATCH_XP} XP each ({watchedCount})
+              Watched movie · {WATCH_XP} XP each
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Rated movie · {RATE_XP} XP each ({ratedCount})
+              Rated movie · {RATE_XP} XP each
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Rewatched movie · {REWATCH_XP} XP each ({rewatchedCount})
+              Rewatched movie · {REWATCH_XP} XP each
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Completed challenge · varies by difficulty (
-              {completedChallengesCount})
+              Completed challenge · varies by difficulty
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Completed collection · {COLLECTION_XP} XP each (
-              {completedCollectionsCount})
+              Completed collection · {COLLECTION_XP} XP each
             </Text>
             <Text style={styles.leagueFormulaRow}>
-              Earned badge · {BADGE_XP} XP each ({earnedBadgeCount})
+              Earned badge · {BADGE_XP} XP each
             </Text>
           </View>
 
@@ -591,59 +481,10 @@ const createStyles = (colors) =>
       ...typography.subtitle,
       color: colors.textPrimary,
     },
-    bioInput: {
-      ...typography.body,
-      color: colors.textPrimary,
-      backgroundColor: colors.card,
-      borderRadius: radius.md,
-      padding: spacing.md,
-      minHeight: 100,
-      textAlignVertical: "top",
-    },
-    bioCounter: {
-      ...typography.caption,
-      color: colors.textMuted,
-      textAlign: "right",
-      marginTop: spacing.xs,
-    },
-    bioSaveButton: {
-      marginTop: spacing.md,
-    },
-    badgeSection: {
-      marginBottom: spacing.md,
-    },
     badgeSectionTitle: {
       ...typography.label,
       color: colors.textSecondary,
       marginBottom: spacing.sm,
-    },
-    badgeRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.sm,
-    },
-    badgeGemLocked: {
-      opacity: 0.5,
-    },
-    badgeInfo: {
-      flex: 1,
-      gap: 2,
-    },
-    badgeLabel: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    badgeLabelLocked: {
-      color: colors.textMuted,
-    },
-    badgeProgress: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
     },
     leagueSummary: {
       alignItems: "center",

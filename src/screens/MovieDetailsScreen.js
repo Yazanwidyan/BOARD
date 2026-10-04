@@ -32,7 +32,7 @@ import { BackButton } from "../components/BackButton";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { RatingInput } from "../components/RatingInput";
-import { MOVIES, getMovieById } from "../data/movies";
+import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -233,9 +233,17 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             )}
           </View>
           <View style={styles.titleBlock}>
-            <Text style={styles.rank} numberOfLines={1}>
-              #{movie.rank} IN TOP {MOVIES.length}
-            </Text>
+            <Pressable
+              style={styles.trailerButton}
+              onPress={handleWatchTrailer}
+            >
+              <Play
+                size={12}
+                color={colors.textPrimary}
+                fill={colors.textPrimary}
+              />
+              <Text style={styles.trailerButtonText}>Trailer</Text>
+            </Pressable>
             <Text style={styles.title} numberOfLines={3}>
               {movie.title}
             </Text>
@@ -283,16 +291,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           )}
 
           <View style={styles.ctaRow}>
-            <Pressable
-              style={styles.trailerButton}
-              onPress={handleWatchTrailer}
-            >
-              <Play
-                size={20}
-                color={colors.textPrimary}
-                fill={colors.textPrimary}
-              />
-            </Pressable>
             <PrimaryButton
               label={isWatched ? "Watched" : "Mark as Watched"}
               variant={isWatched ? "secondary" : "primary"}
@@ -432,7 +430,7 @@ const createStyles = (colors) =>
     heroIconButton: {
       width: 40,
       height: 40,
-      borderRadius: radius.md,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.cardElevated,
@@ -487,10 +485,6 @@ const createStyles = (colors) =>
     titleBlock: {
       flex: 1,
       paddingBottom: spacing.xs,
-    },
-    rank: {
-      ...typography.label,
-      color: colors.textSecondary,
     },
     title: {
       ...typography.hero,
@@ -556,13 +550,22 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
     },
     trailerButton: {
-      width: 54,
-      borderRadius: radius.sm,
+      flexDirection: "row",
+      alignSelf: "flex-start",
       alignItems: "center",
       justifyContent: "center",
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radius.pill,
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
+      marginBottom: spacing.xs,
+    },
+    trailerButtonText: {
+      ...typography.caption,
+      color: colors.textPrimary,
     },
     watchedButton: {
       flex: 1,

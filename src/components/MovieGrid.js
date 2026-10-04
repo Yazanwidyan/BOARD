@@ -45,7 +45,7 @@ export const MovieGrid = ({ movies, onPressMovie }) => {
               <MoviePoster
                 uri={movie.poster}
                 shadow
-                radius={radius.sm}
+                radius={0}
                 style={{ width: cardWidth, aspectRatio: 2 / 3 }}
               />
               <View style={styles.imdbBadge}>

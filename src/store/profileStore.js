@@ -7,9 +7,13 @@ export const useProfileStore = create(
     (set) => ({
       displayName: 'You',
       bio: '',
+      email: '',
+      avatarUri: null,
 
-      setDisplayName: (displayName) => set({ displayName: displayName.trim() || 'You' }),
-      setBio: (bio) => set({ bio: bio.trim().slice(0, 140) }),
+      setDisplayName: (displayName) => set({ displayName }),
+      setBio: (bio) => set({ bio: bio.slice(0, 140) }),
+      setEmail: (email) => set({ email }),
+      setAvatarUri: (avatarUri) => set({ avatarUri }),
     }),
     {
       name: 'board:profile-store',

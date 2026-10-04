@@ -50,7 +50,7 @@ export const ChooseCard = ({
         <MoviePoster
           uri={movie.poster}
           style={[styles.poster, { width: cardWidth }]}
-          radius={radius.sm}
+          radius={0}
           shadow
         />
         <Text style={styles.title} numberOfLines={2}>

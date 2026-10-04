@@ -3,13 +3,12 @@ import { useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { shadows } from "../theme/shadows";
-import { radius } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 
 export const MoviePoster = ({
   uri,
   style,
-  radius: cornerRadius = radius.sm,
+  radius: cornerRadius = 0,
   shadow = false,
   blurRadius,
 }) => {

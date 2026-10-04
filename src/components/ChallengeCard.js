@@ -1,17 +1,20 @@
-import { Film } from "lucide-react-native";
+import { Play, Shuffle, Sparkles } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { PrimaryButton } from "./PrimaryButton";
+import { formatRuntime } from "../utils/movieFilters";
 import { MoviePoster } from "./MoviePoster";
+import { PrimaryButton } from "./PrimaryButton";
 
 // Two modes: "reveal" (fresh out of the generator — Accept / Give Me
-// Another) and "active" (already accepted — View Movie / New Challenge).
-// Same card either way so a challenge always looks the same wherever it
-// shows up (Home, Decide, Movie Details).
+// Another) and "active" (already accepted — Watch Movie / Change). Same
+// card either way so a challenge always looks the same wherever it shows up
+// (Home, Decide, Movie Details). The movie itself is the headline (title,
+// year/genre/runtime) with the challenge's own flavor text as a small
+// secondary line — the challenge type is how it got picked, not the point.
 export const ChallengeCard = ({
   challenge,
   mode = "active",
@@ -29,7 +32,7 @@ export const ChallengeCard = ({
       {movie && (
         <MoviePoster
           uri={movie.poster}
-          radius={radius.sm}
+          radius={0}
           shadow
           style={styles.decoPoster}
         />
@@ -39,26 +42,32 @@ export const ChallengeCard = ({
         <View style={styles.pill}>
           <Text style={styles.pillText}>{challenge.difficultyLabel}</Text>
         </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>+{challenge.xpReward} XP</Text>
+        <View style={styles.xpRow}>
+          <Sparkles size={12} color={colors.accentContrast} />
+          <Text style={styles.xpText}>{challenge.xpReward} XP</Text>
         </View>
       </View>
 
-      <Text style={styles.title}>{challenge.title}</Text>
-      <Text style={styles.description}>{challenge.description}</Text>
+      <Text style={styles.title}>{movie ? movie.title : challenge.title}</Text>
 
       {movie && (
-        <View style={styles.movieLine}>
-          <Film size={14} color="rgba(255, 255, 255, 0.85)" />
-          <Text style={styles.movieLineText} numberOfLines={1}>
-            {movie.title} · {movie.year}
-          </Text>
-        </View>
+        <Text style={styles.metaText} numberOfLines={1}>
+          {movie.year} · {movie.genres[0]} · {formatRuntime(movie.runtime)}
+        </Text>
       )}
+
+      <View style={styles.flavorRow}>
+        <Sparkles size={12} color="rgba(255, 255, 255, 0.85)" />
+        <Text style={styles.description}>{challenge.description}</Text>
+      </View>
 
       {mode === "reveal" ? (
         <View style={styles.actions}>
-          <PrimaryButton label="Accept Challenge" variant="light" onPress={onAccept} />
+          <PrimaryButton
+            label="Accept Challenge"
+            variant="light"
+            onPress={onAccept}
+          />
           <PrimaryButton
             label="Give Me Another"
             variant="ghost"
@@ -70,8 +79,9 @@ export const ChallengeCard = ({
       ) : (
         <View style={styles.actionsRow}>
           <PrimaryButton
-            label="View Movie"
+            label="Watch Movie"
             variant="light"
+            icon={<Play size={16} color={colors.accent} fill={colors.accent} />}
             onPress={onContinue}
             style={styles.flexButton}
           />
@@ -79,6 +89,7 @@ export const ChallengeCard = ({
             <PrimaryButton
               label="Change"
               variant="ghost"
+              icon={<Shuffle size={16} color={colors.accentContrast} />}
               onPress={onNewChallenge}
               style={styles.changeButton}
               textStyle={styles.skipText}
@@ -94,7 +105,7 @@ const createStyles = (colors) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.accent,
-      borderRadius: radius.lg,
+      borderRadius: radius.sm,
       padding: spacing.md,
       overflow: "hidden",
     },
@@ -108,7 +119,8 @@ const createStyles = (colors) =>
     },
     pillRow: {
       flexDirection: "row",
-      gap: spacing.xs,
+      alignItems: "center",
+      gap: spacing.sm,
     },
     pill: {
       backgroundColor: "rgba(255, 255, 255, 0.18)",
@@ -121,29 +133,40 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.accentContrast,
     },
-    title: {
-      ...typography.title,
+    xpRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    xpText: {
+      ...typography.label,
+      fontSize: 11,
       color: colors.accentContrast,
+    },
+    title: {
+      ...typography.hero,
+      color: colors.accentContrast,
+      marginTop: spacing.sm,
+      paddingRight: 68,
+    },
+    metaText: {
+      ...typography.caption,
+      color: "rgba(255, 255, 255, 0.75)",
+      marginTop: 2,
+      paddingRight: 68,
+    },
+    flavorRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
       marginTop: spacing.sm,
       paddingRight: 68,
     },
     description: {
       ...typography.body,
+      flex: 1,
       color: "rgba(255, 255, 255, 0.85)",
       lineHeight: 20,
-      marginTop: spacing.xs,
-      paddingRight: 68,
-    },
-    movieLine: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      marginTop: spacing.md,
-    },
-    movieLineText: {
-      ...typography.bodyBold,
-      color: colors.accentContrast,
-      flex: 1,
     },
     actions: {
       gap: spacing.xs,

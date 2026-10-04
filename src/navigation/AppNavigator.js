@@ -8,6 +8,7 @@ import { View } from "react-native";
 
 import { AchievementModal } from "../components/AchievementModal";
 import { ActivityScreen } from "../screens/ActivityScreen";
+import { BadgesScreen } from "../screens/BadgesScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
 import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
@@ -129,6 +130,7 @@ export const AppNavigator = () => {
               options={{ animation: "slide_from_bottom" }}
             />
             <Stack.Screen name="Activity" component={ActivityScreen} />
+            <Stack.Screen name="Badges" component={BadgesScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
           </>
         )}

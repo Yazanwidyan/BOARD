@@ -58,7 +58,7 @@ const DiscoverRail = ({ title, movies, navigation }) => {
             >
               <MoviePoster
                 uri={movie.poster}
-                radius={radius.sm}
+                radius={0}
                 style={styles.railPoster}
               />
               <View style={styles.imdbBadge}>
