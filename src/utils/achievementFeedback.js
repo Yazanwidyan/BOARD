@@ -60,7 +60,10 @@ const showAchievement = (rows, kinds) => {
                 : "Badge Earned!"
               : "Marked as Watched";
 
-  useAchievementStore.getState().showAchievement({ title, rows, total });
+  const kind =
+    kinds.length > 1 ? "multi" : (kinds[0] ?? "watched");
+
+  useAchievementStore.getState().showAchievement({ title, kind, rows, total });
 };
 
 // Call right after toggleWatched(movieId), passing the watched/bucketList

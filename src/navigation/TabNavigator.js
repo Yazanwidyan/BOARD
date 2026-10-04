@@ -145,7 +145,7 @@ const createStyles = (colors, insets) =>
       alignSelf: "center",
       bottom: Math.max(0, insets.bottom - 10),
       flexDirection: "row",
-      backgroundColor: "#101422ea",
+      backgroundColor: "#1d1e36de",
       borderRadius: radius.pill,
       paddingLeft: 6,
       paddingRight: 6,
@@ -158,7 +158,6 @@ const createStyles = (colors, insets) =>
       elevation: 10,
     },
     item: {
-      backgroundColor: "red",
       borderRadius: radius.pill,
       paddingTop: 4,
       paddingBottom: 4,

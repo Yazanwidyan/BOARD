@@ -1,14 +1,28 @@
-import { Compass, Star } from "lucide-react-native";
+import {
+  ChevronRight,
+  Compass,
+  RotateCw,
+  Shuffle,
+  Sparkles,
+  Star,
+} from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 
 import { ChallengeCard } from "../components/ChallengeCard";
-import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
 import { CollectionContinueCard } from "../components/CollectionContinueCard";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
+import { TargetIcon } from "../components/icons/TabIcons";
+import {
+  HeaderBar,
+  LargeTitle,
+  useCollapsingHeader,
+  useHeaderInset,
+} from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TonightsPickCard } from "../components/TonightsPickCard";
@@ -27,6 +41,7 @@ import {
 import { getRank } from "../utils/league";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import {
+  DIFFICULTY,
   getChallengeXP,
   getCompletedChallengesCount,
   getLevel,
@@ -35,6 +50,190 @@ import {
 } from "../utils/xp";
 
 const RECENT_COUNT = 10;
+
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+// Home's live line — "Friday night, Yazan". Worked out at render, which
+// happens whenever any store Home reads changes, so it never goes stale
+// for long.
+const getTimeGreeting = (date, name) => {
+  const hour = date.getHours();
+  const part =
+    hour < 5
+      ? "night"
+      : hour < 12
+        ? "morning"
+        : hour < 17
+          ? "afternoon"
+          : hour < 21
+            ? "evening"
+            : "night";
+  return `${DAY_NAMES[date.getDay()]} ${part}, ${name}`;
+};
+const WATCHLIST_COUNT = 10;
+
+// The hardest difficulty the generator actually hands out — so the
+// "up to" on the challenge prompt is a real number, not marketing.
+const MAX_CHALLENGE_XP = DIFFICULTY.HARD.max;
+
+const DECIDE_MODES = [
+  { label: "Swipe", Icon: Shuffle, route: "Swipe" },
+  { label: "Spin", Icon: RotateCw, route: "Spin" },
+  { label: "AI", Icon: Sparkles, route: "Preferences" },
+];
+
+// Home's top slot when there's no Tonight's Pick: the header asks "Bored?",
+// so the first thing under it is the way out — straight into Swipe, Spin
+// or AI. A brand-new account (nothing watched or saved yet) gets one
+// "Start Discovering" button instead, since there's no taste to work from.
+const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => (
+  <View style={styles.decideCard}>
+    <View style={styles.decideEyebrowRow}>
+      <Sparkles size={12} color={colors.accentContrast} />
+      <Text style={styles.decideEyebrow}>
+        {isFreshAccount ? "WELCOME" : "WHAT ARE WE WATCHING?"}
+      </Text>
+    </View>
+    <Text style={styles.decideTitle}>
+      {isFreshAccount ? "Find your first movie" : "Let BOARD decide for you"}
+    </Text>
+    {isFreshAccount ? (
+      <Pressable
+        style={[styles.decideButton, styles.decideButtonSolid]}
+        onPress={() => navigation.navigate("Discover")}
+      >
+        <Compass size={16} color={colors.accent} />
+        <Text style={[styles.decideButtonText, styles.decideButtonTextSolid]}>
+          Start Discovering
+        </Text>
+      </Pressable>
+    ) : (
+      <View style={styles.decideButtonRow}>
+        {DECIDE_MODES.map(({ label, Icon, route }) => (
+          <Pressable
+            key={label}
+            style={[styles.decideButton, styles.decideButtonFlex]}
+            onPress={() => navigation.navigate(route)}
+          >
+            <Icon size={16} color={colors.accentContrast} />
+            <Text style={styles.decideButtonText}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    )}
+  </View>
+);
+
+// An empty challenge slot shouldn't take as much room as a full one — one
+// slim row instead of the big dashed empty card.
+const ChallengePrompt = ({ onPress, styles, colors }) => (
+  <Pressable style={styles.promptRow} onPress={onPress}>
+    <View style={styles.promptIcon}>
+      <TargetIcon size={18} color={colors.accentLight} />
+    </View>
+    <View style={styles.promptText}>
+      <Text style={styles.promptTitle}>Start a challenge</Text>
+      <Text style={styles.promptSubtitle}>
+        Earn up to +{MAX_CHALLENGE_XP.toLocaleString()} XP
+      </Text>
+    </View>
+    <ChevronRight size={18} color={colors.textSecondary} />
+  </Pressable>
+);
+
+// Newest-saved first — the freshest "I want to see that" is the likeliest
+// pick for tonight.
+const WatchlistRail = ({ bucketList, navigation }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  if (bucketList.length === 0) return null;
+
+  const movies = [...bucketList]
+    .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
+    .slice(0, WATCHLIST_COUNT)
+    .map((entry) => getMovieById(entry.movieId))
+    .filter(Boolean);
+
+  return (
+    <View style={styles.railSection}>
+      <View style={[styles.sectionHeaderRow, styles.railLabelPadding]}>
+        <Text style={styles.sectionLabel}>From Your Watchlist</Text>
+        <Pressable
+          hitSlop={8}
+          onPress={() =>
+            navigation.navigate("Library", { initialTab: "bucketlist" })
+          }
+        >
+          <Text style={styles.seeAllText}>See All</Text>
+        </Pressable>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.railContent}
+      >
+        {movies.map((movie) => (
+          <Pressable
+            key={movie.id}
+            style={styles.railCard}
+            onPress={() =>
+              navigation.navigate("MovieDetails", { movieId: movie.id })
+            }
+          >
+            <MoviePoster
+              uri={movie.poster}
+              radius={0}
+              style={styles.railPoster}
+            />
+            <View style={styles.imdbBadge}>
+              <Star size={10} color={colors.rating} fill={colors.rating} />
+              <Text style={styles.imdbBadgeText}>
+                {movie.rating.toFixed(1)}
+              </Text>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+// Replaces the old "Latest Achievement" card: real progress (XP to the next
+// level) plus the newest badge's name, in one slim tappable strip.
+const ProgressStrip = ({ level, latestBadge, onPress, styles }) => {
+  const xpToGo = Math.max(0, Math.ceil(level.requiredXP - level.currentXP));
+  return (
+    <Pressable style={styles.progressStrip} onPress={onPress}>
+      <View style={styles.progressHeader}>
+        <Text style={styles.progressLevel}>
+          Lv {level.level} → {level.level + 1}
+        </Text>
+        <Text style={styles.progressToGo}>
+          {xpToGo.toLocaleString()} XP to go
+        </Text>
+      </View>
+      <View style={styles.progressTrack}>
+        <View
+          style={[styles.progressFill, { width: `${level.progress * 100}%` }]}
+        />
+      </View>
+      {latestBadge && (
+        <Text style={styles.progressBadge} numberOfLines={1}>
+          Latest badge:{" "}
+          <Text style={styles.progressBadgeName}>{latestBadge.label}</Text>
+        </Text>
+      )}
+    </Pressable>
+  );
+};
 
 const RecentlyWatchedRail = ({ watched, navigation }) => {
   const colors = useColors();
@@ -145,6 +344,9 @@ export const HomeScreen = ({ navigation }) => {
     watchedCount === 0 &&
     queuedCount === 0;
 
+  const { scrollY, onScroll } = useCollapsingHeader();
+  const headerInset = useHeaderInset();
+
   const handleCreateChallenge = () => {
     if (activeChallenge) skipChallenge();
     openChallengeGenerator(navigation);
@@ -152,47 +354,34 @@ export const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <View style={styles.topRow}>
-          <View style={styles.headerText}>
-            <Text style={styles.greeting}>Hey, {displayName}</Text>
-            <Text style={styles.title}>Bored? Let&apos;s fix that.</Text>
-          </View>
-          <Pressable
-            style={styles.levelBadge}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <RankGemIcon size={18} color={rank.color} />
-            <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          paddingTop: headerInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
-        {pickedMovieId && (
-          <View style={[styles.section, styles.firstSection]}>
+        <LargeTitle
+          eyebrow={getTimeGreeting(new Date(), displayName)}
+          title="Bored? Let's fix that."
+        />
+
+        <View style={[styles.section, styles.firstSection]}>
+          {pickedMovieId ? (
             <TonightsPickCard navigation={navigation} />
-          </View>
-        )}
-
-        {isFreshAccount && (
-          <View style={[styles.section, styles.firstSection]}>
-            <ChallengeEmptyCard
-              title="Nothing to Watch Yet"
-              subtitle="Discover movies to build your watchlist and start earning XP."
-              buttonLabel="Start Discovering"
-              icon={<Compass size={18} color={colors.accentContrast} />}
-              onPress={() => navigation.navigate("Discover")}
+          ) : (
+            <DecideHeroCard
+              isFreshAccount={isFreshAccount}
+              navigation={navigation}
+              styles={styles}
+              colors={colors}
             />
-          </View>
-        )}
+          )}
+        </View>
 
-        <View style={[styles.section, !pickedMovieId && styles.firstSection]}>
+        <View style={styles.section}>
           {activeChallenge ? (
             <>
               <Text style={styles.sectionLabel}>Your Challenge</Text>
@@ -208,9 +397,15 @@ export const HomeScreen = ({ navigation }) => {
               />
             </>
           ) : (
-            <ChallengeEmptyCard onPress={handleCreateChallenge} />
+            <ChallengePrompt
+              onPress={handleCreateChallenge}
+              styles={styles}
+              colors={colors}
+            />
           )}
         </View>
+
+        <WatchlistRail bucketList={bucketList} navigation={navigation} />
 
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
@@ -249,23 +444,29 @@ export const HomeScreen = ({ navigation }) => {
 
         <RecentlyWatchedRail watched={watched} navigation={navigation} />
 
-        {latestBadge && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Latest Achievement</Text>
-            <Pressable
-              style={styles.achievementCard}
-              onPress={() => navigation.navigate("Profile")}
-            >
-              <RankGemIcon size={40} color={colors.accent} />
-              <View style={styles.achievementInfo}>
-                <Text style={styles.achievementLabel}>{latestBadge.label}</Text>
-                <Text style={styles.achievementSubtitle}>Unlocked</Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
-      </ScrollView>
+        <View style={styles.section}>
+          <ProgressStrip
+            level={level}
+            latestBadge={latestBadge}
+            onPress={() => navigation.navigate("Profile")}
+            styles={styles}
+          />
+        </View>
+      </Animated.ScrollView>
       <ScreenBottomFade />
+      <HeaderBar
+        title="Home"
+        scrollY={scrollY}
+        right={
+          <Pressable
+            style={styles.levelBadge}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            <RankGemIcon size={18} color={rank.color} />
+            <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
+          </Pressable>
+        }
+      />
     </SafeAreaView>
   );
 };
@@ -275,31 +476,6 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    header: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    topRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    headerText: {
-      flex: 1,
-      marginRight: spacing.sm,
-    },
-    greeting: {
-      ...typography.body,
-      color: colors.textSecondary,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginTop: 2,
     },
     levelBadge: {
       flexDirection: "row",
@@ -392,25 +568,137 @@ const createStyles = (colors) =>
       fontSize: 10,
       color: "#FFFFFF",
     },
-    achievementCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      backgroundColor: colors.card,
+    decideCard: {
+      backgroundColor: colors.accent,
       borderRadius: radius.sm,
       padding: spacing.md,
     },
-    achievementInfo: {
-      flex: 1,
-      gap: 2,
+    decideEyebrowRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
     },
-    achievementLabel: {
-      ...typography.subtitle,
+    decideEyebrow: {
+      ...typography.label,
+      color: "rgba(255, 255, 255, 0.85)",
+    },
+    decideTitle: {
+      ...typography.title,
+      color: colors.accentContrast,
+      marginTop: spacing.xs,
+    },
+    decideButtonRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    decideButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 10,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
+    },
+    decideButtonFlex: {
+      flex: 1,
+    },
+    decideButtonSolid: {
+      alignSelf: "flex-start",
+      marginTop: spacing.md,
+      backgroundColor: colors.accentContrast,
+    },
+    decideButtonText: {
+      ...typography.label,
+      color: colors.accentContrast,
+    },
+    decideButtonTextSolid: {
+      color: colors.accent,
+    },
+    promptRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.sm + 2,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    promptIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(141, 96, 226, 0.16)",
+    },
+    promptText: {
+      flex: 1,
+    },
+    promptTitle: {
+      ...typography.bodyBold,
       color: colors.textPrimary,
     },
-    achievementSubtitle: {
+    promptSubtitle: {
+      ...typography.caption,
+      color: colors.rating,
+      marginTop: 1,
+    },
+    imdbBadge: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      paddingHorizontal: 5,
+      paddingVertical: 3,
+      borderRadius: radius.sm,
+      backgroundColor: colors.scrim,
+    },
+    imdbBadgeText: {
+      ...typography.label,
+      fontSize: 10,
+      color: colors.rating,
+    },
+    progressStrip: {
+      padding: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    progressHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    progressLevel: {
+      ...typography.label,
+      color: colors.textPrimary,
+    },
+    progressToGo: {
+      ...typography.caption,
+      color: colors.accentLight,
+    },
+    progressTrack: {
+      height: 6,
+      borderRadius: radius.pill,
+      marginTop: spacing.sm,
+      backgroundColor: colors.surfaceSoft,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      borderRadius: radius.pill,
+      backgroundColor: colors.accentLight,
+    },
+    progressBadge: {
       ...typography.caption,
       color: colors.textSecondary,
+      marginTop: spacing.sm,
+    },
+    progressBadgeName: {
+      color: colors.textPrimary,
     },
   });
 

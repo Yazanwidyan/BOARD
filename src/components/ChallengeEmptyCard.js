@@ -1,4 +1,3 @@
-import { Dices } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { radius, spacing } from "../theme/spacing";
@@ -22,7 +21,7 @@ export const ChallengeEmptyCard = ({
       <Text style={styles.subtitle}>{subtitle}</Text>
       <PrimaryButton
         label={buttonLabel}
-        icon={icon ?? <Dices size={18} color={colors.accentContrast} />}
+        icon={icon}
         onPress={onPress}
         style={styles.button}
       />

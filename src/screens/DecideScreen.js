@@ -1,19 +1,20 @@
-import {
-  CheckCircle,
-  RotateCw,
-  Shuffle,
-  Sparkles,
-  X,
-} from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { CheckCircle, X } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 
+import {
+  HeaderBar,
+  LargeTitle,
+  useCollapsingHeader,
+  useHeaderInset,
+} from "../components/ScreenHeader";
 import { ChallengeCard } from "../components/ChallengeCard";
 import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
-import { FeatureCard } from "../components/FeatureCard";
+import { QuickPickBento } from "../components/QuickPickBento";
 import { getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
@@ -66,6 +67,9 @@ export const DecideScreen = ({ navigation }) => {
   const skipChallenge = useChallengeStore((state) => state.skipChallenge);
   const history = useChallengeStore((state) => state.history);
 
+  const { scrollY, onScroll } = useCollapsingHeader();
+  const headerInset = useHeaderInset();
+
   const handleCreate = () => {
     if (activeChallenge) skipChallenge();
     openChallengeGenerator(navigation);
@@ -73,45 +77,30 @@ export const DecideScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.eyebrowRow}>
-          <Sparkles size={13} color={colors.accentLight} />
-          <Text style={styles.eyebrow}>Decide</Text>
-        </View>
-        <Text style={styles.headline}>
-          You don&apos;t need to know what you want.
-        </Text>
-        <Text style={styles.subtitle}>Just let BOARD decide.</Text>
-      </View>
-
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          paddingTop: headerInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
+        <LargeTitle
+          title="Decide"
+          subtitle={
+            activeChallenge
+              ? `1 active challenge · +${activeChallenge.xpReward} XP waiting`
+              : "You don't need to know what you want."
+          }
+        />
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Quick Pick</Text>
-          <View style={styles.quickPickRow}>
-            <FeatureCard
-              icon={<Shuffle size={20} color={colors.accentLight} />}
-              title="Swipe"
-              subtitle="Pick from 10 movies at a time."
-              onPress={() => navigation.navigate("Swipe")}
-            />
-            <FeatureCard
-              icon={<RotateCw size={20} color={colors.accentLight} />}
-              title="Spin"
-              subtitle="Let the wheel choose for you."
-              onPress={() => navigation.navigate("Spin")}
-            />
-            <FeatureCard
-              icon={<Sparkles size={20} color={colors.accentLight} />}
-              title="AI"
-              subtitle="Let BOARD choose based on your taste."
-              onPress={() => navigation.navigate("Preferences")}
-            />
-          </View>
+          <QuickPickBento
+            onAI={() => navigation.navigate("Preferences")}
+            onSwipe={() => navigation.navigate("Swipe")}
+            onSpin={() => navigation.navigate("Spin")}
+          />
         </View>
 
         <View style={styles.section}>
@@ -149,7 +138,8 @@ export const DecideScreen = ({ navigation }) => {
             ))}
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      <HeaderBar title="Decide" scrollY={scrollY} />
     </SafeAreaView>
   );
 };
@@ -160,30 +150,6 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.background,
-    },
-    eyebrowRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-    eyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
-    },
-    headline: {
-      ...typography.hero,
-      color: colors.textPrimary,
-      marginTop: spacing.sm,
-    },
-    subtitle: {
-      ...typography.body,
-      color: colors.textSecondary,
-      marginTop: spacing.xs,
-    },
     section: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.lg,
@@ -192,9 +158,6 @@ const createStyles = (colors) =>
       ...typography.label,
       color: colors.textSecondary,
       marginBottom: spacing.sm,
-    },
-    quickPickRow: {
-      gap: spacing.sm,
     },
     historyRow: {
       flexDirection: "row",

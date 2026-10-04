@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AchievementModal } from "../components/AchievementModal";
+import { Toast } from "../components/Toast";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { BadgesScreen } from "../screens/BadgesScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
@@ -136,6 +137,7 @@ export const AppNavigator = () => {
         )}
       </Stack.Navigator>
       <AchievementModal />
+      <Toast />
     </NavigationContainer>
   );
 };

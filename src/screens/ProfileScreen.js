@@ -9,11 +9,9 @@ import {
   Share2,
   UserPlus,
   UserRound,
-  X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -26,16 +24,26 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 
+import { AvatarLevelRing } from "../components/AvatarLevelRing";
 import { BottomSheet } from "../components/BottomSheet";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
 import { LayersIcon, TargetIcon } from "../components/icons/TabIcons";
+import {
+  HeaderBar,
+  HeaderIconButton,
+  LargeTitle,
+  useCollapsingHeader,
+  useHeaderInset,
+} from "../components/ScreenHeader";
 import { LevelRankCard } from "../components/LevelRankCard";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
+import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -55,7 +63,7 @@ import {
   getUserXP,
 } from "../utils/xp";
 
-const showAddFriendsStub = () => Alert.alert("Add Friends", "Coming soon.");
+const showAddFriendsStub = () => showToast("Adding friends is coming soon");
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
 const DEFAULT_FRIEND_ONE = require("../../assets/friend-1.png");
@@ -122,6 +130,8 @@ export const ProfileScreen = ({ navigation, route }) => {
   });
   const rank = getRank(xp);
   const level = getLevel(xp);
+  const { scrollY, onScroll } = useCollapsingHeader();
+  const headerInset = useHeaderInset();
 
   const handleShare = () => {
     Share.share({
@@ -131,7 +141,7 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   const handleCopyHandle = async () => {
     await Clipboard.setStringAsync(getHandle(displayName));
-    Alert.alert("Copied", "Handle copied to clipboard.");
+    showToast("Handle copied", { tone: "success" });
   };
 
   const goToLibrary = (initialTab) => {
@@ -140,30 +150,26 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable
-          style={styles.headerIconButton}
-          onPress={() => navigation.navigate("Activity")}
-        >
-          <Bell size={18} color={colors.textPrimary} strokeWidth={2} />
-        </Pressable>
-        <Text style={styles.title}>Profile</Text>
-        <Pressable
-          style={styles.headerIconButton}
-          onPress={() => navigation.navigate("Settings")}
-        >
-          <SettingsIcon size={18} color={colors.textPrimary} strokeWidth={2} />
-        </Pressable>
-      </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: headerInset }}
+      >
+        <LargeTitle
+          title="Profile"
+          subtitle={
+            rank.nextLabel
+              ? `${rank.tier} · ${rank.xpToNext.toLocaleString()} XP to ${rank.nextLabel}`
+              : `${rank.tier} · Top rank`
+          }
+        />
         <View style={[styles.profileWrap, { marginTop: spacing.md }]}>
           <View style={styles.identityRow}>
-            <View style={styles.avatar}>
-              <Image
-                source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
-                style={styles.avatarImage}
-              />
-            </View>
+            <AvatarLevelRing
+              source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
+              level={level}
+            />
             <Text style={styles.name}>{displayName}</Text>
             <Pressable onPress={handleCopyHandle} hitSlop={6}>
               <Text style={styles.handle}>{getHandle(displayName)}</Text>
@@ -307,20 +313,33 @@ export const ProfileScreen = ({ navigation, route }) => {
         </View>
 
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
-      </ScrollView>
+      </Animated.ScrollView>
       <ScreenBottomFade />
+      <HeaderBar
+        title="Profile"
+        scrollY={scrollY}
+        right={
+          <>
+            <HeaderIconButton onPress={() => navigation.navigate("Activity")}>
+              <Bell size={18} color={colors.textPrimary} strokeWidth={2} />
+            </HeaderIconButton>
+            <HeaderIconButton onPress={() => navigation.navigate("Settings")}>
+              <SettingsIcon
+                size={18}
+                color={colors.textPrimary}
+                strokeWidth={2}
+              />
+            </HeaderIconButton>
+          </>
+        }
+      />
 
       <BottomSheet
         visible={isLeagueSheetOpen}
         onClose={() => setIsLeagueSheetOpen(false)}
+        title="Level & Rank"
+        subtitle={`Level ${level.level} · ${rank.tier}`}
       >
-        <View style={styles.sheetHeaderRow}>
-          <Text style={styles.sheetTitle}>Level &amp; Rank</Text>
-          <Pressable onPress={() => setIsLeagueSheetOpen(false)} hitSlop={8}>
-            <X size={20} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.leagueSummary}>
             <RankGemIcon size={64} color={rank.color} />
@@ -401,43 +420,12 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    headerIconButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.background,
-    },
     profileWrap: {
       paddingHorizontal: spacing.md,
       marginBottom: spacing.md,
     },
     identityRow: {
       alignItems: "center",
-    },
-    avatar: {
-      width: 88,
-      height: 88,
-      borderRadius: 44,
-      backgroundColor: colors.card,
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
     },
     avatarImage: {
       width: "100%",
@@ -446,7 +434,7 @@ const createStyles = (colors) =>
     name: {
       ...typography.subtitle,
       color: colors.textPrimary,
-      marginTop: spacing.sm,
+      marginTop: spacing.md,
     },
     handle: {
       ...typography.caption,
@@ -469,16 +457,6 @@ const createStyles = (colors) =>
       lineHeight: 17,
     },
     bioPlaceholder: {
-      color: colors.textPrimary,
-    },
-    sheetHeaderRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: spacing.md,
-    },
-    sheetTitle: {
-      ...typography.subtitle,
       color: colors.textPrimary,
     },
     badgeSectionTitle: {

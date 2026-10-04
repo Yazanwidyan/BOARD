@@ -5,7 +5,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Star } from "lucide-react-native";
+import { Check, Star } from "lucide-react-native";
 
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
@@ -15,7 +15,14 @@ import { MoviePoster } from "./MoviePoster";
 
 const NUM_COLUMNS = 3;
 
-export const MovieGrid = ({ movies, onPressMovie }) => {
+// `showWatchedCheck` adds a green check on watched-but-unrated posters (a
+// rated one already says "watched" via its rating badge) — for grids that
+// mix watched and unwatched movies, like a collection.
+export const MovieGrid = ({
+  movies,
+  onPressMovie,
+  showWatchedCheck = false,
+}) => {
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = createStyles(colors);
@@ -28,9 +35,10 @@ export const MovieGrid = ({ movies, onPressMovie }) => {
   return (
     <View style={[styles.grid, { paddingHorizontal: horizontalPadding, gap }]}>
       {movies.map((movie) => {
-        const userRating = watched.find(
+        const watchedEntry = watched.find(
           (entry) => entry.movieId === movie.id,
-        )?.rating;
+        );
+        const userRating = watchedEntry?.rating;
 
         return (
           <Pressable
@@ -64,6 +72,15 @@ export const MovieGrid = ({ movies, onPressMovie }) => {
                   <Text style={styles.userRatingBadgeText}>
                     {userRating.toFixed(1)}
                   </Text>
+                </View>
+              )}
+              {showWatchedCheck && watchedEntry && userRating == null && (
+                <View style={styles.watchedBadge}>
+                  <Check
+                    size={12}
+                    color={colors.background}
+                    strokeWidth={3.5}
+                  />
                 </View>
               )}
             </View>
@@ -125,6 +142,17 @@ const createStyles = (colors) =>
       paddingVertical: 3,
       borderRadius: radius.sm,
       backgroundColor: colors.accent,
+    },
+    watchedBadge: {
+      position: "absolute",
+      top: 6,
+      left: 6,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.success,
     },
     userRatingBadgeText: {
       ...typography.label,

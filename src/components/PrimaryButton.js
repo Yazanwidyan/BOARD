@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -13,15 +12,9 @@ import { useColors } from "../theme/useColors";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// Primary is a 2px gradient "rim" (darker blue at the bottom, light blue at
-// the top) around a solid blue face — the same treatment as the web app's
-// primary button.
-const PRIMARY_RIM = ["#8ecbff", "#2c80d4"];
-const PRIMARY_FACE = "#3aa0ff";
-
 const getVariantStyles = (colors) => ({
   primary: {
-    container: { backgroundColor: PRIMARY_FACE },
+    container: { backgroundColor: colors.accent },
     text: { color: "#FFFFFF" },
     shadow: shadows.glow,
   },
@@ -87,31 +80,6 @@ export const PrimaryButton = ({
     if (isPrimary) opacity.value = withTiming(0.9, { duration: 150 });
   };
 
-  const face = (
-    <View
-      style={[
-        styles.base,
-        dense && styles.baseDense,
-        isPrimary && styles.primaryFace,
-        variantStyle.container,
-        contentStyle,
-      ]}
-    >
-      {icon}
-      <Text
-        style={[
-          styles.text,
-          variantStyle.text,
-          isPrimary && styles.primaryText,
-          icon && styles.textWithIcon,
-          textStyle,
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-
   return (
     <AnimatedPressable
       onPress={onPress}
@@ -125,13 +93,27 @@ export const PrimaryButton = ({
         style,
       ]}
     >
-      {isPrimary ? (
-        <LinearGradient colors={PRIMARY_RIM} style={styles.primaryRim}>
-          {face}
-        </LinearGradient>
-      ) : (
-        face
-      )}
+      <View
+        style={[
+          styles.base,
+          dense && styles.baseDense,
+          variantStyle.container,
+          contentStyle,
+        ]}
+      >
+        {icon}
+        <Text
+          style={[
+            styles.text,
+            variantStyle.text,
+            isPrimary && styles.primaryText,
+            icon && styles.textWithIcon,
+            textStyle,
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
     </AnimatedPressable>
   );
 };
@@ -142,7 +124,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: spacing.md,
+      paddingVertical: 11,
       paddingHorizontal: spacing.md,
       borderRadius: radius.sm,
       overflow: "hidden",
@@ -150,13 +132,6 @@ const createStyles = (colors) =>
     baseDense: {
       paddingVertical: spacing.xs + 2,
       paddingHorizontal: spacing.md,
-    },
-    primaryRim: {
-      padding: 2,
-      borderRadius: 12,
-    },
-    primaryFace: {
-      borderRadius: 10,
     },
     primaryText: {
       letterSpacing: -0.2,

@@ -29,6 +29,7 @@ import {
 
 import { BackButton } from "../components/BackButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -42,7 +43,9 @@ const APP_VERSION = "1.0.0";
 const BIO_MAX_LENGTH = 140;
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
 
-const showStub = (title, message) => Alert.alert(title, message);
+// One-line "not yet" notices go to a toast; real confirmations
+// (destructive actions) stay native Alerts below.
+const showStub = (title, message) => showToast(message || title);
 
 const SettingsRow = ({ icon, label, onPress, destructive, value }) => {
   const colors = useColors();
@@ -146,7 +149,11 @@ export const SettingsScreen = ({ navigation }) => {
               />
             </View>
             <View style={styles.avatarEditBadge}>
-              <Pencil size={13} color={colors.accentContrast} strokeWidth={2.2} />
+              <Pencil
+                size={13}
+                color={colors.accentContrast}
+                strokeWidth={2.2}
+              />
             </View>
           </Pressable>
         </View>

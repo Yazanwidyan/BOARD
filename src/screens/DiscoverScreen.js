@@ -4,7 +4,15 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 
+import {
+  HeaderBar,
+  HeaderIconButton,
+  LargeTitle,
+  useCollapsingHeader,
+  useHeaderInset,
+} from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { MOVIES, getMovieById } from "../data/movies";
@@ -130,29 +138,31 @@ export const DiscoverScreen = ({ navigation }) => {
     ...bucketList.map((entry) => entry.movieId),
     ...watched.map((entry) => entry.movieId),
   ]);
+  const { scrollY, onScroll } = useCollapsingHeader();
+  const headerInset = useHeaderInset();
   const recommended = generateRecommendations(preferences, RAIL_COUNT).filter(
     (movie) => !seenIds.has(movie.id),
   );
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <View style={styles.headerSpacer} />
-        <Text style={styles.title}>Discover</Text>
-        <Pressable
-          style={styles.searchButton}
-          onPress={() => navigation.navigate("Search")}
-          hitSlop={8}
-        >
-          <Search size={18} color={colors.textPrimary} strokeWidth={2} />
-        </Pressable>
-      </View>
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{
+          paddingTop: headerInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
         showsVerticalScrollIndicator={false}
       >
+        <LargeTitle
+          title="Discover"
+          subtitle={
+            recommended.length > 0
+              ? `${recommended.length} new picks based on your taste`
+              : "Find something new for tonight"
+          }
+        />
         <BecauseYouWatched navigation={navigation} />
         <DiscoverRail
           title="Top Rated"
@@ -174,8 +184,17 @@ export const DiscoverScreen = ({ navigation }) => {
           movies={TOP_SCIFI}
           navigation={navigation}
         />
-      </ScrollView>
+      </Animated.ScrollView>
       <ScreenBottomFade />
+      <HeaderBar
+        title="Discover"
+        scrollY={scrollY}
+        right={
+          <HeaderIconButton onPress={() => navigation.navigate("Search")}>
+            <Search size={18} color={colors.textPrimary} strokeWidth={2} />
+          </HeaderIconButton>
+        }
+      />
     </SafeAreaView>
   );
 };
@@ -186,35 +205,9 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    searchButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.background,
-    },
     // Invisible same-size counterpart to searchButton on the opposite side,
     // so space-between centers the title relative to the whole header
     // instead of the title sitting flush-left next to a lone right button.
-    headerSpacer: {
-      width: 40,
-      height: 40,
-    },
     rail: {
       marginTop: spacing.lg,
     },

@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { CheckCircle, Circle, Clock, Search, X } from "lucide-react-native";
+import { CheckCircle, Circle, Clock, Search } from "lucide-react-native";
 import { useState } from "react";
 import {
   Pressable,
@@ -66,14 +66,7 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Add to Watched</Text>
-        <Pressable onPress={handleClose} hitSlop={8}>
-          <X size={20} color={colors.textMuted} />
-        </Pressable>
-      </View>
-
+    <BottomSheet visible={visible} onClose={handleClose} title="Add to Watched">
       <View style={styles.searchBar}>
         <Search size={16} color={colors.textSecondary} />
         <TextInput
@@ -171,16 +164,6 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: spacing.md,
-    },
-    title: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
     searchBar: {
       flexDirection: "row",
       alignItems: "center",

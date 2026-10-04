@@ -86,7 +86,8 @@ const buildMarqueeBadges = (watchedIds) => MARQUEE_COLLECTIONS
     return {
       id,
       label,
-      category: 'collections',
+      category: 'marquee',
+      collectionId,
       threshold: total,
       progress: watchedCount,
       earned: progress === 1,
@@ -115,7 +116,7 @@ export const getBadges = ({
   },
   ...buildTierBadges(COLLECTION_TIERS, 'collections', completedCollectionsCount),
   ...buildTierBadges(CHALLENGE_TIERS, 'challenges', completedChallengesCount),
-  ...buildTierBadges(REWATCH_TIERS, 'watched', rewatchedCount),
+  ...buildTierBadges(REWATCH_TIERS, 'rewatch', rewatchedCount),
   ...buildMarqueeBadges(watchedIds),
 ]);
 

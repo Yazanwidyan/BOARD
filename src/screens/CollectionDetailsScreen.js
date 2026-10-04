@@ -1,26 +1,21 @@
-import { CheckCircle, Dices } from "lucide-react-native";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Check, Clock, Shuffle, Sparkles } from "lucide-react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
 
 import { BackButton } from "../components/BackButton";
-import { MoviePoster } from "../components/MoviePoster";
+import { MovieGrid } from "../components/MovieGrid";
+import { PrimaryButton } from "../components/PrimaryButton";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionById, getCollectionProgress } from "../utils/collections";
-import { openChallengeGenerator } from "../utils/openChallengeGenerator";
+import { formatRuntime } from "../utils/movieFilters";
+import { COLLECTION_XP } from "../utils/xp";
 
 const TYPE_LABELS = {
   franchise: "Franchise",
@@ -29,70 +24,16 @@ const TYPE_LABELS = {
   genre: "Genre",
 };
 
-const NODE_SIZE = 72;
-const RING_SIZE = NODE_SIZE + 8;
-const ROW_HEIGHT = 124;
-const DOT_SPACING = 64;
-const DOT_RADIUS = 4;
-// A shade darker than colors.background itself — nothing in the shared
-// palette is darker than background (border/card/etc are all lighter), so
-// this is a one-off just for this screen's dot texture, not a design-
-// system token.
-const DOT_COLOR = "#16172A";
-// Fractional x-position (of the path's content width) each node sits at,
-// cycling to produce the winding, snake-like layout instead of a straight
-// line — center, right, center, left, repeat.
-const OFFSET_PATTERN = [0.5, 0.74, 0.5, 0.26];
-
-const PathNode = ({ movie, cx, cy, state, onPress, styles, colors }) => {
-  const ringColor =
-    state === "watched"
-      ? colors.success
-      : state === "next"
-        ? colors.accent
-        : colors.border;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.pathNode,
-        state === "next" && styles.pathNodeNext,
-        {
-          left: cx - RING_SIZE / 2,
-          top: cy - RING_SIZE / 2,
-          borderColor: ringColor,
-        },
-      ]}
-    >
-      <MoviePoster
-        uri={movie.poster}
-        radius={0}
-        style={[
-          styles.pathNodePoster,
-          state === "remaining" && styles.pathNodeDimmed,
-        ]}
-      />
-      {state === "watched" && (
-        <View style={styles.pathNodeCheck}>
-          <CheckCircle
-            size={16}
-            color={colors.success}
-            fill={colors.background}
-          />
-        </View>
-      )}
-    </Pressable>
-  );
-};
-
+const HEADER_BAR_HEIGHT = 40;
+// Hero (accent gradient, progress, time left, completion XP) → a
+// "Collection Complete" card once everything's watched → a poster grid of
+// the whole collection with watched ones checked.
 export const CollectionDetailsScreen = ({ route, navigation }) => {
   const { collectionId } = route.params;
   const collection = getCollectionById(collectionId);
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const watched = useMovieStore((state) => state.watched);
 
   if (!collection) {
@@ -100,149 +41,133 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   }
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const ratingsById = new Map(
+    watched.map((entry) => [entry.movieId, entry.rating]),
+  );
   const { watchedCount, total, progress } = getCollectionProgress(
     collection,
     watchedIds,
   );
   const isComplete = total > 0 && watchedCount === total;
-  // Only the first not-yet-watched movie in sequence gets the "next up"
-  // highlight — everything else unwatched is just unwatched, not locked,
-  // since nothing here is actually gated.
-  let nextAssigned = false;
+  const minutesLeft = collection.movies
+    .filter((movie) => !watchedIds.has(movie.id))
+    .reduce((sum, movie) => sum + movie.runtime, 0);
 
-  const contentWidth = width - spacing.md * 2;
-  const nodePositions = collection.movies.map((movie, index) => {
-    const offsetFraction = OFFSET_PATTERN[index % OFFSET_PATTERN.length];
-    const cx = offsetFraction * contentWidth;
-    const cy = RING_SIZE / 2 + index * ROW_HEIGHT;
-    const isWatched = watchedIds.has(movie.id);
-    let state = "remaining";
-    if (isWatched) {
-      state = "watched";
-    } else if (!nextAssigned) {
-      state = "next";
-      nextAssigned = true;
-    }
-    return { movie, cx, cy, state };
-  });
-  const canvasHeight =
-    RING_SIZE + (collection.movies.length - 1) * ROW_HEIGHT + spacing.xl;
+  const openMovie = (movieId) =>
+    navigation.navigate("MovieDetails", { movieId });
 
-  // Right-angle "elbow" segments (down, across, down) instead of a smooth
-  // curve, matching a skill-tree path — strokeLinejoin="round" on the Path
-  // softens the corners rather than hand-rounding the geometry itself.
-  let pathD = "";
-  nodePositions.forEach((pos, index) => {
-    if (index === 0) {
-      pathD += `M ${pos.cx} ${pos.cy}`;
-      return;
-    }
-    const prev = nodePositions[index - 1];
-    const midY = (prev.cy + pos.cy) / 2;
-    pathD += ` L ${prev.cx} ${midY} L ${pos.cx} ${midY} L ${pos.cx} ${pos.cy}`;
-  });
+  // Nothing in a collection is ordered, so instead of an "up next" this
+  // just picks any unwatched movie at random.
+  const pickRandomUnwatched = () => {
+    const unwatched = collection.movies.filter(
+      (movie) => !watchedIds.has(movie.id),
+    );
+    if (unwatched.length === 0) return;
+    const pick = unwatched[Math.floor(Math.random() * unwatched.length)];
+    openMovie(pick.id);
+  };
 
-  // Static — sized to the screen itself, not the scrollable content, and
-  // rendered outside the ScrollView so it doesn't move as the user scrolls.
-  const dots = [];
-  for (let y = 14; y < height; y += DOT_SPACING) {
-    for (let x = 14; x < width; x += DOT_SPACING) {
-      dots.push({ x, y });
-    }
-  }
+  const headerTop = insets.top + spacing.sm;
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <Svg
-        width={width}
-        height={height}
-        style={styles.dotBackground}
-        pointerEvents="none"
-      >
-        {dots.map((dot) => (
-          <Circle
-            key={`${dot.x}-${dot.y}`}
-            cx={dot.x}
-            cy={dot.y}
-            r={DOT_RADIUS}
-            fill={DOT_COLOR}
-          />
-        ))}
-      </Svg>
-
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {collection.title}
-        </Text>
-        {!isComplete && (
-          <Pressable
-            style={styles.headerIconButton}
-            onPress={() => openChallengeGenerator(navigation)}
-          >
-            <Dices size={18} color={colors.textPrimary} />
-          </Pressable>
-        )}
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>
-            {TYPE_LABELS[collection.type] ?? "Collection"}
+        <View
+          style={[
+            styles.hero,
+            { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.lg },
+          ]}
+        >
+          <LinearGradient
+            colors={["rgba(141, 96, 226, 0.28)", colors.background]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+
+          <Text style={styles.heroEyebrow}>
+            {(TYPE_LABELS[collection.type] ?? "Collection").toUpperCase()}
           </Text>
-          <Text style={styles.summaryTitle} numberOfLines={1}>
+          <Text style={styles.heroTitle} numberOfLines={2}>
             {collection.title}
           </Text>
-          <View style={styles.summaryBarTrack}>
-            <View
-              style={[styles.summaryBarFill, { width: `${progress * 100}%` }]}
-            />
-          </View>
-          <Text style={styles.summaryStat}>
-            {watchedCount} / {total} watched
-          </Text>
-          {isComplete && (
-            <View style={styles.completeBanner}>
-              <CheckCircle size={14} color={colors.success} />
-              <Text style={styles.completeBannerText}>Collection Complete</Text>
+
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  isComplete && styles.progressFillComplete,
+                  { width: `${progress * 100}%` },
+                ]}
+              />
             </View>
+            <Text style={styles.progressText}>
+              {watchedCount} / {total} watched
+            </Text>
+          </View>
+
+          <View style={styles.statsRow}>
+            {!isComplete && (
+              <View style={styles.stat}>
+                <Clock size={13} color={colors.textSecondary} />
+                <Text style={styles.statText}>
+                  {formatRuntime(minutesLeft)} left
+                </Text>
+              </View>
+            )}
+            <View style={styles.stat}>
+              <Sparkles size={13} color={colors.rating} />
+              <Text style={[styles.statText, styles.statTextXP]}>
+                {isComplete
+                  ? `+${COLLECTION_XP} XP earned`
+                  : `+${COLLECTION_XP} XP on finish`}
+              </Text>
+            </View>
+          </View>
+
+          {!isComplete && (
+            <PrimaryButton
+              label="Pick one for me"
+              icon={<Shuffle size={16} color="#FFFFFF" />}
+              onPress={pickRandomUnwatched}
+              style={styles.pickButton}
+              contentStyle={styles.pickButtonContent}
+            />
           )}
         </View>
 
-        <View style={[styles.pathContainer, { height: canvasHeight }]}>
-          <Svg
-            width={contentWidth}
-            height={canvasHeight}
-            style={StyleSheet.absoluteFillObject}
-          >
-            <Path
-              d={pathD}
-              stroke={colors.border}
-              strokeWidth={4}
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          {nodePositions.map(({ movie, cx, cy, state }) => (
-            <PathNode
-              key={movie.id}
-              movie={movie}
-              cx={cx}
-              cy={cy}
-              state={state}
-              colors={colors}
-              styles={styles}
-              onPress={() =>
-                navigation.navigate("MovieDetails", { movieId: movie.id })
-              }
-            />
-          ))}
+        {isComplete && (
+          <View style={styles.section}>
+            <View style={styles.completeCard}>
+              <View style={styles.completeIcon}>
+                <Check size={20} color={colors.success} strokeWidth={3} />
+              </View>
+              <View style={styles.completeInfo}>
+                <Text style={styles.completeTitle}>Collection Complete</Text>
+                <Text style={styles.completeSubtitle}>
+                  All {total} watched · +{COLLECTION_XP} XP earned
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>All Movies</Text>
         </View>
+        <MovieGrid
+          movies={collection.movies}
+          onPressMovie={(movie) => openMovie(movie.id)}
+          showWatchedCheck
+        />
       </ScrollView>
+
+      <View style={[styles.headerBar, { top: headerTop }]}>
+        <BackButton onPress={() => navigation.goBack()} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -253,116 +178,116 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    dotBackground: {
+    headerBar: {
       position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
+      left: spacing.md,
+      right: spacing.md,
+      height: HEADER_BAR_HEIGHT,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
-    header: {
+    hero: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.lg,
+      overflow: "hidden",
+    },
+    heroEyebrow: {
+      ...typography.label,
+      color: colors.accentLight,
+    },
+    heroTitle: {
+      ...typography.display,
+      color: colors.textPrimary,
+      marginTop: spacing.xs,
+    },
+    progressRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-      flex: 1,
-    },
-    headerIconButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.card,
-    },
-    summaryCard: {
-      alignItems: "flex-start",
-      backgroundColor: colors.cardElevatedLight,
-      borderRadius: radius.lg,
-      margin: spacing.md,
-      padding: spacing.md,
-    },
-    summaryLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-    },
-    summaryTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginTop: 2,
-      alignSelf: "stretch",
-    },
-    summaryStat: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.sm,
-    },
-    summaryBarTrack: {
-      width: "100%",
-      height: 6,
-      borderRadius: 2,
-      backgroundColor: colors.surfaceSoft,
-      overflow: "hidden",
       marginTop: spacing.md,
     },
-    summaryBarFill: {
+    progressTrack: {
+      flex: 1,
+      height: 8,
+      borderRadius: radius.pill,
+      backgroundColor: "rgba(255, 255, 255, 0.15)",
+      overflow: "hidden",
+    },
+    progressFill: {
       height: "100%",
-      borderRadius: 2,
+      borderRadius: radius.pill,
       backgroundColor: colors.accentLight,
     },
-    completeBanner: {
+    progressFillComplete: {
+      backgroundColor: colors.success,
+    },
+    progressText: {
+      ...typography.label,
+      color: colors.textPrimary,
+    },
+    statsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    stat: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      backgroundColor: colors.successSoft,
+      gap: 5,
+    },
+    statText: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    statTextXP: {
+      color: colors.rating,
+    },
+    pickButton: {
+      alignSelf: "flex-start",
+      marginTop: spacing.md,
+    },
+    pickButtonContent: {
+      paddingVertical: 10,
+    },
+    section: {
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
+      marginTop: spacing.lg,
+    },
+    sectionLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    completeInfo: {
+      flex: 1,
+      justifyContent: "center",
+    },
+    completeCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.md,
       borderRadius: radius.sm,
-      marginTop: spacing.md,
+      backgroundColor: colors.successSoft,
     },
-    completeBannerText: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      color: colors.success,
-    },
-    pathContainer: {
-      marginTop: spacing.md,
-      marginHorizontal: spacing.md,
-    },
-    pathNode: {
-      position: "absolute",
-      width: RING_SIZE,
-      height: RING_SIZE,
-      borderRadius: radius.lg,
-      borderWidth: 3,
+    completeIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.background,
+      backgroundColor: colors.successSoft,
     },
-    pathNodeNext: {
-      borderWidth: 4,
-      backgroundColor: colors.cardElevatedLight,
+    completeTitle: {
+      ...typography.subtitle,
+      color: colors.success,
     },
-    pathNodePoster: {
-      width: NODE_SIZE,
-      height: NODE_SIZE,
-    },
-    pathNodeDimmed: {
-      opacity: 0.4,
-    },
-    pathNodeCheck: {
-      position: "absolute",
-      bottom: -2,
-      right: -2,
-      backgroundColor: colors.background,
-      borderRadius: 10,
+    completeSubtitle: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
     },
   });
 
