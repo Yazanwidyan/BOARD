@@ -36,10 +36,14 @@ const pickWithRelaxedFilters = (pool, preferences, count) => {
 // `priorityIds` (e.g. the user's watch list) are guaranteed slots — they skip
 // the genre/rating/decade/runtime filters entirely, since the user already
 // hand-picked them. Any remaining slots are filled the normal, filtered way.
+// `skipIds` (e.g. already-watched movies) are left out of the filtered
+// picks entirely — they can still appear as priority picks, since those
+// were hand-picked.
 export const generateRecommendations = (
   preferences = {},
   count = DEFAULT_PICK_COUNT,
   priorityIds = [],
+  skipIds = [],
 ) => {
   const priorityPool = priorityIds.length > 0
     ? MOVIES.filter((movie) => priorityIds.includes(movie.id))
@@ -51,7 +55,10 @@ export const generateRecommendations = (
     return shuffle(priorityPicks);
   }
 
-  const restPool = excludeIds(MOVIES, priorityPicks.map((movie) => movie.id));
+  const restPool = excludeIds(MOVIES, [
+    ...priorityPicks.map((movie) => movie.id),
+    ...skipIds,
+  ]);
   const restPicks = pickWithRelaxedFilters(restPool, preferences, remainingCount);
 
   return shuffle([...priorityPicks, ...restPicks]);

@@ -1,25 +1,23 @@
 import { CheckCircle, X } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
 
-import {
-  HeaderBar,
-  LargeTitle,
-  useCollapsingHeader,
-  useHeaderInset,
-} from "../components/ScreenHeader";
 import { ChallengeCard } from "../components/ChallengeCard";
 import { ChallengeEmptyCard } from "../components/ChallengeEmptyCard";
+import { DecideHeader } from "../components/DecideHeader";
 import { QuickPickBento } from "../components/QuickPickBento";
 import { getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
+import { useMovieStore } from "../store/movieStore";
+import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { MOODS, pickMovieForMood } from "../utils/moods";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 
 const HistoryRow = ({ entry, styles, colors }) => {
@@ -67,8 +65,23 @@ export const DecideScreen = ({ navigation }) => {
   const skipChallenge = useChallengeStore((state) => state.skipChallenge);
   const history = useChallengeStore((state) => state.history);
 
-  const { scrollY, onScroll } = useCollapsingHeader();
-  const headerInset = useHeaderInset();
+  // Decide's header is taller than the others (it carries the poster
+  // marquee), so the content inset comes from its measured height. The
+  // starting value is a close estimate for the first frame.
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 112);
+
+  // One tap to a pick: a random mood, then the same picker Home's mood
+  // chips use — it becomes tonight's pick and Home shows it.
+  const handleSurprise = () => {
+    const mood = MOODS[Math.floor(Math.random() * MOODS.length)];
+    const movie = pickMovieForMood(mood.key);
+    if (!movie) return;
+    useMovieStore.getState().setMoodPick(movie.id, mood.key);
+    showToast(`${mood.emoji} ${movie.title} is tonight's pick`, {
+      tone: "success",
+    });
+    navigation.navigate("Main", { screen: "Home" });
+  };
 
   const handleCreate = () => {
     if (activeChallenge) skipChallenge();
@@ -77,24 +90,14 @@ export const DecideScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <Animated.ScrollView
-        onScroll={onScroll}
-        scrollEventThrottle={16}
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerInset,
+          paddingTop: headerHeight + spacing.md,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
-        <LargeTitle
-          title="Decide"
-          subtitle={
-            activeChallenge
-              ? `1 active challenge · +${activeChallenge.xpReward} XP waiting`
-              : "You don't need to know what you want."
-          }
-        />
-        <View style={styles.section}>
+        <View style={[styles.section, styles.firstSection]}>
           <Text style={styles.sectionLabel}>Quick Pick</Text>
           <QuickPickBento
             onAI={() => navigation.navigate("Preferences")}
@@ -138,8 +141,8 @@ export const DecideScreen = ({ navigation }) => {
             ))}
           </View>
         )}
-      </Animated.ScrollView>
-      <HeaderBar title="Decide" scrollY={scrollY} />
+      </ScrollView>
+      <DecideHeader onSurprise={handleSurprise} onMeasure={setHeaderHeight} />
     </SafeAreaView>
   );
 };
@@ -149,6 +152,11 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    // The header inset already leaves the gap under the header, so the
+    // first section adds no top margin of its own.
+    firstSection: {
+      marginTop: 0,
     },
     section: {
       paddingHorizontal: spacing.md,

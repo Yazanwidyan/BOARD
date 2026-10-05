@@ -6,8 +6,6 @@ import {
   ChevronRight,
   Circle,
   Filter,
-  Layers,
-  ListPlus,
   Plus,
   Search,
   Shuffle,
@@ -33,18 +31,17 @@ import Animated from "react-native-reanimated";
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { BottomSheet } from "../components/BottomSheet";
-import { CollectionContinueCard } from "../components/CollectionContinueCard";
+import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
 import { MovieGrid } from "../components/MovieGrid";
 import { Popover } from "../components/Popover";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MoviePoster } from "../components/MoviePoster";
 import {
-  HeaderBar,
+  DockHeader,
+  HEADER_BAR_HEIGHT,
   HeaderIconButton,
-  LargeTitle,
-  useCollapsingHeader,
-  useHeaderInset,
+  useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { getMovieById } from "../data/movies";
@@ -56,9 +53,7 @@ import { useColors } from "../theme/useColors";
 import {
   getCollectionProgress,
   getCollectionSections,
-  getCurrentCollection,
   getUnlockedCollectionSections,
-  getCompletedCollectionsCount,
 } from "../utils/collections";
 import { matchesGenres } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
@@ -143,34 +138,8 @@ const CollectionCollage = ({ movies, styles }) => (
   </View>
 );
 
-const CollectionCard = ({ collection, watchedIds, onPress, styles }) => {
-  const { watchedCount, total, progress } = getCollectionProgress(
-    collection,
-    watchedIds,
-  );
-
-  return (
-    <Pressable style={styles.collectionCard} onPress={onPress}>
-      <CollectionCollage movies={collection.movies} styles={styles} />
-      <View style={styles.collectionInfo}>
-        <Text style={styles.collectionTitle} numberOfLines={1}>
-          {collection.title}
-        </Text>
-        <View style={styles.collectionBarTrack}>
-          <View
-            style={[styles.collectionBarFill, { width: `${progress * 100}%` }]}
-          />
-        </View>
-        <Text style={styles.collectionProgressText}>
-          {watchedCount}/{total} watched
-        </Text>
-      </View>
-    </Pressable>
-  );
-};
-
-// Rows in the "See All Collections" browser — same collage+info layout as
-// CollectionCard, plus a trailing toggle. A collection with real progress
+// Rows in the "See All Collections" browser — poster collage, title and
+// progress, plus a trailing toggle. A collection with real progress
 // always reads as unlocked here regardless of the manual toggle's own
 // state, since visibility elsewhere is progress>0 OR manually-added; tapping
 // one just manages the manual side of that OR.
@@ -226,10 +195,12 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState({ top: 0, right: spacing.md });
   const sortButtonRef = useRef(null);
-  const { scrollY, onScroll } = useCollapsingHeader();
-  const headerInset = useHeaderInset();
+  const header = useDockHeader();
   const [isAllCollectionsOpen, setIsAllCollectionsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  // Measured height of the fixed tab switcher under the header, added to
+  // the content's top inset. Starts at a close estimate for the first frame.
+  const [switcherHeight, setSwitcherHeight] = useState(60);
 
   // The tab screen stays mounted between visits, so a fresh `initialTab`
   // param (e.g. tapping a stat a second time) needs to actually switch the
@@ -309,13 +280,11 @@ export const LibraryScreen = ({ navigation, route }) => {
   const hasActiveFilter = selectedGenres.length > 0;
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const currentCollection = getCurrentCollection(watchedIds);
   const unlockedSections = getUnlockedCollectionSections(
     watchedIds,
     unlockedCollectionIds,
   );
   const allCollectionSections = getCollectionSections();
-  const hasUnlockedCollections = unlockedSections.length > 0;
   const unlockedCount = unlockedSections.reduce(
     (sum, section) => sum + section.collections.length,
     0,
@@ -353,60 +322,14 @@ export const LibraryScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: headerInset },
+          { paddingTop: header.contentInset + switcherHeight },
         ]}
       >
-        <LargeTitle
-          title="Library"
-          subtitle={`${watched.length} watched · ${bucketListEntries.length} saved · ${getCompletedCollectionsCount(watchedIds)} collections done`}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabChipsScroll}
-          contentContainerStyle={styles.tabChips}
-        >
-          {tabOptions.map(({ key, label, count }) => {
-            const isActive = tab === key;
-            return (
-              <Pressable
-                key={key}
-                style={[styles.tabChip, isActive && styles.tabChipActive]}
-                onPress={() => setTab(key)}
-              >
-                <Text
-                  style={[
-                    styles.tabChipText,
-                    isActive && styles.tabChipTextActive,
-                  ]}
-                >
-                  {label}
-                </Text>
-                <View
-                  style={[
-                    styles.tabChipCount,
-                    isActive && styles.tabChipCountActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tabChipCountText,
-                      isActive && styles.tabChipCountTextActive,
-                    ]}
-                  >
-                    {count}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
         {tab !== "collections" ? (
           <View style={styles.toolbar}>
             <View style={styles.searchField}>
@@ -433,7 +356,7 @@ export const LibraryScreen = ({ navigation, route }) => {
             {tab === "watched" && (
               <Pressable
                 ref={sortButtonRef}
-                style={styles.toolButton}
+                style={[styles.toolButton, styles.toolIconButton]}
                 onPress={() => {
                   sortButtonRef.current?.measureInWindow(
                     (x, y, buttonWidth, buttonHeight) => {
@@ -451,74 +374,27 @@ export const LibraryScreen = ({ navigation, route }) => {
                   color={colors.textPrimary}
                   strokeWidth={2.2}
                 />
-                <Text style={styles.toolButtonText}>Sort</Text>
                 {sortBy !== "recent" && <View style={styles.toolButtonDot} />}
               </Pressable>
             )}
             <Pressable
-              style={styles.toolButton}
+              style={[styles.toolButton, styles.toolIconButton]}
               onPress={() => setIsFilterOpen(true)}
             >
               <Filter size={15} color={colors.textPrimary} strokeWidth={2.2} />
-              <Text style={styles.toolButtonText}>Genre</Text>
               {hasActiveFilter && <View style={styles.toolButtonDot} />}
             </Pressable>
           </View>
-        ) : (
-          <View style={styles.toolbar}>
-            <Text style={styles.toolbarCaption}>{unlockedCount} tracked</Text>
-            <Pressable
-              style={styles.toolButton}
-              onPress={() => setIsAllCollectionsOpen(true)}
-            >
-              <ListPlus
-                size={16}
-                color={colors.textPrimary}
-                strokeWidth={2.2}
-              />
-              <Text style={styles.toolButtonText}>See All</Text>
-            </Pressable>
-          </View>
-        )}
+        ) : null}
 
         {tab === "collections" ? (
-          <>
-            {currentCollection && (
-              <View style={styles.continueSection}>
-                <Text style={styles.sectionTitle}>Continue</Text>
-                <CollectionContinueCard
-                  collection={currentCollection}
-                  watchedIds={watchedIds}
-                  onPress={() => openCollection(currentCollection.id)}
-                />
-              </View>
-            )}
-
-            {!hasUnlockedCollections && (
-              <EmptyState
-                icon={<Layers size={40} color={colors.textMuted} />}
-                title="No collections yet."
-                subtitle="Watch a movie that belongs to one, or browse all collections and pick some to track."
-                actionLabel="See All Collections"
-                onAction={() => setIsAllCollectionsOpen(true)}
-              />
-            )}
-
-            {unlockedSections.map((section) => (
-              <View key={section.type} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                {section.collections.map((collection) => (
-                  <CollectionCard
-                    key={collection.id}
-                    collection={collection}
-                    watchedIds={watchedIds}
-                    styles={styles}
-                    onPress={() => openCollection(collection.id)}
-                  />
-                ))}
-              </View>
-            ))}
-          </>
+          <CollectionsShelf
+            watched={watched}
+            unlockedCollectionIds={unlockedCollectionIds}
+            onOpen={openCollection}
+            onToggleTrack={toggleUnlockedCollection}
+            onSeeAll={() => setIsAllCollectionsOpen(true)}
+          />
         ) : tab === "bucketlist" ? (
           <>
             {canPick && !query && !hasActiveFilter && (
@@ -740,9 +616,47 @@ export const LibraryScreen = ({ navigation, route }) => {
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <HeaderBar
+      <View
+        style={[styles.switcherWrap, { top: insets.top + HEADER_BAR_HEIGHT }]}
+        onLayout={(event) => setSwitcherHeight(event.nativeEvent.layout.height)}
+      >
+        <View style={styles.switcher}>
+          {tabOptions.map(({ key, label, count }) => {
+            const isActive = tab === key;
+            return (
+              <Pressable
+                key={key}
+                style={[
+                  styles.switchOption,
+                  isActive && styles.switchOptionActive,
+                ]}
+                onPress={() => setTab(key)}
+              >
+                <Text
+                  style={[
+                    styles.switchText,
+                    isActive && styles.switchTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
+                <Text
+                  style={[
+                    styles.switchCount,
+                    isActive && styles.switchCountActive,
+                  ]}
+                >
+                  {count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+      <DockHeader
+        {...header.props}
         title="Library"
-        scrollY={scrollY}
         right={
           tab !== "collections" && (
             <HeaderIconButton
@@ -904,67 +818,60 @@ const createStyles = (colors) =>
     // scroll content is flexGrow: 1 too (for EmptyState centering) — so on
     // a short tab the chip row grew to soak up the spare height and the
     // chips stretched into tall pills. Pin it to its content height.
-    tabChipsScroll: {
-      flexGrow: 0,
-    },
-    tabChips: {
-      alignItems: "center",
+    // Fixed strip under the header — card background like the header, a
+    // darker rounded track, and a white segment for the selected tab.
+    switcherWrap: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      zIndex: 99,
+      elevation: 16,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
-    tabChip: {
+    switcher: {
+      flexDirection: "row",
+      padding: 4,
+      borderRadius: radius.sm,
+      backgroundColor: colors.background,
+    },
+    switchOption: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
       gap: 6,
-      paddingLeft: spacing.md,
-      paddingRight: 6,
-      paddingVertical: 6,
-      borderRadius: radius.pill,
-      backgroundColor: colors.card,
+      paddingVertical: 9,
+      borderRadius: radius.sm - 3,
     },
-    tabChipActive: {
-      backgroundColor: colors.accent,
+    switchOptionActive: {
+      backgroundColor: "#FFFFFF",
     },
-    tabChipText: {
+    switchText: {
       ...typography.bodyBold,
       fontSize: 13,
       color: colors.textSecondary,
     },
-    tabChipTextActive: {
-      color: colors.accentContrast,
+    switchTextActive: {
+      color: colors.background,
     },
-    tabChipCount: {
-      minWidth: 24,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: radius.pill,
-      alignItems: "center",
-      backgroundColor: colors.surfaceSoft,
-    },
-    tabChipCountActive: {
-      backgroundColor: "rgba(255, 255, 255, 0.22)",
-    },
-    tabChipCountText: {
-      ...typography.label,
+    switchCount: {
+      ...typography.caption,
       fontSize: 11,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
-    tabChipCountTextActive: {
-      color: colors.accentContrast,
+    switchCountActive: {
+      color: colors.accent,
     },
     toolbar: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
       marginBottom: spacing.md,
-    },
-    toolbarCaption: {
-      ...typography.caption,
-      flex: 1,
-      color: colors.textSecondary,
     },
     searchField: {
       flex: 1,
@@ -990,6 +897,12 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       borderRadius: radius.sm,
       backgroundColor: colors.card,
+    },
+    // Sort and genre are icon-only squares.
+    toolIconButton: {
+      width: 40,
+      justifyContent: "center",
+      paddingHorizontal: 0,
     },
     toolButtonText: {
       ...typography.label,
@@ -1070,10 +983,6 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm,
-    },
-    continueSection: {
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.sm,
     },
     section: {
       paddingHorizontal: spacing.md,

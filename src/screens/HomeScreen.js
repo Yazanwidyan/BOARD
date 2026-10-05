@@ -5,6 +5,7 @@ import {
   Shuffle,
   Sparkles,
   Star,
+  Trophy,
 } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -13,16 +14,13 @@ import {
 } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 
+import * as Haptics from "expo-haptics";
+
 import { ChallengeCard } from "../components/ChallengeCard";
 import { CollectionContinueCard } from "../components/CollectionContinueCard";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
 import { TargetIcon } from "../components/icons/TabIcons";
-import {
-  HeaderBar,
-  LargeTitle,
-  useCollapsingHeader,
-  useHeaderInset,
-} from "../components/ScreenHeader";
+import { DockHeader, useDockHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TonightsPickCard } from "../components/TonightsPickCard";
@@ -39,6 +37,7 @@ import {
   getInProgressCollections,
 } from "../utils/collections";
 import { getRank } from "../utils/league";
+import { MOODS, pickMovieForMood } from "../utils/moods";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import {
   DIFFICULTY,
@@ -87,50 +86,79 @@ const MAX_CHALLENGE_XP = DIFFICULTY.HARD.max;
 const DECIDE_MODES = [
   { label: "Swipe", Icon: Shuffle, route: "Swipe" },
   { label: "Spin", Icon: RotateCw, route: "Spin" },
-  { label: "AI", Icon: Sparkles, route: "Preferences" },
+  { label: "Ask AI", Icon: Sparkles, route: "Preferences" },
 ];
 
 // Home's top slot when there's no Tonight's Pick: the header asks "Bored?",
 // so the first thing under it is the way out — straight into Swipe, Spin
 // or AI. A brand-new account (nothing watched or saved yet) gets one
 // "Start Discovering" button instead, since there's no taste to work from.
-const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => (
-  <View style={styles.decideCard}>
-    <View style={styles.decideEyebrowRow}>
-      <Sparkles size={12} color={colors.accentContrast} />
-      <Text style={styles.decideEyebrow}>
-        {isFreshAccount ? "WELCOME" : "WHAT ARE WE WATCHING?"}
+const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
+  const setMoodPick = useMovieStore((state) => state.setMoodPick);
+
+  if (isFreshAccount) {
+    return (
+      <View style={styles.decideCard}>
+        <Text style={styles.decideEyebrow}>WELCOME</Text>
+        <Text style={styles.decideTitle}>Find your first movie</Text>
+        <Pressable
+          style={styles.decideButtonSolid}
+          onPress={() => navigation.navigate("Discover")}
+        >
+          <Compass size={16} color={colors.accent} />
+          <Text style={styles.decideButtonTextSolid}>Start Discovering</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const pickForMood = (moodKey) => {
+    const movie = pickMovieForMood(moodKey);
+    if (!movie) return;
+    Haptics.selectionAsync();
+    setMoodPick(movie.id, moodKey);
+  };
+
+  return (
+    <View style={styles.decideCard}>
+      <Text style={styles.decideEyebrow}>WHAT ARE WE WATCHING?</Text>
+      <Text style={styles.decideTitle}>
+        Pick a mood, we&apos;ll pick the movie.
       </Text>
-    </View>
-    <Text style={styles.decideTitle}>
-      {isFreshAccount ? "Find your first movie" : "Let BOARD decide for you"}
-    </Text>
-    {isFreshAccount ? (
-      <Pressable
-        style={[styles.decideButton, styles.decideButtonSolid]}
-        onPress={() => navigation.navigate("Discover")}
-      >
-        <Compass size={16} color={colors.accent} />
-        <Text style={[styles.decideButtonText, styles.decideButtonTextSolid]}>
-          Start Discovering
-        </Text>
-      </Pressable>
-    ) : (
-      <View style={styles.decideButtonRow}>
-        {DECIDE_MODES.map(({ label, Icon, route }) => (
+      <View style={styles.moodGrid}>
+        {MOODS.map((mood) => (
           <Pressable
-            key={label}
-            style={[styles.decideButton, styles.decideButtonFlex]}
-            onPress={() => navigation.navigate(route)}
+            key={mood.key}
+            style={({ pressed }) => [
+              styles.moodChip,
+              pressed && styles.moodChipPressed,
+            ]}
+            onPress={() => pickForMood(mood.key)}
           >
-            <Icon size={16} color={colors.accentContrast} />
-            <Text style={styles.decideButtonText}>{label}</Text>
+            <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+            <Text style={styles.moodLabel} numberOfLines={1}>
+              {mood.label}
+            </Text>
           </Pressable>
         ))}
       </View>
-    )}
-  </View>
-);
+      <View style={styles.modesRow}>
+        <Text style={styles.modesOr}>or</Text>
+        {DECIDE_MODES.map(({ label, Icon, route }) => (
+          <Pressable
+            key={label}
+            style={styles.modeLink}
+            onPress={() => navigation.navigate(route)}
+            hitSlop={6}
+          >
+            <Icon size={14} color={colors.accentContrast} />
+            <Text style={styles.modeLinkText}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+};
 
 // An empty challenge slot shouldn't take as much room as a full one — one
 // slim row instead of the big dashed empty card.
@@ -344,8 +372,7 @@ export const HomeScreen = ({ navigation }) => {
     watchedCount === 0 &&
     queuedCount === 0;
 
-  const { scrollY, onScroll } = useCollapsingHeader();
-  const headerInset = useHeaderInset();
+  const header = useDockHeader();
 
   const handleCreateChallenge = () => {
     if (activeChallenge) skipChallenge();
@@ -355,19 +382,14 @@ export const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerInset,
+          paddingTop: header.contentInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
-        <LargeTitle
-          eyebrow={getTimeGreeting(new Date(), displayName)}
-          title="Bored? Let's fix that."
-        />
-
         <View style={[styles.section, styles.firstSection]}>
           {pickedMovieId ? (
             <TonightsPickCard navigation={navigation} />
@@ -411,14 +433,34 @@ export const HomeScreen = ({ navigation }) => {
           <View style={styles.railSection}>
             <View style={[styles.sectionHeaderRow, styles.railLabelPadding]}>
               <Text style={styles.sectionLabel}>Continue a Collection</Text>
-              <Pressable
-                hitSlop={8}
-                onPress={() =>
-                  navigation.navigate("Library", { initialTab: "collections" })
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </Pressable>
+              <View style={styles.sectionHeaderActions}>
+                {completedCollectionsCount > 0 && (
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.trophyLink}
+                    onPress={() =>
+                      navigation.navigate("Library", {
+                        initialTab: "collections",
+                      })
+                    }
+                  >
+                    <Trophy size={12} color={colors.rating} />
+                    <Text style={styles.trophyLinkText}>
+                      {completedCollectionsCount} completed
+                    </Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  hitSlop={8}
+                  onPress={() =>
+                    navigation.navigate("Library", {
+                      initialTab: "collections",
+                    })
+                  }
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                </Pressable>
+              </View>
             </View>
             <ScrollView
               horizontal
@@ -454,9 +496,10 @@ export const HomeScreen = ({ navigation }) => {
         </View>
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <HeaderBar
-        title="Home"
-        scrollY={scrollY}
+      <DockHeader
+        {...header.props}
+        eyebrow={getTimeGreeting(new Date(), displayName)}
+        title="Bored? Let's fix that."
         right={
           <Pressable
             style={styles.levelBadge}
@@ -505,8 +548,9 @@ const createStyles = (colors) =>
     railLabelPadding: {
       paddingHorizontal: spacing.md,
     },
+    // The header inset already leaves the gap under the header.
     firstSection: {
-      marginTop: spacing.md,
+      marginTop: 0,
     },
     sectionLabel: {
       ...typography.label,
@@ -517,6 +561,21 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+    },
+    sectionHeaderActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    trophyLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginBottom: spacing.sm,
+    },
+    trophyLinkText: {
+      ...typography.label,
+      color: colors.rating,
     },
     seeAllText: {
       ...typography.label,
@@ -573,48 +632,82 @@ const createStyles = (colors) =>
       borderRadius: radius.sm,
       padding: spacing.md,
     },
-    decideEyebrowRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
     decideEyebrow: {
       ...typography.label,
-      color: "rgba(255, 255, 255, 0.85)",
+      color: "rgba(255, 255, 255, 0.8)",
     },
     decideTitle: {
       ...typography.title,
       color: colors.accentContrast,
       marginTop: spacing.xs,
     },
-    decideButtonRow: {
+    moodGrid: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: spacing.sm,
       marginTop: spacing.md,
     },
-    decideButton: {
+    // Three per row: (100% - 2 gaps) / 3, with the gap as a percentage-ish
+    // allowance so it holds on any width.
+    moodChip: {
+      width: "31.5%",
+      alignItems: "center",
+      gap: 4,
+      paddingVertical: spacing.sm + 2,
+      borderRadius: radius.sm,
+      backgroundColor: "rgba(255, 255, 255, 0.16)",
+    },
+    moodChipPressed: {
+      backgroundColor: "rgba(255, 255, 255, 0.3)",
+      transform: [{ scale: 0.96 }],
+    },
+    moodEmoji: {
+      fontSize: 22,
+    },
+    moodLabel: {
+      ...typography.label,
+      fontSize: 11,
+      letterSpacing: 0.2,
+      textTransform: "none",
+      color: colors.accentContrast,
+    },
+    modesRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
+      flexWrap: "wrap",
+      gap: spacing.md,
+      marginTop: spacing.md,
+      paddingTop: spacing.sm + 2,
+      borderTopWidth: 1,
+      borderTopColor: "rgba(255, 255, 255, 0.18)",
+    },
+    modesOr: {
+      ...typography.caption,
+      color: "rgba(255, 255, 255, 0.7)",
+    },
+    modeLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    modeLinkText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.accentContrast,
+    },
+    decideButtonSolid: {
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
+      alignSelf: "flex-start",
+      marginTop: spacing.md,
       paddingVertical: 10,
       paddingHorizontal: spacing.md,
       borderRadius: radius.sm,
-      backgroundColor: "rgba(255, 255, 255, 0.18)",
-    },
-    decideButtonFlex: {
-      flex: 1,
-    },
-    decideButtonSolid: {
-      alignSelf: "flex-start",
-      marginTop: spacing.md,
       backgroundColor: colors.accentContrast,
     },
-    decideButtonText: {
-      ...typography.label,
-      color: colors.accentContrast,
-    },
     decideButtonTextSolid: {
+      ...typography.label,
       color: colors.accent,
     },
     promptRow: {

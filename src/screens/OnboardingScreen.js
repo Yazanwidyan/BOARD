@@ -755,7 +755,6 @@ const createStyles = (colors) =>
     },
     tasteOverlay: {
       ...StyleSheet.absoluteFillObject,
-      borderRadius: radius.sm,
       borderWidth: 3,
       alignItems: "center",
       justifyContent: "center",
@@ -843,7 +842,6 @@ const createStyles = (colors) =>
     },
     pickSelectedRing: {
       ...StyleSheet.absoluteFillObject,
-      borderRadius: radius.sm,
       borderWidth: 3,
       borderColor: colors.accent,
       alignItems: "flex-end",

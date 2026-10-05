@@ -1,13 +1,12 @@
-import { Modal, Pressable, StyleSheet } from "react-native";
-import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { radius } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 
 // A small menu anchored under the button that opened it — `anchor` is
 // { top, right } in window coordinates (measureInWindow the button, then
-// top = y + height + gap, right = windowWidth - (x + width)). Grows out of
-// its top-right corner; tapping anywhere else closes it.
+// top = y + height + gap, right = windowWidth - (x + width)). Appears and
+// disappears instantly — no animation; tapping anywhere else closes it.
 export const Popover = ({
   visible,
   anchor,
@@ -29,19 +28,11 @@ export const Popover = ({
       onRequestClose={onClose}
     >
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      <Animated.View
-        entering={ZoomIn.springify().damping(18).stiffness(260)}
-        exiting={FadeOut.duration(120)}
-        style={[
-          styles.menu,
-          { top: anchor.top, right: anchor.right, width },
-          { transformOrigin: "top right" },
-        ]}
+      <View
+        style={[styles.menu, { top: anchor.top, right: anchor.right, width }]}
       >
-        <Animated.View entering={FadeIn.duration(120)}>
-          {children}
-        </Animated.View>
-      </Animated.View>
+        {children}
+      </View>
     </Modal>
   );
 };

@@ -9,6 +9,7 @@ import { getCollectionProgress } from "../utils/collections";
 const EYEBROWS = {
   franchise: "FRANCHISE",
   director: "DIRECTOR",
+  actor: "ACTOR",
   decade: "DECADE",
   genre: "GENRE",
 };

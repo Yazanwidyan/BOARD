@@ -1,3 +1,5 @@
+import { CAST } from "./cast";
+
 // Local Top 250 movie dataset.
 // To move to a real API (e.g. TMDB), replace this file with src/services/movieApi.js
 // that resolves to the same movie schema and update IMAGE_BASE_URL below.
@@ -2327,6 +2329,8 @@ export const MOVIES = RAW_MOVIES.map(
       runtime,
       genres,
       director,
+      // Top-billed actors (see cast.js); empty until that's been generated.
+      cast: CAST[id] ?? [],
       description,
       franchise: franchise ?? null,
       poster: buildPoster(index, id),

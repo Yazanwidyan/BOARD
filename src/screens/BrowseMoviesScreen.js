@@ -30,11 +30,7 @@ const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
 
   return (
     <Pressable style={styles.row} onPress={onPress}>
-      <MoviePoster
-        uri={movie.poster}
-        radius={0}
-        style={styles.rowPoster}
-      />
+      <MoviePoster uri={movie.poster} radius={0} style={styles.rowPoster} />
       <View style={styles.rowInfo}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {movie.title}
@@ -59,26 +55,43 @@ const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
   );
 };
 
-export const BrowseMoviesScreen = ({ navigation }) => {
+// Also the "All ›" target for Discover's rows: given `title` + `movieIds`
+// params it lists just that row (in its order); without them, the whole
+// catalog.
+export const BrowseMoviesScreen = ({ navigation, route }) => {
+  const rowTitle = route?.params?.title;
+  const rowIds = route?.params?.movieIds;
   const colors = useColors();
   const styles = createStyles(colors);
   const [query, setQuery] = useState("");
   const insets = useSafeAreaInsets();
   const bucketList = useMovieStore((state) => state.bucketList);
 
+  const baseMovies = useMemo(
+    () =>
+      rowIds
+        ? rowIds
+            .map((id) => MOVIES.find((movie) => movie.id === id))
+            .filter(Boolean)
+        : MOVIES,
+    [rowIds],
+  );
+
   const filteredMovies = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return MOVIES;
-    return MOVIES.filter((movie) =>
+    if (!trimmed) return baseMovies;
+    return baseMovies.filter((movie) =>
       movie.title.toLowerCase().includes(trimmed),
     );
-  }, [query]);
+  }, [query, baseMovies]);
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle}>Browse Movies</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {rowTitle ?? "Browse Movies"}
+        </Text>
         <View style={styles.backButton} />
       </View>
 
@@ -87,7 +100,11 @@ export const BrowseMoviesScreen = ({ navigation }) => {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search the Top 250..."
+          placeholder={
+            rowIds
+              ? `Search ${rowIds.length} movies...`
+              : "Search the Top 250..."
+          }
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
@@ -137,8 +154,13 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
     },
+    // Row titles from Discover can be long ("Because you love …"), so it
+    // takes the middle space and truncates rather than pushing the sides.
     headerTitle: {
       ...typography.subtitle,
+      flex: 1,
+      textAlign: "center",
+      marginHorizontal: spacing.sm,
       color: colors.textPrimary,
     },
     searchBar: {

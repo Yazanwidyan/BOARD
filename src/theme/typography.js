@@ -1,43 +1,52 @@
-// `fontFamily` points at a specific Sora weight file (loaded in App.js via
-// expo-font), so `fontWeight` is intentionally omitted — pairing a numeric
-// fontWeight with an already-weighted custom font file makes Android ignore
-// the custom font and fall back to the system one.
+// Sora everywhere. Each `fontFamily` points at a specific weight file
+// (loaded in App.js via @expo-google-fonts/sora), so `fontWeight` is
+// intentionally omitted — pairing a numeric fontWeight with an
+// already-weighted custom font file makes Android ignore the custom font
+// and fall back to the system one.
+export const fonts = {
+  regular: "Sora_400Regular",
+  medium: "Sora_500Medium",
+  semiBold: "Sora_600SemiBold",
+  bold: "Sora_700Bold",
+  extraBold: "Sora_800ExtraBold",
+};
+
 export const typography = {
   display: {
-    fontFamily: "Sora_800ExtraBold",
+    fontFamily: fonts.extraBold,
     fontSize: 32,
     letterSpacing: -0.8,
     lineHeight: 36,
   },
   hero: {
-    fontFamily: "Sora_800ExtraBold",
+    fontFamily: fonts.extraBold,
     fontSize: 26,
     letterSpacing: -0.6,
     lineHeight: 31,
   },
   title: {
-    fontFamily: "Sora_700Bold",
+    fontFamily: fonts.bold,
     fontSize: 18,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontFamily: "Sora_600SemiBold",
+    fontFamily: fonts.semiBold,
     fontSize: 15,
   },
   body: {
-    fontFamily: "Sora_400Regular",
+    fontFamily: fonts.regular,
     fontSize: 14,
   },
   bodyBold: {
-    fontFamily: "Sora_600SemiBold",
+    fontFamily: fonts.semiBold,
     fontSize: 14,
   },
   caption: {
-    fontFamily: "Sora_500Medium",
+    fontFamily: fonts.medium,
     fontSize: 12,
   },
   label: {
-    fontFamily: "Sora_700Bold",
+    fontFamily: fonts.bold,
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",

@@ -5,13 +5,13 @@ import { Image, StyleSheet, View } from "react-native";
 import { shadows } from "../theme/shadows";
 import { useColors } from "../theme/useColors";
 
-export const MoviePoster = ({
-  uri,
-  style,
-  radius: cornerRadius = 0,
-  shadow = false,
-  blurRadius,
-}) => {
+// Posters are always square-cornered, app-wide — any `radius` a caller
+// passes is ignored, and a borderRadius in `style` is overridden, so one
+// place decides the look of every poster.
+const POSTER_RADIUS = 0;
+
+export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
+  const cornerRadius = POSTER_RADIUS;
   const [failed, setFailed] = useState(false);
   const colors = useColors();
   const styles = createStyles(colors);
@@ -20,8 +20,8 @@ export const MoviePoster = ({
     <View
       style={[
         styles.container,
-        { borderRadius: cornerRadius },
         !shadow && style,
+        { borderRadius: cornerRadius },
       ]}
     >
       {failed || !uri ? (
@@ -42,7 +42,7 @@ export const MoviePoster = ({
   if (!shadow) return content;
 
   return (
-    <View style={[{ borderRadius: cornerRadius }, shadows.md, style]}>
+    <View style={[shadows.md, style, { borderRadius: cornerRadius }]}>
       {content}
     </View>
   );

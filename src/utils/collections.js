@@ -50,6 +50,34 @@ const buildDirectorCollections = () =>
       movies: [...movies].sort((a, b) => a.year - b.year),
     }));
 
+// An actor needs a few more films than a director to be a collection —
+// top-billed casts overlap a lot, and a two-film "collection" for every
+// co-star would bury the meaningful ones.
+const MIN_ACTOR_COLLECTION_SIZE = 3;
+
+// One collection per actor with at least MIN_ACTOR_COLLECTION_SIZE catalog
+// movies in their top-billed cast (movie.cast, from data/cast.js). Empty
+// until cast data has been generated — the Actors section just doesn't
+// appear until then.
+const buildActorCollections = () => {
+  const map = new Map();
+  MOVIES.forEach((movie) => {
+    (movie.cast ?? []).forEach((actor) => {
+      if (!map.has(actor)) map.set(actor, []);
+      map.get(actor).push(movie);
+    });
+  });
+  return [...map.entries()]
+    .filter(([, movies]) => movies.length >= MIN_ACTOR_COLLECTION_SIZE)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([actor, movies]) => ({
+      id: `actor-${slugify(actor)}`,
+      type: "actor",
+      title: actor,
+      movies: [...movies].sort((a, b) => a.year - b.year),
+    }));
+};
+
 const decadeLabel = (year) => `${Math.floor(year / 10) * 10}s`;
 
 // Sorts by rank (best first) and, if there are more than CURATED_SIZE
@@ -99,11 +127,13 @@ const buildGenreCollections = () => {
 // runtime, only which of its movies are watched does.
 const FRANCHISE_COLLECTIONS = buildFranchiseCollections();
 const DIRECTOR_COLLECTIONS = buildDirectorCollections();
+const ACTOR_COLLECTIONS = buildActorCollections();
 const DECADE_COLLECTIONS = buildDecadeCollections();
 const GENRE_COLLECTIONS = buildGenreCollections();
 const ALL_COLLECTIONS = [
   ...FRANCHISE_COLLECTIONS,
   ...DIRECTOR_COLLECTIONS,
+  ...ACTOR_COLLECTIONS,
   ...DECADE_COLLECTIONS,
   ...GENRE_COLLECTIONS,
 ];
@@ -111,6 +141,7 @@ const ALL_COLLECTIONS = [
 export const getCollectionSections = () => [
   { type: "franchise", title: "Franchises", collections: FRANCHISE_COLLECTIONS },
   { type: "director", title: "Directors", collections: DIRECTOR_COLLECTIONS },
+  { type: "actor", title: "Actors", collections: ACTOR_COLLECTIONS },
   { type: "decade", title: "Decades", collections: DECADE_COLLECTIONS },
   { type: "genre", title: "Genres", collections: GENRE_COLLECTIONS },
 ].filter((section) => section.collections.length > 0);
@@ -204,5 +235,59 @@ export const getInProgressCollections = (watchedIds, limit = 4) =>
     .sort((a, b) => b.progress - a.progress)
     .slice(0, limit)
     .map(({ collection }) => collection);
+
+// When a finished collection was finished: the latest watch date among its
+// movies (watched entries carry a timestamp). Null if it isn't complete or
+// no dates are known.
+export const getCollectionCompletedAt = (collection, watched) => {
+  const byId = new Map(watched.map((entry) => [entry.movieId, entry]));
+  if (!collection.movies.every((movie) => byId.has(movie.id))) return null;
+  const latest = Math.max(
+    ...collection.movies.map((movie) => byId.get(movie.id).timestamp ?? 0),
+  );
+  return latest > 0 ? latest : null;
+};
+
+// Untracked collections worth suggesting: none of their movies watched yet
+// (anything with progress is already tracked automatically), ranked by how
+// much they overlap the genres the user actually watches most. Genre and
+// decade collections are left out — they're broad, and genres are already
+// the basis of the ranking.
+const SUGGESTION_TOP_GENRES = 3;
+
+export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 3) => {
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const genreCounts = new Map();
+  MOVIES.filter((movie) => watchedIds.has(movie.id)).forEach((movie) =>
+    movie.genres.forEach((genre) =>
+      genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1),
+    ),
+  );
+  const topGenres = [...genreCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, SUGGESTION_TOP_GENRES)
+    .map(([genre]) => genre);
+  if (topGenres.length === 0) return [];
+
+  return ALL_COLLECTIONS
+    .filter(
+      (collection) =>
+        ["franchise", "director", "actor"].includes(collection.type) &&
+        !unlockedCollectionIds.includes(collection.id) &&
+        getCollectionProgress(collection, watchedIds).watchedCount === 0,
+    )
+    .map((collection) => {
+      const matching = collection.movies.filter((movie) =>
+        movie.genres.some((genre) => topGenres.includes(genre)),
+      );
+      const genre = topGenres.find((g) =>
+        matching.some((movie) => movie.genres.includes(g)),
+      );
+      return { collection, score: matching.length / collection.movies.length, genre };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || b.collection.movies.length - a.collection.movies.length)
+    .slice(0, limit);
+};
 
 export default getCollectionSections;

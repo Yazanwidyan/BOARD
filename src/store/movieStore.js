@@ -7,6 +7,11 @@ export const useMovieStore = create(
     (set) => ({
       bucketList: [], // manually curated "want to watch someday" — [{ movieId, addedAt }]
       pickedMovie: null, // single movie id — approved after a pick session
+      // Set when the pick came from a Home mood chip — { movieId, mood } —
+      // so Tonight's Pick can say why and reroll within the same mood.
+      // Tied to the movie id, so any other way of picking makes it stale
+      // (readers ignore a mismatch) without having to clear it everywhere.
+      pickMood: null,
       // [{ movieId, timestamp, rating: 0.5-5 in 0.5 steps | null, watchCount }]
       // One entry per movie, never duplicated — a rewatch bumps watchCount
       // and timestamp on the same entry rather than adding a second one, so
@@ -87,7 +92,9 @@ export const useMovieStore = create(
       }),
 
       clearBucketList: () => set({ bucketList: [] }),
-      clearPickedMovie: () => set({ pickedMovie: null }),
+      clearPickedMovie: () => set({ pickedMovie: null, pickMood: null }),
+      setMoodPick: (movieId, mood) =>
+        set({ pickedMovie: movieId, pickMood: { movieId, mood } }),
       clearWatched: () => set({ watched: [] }),
       clearUnlockedCollections: () => set({ unlockedCollections: [] }),
     }),

@@ -280,7 +280,6 @@ const styles = StyleSheet.create({
   // break rendering) so the card visibly lifts off the stack like a box.
   cardWrapper: {
     position: "absolute",
-    borderRadius: radius.sm,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
@@ -289,7 +288,6 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    borderRadius: radius.sm,
     backgroundColor: colors.card,
     overflow: "hidden",
   },

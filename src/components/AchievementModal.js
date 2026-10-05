@@ -13,7 +13,6 @@ import Animated, {
   Easing,
   FadeIn,
   FadeOut,
-  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -203,7 +202,7 @@ const AchievementDialog = ({ achievement }) => {
         )}
 
         <Animated.View
-          entering={ZoomIn.springify().damping(16).stiffness(180)}
+          entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(150)}
           style={styles.card}
         >

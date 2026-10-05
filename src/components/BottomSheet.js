@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -12,12 +11,12 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  Easing,
   Extrapolation,
   interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,8 +25,10 @@ import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
-const OPEN_SPRING = { damping: 24, stiffness: 240, mass: 0.9 };
-const SNAP_BACK_SPRING = { damping: 22, stiffness: 300 };
+// Plain eased timing, no springs — the sheet glides into place without
+// overshooting.
+const OPEN_TIMING = { duration: 280, easing: Easing.out(Easing.cubic) };
+const SNAP_BACK_TIMING = { duration: 180, easing: Easing.out(Easing.cubic) };
 const CLOSE_DURATION = 220;
 const DISMISS_FRACTION = 0.25;
 const DISMISS_VELOCITY = 900;
@@ -44,7 +45,7 @@ const MAX_AUTO_FRACTION = 0.9;
 // - footer is pinned under the content, above the home indicator — for a
 //   sheet's main action ("Apply", "Done").
 //
-// Opens on a spring; the backdrop's opacity follows the sheet's position,
+// Slides in on an eased timing; the backdrop's opacity follows the sheet's position,
 // so dragging it down fades the backdrop with it instead of the backdrop
 // popping in/out on its own.
 export const BottomSheet = ({
@@ -61,19 +62,24 @@ export const BottomSheet = ({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
 
-  const fullHeight = windowHeight - insets.top - spacing.sm;
-  const fixedHeight =
+  // "full" isn't a computed number: the overlay reserves the safe area at
+  // the top (paddingTop below) and a full sheet just fills what's left. A
+  // computed height (window height − inset) could exceed the real space —
+  // e.g. once the keyboard opens — and push the sheet's top up behind the
+  // status bar.
+  const isFixed = size === "full" || size === "half";
+  const sizeStyle =
     size === "full"
-      ? fullHeight
+      ? { flex: 1 }
       : size === "half"
-        ? Math.round(windowHeight * 0.55)
-        : undefined;
+        ? { height: Math.round(windowHeight * 0.55) }
+        : { maxHeight: windowHeight * MAX_AUTO_FRACTION };
 
   const [isMounted, setIsMounted] = useState(visible);
   // Starts off-screen by a full window height, so it works before the
   // sheet's real (auto) height has been measured.
   const translateY = useSharedValue(windowHeight);
-  const sheetHeight = useSharedValue(fixedHeight ?? windowHeight);
+  const sheetHeight = useSharedValue(windowHeight);
 
   const close = () => {
     translateY.value = withTiming(
@@ -88,7 +94,7 @@ export const BottomSheet = ({
   useEffect(() => {
     if (visible) {
       setIsMounted(true);
-      translateY.value = withSpring(0, OPEN_SPRING);
+      translateY.value = withTiming(0, OPEN_TIMING);
     } else if (isMounted) {
       close();
     }
@@ -108,7 +114,7 @@ export const BottomSheet = ({
       ) {
         runOnJS(onClose)();
       } else {
-        translateY.value = withSpring(0, SNAP_BACK_SPRING);
+        translateY.value = withTiming(0, SNAP_BACK_TIMING);
       }
     });
 
@@ -134,9 +140,12 @@ export const BottomSheet = ({
       statusBarTranslucent
       onRequestClose={onClose}
     >
+      {/* Padding on both platforms: with Android's edge-to-edge window
+          (Expo's default) the keyboard no longer resizes the app, so the
+          sheet has to make room itself there too. */}
       <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[styles.overlay, { paddingTop: insets.top + spacing.sm }]}
+        behavior="padding"
       >
         <Animated.View
           style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
@@ -148,13 +157,7 @@ export const BottomSheet = ({
           onLayout={(event) => {
             sheetHeight.value = event.nativeEvent.layout.height;
           }}
-          style={[
-            styles.sheet,
-            fixedHeight
-              ? { height: fixedHeight }
-              : { maxHeight: windowHeight * MAX_AUTO_FRACTION },
-            sheetStyle,
-          ]}
+          style={[styles.sheet, sizeStyle, sheetStyle]}
         >
           <GestureDetector gesture={pan}>
             <View style={styles.header}>
@@ -183,7 +186,7 @@ export const BottomSheet = ({
             </View>
           </GestureDetector>
 
-          <View style={[styles.content, fixedHeight && styles.contentFill]}>
+          <View style={[styles.content, isFixed && styles.contentFill]}>
             {children}
           </View>
 
@@ -197,7 +200,7 @@ export const BottomSheet = ({
               {footer}
             </View>
           ) : (
-            !fixedHeight && <View style={{ height: insets.bottom }} />
+            !isFixed && <View style={{ height: insets.bottom }} />
           )}
         </Animated.View>
       </KeyboardAvoidingView>

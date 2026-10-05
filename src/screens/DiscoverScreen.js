@@ -1,4 +1,6 @@
-import { Search, Star } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+import { Check, ChevronRight, Plus, Search, Star } from "lucide-react-native";
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
@@ -6,56 +8,51 @@ import {
 } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 
-import {
-  HeaderBar,
-  HeaderIconButton,
-  LargeTitle,
-  useCollapsingHeader,
-  useHeaderInset,
-} from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
+import {
+  DockHeader,
+  HeaderIconButton,
+  useDockHeader,
+} from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { MOVIES, getMovieById } from "../data/movies";
-import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { useUserStore } from "../store/userStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { matchesGenres } from "../utils/movieFilters";
+import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
+import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
+import { isInBucketList } from "../utils/movieFilters";
 
-const RAIL_COUNT = 10;
-const TOP_RATED = [...MOVIES]
-  .sort((a, b) => b.rating - a.rating)
-  .slice(0, RAIL_COUNT);
-const bestOfGenre = (genre) =>
-  [...MOVIES]
-    .filter((movie) => matchesGenres(movie, [genre]))
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, RAIL_COUNT);
-const TOP_DRAMA = bestOfGenre("Drama");
-const TOP_SCIFI = bestOfGenre("Sci-Fi");
-
-const DiscoverRail = ({ title, movies, navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const watched = useMovieStore((state) => state.watched);
-
-  if (movies.length === 0) return null;
+// One row: title + "All ›" (opens the full list in Browse), then posters
+// with the IMDb rating and a one-tap save-to-watchlist button.
+const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
+  const openAll = () =>
+    navigation.navigate("BrowseMovies", {
+      title: rail.title,
+      movieIds: rail.movies.map((movie) => movie.id),
+    });
 
   return (
     <View style={styles.rail}>
-      <Text style={styles.railTitle}>{title}</Text>
+      <View style={styles.railHeader}>
+        <Text style={styles.railTitle} numberOfLines={1}>
+          {rail.title}
+        </Text>
+        {rail.movies.length > RAIL_PREVIEW && (
+          <Pressable style={styles.allLink} onPress={openAll} hitSlop={8}>
+            <Text style={styles.allText}>All</Text>
+            <ChevronRight size={14} color={colors.accentLight} />
+          </Pressable>
+        )}
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.railContent}
       >
-        {movies.map((movie) => {
-          const userRating = watched.find(
-            (entry) => entry.movieId === movie.id,
-          )?.rating;
-
+        {rail.movies.slice(0, RAIL_PREVIEW).map((movie) => {
+          const saved = isInBucketList(bucketList, movie.id);
           return (
             <Pressable
               key={movie.id}
@@ -64,29 +61,44 @@ const DiscoverRail = ({ title, movies, navigation }) => {
                 navigation.navigate("MovieDetails", { movieId: movie.id })
               }
             >
-              <MoviePoster
-                uri={movie.poster}
-                radius={0}
-                style={styles.railPoster}
-              />
-              <View style={styles.imdbBadge}>
-                <Star size={10} color={colors.rating} fill={colors.rating} />
-                <Text style={styles.imdbBadgeText}>
-                  {movie.rating.toFixed(1)}
-                </Text>
-              </View>
-              {userRating != null && (
-                <View style={styles.userRatingBadge}>
-                  <Star
-                    size={10}
-                    color={colors.accentContrast}
-                    fill={colors.accentContrast}
-                  />
-                  <Text style={styles.userRatingBadgeText}>
-                    {userRating.toFixed(1)}
+              <View>
+                <MoviePoster uri={movie.poster} style={styles.railPoster} />
+                <View style={styles.imdbBadge}>
+                  <Star size={10} color={colors.rating} fill={colors.rating} />
+                  <Text style={styles.imdbBadgeText}>
+                    {movie.rating.toFixed(1)}
                   </Text>
                 </View>
-              )}
+                <Pressable
+                  style={[styles.saveButton, saved && styles.saveButtonSaved]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    toggleBucketListWithFeedback(movie.id);
+                  }}
+                  hitSlop={8}
+                  accessibilityLabel={
+                    saved ? "Remove from watchlist" : "Add to watchlist"
+                  }
+                >
+                  {saved ? (
+                    <Check
+                      size={14}
+                      color={colors.accentContrast}
+                      strokeWidth={3}
+                    />
+                  ) : (
+                    <Plus
+                      size={15}
+                      color={colors.accentContrast}
+                      strokeWidth={2.6}
+                    />
+                  )}
+                </Pressable>
+              </View>
+              <Text style={styles.railMovieTitle} numberOfLines={1}>
+                {movie.title}
+              </Text>
+              <Text style={styles.railMovieYear}>{movie.year}</Text>
             </Pressable>
           );
         })}
@@ -95,37 +107,8 @@ const DiscoverRail = ({ title, movies, navigation }) => {
   );
 };
 
-// The most recently watched movie's top genre, minus anything already seen
-// — a light, honest "because you watched X" personalization, not a real
-// recommendation engine.
-const BecauseYouWatched = ({ navigation }) => {
-  const watched = useMovieStore((state) => state.watched);
-  if (watched.length === 0) return null;
-
-  const recentMovie = getMovieById(watched[0].movieId);
-  if (!recentMovie) return null;
-
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const genre = recentMovie.genres[0];
-  const related = MOVIES.filter(
-    (movie) =>
-      movie.id !== recentMovie.id &&
-      !watchedIds.has(movie.id) &&
-      movie.genres.includes(genre),
-  )
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, RAIL_COUNT);
-  if (related.length === 0) return null;
-
-  return (
-    <DiscoverRail
-      title={`Because you watched ${recentMovie.title}`}
-      movies={related}
-      navigation={navigation}
-    />
-  );
-};
-
+// Personal rows built from your history (see utils/discoverRails) — watched
+// movies are never shown, so the page is always about something new.
 export const DiscoverScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -133,62 +116,44 @@ export const DiscoverScreen = ({ navigation }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const preferences = useUserStore((state) => state.preferences);
+  const header = useDockHeader();
 
-  const seenIds = new Set([
-    ...bucketList.map((entry) => entry.movieId),
-    ...watched.map((entry) => entry.movieId),
-  ]);
-  const { scrollY, onScroll } = useCollapsingHeader();
-  const headerInset = useHeaderInset();
-  const recommended = generateRecommendations(preferences, RAIL_COUNT).filter(
-    (movie) => !seenIds.has(movie.id),
+  // Memoized on what the rows actually depend on — "Recommended" is
+  // shuffled, so rebuilding on every render (e.g. tapping + on a poster,
+  // which changes the watchlist) would reorder it under your thumb.
+  const rails = useMemo(
+    () => buildDiscoverRails({ watched, preferences }),
+    [watched, preferences],
   );
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        onScroll={header.onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{
-          paddingTop: headerInset,
+          // Every rail brings its own top margin (styles.rail), so take one
+          // back here — the gap under the header matches the other tabs.
+          paddingTop: header.contentInset - spacing.lg,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <LargeTitle
-          title="Discover"
-          subtitle={
-            recommended.length > 0
-              ? `${recommended.length} new picks based on your taste`
-              : "Find something new for tonight"
-          }
-        />
-        <BecauseYouWatched navigation={navigation} />
-        <DiscoverRail
-          title="Top Rated"
-          movies={TOP_RATED}
-          navigation={navigation}
-        />
-        <DiscoverRail
-          title="Recommended For You"
-          movies={recommended}
-          navigation={navigation}
-        />
-        <DiscoverRail
-          title="Best of Drama"
-          movies={TOP_DRAMA}
-          navigation={navigation}
-        />
-        <DiscoverRail
-          title="Best of Sci-Fi"
-          movies={TOP_SCIFI}
-          navigation={navigation}
-        />
+        {rails.map((rail) => (
+          <DiscoverRail
+            key={rail.key}
+            rail={rail}
+            bucketList={bucketList}
+            navigation={navigation}
+            styles={styles}
+            colors={colors}
+          />
+        ))}
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <HeaderBar
+      <DockHeader
+        {...header.props}
         title="Discover"
-        scrollY={scrollY}
         right={
           <HeaderIconButton onPress={() => navigation.navigate("Search")}>
             <Search size={18} color={colors.textPrimary} strokeWidth={2} />
@@ -205,33 +170,56 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    // Invisible same-size counterpart to searchButton on the opposite side,
-    // so space-between centers the title relative to the whole header
-    // instead of the title sitting flush-left next to a lone right button.
     rail: {
       marginTop: spacing.lg,
     },
+    railHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+    },
     railTitle: {
       ...typography.subtitle,
+      flex: 1,
       color: colors.textPrimary,
-      marginBottom: spacing.sm,
-      marginLeft: spacing.md,
+    },
+    allLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 1,
+    },
+    allText: {
+      ...typography.label,
+      color: colors.accentLight,
     },
     railContent: {
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
     railCard: {
-      width: 104,
+      width: 108,
     },
     railPoster: {
-      width: 104,
+      width: 108,
       aspectRatio: 2 / 3,
+    },
+    railMovieTitle: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+      marginTop: spacing.xs + 2,
+    },
+    railMovieYear: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
     },
     imdbBadge: {
       position: "absolute",
       top: 6,
-      right: 6,
+      left: 6,
       flexDirection: "row",
       alignItems: "center",
       gap: 3,
@@ -245,66 +233,23 @@ const createStyles = (colors) =>
       fontSize: 10,
       color: colors.rating,
     },
-    userRatingBadge: {
+    // Bottom-right of the poster: + to save, ✓ once it's on the watchlist.
+    saveButton: {
       position: "absolute",
-      top: 6,
-      left: 6,
-      flexDirection: "row",
+      right: 6,
+      bottom: 6,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
+      justifyContent: "center",
+      backgroundColor: "rgba(2, 0, 2, 0.65)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.35)",
+    },
+    saveButtonSaved: {
       backgroundColor: colors.accent,
-    },
-    userRatingBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.accentContrast,
-    },
-    trendingCard: {
-      overflow: "hidden",
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
-    trendingScrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: "rgba(2, 0, 2, 0.4)",
-    },
-    trendingGradient: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: "70%",
-    },
-    trendingContent: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      padding: spacing.sm,
-    },
-    trendingEyebrow: {
-      ...typography.label,
-      fontSize: 9,
-      color: "rgba(255, 255, 255, 0.85)",
-    },
-    trendingTitle: {
-      ...typography.subtitle,
-      color: "#FFFFFF",
-      marginTop: 2,
-    },
-    trendingMetaRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginTop: 4,
-    },
-    trendingMetaText: {
-      ...typography.caption,
-      fontSize: 11,
-      color: "#FFFFFF",
+      borderColor: colors.accent,
     },
   });
 

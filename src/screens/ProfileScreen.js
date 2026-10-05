@@ -2,17 +2,17 @@ import * as Clipboard from "expo-clipboard";
 import {
   Award,
   Bell,
-  Bookmark,
-  CheckCircle,
+  CalendarDays,
+  ChevronRight,
+  Clapperboard,
   Plus,
   Settings as SettingsIcon,
   Share2,
+  Star,
   UserPlus,
-  UserRound,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-  Image,
   Pressable,
   ScrollView,
   Share,
@@ -29,15 +29,13 @@ import Animated from "react-native-reanimated";
 import { AvatarLevelRing } from "../components/AvatarLevelRing";
 import { BottomSheet } from "../components/BottomSheet";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
-import { LayersIcon, TargetIcon } from "../components/icons/TabIcons";
 import {
-  HeaderBar,
+  DockHeader,
   HeaderIconButton,
-  LargeTitle,
-  useCollapsingHeader,
-  useHeaderInset,
+  useDockHeader,
 } from "../components/ScreenHeader";
 import { LevelRankCard } from "../components/LevelRankCard";
+import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useChallengeStore } from "../store/challengeStore";
@@ -50,6 +48,7 @@ import { useColors } from "../theme/useColors";
 import { getBadges } from "../utils/badges";
 import { getCompletedCollectionsCount } from "../utils/collections";
 import { TIERS, getRank } from "../utils/league";
+import { getTasteProfile } from "../utils/taste";
 import {
   BADGE_XP,
   COLLECTION_XP,
@@ -66,9 +65,12 @@ import {
 const showAddFriendsStub = () => showToast("Adding friends is coming soon");
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
-const DEFAULT_FRIEND_ONE = require("../../assets/friend-1.png");
-const DEFAULT_FRIEND_TWO = require("../../assets/friend-2.png");
-const DEFAULT_FRIEND_THREE = require("../../assets/friend-3.png");
+// The taste bar's three genre segments, strongest first.
+const GENRE_BAR_COLORS = (colors) => [
+  colors.accent,
+  colors.accentLight,
+  colors.rating,
+];
 
 const getHandle = (name) =>
   `@${
@@ -130,13 +132,27 @@ export const ProfileScreen = ({ navigation, route }) => {
   });
   const rank = getRank(xp);
   const level = getLevel(xp);
-  const { scrollY, onScroll } = useCollapsingHeader();
-  const headerInset = useHeaderInset();
+  const header = useDockHeader();
+
+  const taste = getTasteProfile(watched);
+  // No earned-at timestamps exist for badges, so "recent" = the most
+  // demanding ones earned (same approximation as getLatestBadge).
+  const recentBadges = badges
+    .filter((badge) => badge.earned)
+    .sort((a, b) => b.threshold - a.threshold)
+    .slice(0, 3);
 
   const handleShare = () => {
-    Share.share({
-      message: `I'm queuing up movies on BOARD — ${queuedCount} on my watchlist, ${watchedCount} watched so far.`,
-    });
+    const genres = taste.topGenres.map(({ genre }) => genre).join(" · ");
+    const four = taste.favoriteFour.map(({ movie }) => movie.title).join(", ");
+    const lines = [
+      `My BOARD taste card 🎬`,
+      genres && `Into: ${genres}`,
+      four && `Favorite four: ${four}`,
+      `${watchedCount} movies · ${Math.round(taste.minutesWatched / 60)} hours`,
+      `Level ${level.level} · ${rank.tier}`,
+    ].filter(Boolean);
+    Share.share({ message: lines.join("\n") });
   };
 
   const handleCopyHandle = async () => {
@@ -151,43 +167,229 @@ export const ProfileScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: headerInset }}
+        contentContainerStyle={{ paddingTop: header.contentInset }}
       >
-        <LargeTitle
-          title="Profile"
-          subtitle={
-            rank.nextLabel
-              ? `${rank.tier} · ${rank.xpToNext.toLocaleString()} XP to ${rank.nextLabel}`
-              : `${rank.tier} · Top rank`
-          }
-        />
-        <View style={[styles.profileWrap, { marginTop: spacing.md }]}>
+        <View style={styles.profileWrap}>
+          {/* Identity: avatar (with its level ring) beside name, handle, bio */}
           <View style={styles.identityRow}>
             <AvatarLevelRing
               source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
               level={level}
+              avatarSize={72}
             />
-            <Text style={styles.name}>{displayName}</Text>
-            <Pressable onPress={handleCopyHandle} hitSlop={6}>
-              <Text style={styles.handle}>{getHandle(displayName)}</Text>
+            <View style={styles.identityText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {displayName}
+              </Text>
+              <Pressable onPress={handleCopyHandle} hitSlop={6}>
+                <Text style={styles.handle}>
+                  {getHandle(displayName)} · Copy
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate("Settings")}
+                hitSlop={6}
+                style={styles.bioButton}
+              >
+                {!bio && (
+                  <Plus
+                    size={12}
+                    color={colors.accentLight}
+                    strokeWidth={2.4}
+                  />
+                )}
+                <Text
+                  style={[styles.bio, !bio && styles.bioPlaceholder]}
+                  numberOfLines={2}
+                >
+                  {bio || "Add a bio"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Favorite Four */}
+          <Text style={styles.sectionLabel}>Favorite four</Text>
+          <View style={styles.favoriteRow}>
+            {Array.from({ length: 4 }, (_, index) => {
+              const favorite = taste.favoriteFour[index];
+              return favorite ? (
+                <Pressable
+                  key={favorite.movie.id}
+                  style={styles.favoriteSlot}
+                  onPress={() =>
+                    navigation.navigate("MovieDetails", {
+                      movieId: favorite.movie.id,
+                    })
+                  }
+                >
+                  <MoviePoster
+                    uri={favorite.movie.poster}
+                    style={styles.favoritePoster}
+                  />
+                  <View style={styles.favoriteRating}>
+                    <Star
+                      size={9}
+                      color={colors.accentContrast}
+                      fill={colors.accentContrast}
+                    />
+                    <Text style={styles.favoriteRatingText}>
+                      {favorite.rating.toFixed(1)}
+                    </Text>
+                  </View>
+                </Pressable>
+              ) : (
+                <Pressable
+                  key={`empty-${index}`}
+                  style={[styles.favoriteSlot, styles.favoriteEmpty]}
+                  onPress={() => goToLibrary("watched")}
+                >
+                  <Star size={16} color={colors.textMuted} />
+                  <Text style={styles.favoriteEmptyText}>Rate a movie</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Taste */}
+          {taste.topGenres.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Taste</Text>
+              <View style={styles.tasteCard}>
+                <View style={styles.genreBar}>
+                  {taste.topGenres.map(({ genre, share }, index) => (
+                    <View
+                      key={genre}
+                      style={{
+                        flex: share,
+                        backgroundColor: GENRE_BAR_COLORS(colors)[index],
+                      }}
+                    />
+                  ))}
+                  <View
+                    style={{
+                      flex: Math.max(
+                        0,
+                        1 -
+                          taste.topGenres.reduce(
+                            (sum, { share }) => sum + share,
+                            0,
+                          ),
+                      ),
+                      backgroundColor: colors.surfaceSoft,
+                    }}
+                  />
+                </View>
+                <View style={styles.genreLegend}>
+                  {taste.topGenres.map(({ genre, share }, index) => (
+                    <View key={genre} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendDot,
+                          {
+                            backgroundColor: GENRE_BAR_COLORS(colors)[index],
+                          },
+                        ]}
+                      />
+                      <Text style={styles.legendText}>
+                        {genre} {Math.round(share * 100)}%
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.tasteFacts}>
+                  {taste.director && (
+                    <Pressable
+                      style={styles.tasteFact}
+                      disabled={!taste.director.collectionId}
+                      onPress={() =>
+                        navigation.navigate("CollectionDetails", {
+                          collectionId: taste.director.collectionId,
+                        })
+                      }
+                    >
+                      <Clapperboard size={15} color={colors.accentLight} />
+                      <View style={styles.tasteFactText}>
+                        <Text style={styles.tasteFactLabel}>
+                          Most-watched director
+                        </Text>
+                        <Text style={styles.tasteFactValue} numberOfLines={1}>
+                          {taste.director.name} · {taste.director.count}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  )}
+                  {taste.decade && (
+                    <Pressable
+                      style={styles.tasteFact}
+                      disabled={!taste.decade.collectionId}
+                      onPress={() =>
+                        navigation.navigate("CollectionDetails", {
+                          collectionId: taste.decade.collectionId,
+                        })
+                      }
+                    >
+                      <CalendarDays size={15} color={colors.accentLight} />
+                      <View style={styles.tasteFactText}>
+                        <Text style={styles.tasteFactLabel}>
+                          Favorite decade
+                        </Text>
+                        <Text style={styles.tasteFactValue}>
+                          The {taste.decade.label}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  )}
+                </View>
+
+                {taste.criticDelta != null && (
+                  <View style={styles.criticRow}>
+                    <Star
+                      size={14}
+                      color={colors.rating}
+                      fill={colors.rating}
+                    />
+                    <Text style={styles.criticText}>
+                      {Math.abs(taste.criticDelta) < 0.15
+                        ? "You rate right in line with IMDb."
+                        : taste.criticDelta < 0
+                          ? `You rate ${Math.abs(taste.criticDelta).toFixed(1)} below IMDb — tough critic.`
+                          : `You rate ${taste.criticDelta.toFixed(1)} above IMDb — generous.`}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Headline stats */}
+          <View style={styles.statsRow}>
+            <Pressable
+              style={styles.statTile}
+              onPress={() => goToLibrary("watched")}
+            >
+              <Text style={styles.statValue}>{watchedCount}</Text>
+              <Text style={styles.statLabel}>movies watched</Text>
             </Pressable>
             <Pressable
-              onPress={() => navigation.navigate("Settings")}
-              hitSlop={6}
-              style={styles.bioButton}
+              style={styles.statTile}
+              onPress={() => goToLibrary("watched")}
             >
-              {!bio && (
-                <Plus size={13} color={colors.textPrimary} strokeWidth={2.2} />
-              )}
-              <Text
-                style={[styles.bio, !bio && styles.bioPlaceholder]}
-                numberOfLines={3}
-              >
-                {bio || "Add a bio"}
+              <Text style={styles.statValue}>
+                {Math.round(taste.minutesWatched / 60)}h
               </Text>
+              <Text style={styles.statLabel}>watch time</Text>
+            </Pressable>
+            <Pressable
+              style={styles.statTile}
+              onPress={() => navigation.navigate("Badges")}
+            >
+              <Text style={styles.statValue}>{earnedBadgeCount}</Text>
+              <Text style={styles.statLabel}>badges</Text>
             </Pressable>
           </View>
 
@@ -202,122 +404,67 @@ export const ProfileScreen = ({ navigation, route }) => {
             />
           </View>
 
-          <View style={styles.statsRow}>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => goToLibrary("watched")}
-            >
-              <CheckCircle
-                size={20}
-                color={colors.textPrimary}
-                strokeWidth={1.8}
-              />
-              <Text style={styles.statValue}>{watchedCount}</Text>
-              <Text style={styles.statLabel} numberOfLines={1}>
-                Watched
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => goToLibrary("bucketlist")}
-            >
-              <Bookmark
-                size={20}
-                color={colors.textPrimary}
-                strokeWidth={1.8}
-              />
-              <Text style={styles.statValue}>{queuedCount}</Text>
-              <Text style={styles.statLabel} numberOfLines={1}>
-                Watchlist
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => goToLibrary("collections")}
-            >
-              <LayersIcon size={20} color={colors.textPrimary} />
-              <Text style={styles.statValue}>{completedCollectionsCount}</Text>
-              <Text style={styles.statLabel} numberOfLines={1}>
-                Collections
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => navigation.navigate("Decide")}
-            >
-              <TargetIcon size={20} color={colors.textPrimary} />
-              <Text style={styles.statValue}>{completedChallengesCount}</Text>
-              <Text style={styles.statLabel} numberOfLines={1}>
-                Challenges
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.statTile}
-              onPress={() => navigation.navigate("Badges")}
-            >
-              <Award size={20} color={colors.textPrimary} strokeWidth={1.8} />
-              <Text style={styles.statValue}>{earnedBadgeCount}</Text>
-              <Text style={styles.statLabel} numberOfLines={1}>
-                Badges
-              </Text>
-            </Pressable>
-          </View>
+          {/* Recent badges */}
+          {recentBadges.length > 0 && (
+            <>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionLabel, styles.sectionLabelInline]}>
+                  Recent badges
+                </Text>
+                <Pressable
+                  onPress={() => navigation.navigate("Badges")}
+                  hitSlop={8}
+                >
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
+              </View>
+              <View style={styles.badgeRow}>
+                {recentBadges.map((badge) => (
+                  <Pressable
+                    key={badge.id}
+                    style={styles.badgePill}
+                    onPress={() => navigation.navigate("Badges")}
+                  >
+                    <View style={styles.badgeIcon}>
+                      <Award size={14} color={colors.rating} />
+                    </View>
+                    <Text style={styles.badgeLabel} numberOfLines={1}>
+                      {badge.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
 
           <PrimaryButton
-            label="Share My Profile"
-            variant="outline"
-            dense
+            label="Share my taste card"
+            variant="secondary"
             icon={
               <Share2 size={16} color={colors.textPrimary} strokeWidth={2.2} />
             }
             onPress={handleShare}
             style={styles.shareButton}
           />
-        </View>
 
-        <View style={styles.friendsSection}>
-          <View style={styles.friendsHeaderRow}>
-            <Text style={styles.friendsTitle}>Friends</Text>
-            <Pressable
-              style={styles.addFriendsLink}
-              onPress={showAddFriendsStub}
-            >
-              <UserPlus
-                size={14}
-                color={colors.textPrimary}
-                strokeWidth={2.2}
-              />
-              <Text style={styles.addFriendsText}>Add friends</Text>
-            </Pressable>
-          </View>
-          <View style={styles.friendsComingSoon}>
-            <View style={styles.friendsAvatarRow}>
-              <View style={[styles.friendsAvatar, styles.friendsAvatarBack]}>
-                <Image source={DEFAULT_FRIEND_ONE} style={styles.avatarImage} />
-              </View>
-
-              <View style={[styles.friendsAvatar, styles.friendsAvatarFront]}>
-                <Image source={DEFAULT_FRIEND_TWO} style={styles.avatarImage} />
-              </View>
-              <View style={[styles.friendsAvatar, styles.friendsAvatarBack]}>
-                <Image
-                  source={DEFAULT_FRIEND_THREE}
-                  style={styles.avatarImage}
-                />
-              </View>
-            </View>
-            <Text style={styles.friendsComingSoonText}>
-              Discovering movies is more fun together with friends.
-            </Text>
-          </View>
+          <Pressable style={styles.friendsRow} onPress={showAddFriendsStub}>
+            <UserPlus
+              size={16}
+              color={colors.textSecondary}
+              strokeWidth={2.2}
+            />
+            <Text style={styles.friendsRowText}>Friends</Text>
+            <Text style={styles.friendsRowMeta}>coming soon</Text>
+            <ChevronRight size={16} color={colors.textMuted} />
+          </Pressable>
         </View>
 
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <HeaderBar
+      <DockHeader
+        {...header.props}
         title="Profile"
-        scrollY={scrollY}
         right={
           <>
             <HeaderIconButton onPress={() => navigation.navigate("Activity")}>
@@ -425,39 +572,247 @@ const createStyles = (colors) =>
       marginBottom: spacing.md,
     },
     identityRow: {
+      flexDirection: "row",
       alignItems: "center",
+      gap: spacing.md,
     },
-    avatarImage: {
-      width: "100%",
-      height: "100%",
+    identityText: {
+      flex: 1,
+      gap: 2,
     },
     name: {
-      ...typography.subtitle,
+      ...typography.title,
+      fontSize: 20,
       color: colors.textPrimary,
-      marginTop: spacing.md,
     },
     handle: {
       ...typography.caption,
       color: colors.textSecondary,
-      marginTop: 2,
     },
     bioButton: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
       gap: 4,
-      marginTop: spacing.sm,
-      paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
     },
     bio: {
       ...typography.body,
       fontSize: 13,
-      color: "rgba(255, 255, 255, 0.9)",
-      textAlign: "center",
+      color: colors.textPrimary,
       lineHeight: 17,
+      flexShrink: 1,
     },
     bioPlaceholder: {
+      color: colors.accentLight,
+    },
+    sectionLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    sectionLabelInline: {
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    seeAll: {
+      ...typography.label,
+      color: colors.accentLight,
+    },
+    favoriteRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    favoriteSlot: {
+      flex: 1,
+      aspectRatio: 2 / 3,
+    },
+    favoritePoster: {
+      width: "100%",
+      height: "100%",
+    },
+    favoriteRating: {
+      position: "absolute",
+      left: 4,
+      bottom: 4,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      borderRadius: radius.xs,
+      backgroundColor: colors.accent,
+    },
+    favoriteRatingText: {
+      ...typography.label,
+      fontSize: 9,
+      letterSpacing: 0,
+      color: colors.accentContrast,
+    },
+    favoriteEmpty: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: colors.border,
+    },
+    favoriteEmptyText: {
+      ...typography.caption,
+      fontSize: 10,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    tasteCard: {
+      padding: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    genreBar: {
+      flexDirection: "row",
+      height: 10,
+      borderRadius: radius.pill,
+      overflow: "hidden",
+    },
+    genreLegend: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    legendItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    legendText: {
+      ...typography.caption,
       color: colors.textPrimary,
+    },
+    tasteFacts: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    tasteFact: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: colors.surfaceSoft,
+    },
+    tasteFactText: {
+      flex: 1,
+    },
+    tasteFactLabel: {
+      ...typography.caption,
+      fontSize: 10,
+      color: colors.textMuted,
+    },
+    tasteFactValue: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
+    criticRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      marginTop: spacing.md,
+    },
+    criticText: {
+      ...typography.caption,
+      flex: 1,
+      color: colors.textSecondary,
+    },
+    statsRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+    },
+    statTile: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    statValue: {
+      ...typography.hero,
+      fontSize: 22,
+      lineHeight: 26,
+      color: colors.textPrimary,
+    },
+    statLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    progressWrap: {
+      marginTop: spacing.md,
+    },
+    badgeRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    badgePill: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    badgeIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: `${colors.rating}24`,
+    },
+    badgeLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      flex: 1,
+      color: colors.textPrimary,
+    },
+    shareButton: {
+      marginTop: spacing.lg,
+    },
+    friendsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      padding: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    friendsRowText: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    friendsRowMeta: {
+      ...typography.caption,
+      flex: 1,
+      color: colors.textMuted,
     },
     badgeSectionTitle: {
       ...typography.label,
@@ -520,103 +875,6 @@ const createStyles = (colors) =>
     leagueTierMin: {
       ...typography.caption,
       color: colors.textMuted,
-    },
-    shareButton: {
-      marginTop: spacing.md + spacing.xs,
-      alignSelf: "center",
-      borderWidth: 1.5,
-      borderColor: "#FFFFFF",
-      borderRadius: radius.sm,
-    },
-    progressWrap: {
-      width: "100%",
-      marginTop: spacing.md + spacing.xs,
-    },
-    statsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      width: "100%",
-      marginTop: spacing.md + spacing.xs,
-      gap: spacing.xs,
-    },
-    statTile: {
-      flex: 1,
-      alignItems: "center",
-      paddingVertical: spacing.md,
-      paddingHorizontal: 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-      gap: spacing.xs,
-    },
-    statValue: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    statLabel: {
-      ...typography.caption,
-      fontSize: 10,
-      color: colors.textSecondary,
-    },
-    friendsSection: {
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.lg,
-    },
-    friendsHeaderRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: spacing.sm,
-    },
-    friendsTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    addFriendsLink: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    addFriendsText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
-    },
-    friendsComingSoon: {
-      alignItems: "center",
-      borderWidth: 2.5,
-      borderStyle: "dashed",
-      borderColor: colors.border,
-      borderRadius: radius.sm,
-      paddingVertical: spacing.xl,
-      paddingHorizontal: spacing.md,
-    },
-    friendsAvatarRow: {
-      flexDirection: "row",
-      alignItems: "space-between",
-      marginBottom: spacing.md,
-    },
-    friendsAvatar: {
-      width: 58,
-      height: 58,
-      borderRadius: 29,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    friendsAvatarBack: {
-      marginHorizontal: 0,
-    },
-    friendsAvatarFront: {
-      zIndex: 1,
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-    },
-    friendsComingSoonText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      textAlign: "center",
-      lineHeight: 18,
-      maxWidth: 240,
     },
   });
 

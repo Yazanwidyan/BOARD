@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Clapperboard, Heart, Shuffle, Trophy, X } from "lucide-react-native";
+import { ArrowUpRight, Heart, Shuffle, Star, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
@@ -31,17 +31,21 @@ import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { radius, spacing } from "../theme/spacing";
+import { showToast } from "../store/toastStore";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { formatRuntime } from "../utils/movieFilters";
 
 const TRANSITION_AUTO_ADVANCE_MS = 1800;
 const CAROUSEL_GAP = spacing.md;
 
-const useScreenBg = () => ({
-  bg: "#000000",
-  bgSoft: "#0D0D0D",
-});
+// The app's own background (it used to be pure black, which made Swipe
+// feel like a different app).
+const useScreenBg = () => {
+  const colors = useColors();
+  return { bg: colors.background, bgSoft: colors.card };
+};
 
 const FadeInView = ({ children, style, delay = 0 }) => {
   const opacity = useSharedValue(0);
@@ -326,76 +330,84 @@ export const SwipeScreen = ({ navigation }) => {
   }
 
   if (phase === "final" && finalMovie) {
+    const makeTonightsPick = () => {
+      if (!isFinalMoviePicked) togglePickedMovie(finalMovie.id);
+      showToast(`${finalMovie.title} is tonight's pick`, { tone: "success" });
+      endSession();
+      navigation.navigate("Main", { screen: "Home" });
+    };
+
     return (
       <View style={styles.container}>
         <LinearGradient colors={[bgSoft, bg]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={styles.container} edges={["bottom"]}>
-          <FadeInView
-            style={[
-              styles.finalContainer,
-              { paddingTop: insets.top + spacing.sm },
-            ]}
+          <View
+            style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
           >
-            <View style={styles.finalIconBadge}>
-              <Trophy size={26} color={colors.textPrimary} strokeWidth={1.8} />
-            </View>
-            <Text style={styles.finalEyebrow}>TONIGHT&apos;S MOVIE</Text>
-            <MoviePoster
-              uri={finalMovie.poster}
-              style={styles.finalPoster}
-              radius={radius.sm}
-              shadow
+            <BackButton
+              onPress={() => {
+                endSession();
+                navigation.goBack();
+              }}
             />
-            <Text style={styles.finalTitle}>{finalMovie.title}</Text>
-            <Text style={styles.finalMeta}>
-              {finalMovie.year} &middot; {finalMovie.rating.toFixed(1)}
+          </View>
+          <FadeInView style={styles.finalContainer}>
+            <Text style={styles.finalEyebrow}>IT&apos;S DECIDED</Text>
+            <Pressable
+              onPress={() =>
+                navigation.navigate("MovieDetails", { movieId: finalMovie.id })
+              }
+            >
+              <MoviePoster uri={finalMovie.poster} style={styles.finalPoster} />
+            </Pressable>
+            <Text style={styles.finalTitle} numberOfLines={2}>
+              {finalMovie.title}
             </Text>
+            <View style={styles.finalMetaRow}>
+              <Text style={styles.finalMeta}>
+                {finalMovie.year} · {formatRuntime(finalMovie.runtime)} ·
+              </Text>
+              <Star size={12} color={colors.rating} fill={colors.rating} />
+              <Text style={styles.finalMeta}>
+                {finalMovie.rating.toFixed(1)}
+              </Text>
+            </View>
             <Text style={styles.finalSubtitle}>
-              You chose it from {originalMovies.length} movies.
+              Chosen from {originalMovies.length} movies
             </Text>
+          </FadeInView>
 
-            <View style={styles.buttons}>
+          <View style={styles.finalActions}>
+            <PrimaryButton
+              label="Make it tonight's pick"
+              onPress={makeTonightsPick}
+            />
+            <View style={styles.finalSecondaryRow}>
               <PrimaryButton
-                label={isFinalMoviePicked ? "Approved" : "Approve to Watch"}
-                variant={isFinalMoviePicked ? "secondary" : "primary"}
-                icon={
-                  isFinalMoviePicked ? (
-                    <Clapperboard size={18} color={colors.success} />
-                  ) : undefined
-                }
-                onPress={() => togglePickedMovie(finalMovie.id)}
-                style={styles.button}
-              />
-              <PrimaryButton
-                label="Movie Details"
-                variant="outline"
+                label="Details"
+                variant="secondary"
+                icon={<ArrowUpRight size={16} color={colors.textPrimary} />}
                 onPress={() =>
                   navigation.navigate("MovieDetails", {
                     movieId: finalMovie.id,
                   })
                 }
-                style={styles.button}
+                style={styles.finalSecondaryButton}
+                contentStyle={styles.finalSecondaryContent}
               />
               <PrimaryButton
-                label="Choose Again"
-                variant="ghost"
+                label="Swipe again"
+                variant="secondary"
+                icon={<Shuffle size={16} color={colors.textPrimary} />}
                 onPress={() => {
                   endSession();
                   navigation.replace("Preferences");
                 }}
-                style={styles.button}
-              />
-              <PrimaryButton
-                label="Back to Home"
-                variant="ghost"
-                onPress={() => {
-                  endSession();
-                  navigation.navigate("Main", { screen: "Home" });
-                }}
-                style={styles.button}
+                style={styles.finalSecondaryButton}
+                contentStyle={styles.finalSecondaryContent}
               />
             </View>
-          </FadeInView>
+          </View>
         </SafeAreaView>
       </View>
     );
@@ -405,10 +417,24 @@ export const SwipeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={handleBack} />
-        <View style={styles.remainingBadge} pointerEvents="none">
-          <Text style={styles.remainingBadgeCount}>{stackMovies.length}</Text>
-          <Text style={styles.remainingBadgeLabel}>LEFT</Text>
+        <View style={styles.progressBlock} pointerEvents="none">
+          <Text style={styles.roundLabel}>ROUND {roundNumber}</Text>
+          <Text style={styles.progressCount}>
+            {Math.min(roundIndex + 1, roundMovies.length)} /{" "}
+            {roundMovies.length}
+          </Text>
         </View>
+        <View style={styles.headerSpacer} />
+      </View>
+      <View style={styles.progressTrack}>
+        <View
+          style={[
+            styles.progressFill,
+            {
+              width: `${(roundIndex / Math.max(1, roundMovies.length)) * 100}%`,
+            },
+          ]}
+        />
       </View>
 
       <View style={styles.stampZone} pointerEvents="none">
@@ -459,29 +485,44 @@ export const SwipeScreen = ({ navigation }) => {
 
       <View style={styles.actionsRow}>
         <Pressable
-          style={styles.actionButton}
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.nopeButton,
+            pressed && styles.actionPressed,
+          ]}
           onPress={handleDislikePress}
           disabled={!activeMovie}
+          accessibilityLabel="Nope"
         >
-          <X size={26} color={colors.textPrimary} strokeWidth={2.4} />
+          <X size={28} color={colors.danger} strokeWidth={2.6} />
         </Pressable>
         <Pressable
-          style={styles.actionButton}
+          style={({ pressed }) => [
+            styles.randomButton,
+            pressed && styles.actionPressed,
+          ]}
+          onPress={handleRandomPick}
+          disabled={!activeMovie}
+          accessibilityLabel="Pick one for me"
+        >
+          <Shuffle size={18} color={colors.textPrimary} strokeWidth={2.2} />
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.likeButton,
+            pressed && styles.actionPressed,
+          ]}
           onPress={handleLikePress}
           disabled={!activeMovie}
+          accessibilityLabel="Like"
         >
-          <Heart size={24} color={colors.success} fill={colors.success} />
+          <Heart size={26} color={colors.success} fill={colors.success} />
         </Pressable>
       </View>
-
-      <Pressable
-        style={styles.randomPickLink}
-        onPress={handleRandomPick}
-        disabled={!activeMovie}
-      >
-        <Shuffle size={14} color={colors.textSecondary} strokeWidth={2.2} />
-        <Text style={styles.randomPickText}>Pick One For Me</Text>
-      </Pressable>
+      <Text style={styles.actionsHint}>
+        Swipe right to keep · left to drop · ⇄ to let fate pick
+      </Text>
     </SafeAreaView>
   );
 };
@@ -499,23 +540,6 @@ const createStyles = (colors, bg) =>
       paddingHorizontal: spacing.md,
       zIndex: 30,
       elevation: 30,
-    },
-    remainingBadge: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: spacing.xs,
-      backgroundColor: colors.card,
-      paddingHorizontal: spacing.md,
-      height: 40,
-      borderRadius: radius.sm,
-    },
-    remainingBadgeCount: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    remainingBadgeLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
     },
     roundLabel: {
       ...typography.label,
@@ -561,29 +585,65 @@ const createStyles = (colors, bg) =>
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      gap: spacing.xl,
+      gap: spacing.lg,
       paddingTop: spacing.md,
     },
     actionButton: {
-      width: 60,
-      height: 60,
-      borderRadius: radius.sm,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
+      borderWidth: 2,
     },
-    randomPickLink: {
-      flexDirection: "row",
+    nopeButton: {
+      borderColor: `${colors.danger}66`,
+    },
+    likeButton: {
+      borderColor: `${colors.success}66`,
+    },
+    randomButton: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
       alignItems: "center",
-      alignSelf: "center",
-      gap: 4,
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    actionPressed: {
+      transform: [{ scale: 0.92 }],
+    },
+    actionsHint: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textMuted,
+      textAlign: "center",
       marginTop: spacing.sm,
       marginBottom: spacing.sm,
-      padding: spacing.xs,
     },
-    randomPickText: {
-      ...typography.caption,
-      color: colors.textSecondary,
+    progressBlock: {
+      alignItems: "center",
+    },
+    progressCount: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    headerSpacer: {
+      width: 40,
+    },
+    progressTrack: {
+      height: 3,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      borderRadius: 2,
+      backgroundColor: colors.surfaceSoft,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      backgroundColor: colors.accentLight,
     },
     chooseHeading: {
       ...typography.title,
@@ -638,48 +698,51 @@ const createStyles = (colors, bg) =>
       justifyContent: "center",
       paddingHorizontal: spacing.xl,
     },
-    finalIconBadge: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     finalEyebrow: {
       ...typography.label,
-      color: colors.textPrimary,
+      color: colors.accentLight,
       letterSpacing: 2,
-      marginTop: spacing.sm,
     },
     finalPoster: {
-      width: 180,
+      width: 200,
       aspectRatio: 2 / 3,
       marginTop: spacing.md,
     },
     finalTitle: {
       ...typography.hero,
       color: colors.textPrimary,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
       textAlign: "center",
+    },
+    finalMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: spacing.xs,
     },
     finalMeta: {
       ...typography.body,
       color: colors.textSecondary,
-      marginTop: 4,
     },
     finalSubtitle: {
       ...typography.caption,
-      color: colors.textSecondary,
+      color: colors.textMuted,
       marginTop: spacing.sm,
     },
-    buttons: {
-      width: "100%",
-      marginTop: spacing.md,
+    finalActions: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
       gap: spacing.sm,
     },
-    button: {
-      width: "100%",
+    finalSecondaryRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    finalSecondaryButton: {
+      flex: 1,
+    },
+    finalSecondaryContent: {
+      paddingVertical: 10,
     },
   });
 

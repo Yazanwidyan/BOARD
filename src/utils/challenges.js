@@ -21,7 +21,14 @@ const randomXP = (difficultyKey) => {
   return Math.round((min + Math.random() * (max - min)) / 10) * 10;
 };
 
-const makeChallenge = ({ id, type, title, description, targetMovieId, difficulty }) => ({
+const makeChallenge = ({
+  id,
+  type,
+  title,
+  description,
+  targetMovieId,
+  difficulty,
+}) => ({
   id: `${id}-${Date.now()}`,
   type,
   title,
@@ -89,7 +96,9 @@ const genreCounts = (watched) => {
   watched.forEach((entry) => {
     const movie = getMovieById(entry.movieId);
     if (!movie) return;
-    movie.genres.forEach((genre) => counts.set(genre, (counts.get(genre) ?? 0) + 1));
+    movie.genres.forEach((genre) =>
+      counts.set(genre, (counts.get(genre) ?? 0) + 1),
+    );
   });
   return counts;
 };
@@ -97,18 +106,30 @@ const genreCounts = (watched) => {
 const breakThePattern = ({ watched, bucketList }) => {
   const recent = watched.slice(0, 5);
   if (recent.length < 5) return null;
-  const recentMovies = recent.map((entry) => getMovieById(entry.movieId)).filter(Boolean);
+  const recentMovies = recent
+    .map((entry) => getMovieById(entry.movieId))
+    .filter(Boolean);
   const counts = new Map();
   recentMovies.forEach((movie) =>
-    movie.genres.forEach((genre) => counts.set(genre, (counts.get(genre) ?? 0) + 1)),
+    movie.genres.forEach((genre) =>
+      counts.set(genre, (counts.get(genre) ?? 0) + 1),
+    ),
   );
-  const [dominantGenre, dominantCount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+  const [dominantGenre, dominantCount] =
+    [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
   if (!dominantGenre || dominantCount < 4) return null;
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const pool = (bucketList.length > 0 ? bucketList.map((e) => getMovieById(e.movieId)) : MOVIES)
+  const pool = (
+    bucketList.length > 0
+      ? bucketList.map((e) => getMovieById(e.movieId))
+      : MOVIES
+  )
     .filter(Boolean)
-    .filter((movie) => !movie.genres.includes(dominantGenre) && !watchedIds.has(movie.id));
+    .filter(
+      (movie) =>
+        !movie.genres.includes(dominantGenre) && !watchedIds.has(movie.id),
+    );
   if (pool.length === 0) return null;
   const movie = shuffle(pool)[0];
 
@@ -125,7 +146,9 @@ const breakThePattern = ({ watched, bucketList }) => {
 const genreExplorer = ({ watched, bucketList }) => {
   const counts = genreCounts(watched);
   const allGenres = [...new Set(MOVIES.flatMap((movie) => movie.genres))];
-  const unexplored = allGenres.filter((genre) => (counts.get(genre) ?? 0) === 0);
+  const unexplored = allGenres.filter(
+    (genre) => (counts.get(genre) ?? 0) === 0,
+  );
   if (unexplored.length === 0) return null;
   const genre = unexplored[Math.floor(Math.random() * unexplored.length)];
 
@@ -174,17 +197,23 @@ const outsideComfortZone = ({ watched, bucketList }) => {
 
 const directorChallenge = ({ watched }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const directorCollections = getCollectionSections()
-    .find((section) => section.type === "director")?.collections ?? [];
+  const directorCollections =
+    getCollectionSections().find((section) => section.type === "director")
+      ?.collections ?? [];
 
   const inProgress = directorCollections
-    .map((collection) => ({ collection, ...getCollectionProgress(collection, watchedIds) }))
+    .map((collection) => ({
+      collection,
+      ...getCollectionProgress(collection, watchedIds),
+    }))
     .filter(({ progress }) => progress > 0 && progress < 1)
     .sort((a, b) => b.progress - a.progress);
   if (inProgress.length === 0) return null;
 
   const { collection, watchedCount, total } = inProgress[0];
-  const nextMovie = collection.movies.find((movie) => !watchedIds.has(movie.id));
+  const nextMovie = collection.movies.find(
+    (movie) => !watchedIds.has(movie.id),
+  );
   if (!nextMovie) return null;
 
   const remaining = total - watchedCount;
@@ -234,7 +263,10 @@ const startSomethingNew = ({ watched }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const notStarted = getCollectionSections()
     .flatMap((section) => section.collections)
-    .filter((collection) => getCollectionProgress(collection, watchedIds).progress === 0);
+    .filter(
+      (collection) =>
+        getCollectionProgress(collection, watchedIds).progress === 0,
+    );
   if (notStarted.length === 0) return null;
   const collection = notStarted[Math.floor(Math.random() * notStarted.length)];
   const movie = [...collection.movies].sort((a, b) => a.rank - b.rank)[0];
@@ -273,9 +305,10 @@ const hiddenGem = ({ watched }) => {
 
 const rollTheDice = ({ watched, bucketList }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const pool = bucketList.length > 0
-    ? bucketList.map((entry) => getMovieById(entry.movieId)).filter(Boolean)
-    : MOVIES.filter((movie) => !watchedIds.has(movie.id));
+  const pool =
+    bucketList.length > 0
+      ? bucketList.map((entry) => getMovieById(entry.movieId)).filter(Boolean)
+      : MOVIES.filter((movie) => !watchedIds.has(movie.id));
   if (pool.length === 0) return null;
   const movie = shuffle(pool)[0];
 
@@ -325,11 +358,52 @@ const GENERATORS = [
 // since the random generators apply almost universally.
 export const generateChallenge = ({ watched, bucketList }) => {
   const state = { watched, bucketList };
-  const candidates = GENERATORS
-    .map((generator) => generator(state))
-    .filter(Boolean);
+  const candidates = GENERATORS.map((generator) => generator(state)).filter(
+    Boolean,
+  );
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
+};
+
+// A "hand" of `count` different challenges for the generator screen to
+// lay out side by side: every eligible candidate is collected, duplicates
+// (same movie) dropped, then one is drawn per difficulty first — so the
+// hand spans Easy / Medium / Hard when real state allows it — and any
+// remaining slots are filled at random. Sorted easiest first.
+const DIFFICULTY_ORDER = ["EASY", "MEDIUM", "HARD", "EXTREME"];
+
+export const generateChallengeOptions = (
+  { watched, bucketList },
+  count = 3,
+) => {
+  const state = { watched, bucketList };
+  const seenMovies = new Set();
+  const candidates = shuffle(
+    GENERATORS.map((generator) => generator(state)).filter(Boolean),
+  ).filter((candidate) => {
+    if (seenMovies.has(candidate.targetMovieId)) return false;
+    seenMovies.add(candidate.targetMovieId);
+    return true;
+  });
+
+  const hand = [];
+  DIFFICULTY_ORDER.forEach((difficulty) => {
+    if (hand.length >= count) return;
+    const match = candidates.find(
+      (candidate) =>
+        candidate.difficulty === difficulty && !hand.includes(candidate),
+    );
+    if (match) hand.push(match);
+  });
+  candidates.forEach((candidate) => {
+    if (hand.length < count && !hand.includes(candidate)) hand.push(candidate);
+  });
+
+  return hand.sort(
+    (a, b) =>
+      DIFFICULTY_ORDER.indexOf(a.difficulty) -
+      DIFFICULTY_ORDER.indexOf(b.difficulty),
+  );
 };
 
 export default generateChallenge;

@@ -1,18 +1,12 @@
-import { useState } from "react";
+import { X } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../components/PrimaryButton";
+import { MOVIES } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -23,6 +17,7 @@ import { useColors } from "../theme/useColors";
 import {
   DECADE_RANGES,
   RUNTIME_RANGES,
+  applyPreferenceFilters,
   bucketListIds,
 } from "../utils/movieFilters";
 
@@ -42,203 +37,189 @@ const GENRES = [
 ];
 const DECADES = Object.keys(DECADE_RANGES);
 const RUNTIMES = Object.keys(RUNTIME_RANGES);
+// Catalog ratings run 7.0–9.5, so these steps all mean something.
+const RATINGS = [
+  { label: "Any", value: null },
+  { label: "7.5+", value: 7.5 },
+  { label: "8+", value: 8 },
+  { label: "8.5+", value: 8.5 },
+];
 const SWIPE_SIZE = 10;
 
-const RATING_MIN = 7.0;
-const RATING_MAX = 9.5;
-const THUMB_SIZE = 24;
+const Chip = ({ label, selected, onPress, styles }) => (
+  <Pressable
+    onPress={onPress}
+    style={[styles.chip, selected && styles.chipSelected]}
+  >
+    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+      {label}
+    </Text>
+  </Pressable>
+);
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-const xToValue = (x, trackWidth) => {
-  "worklet";
-  const ratio = trackWidth > 0 ? x / trackWidth : 0;
-  const raw = RATING_MIN + ratio * (RATING_MAX - RATING_MIN);
-  const snapped = Math.round(raw * 2) / 2;
-  return Math.min(RATING_MAX, Math.max(RATING_MIN, snapped));
-};
-
-const valueToX = (value, trackWidth) =>
-  ((value - RATING_MIN) / (RATING_MAX - RATING_MIN)) * trackWidth;
-
-const Chip = ({ label, selected, onPress }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, selected && styles.chipSelected]}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-};
-
-const RatingSlider = ({ value, onChangeEnd }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const [trackWidth, setTrackWidth] = useState(0);
-  const [displayValue, setDisplayValue] = useState(value);
-  const thumbX = useSharedValue(0);
-
-  const handleLayout = (event) => {
-    const width = event.nativeEvent.layout.width - THUMB_SIZE;
-    setTrackWidth(width);
-    thumbX.value = valueToX(value, width);
-  };
-
-  const pan = Gesture.Pan()
-    .onChange((event) => {
-      thumbX.value = clamp(thumbX.value + event.changeX, 0, trackWidth);
-      runOnJS(setDisplayValue)(xToValue(thumbX.value, trackWidth));
-    })
-    .onEnd(() => {
-      const finalValue = xToValue(thumbX.value, trackWidth);
-      thumbX.value = withTiming(valueToX(finalValue, trackWidth), {
-        duration: 150,
-      });
-      runOnJS(setDisplayValue)(finalValue);
-      runOnJS(onChangeEnd)(finalValue);
-    });
-
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbX.value }],
-  }));
-
-  const fillStyle = useAnimatedStyle(() => ({
-    width: thumbX.value + THUMB_SIZE / 2,
-  }));
-
-  return (
-    <View>
-      <View style={styles.sliderLabelRow}>
-        <Text style={styles.sliderLabel}>Minimum rating</Text>
-        <Text style={styles.sliderValue}>{displayValue.toFixed(1)}+</Text>
-      </View>
-      <View style={styles.track} onLayout={handleLayout}>
-        <Animated.View style={[styles.trackFill, fillStyle]} />
-        <GestureDetector gesture={pan}>
-          <Animated.View style={[styles.thumb, thumbStyle]} />
-        </GestureDetector>
-      </View>
+const Section = ({ title, hint, children, styles }) => (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionLabel}>{title}</Text>
+      {!!hint && <Text style={styles.sectionHint}>{hint}</Text>}
     </View>
-  );
-};
+    <View style={styles.chipRow}>{children}</View>
+  </View>
+);
 
-const FindingMoviesLoader = () => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-
-  return (
-    <View style={styles.loadingContainer}>
-      <View style={styles.loadingDots}>
-        <View style={styles.loadingDot} />
-        <View style={styles.loadingDot} />
-        <View style={styles.loadingDot} />
-      </View>
-      <Text style={styles.loadingText}>Finding your movies...</Text>
-    </View>
-  );
-};
-
+// Swipe setup — the filters before a swipe session. A dismissable screen
+// (close + reset in its own header), a live count of how many unwatched
+// movies match, and a footer that starts the session straight away.
 export const PreferencesScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
   const preferences = useUserStore((state) => state.preferences);
   const setPreferences = useUserStore((state) => state.setPreferences);
+  const resetPreferences = useUserStore((state) => state.resetPreferences);
+  const watched = useMovieStore((state) => state.watched);
   const startSession = useSessionStore((state) => state.startSession);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const insets = useSafeAreaInsets();
+
+  const watchedIds = watched.map((entry) => entry.movieId);
+  const watchedSet = new Set(watchedIds);
+  const matchCount = applyPreferenceFilters(
+    MOVIES.filter((movie) => !watchedSet.has(movie.id)),
+    preferences,
+  ).length;
+  // The default minRating is 7.0 — the catalog's floor — so it reads as
+  // "Any" here.
+  const ratingValue =
+    preferences.minRating && preferences.minRating > 7
+      ? preferences.minRating
+      : null;
+  const isDefault =
+    preferences.genres.length === 0 &&
+    preferences.decade === "Any" &&
+    preferences.runtime === "Any" &&
+    ratingValue == null;
 
   const toggleGenre = (genre) => {
     const isSelected = preferences.genres.includes(genre);
-    const genres = isSelected
-      ? preferences.genres.filter((item) => item !== genre)
-      : [...preferences.genres, genre];
-    setPreferences({ genres });
+    setPreferences({
+      genres: isSelected
+        ? preferences.genres.filter((item) => item !== genre)
+        : [...preferences.genres, genre],
+    });
   };
 
-  const handlePickMovies = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      const { bucketList } = useMovieStore.getState();
-      const movies = generateRecommendations(
-        preferences,
-        SWIPE_SIZE,
-        bucketListIds(bucketList),
-      );
-      startSession(movies);
-      navigation.replace("Swipe");
-    }, 600);
+  const handleStart = () => {
+    const { bucketList } = useMovieStore.getState();
+    const movies = generateRecommendations(
+      preferences,
+      SWIPE_SIZE,
+      bucketListIds(bucketList),
+      watchedIds,
+    );
+    startSession(movies);
+    navigation.replace("Swipe");
   };
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable
+          style={styles.closeButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityLabel="Close"
+        >
+          <X size={18} color={colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Swipe setup</Text>
+        <Pressable
+          onPress={resetPreferences}
+          disabled={isDefault}
+          hitSlop={8}
+          style={styles.resetButton}
+        >
+          <Text style={[styles.resetText, isDefault && styles.resetDisabled]}>
+            Reset
+          </Text>
+        </Pressable>
+      </View>
+
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + spacing.sm },
-        ]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>What are you in the mood for?</Text>
-        <Text style={styles.subtitle}>Everything here is optional.</Text>
+        <Text style={styles.subtitle}>
+          All optional. Your watchlist always gets a spot first.
+        </Text>
 
-        <Text style={styles.sectionLabel}>Genres</Text>
-        <View style={styles.chipRow}>
+        <Section
+          title="Genres"
+          hint={
+            preferences.genres.length > 0
+              ? `${preferences.genres.length} selected`
+              : "Any"
+          }
+          styles={styles}
+        >
           {GENRES.map((genre) => (
             <Chip
               key={genre}
               label={genre}
               selected={preferences.genres.includes(genre)}
               onPress={() => toggleGenre(genre)}
+              styles={styles}
             />
           ))}
-        </View>
+        </Section>
 
-        <View style={styles.section}>
-          <RatingSlider
-            value={preferences.minRating}
-            onChangeEnd={(minRating) => setPreferences({ minRating })}
-          />
-        </View>
+        <Section title="Rating" styles={styles}>
+          {RATINGS.map(({ label, value }) => (
+            <Chip
+              key={label}
+              label={label}
+              selected={ratingValue === value}
+              onPress={() => setPreferences({ minRating: value })}
+              styles={styles}
+            />
+          ))}
+        </Section>
 
-        <Text style={styles.sectionLabel}>Decade</Text>
-        <View style={styles.chipRow}>
+        <Section title="Decade" styles={styles}>
           {DECADES.map((decade) => (
             <Chip
               key={decade}
               label={decade}
               selected={preferences.decade === decade}
               onPress={() => setPreferences({ decade })}
+              styles={styles}
             />
           ))}
-        </View>
+        </Section>
 
-        <Text style={styles.sectionLabel}>Runtime</Text>
-        <View style={styles.chipRow}>
+        <Section title="Runtime" styles={styles}>
           {RUNTIMES.map((runtime) => (
             <Chip
               key={runtime}
               label={runtime}
               selected={preferences.runtime === runtime}
               onPress={() => setPreferences({ runtime })}
+              styles={styles}
             />
           ))}
-        </View>
+        </Section>
       </ScrollView>
 
       <View
         style={[styles.footer, { paddingBottom: spacing.md + insets.bottom }]}
       >
-        {isGenerating ? (
-          <FindingMoviesLoader />
-        ) : (
-          <PrimaryButton label="Pick My Movies" onPress={handlePickMovies} />
-        )}
+        <Text style={styles.matchText}>
+          {matchCount === 0
+            ? "Nothing matches exactly — we'll loosen things up a little."
+            : matchCount < SWIPE_SIZE
+              ? `${matchCount} movies match — we'll add a few close ones.`
+              : `${matchCount} unwatched movies match`}
+        </Text>
+        <PrimaryButton label="Start swiping" onPress={handleStart} />
       </View>
     </SafeAreaView>
   );
@@ -250,25 +231,70 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    closeButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      fontSize: 17,
+      color: colors.textPrimary,
+    },
+    resetButton: {
+      minWidth: 38,
+      alignItems: "flex-end",
+    },
+    resetText: {
+      ...typography.bodyBold,
+      color: colors.accentLight,
+    },
+    resetDisabled: {
+      color: colors.textMuted,
+    },
     scrollContent: {
       paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
       paddingBottom: spacing.xl,
     },
     title: {
-      ...typography.title,
+      ...typography.hero,
       color: colors.textPrimary,
-      marginTop: spacing.md,
     },
     subtitle: {
       ...typography.body,
       color: colors.textSecondary,
-      marginTop: 4,
+      marginTop: spacing.xs,
+    },
+    section: {
+      marginTop: spacing.lg,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
     },
     sectionLabel: {
       ...typography.label,
       color: colors.textSecondary,
-      marginTop: spacing.md,
-      marginBottom: spacing.sm,
+    },
+    sectionHint: {
+      ...typography.caption,
+      color: colors.textMuted,
     },
     chipRow: {
       flexDirection: "row",
@@ -282,76 +308,28 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
     },
     chipSelected: {
-      backgroundColor: colors.textPrimary,
+      backgroundColor: colors.accent,
     },
     chipText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    // Opposite of `chipSelected`'s background (textPrimary), so this stays
-    // legible whichever way textPrimary/background flip between themes.
-    chipTextSelected: {
-      color: colors.background,
-    },
-    section: {
-      marginTop: spacing.md,
-    },
-    sliderLabelRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: spacing.md,
-    },
-    sliderLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-    },
-    sliderValue: {
       ...typography.bodyBold,
-      color: colors.textPrimary,
+      fontSize: 13,
+      color: colors.textSecondary,
     },
-    track: {
-      height: THUMB_SIZE,
-      justifyContent: "center",
-      backgroundColor: colors.card,
-      borderRadius: radius.sm,
-    },
-    trackFill: {
-      position: "absolute",
-      left: 0,
-      top: "50%",
-      marginTop: -2,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.textPrimary,
-    },
-    thumb: {
-      width: THUMB_SIZE,
-      height: THUMB_SIZE,
-      borderRadius: THUMB_SIZE / 2,
-      backgroundColor: colors.textPrimary,
+    chipTextSelected: {
+      color: colors.accentContrast,
     },
     footer: {
-      padding: spacing.md,
-    },
-    loadingContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
       gap: spacing.sm,
+      backgroundColor: colors.card,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
-    loadingDots: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    loadingDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: colors.textPrimary,
-    },
-    loadingText: {
+    matchText: {
       ...typography.caption,
       color: colors.textSecondary,
+      textAlign: "center",
     },
   });
 

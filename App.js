@@ -18,6 +18,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const colors = useColors();
+  // Sora everywhere — see src/theme/typography.js.
   const [fontsLoaded] = useFonts({
     Sora_400Regular,
     Sora_500Medium,

@@ -24,7 +24,7 @@ export const Toast = () => {
   return (
     <Animated.View
       key={toast.id}
-      entering={FadeInUp.springify().damping(18)}
+      entering={FadeInUp.duration(200)}
       exiting={FadeOutUp.duration(160)}
       style={[styles.wrap, { top: insets.top + spacing.sm }]}
       pointerEvents="box-none"

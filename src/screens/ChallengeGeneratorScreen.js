@@ -1,101 +1,194 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { Check, Shuffle, Sparkles } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
-import { ChallengeCard } from "../components/ChallengeCard";
+import { MoviePoster } from "../components/MoviePoster";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { spacing } from "../theme/spacing";
+import { showToast } from "../store/toastStore";
+import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { generateChallenge } from "../utils/challenges";
+import { generateChallengeOptions } from "../utils/challenges";
+import { formatRuntime } from "../utils/movieFilters";
 
-const STEPS = [
-  "Looking at your watch history...",
-  "Checking your watchlist...",
-  "Looking at your collections...",
-  "Finding your next move...",
-];
-const STEP_DURATION_MS = 550;
+const HAND_SIZE = 3;
 
+const difficultyColor = (difficulty, colors) =>
+  ({
+    EASY: colors.success,
+    MEDIUM: colors.rating,
+    HARD: colors.danger,
+    EXTREME: colors.danger,
+  })[difficulty] ?? colors.accentLight;
+
+// One option in the hand: movie poster, difficulty + XP, the movie, and
+// the challenge's own reason. Tapping selects it (accent border + check).
+const OptionCard = ({
+  challenge,
+  selected,
+  onPress,
+  index,
+  styles,
+  colors,
+}) => {
+  const movie = getMovieById(challenge.targetMovieId);
+  const tint = difficultyColor(challenge.difficulty, colors);
+
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 70).duration(220)}>
+      <Pressable
+        style={[styles.option, selected && styles.optionSelected]}
+        onPress={onPress}
+      >
+        {movie && <MoviePoster uri={movie.poster} style={styles.poster} />}
+        <View style={styles.optionInfo}>
+          <View style={styles.optionTopRow}>
+            <View style={[styles.difficulty, { borderColor: `${tint}66` }]}>
+              <View style={[styles.difficultyDot, { backgroundColor: tint }]} />
+              <Text style={[styles.difficultyText, { color: tint }]}>
+                {challenge.difficultyLabel}
+              </Text>
+            </View>
+            <Text style={styles.xp}>+{challenge.xpReward} XP</Text>
+          </View>
+          <Text style={styles.movieTitle} numberOfLines={1}>
+            {movie ? movie.title : challenge.title}
+          </Text>
+          {movie && (
+            <Text style={styles.movieMeta} numberOfLines={1}>
+              {movie.year} · {formatRuntime(movie.runtime)} · {movie.genres[0]}
+            </Text>
+          )}
+          <Text style={styles.description} numberOfLines={2}>
+            {challenge.description}
+          </Text>
+        </View>
+        {selected && (
+          <View style={styles.check}>
+            <Check size={14} color={colors.accentContrast} strokeWidth={3} />
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+// "Draft" a challenge: three real options dealt at once (spanning Easy →
+// Hard when your history allows), pick one, accept. ⇄ deals a new hand
+// instantly — no fake "analyzing…" wait.
 export const ChallengeGeneratorScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const watched = useMovieStore((state) => state.watched);
-  const bucketList = useMovieStore((state) => state.bucketList);
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);
 
-  const [step, setStep] = useState(0);
-  const [challenge, setChallenge] = useState(null);
+  const deal = () => {
+    const { watched, bucketList } = useMovieStore.getState();
+    return generateChallengeOptions({ watched, bucketList }, HAND_SIZE);
+  };
+  const [hand, setHand] = useState(deal);
+  const [handId, setHandId] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
-  // Re-runs the staged-text reveal whenever `attempt` changes — both on
-  // first mount and every "Give Me Another" tap.
-  const [attempt, setAttempt] = useState(0);
+  const reshuffle = () => {
+    Haptics.selectionAsync();
+    setHand(deal());
+    setHandId((id) => id + 1);
+    setSelectedIndex(null);
+  };
 
-  useEffect(() => {
-    setStep(0);
-    setChallenge(null);
-    const timers = STEPS.map((_, index) =>
-      setTimeout(() => setStep(index + 1), STEP_DURATION_MS * (index + 1)),
-    );
-    const revealTimer = setTimeout(() => {
-      setChallenge(generateChallenge({ watched, bucketList }));
-    }, STEP_DURATION_MS * STEPS.length);
-    return () => {
-      timers.forEach(clearTimeout);
-      clearTimeout(revealTimer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
+  const select = (index) => {
+    Haptics.selectionAsync();
+    setSelectedIndex((current) => (current === index ? null : index));
+  };
+
+  const selected = selectedIndex != null ? hand[selectedIndex] : null;
 
   const handleAccept = () => {
-    acceptChallenge(challenge);
+    if (!selected) return;
+    acceptChallenge(selected);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast(`Challenge accepted · +${selected.xpReward} XP waiting`, {
+      tone: "success",
+    });
     navigation.goBack();
   };
 
-  const handleSkip = () => setAttempt((value) => value + 1);
-
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
+        <Text style={styles.headerTitle}>New challenge</Text>
+        <Pressable
+          style={styles.headerButton}
+          onPress={reshuffle}
+          hitSlop={6}
+          accessibilityLabel="Deal new challenges"
+        >
+          <Shuffle size={18} color={colors.textPrimary} />
+        </Pressable>
       </View>
 
-      <View style={styles.content}>
-        {challenge ? (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            style={styles.cardWrap}
-          >
-            <ChallengeCard
-              challenge={challenge}
-              mode="reveal"
-              onAccept={handleAccept}
-              onSkip={handleSkip}
-            />
-          </Animated.View>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.intro}>
+          <Sparkles size={16} color={colors.accentLight} />
+          <Text style={styles.introText}>
+            Pick one. Harder challenges earn more XP.
+          </Text>
+        </View>
+
+        {hand.length === 0 ? (
+          <Text style={styles.empty}>
+            No challenges right now — you&apos;ve seen it all. Impressive.
+          </Text>
         ) : (
-          <View style={styles.stepsWrap}>
-            {STEPS.slice(0, step + 1).map((text, index) => (
-              <Animated.Text
-                key={text}
-                entering={FadeIn.duration(300)}
-                style={[
-                  styles.stepText,
-                  index === step && styles.stepTextActive,
-                ]}
-              >
-                {text}
-              </Animated.Text>
+          <View key={handId} style={styles.hand}>
+            {hand.map((challenge, index) => (
+              <OptionCard
+                key={challenge.id}
+                challenge={challenge}
+                index={index}
+                selected={selectedIndex === index}
+                onPress={() => select(index)}
+                styles={styles}
+                colors={colors}
+              />
             ))}
           </View>
         )}
+
+        {hand.length > 0 && (
+          <Pressable style={styles.reshuffleLink} onPress={reshuffle}>
+            <Shuffle size={14} color={colors.textSecondary} />
+            <Text style={styles.reshuffleText}>Deal three new ones</Text>
+          </Pressable>
+        )}
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <PrimaryButton
+          label={
+            selected
+              ? `Accept · +${selected.xpReward} XP`
+              : "Select a challenge"
+          }
+          variant={selected ? "primary" : "secondary"}
+          disabled={!selected}
+          onPress={handleAccept}
+        />
       </View>
     </SafeAreaView>
   );
@@ -108,26 +201,145 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     header: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
-    content: {
+    headerTitle: {
+      ...typography.title,
+      fontSize: 20,
       flex: 1,
-      justifyContent: "center",
-      paddingHorizontal: spacing.md,
-    },
-    stepsWrap: {
-      gap: spacing.md,
-    },
-    stepText: {
-      ...typography.subtitle,
-      color: colors.textMuted,
-      textAlign: "center",
-    },
-    stepTextActive: {
       color: colors.textPrimary,
     },
-    cardWrap: {
-      width: "100%",
+    headerButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    content: {
+      padding: spacing.md,
+    },
+    intro: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      marginBottom: spacing.md,
+    },
+    introText: {
+      ...typography.body,
+      color: colors.textSecondary,
+    },
+    hand: {
+      gap: spacing.sm,
+    },
+    option: {
+      flexDirection: "row",
+      gap: spacing.md,
+      padding: spacing.sm + 2,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    optionSelected: {
+      borderColor: colors.accent,
+      backgroundColor: colors.cardElevatedLight,
+    },
+    poster: {
+      width: 64,
+      aspectRatio: 2 / 3,
+    },
+    optionInfo: {
+      flex: 1,
+      gap: 3,
+    },
+    optionTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    difficulty: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+    },
+    difficultyDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    difficultyText: {
+      ...typography.label,
+      fontSize: 10,
+    },
+    xp: {
+      ...typography.label,
+      color: colors.rating,
+    },
+    movieTitle: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    movieMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    description: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    // On the poster's corner, so it never covers the XP on the right.
+    check: {
+      position: "absolute",
+      top: spacing.sm + 4,
+      left: spacing.sm + 4,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.accent,
+    },
+    reshuffleLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "center",
+      gap: 6,
+      marginTop: spacing.lg,
+      padding: spacing.xs,
+    },
+    reshuffleText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    empty: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: spacing.xl,
+    },
+    footer: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.card,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
   });
 

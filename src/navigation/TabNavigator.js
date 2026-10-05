@@ -20,6 +20,7 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { radius, spacing } from "../theme/spacing";
+import { fonts } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
 const Tab = createBottomTabNavigator();
@@ -172,13 +173,12 @@ const createStyles = (colors, insets) =>
       alignItems: "center",
     },
     label: {
+      fontFamily: fonts.semiBold,
       fontSize: 10,
-      fontWeight: "500",
       color: "#e2e3f7",
     },
     labelActive: {
       color: colors.accentLight,
-      fontWeight: "500",
     },
   });
 
