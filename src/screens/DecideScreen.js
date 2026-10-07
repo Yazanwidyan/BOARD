@@ -40,7 +40,7 @@ const SectionLabel = ({ label, styles }) => (
 );
 
 // One row of history: the challenge's poster, what it was, the movie and
-// when, and a small Done / Skipped pill.
+// when, and Done / Skipped as plain text.
 const HistoryRow = ({ entry, isLast, styles }) => {
   const movie = getMovieById(entry.targetMovieId);
   const isCompleted = entry.status === "completed";
@@ -58,21 +58,14 @@ const HistoryRow = ({ entry, isLast, styles }) => {
           {date ? ` · ${MONTHS[date.getMonth()]} ${date.getDate()}` : ""}
         </Text>
       </View>
-      <View
+      <Text
         style={[
-          styles.statusPill,
-          isCompleted ? styles.statusDone : styles.statusSkipped,
+          styles.statusText,
+          isCompleted ? styles.statusTextDone : styles.statusTextSkipped,
         ]}
       >
-        <Text
-          style={[
-            styles.statusText,
-            isCompleted ? styles.statusTextDone : styles.statusTextSkipped,
-          ]}
-        >
-          {isCompleted ? "Done" : "Skipped"}
-        </Text>
-      </View>
+        {isCompleted ? "Done" : "Skipped"}
+      </Text>
     </View>
   );
 };
@@ -178,20 +171,22 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginBottom: spacing.sm + 2,
     },
+    // Filled rows edge to edge (cancels the section padding), split by a
+    // line of page colour — like Settings.
     historyList: {
-      borderRadius: radius.sm,
+      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
-      overflow: "hidden",
     },
     historyRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 2,
-      padding: spacing.sm + 2,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
     },
     historyDivider: {
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.background,
     },
     historyPoster: {
       width: 48,
@@ -209,20 +204,9 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    statusPill: {
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
-      borderRadius: radius.pill,
-    },
-    statusDone: {
-      backgroundColor: colors.successSoft,
-    },
-    statusSkipped: {
-      backgroundColor: colors.cardElevatedLight,
-    },
     statusText: {
-      ...typography.label,
-      fontSize: 11,
+      ...typography.bodyBold,
+      fontSize: 13,
     },
     statusTextDone: {
       color: colors.success,

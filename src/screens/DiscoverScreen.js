@@ -202,7 +202,7 @@ export const DiscoverScreen = ({ navigation }) => {
           <>
             {modeSwitch}
             <HeaderIconButton onPress={() => navigation.navigate("Search")}>
-              <Search size={18} color={colors.textPrimary} strokeWidth={2} />
+              <Search size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
           </>
         }

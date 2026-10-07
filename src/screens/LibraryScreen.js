@@ -8,7 +8,6 @@ import {
   Layers,
   Plus,
   Search,
-  Shuffle,
   X,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -374,7 +373,12 @@ export const LibraryScreen = ({ navigation, route }) => {
           styles.scrollContent,
           {
             paddingTop:
-              header.contentInset + (tab === "collections" ? 0 : toolBarHeight),
+              // Collections' filter row scrolls with the page, so it sits
+              // flush under the header like the other tabs' fixed bar
+              // (the inset's usual gap is dropped).
+              tab === "collections"
+                ? header.contentInset - spacing.md
+                : header.contentInset + toolBarHeight,
           },
         ]}
       >
@@ -544,7 +548,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                         ?.label
                     }
                   </Text>
-                  <ChevronDown size={14} color={colors.textPrimary} />
+                  <ChevronDown size={14} color={colors.textSecondary} />
                 </Pressable>
               )}
               <Pressable
@@ -569,13 +573,12 @@ export const LibraryScreen = ({ navigation, route }) => {
                 <ChevronDown
                   size={14}
                   color={
-                    hasActiveFilter ? colors.selectedText : colors.textPrimary
+                    hasActiveFilter ? colors.selectedText : colors.textSecondary
                   }
                 />
               </Pressable>
               {tab === "bucketlist" && canPick && (
                 <Pressable style={styles.toolChip} onPress={handlePickFromList}>
-                  <Shuffle size={14} color={colors.accentLight} />
                   <Text style={styles.toolChipText}>Pick for me</Text>
                 </Pressable>
               )}
@@ -627,9 +630,9 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }}
               >
                 <Search
-                  size={18}
+                  size={22}
                   color={colors.textPrimary}
-                  strokeWidth={2.2}
+                  strokeWidth={1.75}
                 />
               </HeaderIconButton>
               <HeaderIconButton
@@ -639,7 +642,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                     : setIsAddWatchedOpen(true)
                 }
               >
-                <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
+                <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
               </HeaderIconButton>
             </>
           )
@@ -869,14 +872,17 @@ const createStyles = (colors) =>
       marginHorizontal: -spacing.md,
     },
     toolRowContent: {
-      gap: spacing.sm,
+      gap: 6,
       paddingHorizontal: spacing.md,
     },
+    // Square filled boxes, like Settings' — the active one fills white.
     toolChip: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      paddingVertical: 7,
+      gap: 6,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
     },
     toolChipActive: {
       backgroundColor: colors.selected,
@@ -902,10 +908,10 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
-      height: 40,
-      paddingHorizontal: spacing.sm + 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.background,
+      height: 44,
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
     },
     searchInput: {
       ...typography.body,
@@ -913,7 +919,6 @@ const createStyles = (colors) =>
       paddingVertical: 0,
       color: colors.textPrimary,
     },
-    // Sort and genre are icon-only squares.
     section: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.lg,
@@ -975,8 +980,8 @@ const createStyles = (colors) =>
     chip: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.background,
+      // A step lighter than the sheet, so the boxes read on it.
+      backgroundColor: colors.cardElevatedLight,
     },
     chipSelected: {
       backgroundColor: colors.selected,

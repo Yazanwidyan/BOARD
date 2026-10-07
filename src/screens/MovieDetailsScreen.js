@@ -3,12 +3,10 @@ import {
   Bookmark,
   BookmarkCheck,
   CheckCircle,
-  ChevronRight,
   Clapperboard,
   Play,
   RotateCw,
   Share2,
-  Trophy,
 } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -31,7 +29,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
-import { TargetIcon } from "../components/icons/TabIcons";
 import { ScoreRings } from "../components/ScoreRings";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
@@ -317,7 +314,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
   const headerTop = insets.top + spacing.sm;
   const iconColor = (active) =>
-    active ? colors.accentLight : colors.textPrimary;
+    active ? colors.textPrimary : colors.textSecondary;
 
   return (
     <View style={styles.container}>
@@ -422,13 +419,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               styles={styles}
               label="Trailer"
               onPress={handleWatchTrailer}
-              icon={
-                <Play
-                  size={20}
-                  color={colors.textPrimary}
-                  fill={colors.textPrimary}
-                />
-              }
+              icon={<Play size={20} color={colors.textPrimary} />}
             />
             {isWatched && (
               <DockButton
@@ -442,11 +433,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
           {isChallengeTarget && (
             <View style={styles.challengeBanner}>
-              <TargetIcon size={18} color={colors.accentLight} />
               <View style={styles.bannerText}>
                 <Text style={styles.challengeEyebrow}>
-                  ACTIVE CHALLENGE ·{" "}
-                  {activeChallenge.difficultyLabel.toUpperCase()}
+                  Your dare · {activeChallenge.difficultyLabel}
                 </Text>
                 <Text style={styles.challengeDescription} numberOfLines={2}>
                   {activeChallenge.description}
@@ -482,7 +471,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           ) : (
             bucketEntry && (
               <View style={styles.savedRow}>
-                <Bookmark size={14} color={colors.accentLight} />
                 <Text style={styles.savedText}>
                   On your watchlist
                   {bucketEntry.addedAt
@@ -524,7 +512,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
           {details?.awards && (
             <View style={styles.awardsRow}>
-              <Trophy size={15} color={colors.rating} />
               <Text style={styles.awardsText}>{details.awards}</Text>
             </View>
           )}
@@ -548,7 +535,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               }
             >
               <Text style={styles.factChipText}>The {decade}</Text>
-              <ChevronRight size={12} color={colors.textSecondary} />
             </Pressable>
             {movie.genres.map((genre) => (
               <Pressable
@@ -564,7 +550,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 }
               >
                 <Text style={styles.factChipText}>{genre}</Text>
-                <ChevronRight size={12} color={colors.textSecondary} />
               </Pressable>
             ))}
           </View>
@@ -601,7 +586,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                             : "1 film in Reelboard"}
                         </Text>
                       </View>
-                      <ChevronRight size={16} color={colors.textMuted} />
                     </Pressable>
                   );
                 })}
@@ -656,7 +640,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                       >
                         {collection.title}
                       </Text>
-                      <ChevronRight size={14} color={colors.textSecondary} />
                     </View>
                     <View style={styles.chipTrack}>
                       <View
@@ -716,7 +699,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         {similarMovies.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, styles.railLabel]}>
-              More Like This
+              More like this
             </Text>
             <ScrollView
               horizontal
@@ -733,7 +716,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 >
                   <MoviePoster
                     uri={similar.poster}
-                    radius={radius.xs}
                     style={styles.similarPoster}
                   />
                   <Text style={styles.similarTitle} numberOfLines={1}>
@@ -757,7 +739,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           onPress={handleShare}
           hitSlop={6}
         >
-          <Share2 size={18} color={colors.textPrimary} />
+          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
       </View>
 
@@ -803,7 +785,6 @@ const createStyles = (colors) =>
     ageBadge: {
       paddingHorizontal: 5,
       paddingVertical: 1,
-      borderRadius: 4,
       borderWidth: 1,
       borderColor: colors.textMuted,
     },
@@ -836,7 +817,7 @@ const createStyles = (colors) =>
       marginHorizontal: -spacing.md,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-      backgroundColor: `${colors.rating}14`,
+      backgroundColor: colors.card,
     },
     awardsText: {
       ...typography.caption,
@@ -855,9 +836,7 @@ const createStyles = (colors) =>
       gap: 2,
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: 7,
-      borderRadius: radius.pill,
-      borderWidth: 1,
-      borderColor: colors.border,
+      backgroundColor: colors.card,
     },
     factChipText: {
       ...typography.caption,
@@ -874,7 +853,7 @@ const createStyles = (colors) =>
       gap: spacing.sm + 2,
       paddingVertical: spacing.sm + 2,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.background,
     },
     castAvatar: {
       width: 40,
@@ -909,7 +888,7 @@ const createStyles = (colors) =>
       gap: spacing.md,
       paddingVertical: spacing.sm + 2,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.background,
     },
     factRowLast: {
       borderBottomWidth: 0,
@@ -944,15 +923,12 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
+    // Flat, like the app's other header icons (no circle).
     headerIconButton: {
       width: HEADER_BAR_HEIGHT,
       height: HEADER_BAR_HEIGHT,
-      borderRadius: HEADER_BAR_HEIGHT / 2,
-      alignItems: "center",
+      alignItems: "flex-end",
       justifyContent: "center",
-      backgroundColor: colors.cardElevated,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     stage: {
       alignItems: "center",
@@ -1019,27 +995,23 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     dockLabelActive: {
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     challengeBanner: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       marginTop: spacing.md,
+      marginHorizontal: -spacing.md,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.accent,
     },
     bannerText: {
       flex: 1,
     },
     challengeEyebrow: {
-      ...typography.label,
-      fontSize: 11,
-      letterSpacing: 1.2,
-      color: colors.accentLight,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     challengeDescription: {
       ...typography.bodyBold,
@@ -1060,8 +1032,8 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
     },
     sectionLabelInline: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     watchCount: {
       ...typography.caption,
@@ -1071,7 +1043,7 @@ const createStyles = (colors) =>
     watchDate: {
       ...typography.bodyBold,
       fontSize: 12,
-      color: colors.accentLight,
+      color: colors.textPrimary,
       textDecorationLine: "underline",
     },
     sectionLabel: {
@@ -1090,7 +1062,7 @@ const createStyles = (colors) =>
     },
     moreText: {
       ...typography.bodyBold,
-      color: colors.accentLight,
+      color: colors.textPrimary,
       marginTop: spacing.xs,
     },
     railLabel: {
@@ -1108,7 +1080,6 @@ const createStyles = (colors) =>
     collectionChip: {
       width: 180,
       padding: spacing.sm + 2,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     collectionChipHeader: {
@@ -1130,7 +1101,7 @@ const createStyles = (colors) =>
     },
     chipFill: {
       height: "100%",
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.textPrimary,
     },
     collectionChipStat: {
       ...typography.caption,

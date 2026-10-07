@@ -130,7 +130,7 @@ const createStyles = (colors) =>
       elevation: 10,
     },
     tint: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       // Near-black over the blur, for a darker, smoky glass.
       backgroundColor:
         Platform.OS === "ios" ? "rgba(0, 0, 0, 0.4)" : "rgba(8, 8, 14, 0.94)",

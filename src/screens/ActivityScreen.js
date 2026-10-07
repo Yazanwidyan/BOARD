@@ -170,14 +170,12 @@ export const ActivityScreen = ({ navigation }) => {
               Compare tiers · invite more
             </Text>
           </View>
-          <Text style={styles.friendsLink}>See all ›</Text>
+          <Text style={styles.friendsLink}>See all</Text>
         </Pressable>
 
         {groups.map((group) => (
           <View key={group.key}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{group.label.toUpperCase()}</Text>
-            </View>
+            <Text style={styles.tagText}>{group.label}</Text>
             <View style={styles.feed}>
               {group.items.map((event, index) => (
                 <Pressable
@@ -235,9 +233,6 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: `${colors.accent}55`,
     },
     avatarStack: {
       flexDirection: "row",
@@ -257,23 +252,17 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     friendsLink: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
     },
-    tag: {
-      alignSelf: "flex-start",
-      marginLeft: spacing.md,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm + 2,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
-      borderRadius: radius.xs,
-      backgroundColor: colors.cardElevated,
-    },
+    // Section caption, like Settings.
     tagText: {
-      ...typography.label,
-      color: colors.textSecondary,
-      letterSpacing: 1.2,
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     // Edge to edge, square corners.
     feed: {
@@ -287,8 +276,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
     },
     eventDivider: {
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.background,
     },
     eventBody: {
       flex: 1,

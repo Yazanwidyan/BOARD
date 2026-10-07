@@ -714,7 +714,7 @@ const createStyles = (colors) =>
       overflow: "hidden",
     },
     wall: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       flexDirection: "row",
       gap: spacing.sm,
       paddingHorizontal: spacing.sm,
@@ -761,7 +761,7 @@ const createStyles = (colors) =>
       opacity: 0.55,
     },
     tasteOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderWidth: 3,
       alignItems: "center",
       justifyContent: "center",
@@ -848,7 +848,7 @@ const createStyles = (colors) =>
       opacity: 0.4,
     },
     pickSelectedRing: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderWidth: 3,
       borderColor: colors.accent,
       alignItems: "flex-end",

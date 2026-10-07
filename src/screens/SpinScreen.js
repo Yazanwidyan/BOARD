@@ -39,7 +39,7 @@ const POSTER_WIDTH = 40;
 const POSTER_RING = WHEEL_RADIUS * 0.62;
 const FULL_SPINS = 5;
 const SPIN_DURATION_MS = 4200;
-const SLICE_COLORS = ["#8D60E2", "#4A4D84"];
+const SLICE_COLORS = ["#5B8DEF", "#383B40"];
 
 // 0° = straight up (where the pointer is), increasing clockwise.
 const polarToCartesian = (angleDeg, r) => {
@@ -247,7 +247,7 @@ export const SpinScreen = ({ navigation }) => {
             onPress={newWheel}
             style={phase === "spinning" && styles.disabled}
           >
-            <Shuffle size={18} color={colors.textPrimary} />
+            <Shuffle size={22} strokeWidth={1.75} color={colors.textPrimary} />
           </HeaderIconButton>
         }
       />

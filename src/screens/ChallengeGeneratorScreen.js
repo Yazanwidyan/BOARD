@@ -126,7 +126,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         onBack={() => navigation.goBack()}
         right={
           <HeaderIconButton onPress={reshuffle}>
-            <Shuffle size={18} color={colors.textPrimary} />
+            <Shuffle size={22} strokeWidth={1.75} color={colors.textPrimary} />
           </HeaderIconButton>
         }
       />
@@ -208,13 +208,12 @@ const createStyles = (colors) =>
       flexDirection: "row",
       gap: spacing.md,
       padding: spacing.sm + 2,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
       borderWidth: 2,
       borderColor: "transparent",
     },
     optionSelected: {
-      borderColor: colors.accent,
+      borderColor: colors.textPrimary,
       backgroundColor: colors.cardElevatedLight,
     },
     poster: {
@@ -234,10 +233,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: radius.pill,
-      borderWidth: 1,
     },
     difficultyDot: {
       width: 6,
@@ -245,8 +240,8 @@ const createStyles = (colors) =>
       borderRadius: 3,
     },
     difficultyText: {
-      ...typography.label,
-      fontSize: 11,
+      ...typography.bodyBold,
+      fontSize: 12,
     },
     movieTitle: {
       ...typography.subtitle,
@@ -298,7 +293,7 @@ const createStyles = (colors) =>
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
       backgroundColor: colors.card,
-      borderTopWidth: 1,
+      borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
     },
   });

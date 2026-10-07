@@ -40,11 +40,22 @@ export const useDockHeader = () => {
 };
 
 // The round icon button every tab's header actions use.
-export const HeaderIconButton = ({ onPress, children, style }) => {
+export const HeaderIconButton = ({
+  onPress,
+  children,
+  style,
+  accessibilityLabel,
+}) => {
   const colors = useColors();
   const styles = createStyles(colors);
   return (
-    <Pressable style={[styles.iconButton, style]} onPress={onPress} hitSlop={6}>
+    <Pressable
+      style={[styles.iconButton, style]}
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
       {children}
     </Pressable>
   );
@@ -92,7 +103,11 @@ export const DockHeader = ({
             >
               {title}
             </Text>
-            <ChevronDown size={18} color={colors.textSecondary} strokeWidth={2.4} />
+            <ChevronDown
+              size={18}
+              color={colors.textSecondary}
+              strokeWidth={2.4}
+            />
           </Pressable>
         ) : (
           <Text
@@ -128,17 +143,22 @@ export const StackHeader = ({ title, onBack, close = false, right }) => {
 
   return (
     <View style={[styles.stackBar, { paddingTop: insets.top + spacing.sm }]}>
-      {close ? (
-        <HeaderIconButton onPress={onBack}>
-          <X size={18} color={colors.textPrimary} />
-        </HeaderIconButton>
-      ) : (
-        <BackButton onPress={onBack} />
-      )}
+      {/* Equal-width sides keep the title centred on the screen. */}
+      <View style={styles.stackSide}>
+        {close ? (
+          <HeaderIconButton onPress={onBack}>
+            <X size={22} strokeWidth={1.75} color={colors.textPrimary} />
+          </HeaderIconButton>
+        ) : (
+          <BackButton onPress={onBack} />
+        )}
+      </View>
       <Text style={styles.stackTitle} numberOfLines={1}>
         {title}
       </Text>
-      {right ? <View style={styles.right}>{right}</View> : null}
+      <View style={[styles.stackSide, styles.stackSideRight]}>
+        {right ? <View style={styles.right}>{right}</View> : null}
+      </View>
     </View>
   );
 };
@@ -204,11 +224,20 @@ const createStyles = (colors) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
+    stackSide: {
+      width: 64,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    stackSideRight: {
+      justifyContent: "flex-end",
+    },
     stackTitle: {
       ...typography.title,
-      fontSize: 20,
-      letterSpacing: -0.4,
+      fontSize: 18,
+      letterSpacing: -0.3,
       flex: 1,
+      textAlign: "center",
       color: colors.textPrimary,
     },
     titleButton: {

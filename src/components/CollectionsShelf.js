@@ -1,4 +1,4 @@
-import { ChevronRight, ListPlus, Plus, Trophy } from "lucide-react-native";
+import { ListPlus, Plus, Trophy } from "lucide-react-native";
 import { useState } from "react";
 import {
   Pressable,
@@ -194,7 +194,7 @@ export const CollectionsShelf = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.flatRow}
+        style={[styles.flatRow, styles.chipsBar]}
         contentContainerStyle={styles.chips}
       >
         {availableTypes.map(({ key, label }) => (
@@ -256,9 +256,9 @@ export const CollectionsShelf = ({
         <View style={styles.section}>
           <SectionTitle title="Almost there" styles={styles} />
           <View style={styles.list}>
-            {/* Missing pieces: the collection's collage, and the movies
-                that would fill it in dashed shelf slots — tap one to open
-                it, or the card for the whole collection. */}
+            {/* Missing pieces: the collection's collage, and the posters of
+                the movies that would complete it — tap one to open it, or
+                the row for the whole collection. */}
             {almostThere.map((item) => {
               const missing = item.collection.movies.filter(
                 (movie) => !watchedIds.has(movie.id),
@@ -308,7 +308,6 @@ export const CollectionsShelf = ({
                       ))}
                     </View>
                   </View>
-                  <ChevronRight size={18} color={colors.textSecondary} />
                 </Pressable>
               );
             })}
@@ -376,7 +375,7 @@ export const CollectionsShelf = ({
       {suggestions.length > 0 && (
         <View style={styles.section}>
           <SectionTitle title="You might like" styles={styles} />
-          <View style={styles.list}>
+          <View style={styles.suggestionList}>
             {suggestions.map(({ collection, genre }) => (
               <View key={collection.id} style={styles.suggestionRow}>
                 <Pressable
@@ -427,14 +426,20 @@ const createStyles = (colors) =>
     flatRow: {
       flexGrow: 0,
     },
+    // Same bar as Watched / Watchlist: square filled boxes over a hairline,
+    // the active one filled white.
+    chipsBar: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
     chips: {
-      gap: spacing.sm,
+      gap: 6,
       paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
     },
     chip: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: 7,
-      borderRadius: radius.pill,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.card,
     },
     chipActive: {
@@ -443,7 +448,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.textPrimary,
     },
     chipTextActive: {
       color: colors.background,
@@ -531,19 +536,16 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 1,
     },
+    // Filled rows edge to edge, 2px apart — square, no border.
     list: {
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
+      gap: 2,
     },
     missingCard: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.08)",
     },
     missingInfo: {
       flex: 1,
@@ -560,21 +562,15 @@ const createStyles = (colors) =>
     missingCount: {
       ...typography.bodyBold,
       fontSize: 12,
-      color: colors.success,
+      color: colors.textPrimary,
     },
+    // The posters still to watch, 2px apart like the other poster rows.
     missingSlots: {
       flexDirection: "row",
-      gap: spacing.sm,
+      gap: 2,
       marginTop: spacing.sm,
     },
-    // An empty spot on the shelf, waiting for this movie.
-    missingSlot: {
-      padding: 3,
-      borderRadius: 4,
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: `${colors.success}AA`,
-    },
+    missingSlot: {},
     missingPoster: {
       width: 44,
       height: 66,
@@ -590,6 +586,10 @@ const createStyles = (colors) =>
     almostMeta: {
       ...typography.caption,
       color: colors.textSecondary,
+    },
+    suggestionList: {
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     suggestionRow: {
       flexDirection: "row",

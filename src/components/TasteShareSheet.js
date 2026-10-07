@@ -17,6 +17,8 @@ import { WatcherCard } from "./WatcherCard";
 const CARD_WIDTH = 340;
 const FAVORITE_POSTERS = 5;
 const POSTER_GAP = 6;
+const BACKDROP_POSTERS = 4;
+const BACKDROP_HEIGHT = 260;
 
 const insightText = (insight) => {
   if (!insight) return null;
@@ -95,11 +97,32 @@ export const TasteShareSheet = ({
         {/* collapsable={false} so Android keeps a real native view for
             react-native-view-shot to capture. */}
         <View ref={imageRef} collapsable={false} style={styles.image}>
-          <LinearGradient
-            colors={[colors.accent, colors.background]}
-            locations={[0, 0.6]}
-            style={StyleSheet.absoluteFill}
-          />
+          {/* Background: your top-ten posters, blurred, fading into the
+              page colour — or, before you've picked any, a soft deep-blue
+              tint. */}
+          {favorites.length > 0 ? (
+            <View style={styles.backdrop} pointerEvents="none">
+              {favorites.slice(0, BACKDROP_POSTERS).map(({ movie }) => (
+                <MoviePoster
+                  key={movie.id}
+                  uri={movie.poster}
+                  blurRadius={18}
+                  style={styles.backdropPoster}
+                />
+              ))}
+              <LinearGradient
+                colors={[`${colors.background}73`, colors.background]}
+                locations={[0, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
+          ) : (
+            <LinearGradient
+              colors={["#1E2A42", colors.background]}
+              locations={[0, 0.55]}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <WatcherCard mode="share" {...cardProps} />
 
           {(insight || taste.genreTiers.length > 0 || favorites.length > 0) && (
@@ -167,6 +190,20 @@ const createStyles = (colors) =>
       borderRadius: radius.lg,
       overflow: "hidden",
       backgroundColor: colors.background,
+    },
+    backdrop: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: BACKDROP_HEIGHT,
+      flexDirection: "row",
+      overflow: "hidden",
+    },
+    backdropPoster: {
+      flex: 1,
+      height: "100%",
+      opacity: 0.6,
     },
     tastePanel: {
       marginTop: spacing.md,

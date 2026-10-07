@@ -1,17 +1,16 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowRight, Sparkles } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { MOVIES } from "../data/movies";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 
 // Same alternating slice colors as the real wheel on SpinScreen, so the
 // mini preview reads as the thing you're about to open.
-const WHEEL_SLICE_COLORS = ["#8D60E2", "#4A4D84"];
+const WHEEL_SLICE_COLORS = ["#5B8DEF", "#383B40"];
 const WHEEL_SLICES = 8;
 const WHEEL_SIZE = 108;
 
@@ -62,10 +61,10 @@ const miniWheelPointer = {
   left: WHEEL_SIZE / 2 - 7,
 };
 
-// Decide's Quick Pick as a bento, in the screen's "cinema night" look: AI
-// as the full-width hero — a dark card with a purple edge glow and real
-// posters bleeding in from the right — and Swipe / Spin as tall glass
-// tiles that each preview what they do (a fanned poster stack, a wheel).
+// Decide's Quick Pick as a bento: AI as the full-width hero — a filled
+// tile with real posters bleeding in from the right — and Swipe / Spin as
+// tall tiles that each preview what they do (a fanned poster stack, a
+// wheel). Square, edge to edge, 2px apart.
 export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -79,7 +78,6 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
               <MoviePoster
                 key={uri}
                 uri={uri}
-                radius={radius.xs}
                 style={[
                   styles.aiPoster,
                   index === 0 ? styles.aiPosterBack : styles.aiPosterFront,
@@ -96,16 +94,10 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
           </View>
 
           <View style={styles.aiText}>
-            <View style={styles.aiEyebrowRow}>
-              <Sparkles size={12} color={colors.accentLight} />
-              <Text style={styles.aiEyebrow}>AI PICK</Text>
-            </View>
+            <Text style={styles.aiEyebrow}>AI pick</Text>
             <Text style={styles.aiTitle}>Let Reelboard choose</Text>
             <Text style={styles.aiSubtitle}>Based on your taste</Text>
-            <View style={styles.aiCta}>
-              <Text style={styles.aiCtaText}>Pick for me</Text>
-              <ArrowRight size={14} color={colors.selectedText} />
-            </View>
+            <Text style={styles.aiCtaText}>Pick for me</Text>
           </View>
         </View>
       </Pressable>
@@ -117,7 +109,6 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
               <MoviePoster
                 key={uri}
                 uri={uri}
-                radius={radius.xs}
                 style={[styles.fanPoster, FAN_POSITIONS[index]]}
               />
             ))}
@@ -152,17 +143,14 @@ const FAN_POSITIONS = [
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // Edge to edge (cancels the section padding), square, 2px apart.
     grid: {
-      gap: spacing.sm,
+      gap: 2,
+      marginHorizontal: -spacing.md,
     },
-    // The glow lives on an outer view: iOS clips a shadow on a view that
-    // also has overflow: hidden.
-    aiGlow: {
-      borderRadius: radius.sm,
-    },
+    aiGlow: {},
     aiTile: {
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       padding: spacing.md,
       overflow: "hidden",
       minHeight: 156,
@@ -193,15 +181,9 @@ const createStyles = (colors) =>
     aiText: {
       maxWidth: "58%",
     },
-    aiEyebrowRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
     aiEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
-      letterSpacing: 1.2,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     aiTitle: {
       ...typography.title,
@@ -213,30 +195,21 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    aiCta: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "flex-start",
-      gap: 6,
-      marginTop: spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 8,
-      borderRadius: radius.pill,
-      backgroundColor: colors.selected,
-    },
+    // A plain text action — the whole tile is the button.
     aiCtaText: {
-      ...typography.label,
-      color: colors.selectedText,
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
     },
     halfRow: {
       flexDirection: "row",
-      gap: spacing.sm,
+      gap: 2,
     },
-    // Flat, solid tiles.
+    // Flat, solid, square tiles.
     halfTile: {
       flex: 1,
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       padding: spacing.md,
       overflow: "hidden",
     },

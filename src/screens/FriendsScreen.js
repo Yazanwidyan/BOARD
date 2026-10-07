@@ -88,7 +88,7 @@ export const FriendsScreen = ({ navigation }) => {
       >
         {/* Invite */}
         <View style={styles.inviteCard}>
-          <Text style={styles.inviteLabel}>YOUR HANDLE</Text>
+          <Text style={styles.inviteLabel}>Your handle</Text>
           <Pressable
             onPress={async () => {
               await Clipboard.setStringAsync(myHandle);
@@ -143,10 +143,7 @@ export const FriendsScreen = ({ navigation }) => {
         ))}
 
         {/* Friends */}
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>FRIENDS</Text>
-          <Text style={styles.tagCount}>{friends.length}</Text>
-        </View>
+        <Text style={styles.tagText}>Friends · {friends.length}</Text>
         {friends.map((friend) => (
           <Pressable
             key={friend.id}
@@ -213,14 +210,10 @@ const createStyles = (colors) =>
       alignItems: "center",
       padding: spacing.lg,
       backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: `${colors.accent}66`,
     },
     inviteLabel: {
-      ...typography.label,
-      color: colors.accentLight,
-      letterSpacing: 1.5,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     inviteHandle: {
       ...typography.hero,
@@ -238,32 +231,29 @@ const createStyles = (colors) =>
       alignSelf: "stretch",
       marginTop: spacing.md,
     },
+    // A filled box edge to edge, like Settings' fields, with "Add" as a
+    // plain text action inside it.
     addRow: {
       flexDirection: "row",
-      gap: spacing.sm,
+      alignItems: "center",
       marginTop: spacing.md,
       paddingHorizontal: spacing.md,
+      minHeight: 48,
+      backgroundColor: colors.card,
     },
     addInput: {
       ...typography.body,
       flex: 1,
-      height: 44,
-      paddingHorizontal: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
+      paddingVertical: spacing.sm,
       color: colors.textPrimary,
     },
     addButton: {
-      height: 44,
-      paddingHorizontal: spacing.lg,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.sm,
-      backgroundColor: colors.selected,
+      paddingLeft: spacing.md,
+      paddingVertical: spacing.sm,
     },
     addButtonText: {
       ...typography.bodyBold,
-      color: colors.selectedText,
+      color: colors.textPrimary,
     },
     pendingRow: {
       flexDirection: "row",
@@ -279,28 +269,13 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    tag: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "flex-start",
-      gap: spacing.sm,
-      marginLeft: spacing.md,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm + 2,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
-      borderRadius: radius.xs,
-      backgroundColor: colors.cardElevated,
-    },
+    // Section caption, like Settings.
     tagText: {
-      ...typography.label,
-      color: colors.textSecondary,
-      letterSpacing: 1.2,
-    },
-    tagCount: {
       ...typography.caption,
-      fontSize: 11,
       color: colors.textMuted,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     friendCard: {
       padding: spacing.md,
@@ -325,11 +300,7 @@ const createStyles = (colors) =>
       marginTop: 1,
     },
     matchPill: {
-      alignItems: "center",
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 5,
-      borderRadius: radius.sm,
-      backgroundColor: colors.surfaceSoft,
+      alignItems: "flex-end",
     },
     matchValue: {
       ...typography.bodyBold,

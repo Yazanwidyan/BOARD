@@ -80,7 +80,7 @@ export const MOCK_FRIENDS = [
     id: "f5",
     name: "Jonah Brooks",
     handle: "@jonahb",
-    color: "#D6BBFF",
+    color: "#A9C4FF",
     level: 14,
     watched: tiers([
       ["The Lord of the Rings: The Fellowship of the Ring", "S"],

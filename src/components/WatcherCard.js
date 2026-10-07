@@ -1,4 +1,4 @@
-import { ChevronRight, Plus } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { spacing } from "../theme/spacing";
@@ -7,15 +7,21 @@ import { useColors } from "../theme/useColors";
 import { AvatarLevelRing } from "./AvatarLevelRing";
 import { Medal, getBadgeLook } from "./BadgeMedal";
 
-const BADGE_COLUMNS = 4;
-const MEDAL_SIZE = 46;
+// Top badges shown under the bio.
+const TOP_BADGES = 6;
+const TOP_BADGE_SIZE = 34;
 
 // The top of Profile — and the header of the shared taste image: who you
-// are as a watcher at a glance. Avatar + level, your best badge from
-// every track, and the headline numbers — in Profile's plain style (no
-// card around it).
+// are as a watcher at a glance, laid out like a social profile.
 //
-// mode "profile" is interactive (copy handle, edit bio, open badges);
+//   avatar (with level ring)   name · level
+//                              movies · hours · collections · badges
+//   "bio, as a quote"
+//   top badges — your best from each track, most valuable first
+//
+// Badges are just a number here; tapping it opens the Badges screen.
+//
+// mode "profile" is interactive (open watcher sheet, edit bio, open badges);
 // mode "share" drops every control so it reads cleanly as an image.
 export const WatcherCard = ({
   mode = "profile",
@@ -24,27 +30,34 @@ export const WatcherCard = ({
   bio,
   avatarSource,
   level,
-  xpToNextLevel,
-  showcase,
-  allBadges,
   earnedBadgeCount,
+  showcase = [],
+  allBadges = [],
   stats,
   onPressAvatar,
-  onCopyHandle,
   onPressBio,
   onPressBadges,
-  onPressBadge,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const isShare = mode === "share";
   const Touch = isShare ? View : Pressable;
 
+  const statItems = [
+    { value: stats.movies, label: stats.movies === 1 ? "movie" : "movies" },
+    { value: `${stats.hours}h`, label: "watched" },
+    { value: stats.completed, label: "collections" },
+    {
+      value: earnedBadgeCount,
+      label: earnedBadgeCount === 1 ? "badge" : "badges",
+      onPress: onPressBadges,
+    },
+  ];
+
   return (
     <View>
-      {/* Identity: avatar (with its level ring) beside name, level, handle,
-          bio. Tapping the avatar or level opens the watcher profile sheet. */}
-      <View style={styles.identityRow}>
+      {/* Avatar beside the headline numbers */}
+      <View style={styles.topRow}>
         <Touch
           onPress={onPressAvatar}
           accessibilityLabel="Your watcher profile"
@@ -52,104 +65,103 @@ export const WatcherCard = ({
           <AvatarLevelRing
             source={avatarSource}
             level={level}
-            avatarSize={72}
+            avatarSize={76}
           />
         </Touch>
-        <View style={styles.identityText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {displayName}
-          </Text>
-          <Touch onPress={onPressAvatar} hitSlop={6}>
-            <Text style={styles.rankLine} numberOfLines={1}>
-              <Text style={styles.levelName}>{level.name}</Text>
+        <View style={styles.side}>
+          {/* Name · level, over the numbers */}
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
             </Text>
-          </Touch>
+            <Touch onPress={onPressAvatar} hitSlop={6} style={styles.levelWrap}>
+              <Text style={styles.levelName} numberOfLines={1}>
+                · {level.name}
+              </Text>
+            </Touch>
+          </View>
           {isShare && <Text style={styles.handle}>{handle}</Text>}
-          {isShare ? (
-            !!bio && (
-              <Text style={[styles.bio, styles.bioShare]} numberOfLines={2}>
-                {bio}
-              </Text>
-            )
-          ) : (
-            <Pressable
-              onPress={onPressBio}
-              hitSlop={6}
-              style={styles.bioButton}
-            >
-              {!bio && (
-                <Plus size={12} color={colors.textMuted} strokeWidth={2.4} />
-              )}
-              <Text
-                style={[styles.bio, !bio && styles.bioPlaceholder]}
-                numberOfLines={2}
-              >
-                {bio || "Add a bio"}
-              </Text>
-            </Pressable>
-          )}
+          <View style={styles.stats}>
+            {statItems.map(({ value, label, onPress }) => {
+              const tappable = !isShare && !!onPress;
+              const Item = tappable ? Pressable : View;
+              return (
+                <Item
+                  key={label}
+                  style={styles.stat}
+                  onPress={onPress}
+                  hitSlop={6}
+                  accessibilityRole={tappable ? "button" : undefined}
+                  accessibilityLabel={`${value} ${label}`}
+                >
+                  <Text style={styles.statValue}>{value}</Text>
+                  <View style={styles.statLabelRow}>
+                    <Text style={styles.statLabel} numberOfLines={1}>
+                      {label}
+                    </Text>
+                  </View>
+                </Item>
+              );
+            })}
+          </View>
         </View>
       </View>
 
-      {/* Headline numbers — one compact line, like a social profile */}
-      <View style={styles.statsInline}>
-        {[
-          [stats.movies, stats.movies === 1 ? "movie" : "movies"],
-          [`${stats.hours}h`, "watched"],
-          [stats.completed, "full sets"],
-        ].map(([value, label], index) => (
-          <View key={label} style={styles.statInlineWrap}>
-            {index > 0 && <View style={styles.statDivider} />}
-            <View style={styles.statInline}>
-              <Text style={styles.statValue}>{value}</Text>
-              <Text style={styles.statLabel}>{label}</Text>
-            </View>
+      {/* Bio as a quote — your take, not a description */}
+      {isShare ? (
+        !!bio && (
+          <View style={styles.quote}>
+            <Text style={styles.quoteText} numberOfLines={3}>
+              “{bio}”
+            </Text>
           </View>
-        ))}
-      </View>
+        )
+      ) : (
+        <Pressable
+          onPress={onPressBio}
+          hitSlop={6}
+          style={styles.quote}
+          accessibilityLabel={bio ? "Edit bio" : "Add a bio"}
+        >
+          {bio ? (
+            <Text style={styles.quoteText} numberOfLines={3}>
+              “{bio}”
+            </Text>
+          ) : (
+            <View style={styles.addBio}>
+              <Plus size={12} color={colors.textMuted} strokeWidth={2.4} />
+              <Text style={styles.addBioText}>Add your take — a short bio</Text>
+            </View>
+          )}
+        </Pressable>
+      )}
 
-      {/* Badges — your best from every track */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionLabel}>Badges</Text>
-        <Text style={styles.badgeCount}>{earnedBadgeCount} earned</Text>
-        <View style={styles.spacer} />
-        {!isShare && (
-          <Pressable
-            onPress={onPressBadges}
-            hitSlop={8}
-            style={styles.allButton}
-          >
-            <Text style={styles.allText}>All</Text>
-            <ChevronRight size={14} color={colors.textSecondary} />
-          </Pressable>
-        )}
-      </View>
-      {showcase.length > 0 ? (
-        <View style={styles.badgeRow}>
-          {showcase.map((badge) => {
+      {/* Top badges — tap to see them all */}
+      {showcase.length > 0 && (
+        <Touch
+          style={styles.topBadges}
+          onPress={onPressBadges}
+          accessibilityLabel="Your badges"
+        >
+          {showcase.slice(0, TOP_BADGES).map((badge) => {
             const { metal, tierIndex } = getBadgeLook(badge, allBadges);
             return (
-              <Touch
+              <Medal
                 key={badge.id}
-                style={styles.badgeSlot}
-                onPress={() => onPressBadge?.(badge)}
-              >
-                <Medal
-                  badge={badge}
-                  metal={metal}
-                  tierIndex={tierIndex}
-                  size={MEDAL_SIZE}
-                  showCheck={false}
-                />
-                <Text style={styles.badgeLabel} numberOfLines={2}>
-                  {badge.label}
-                </Text>
-              </Touch>
+                badge={badge}
+                metal={metal}
+                tierIndex={tierIndex}
+                size={TOP_BADGE_SIZE}
+                showCheck={false}
+              />
             );
           })}
-        </View>
-      ) : (
-        <Text style={styles.badgeEmpty}>Badges you earn show up here.</Text>
+          {showcase.length > TOP_BADGES && (
+            <Text style={styles.moreBadges}>
+              +{showcase.length - TOP_BADGES}
+            </Text>
+          )}
+        </Touch>
       )}
     </View>
   );
@@ -157,132 +169,95 @@ export const WatcherCard = ({
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    identityRow: {
+    topRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.md,
+      gap: spacing.md + 4,
     },
-    identityText: {
-      flex: 1,
-      gap: 2,
-    },
-    name: {
-      ...typography.title,
-      fontSize: 20,
-      color: colors.textPrimary,
-    },
-    rankLine: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    levelName: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      color: colors.accentLight,
-    },
-    handle: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    bioButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginTop: spacing.xs,
-    },
-    bio: {
-      ...typography.body,
-      fontSize: 13,
-      color: colors.textMuted,
-      lineHeight: 17,
-      flexShrink: 1,
-    },
-    bioShare: {
-      marginTop: spacing.xs,
-    },
-    bioPlaceholder: {
-      color: colors.textMuted,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-    },
-    badgeCount: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    spacer: {
+    side: {
       flex: 1,
     },
-    allButton: {
+    // Natural widths, spread edge to edge: the first number lines up under
+    // the name, the last with the right edge.
+    stats: {
       flexDirection: "row",
-      alignItems: "center",
-      gap: 2,
+      marginTop: spacing.sm + 2,
+      paddingRight: spacing.xs,
+      justifyContent: "space-between",
     },
-    allText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    // Four per row, wrapping — every track you've earned in gets a spot.
-    badgeRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      rowGap: spacing.sm + 2,
-    },
-    badgeSlot: {
-      width: `${100 / BADGE_COLUMNS}%`,
-      alignItems: "center",
-      paddingHorizontal: 2,
-    },
-    badgeLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      lineHeight: 14,
-      color: colors.textPrimary,
-      textAlign: "center",
-      marginTop: spacing.xs + 2,
-    },
-    badgeEmpty: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    statsInline: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: spacing.md,
-    },
-    statInlineWrap: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    statDivider: {
-      width: 1,
-      height: 28,
-      backgroundColor: colors.border,
-    },
-    statInline: {
-      flex: 1,
-      alignItems: "center",
+    stat: {
+      alignItems: "flex-start",
     },
     statValue: {
       ...typography.hero,
-      fontSize: 20,
+      fontSize: 19,
       lineHeight: 24,
       color: colors.textPrimary,
+    },
+    statLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 1,
     },
     statLabel: {
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
+    },
+    nameRow: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: 6,
+    },
+    name: {
+      ...typography.title,
+      fontSize: 18,
+      color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    levelWrap: {
+      flexShrink: 0,
+    },
+    levelName: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    handle: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    topBadges: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    moreBadges: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginLeft: 2,
+    },
+    quote: {
+      marginTop: spacing.md,
+    },
+    quoteText: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
+    addBio: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    addBioText: {
+      ...typography.body,
+      fontSize: 13,
+      color: colors.textMuted,
     },
   });
 

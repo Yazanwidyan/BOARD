@@ -102,7 +102,7 @@ export const MarqueeSign = ({ label, backdropUri, right, children }) => {
         />
       )}
       <LinearGradient
-        colors={["rgba(14, 12, 28, 0.72)", `${colors.card}F2`]}
+        colors={["rgba(12, 13, 14, 0.72)", `${colors.card}F2`]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />

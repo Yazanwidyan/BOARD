@@ -1,13 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Check,
-  Clock,
-  RotateCw,
-  Share2,
-  Shuffle,
-  Trophy,
-} from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Share2 } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -15,11 +16,12 @@ import {
 
 import { BackButton } from "../components/BackButton";
 import { MovieGrid } from "../components/MovieGrid";
+import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { openShareCard } from "../store/shareCardStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -40,6 +42,7 @@ const TYPE_LABELS = {
 
 const HEADER_BAR_HEIGHT = 40;
 const MARATHON_SIZE = 10;
+const BACKDROP_POSTERS = 4;
 const MONTHS = [
   "Jan",
   "Feb",
@@ -54,13 +57,17 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
-const formatDate = (timestamp) => {
+const formatShortDate = (timestamp) => {
   const date = new Date(timestamp);
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
 };
-// Hero (accent gradient, progress, time left, completion XP) → a
-// "Collection Complete" card once everything's watched → a poster grid of
-// the whole collection with watched ones checked.
+
+// A collection, in Profile's flat style:
+//   the set's posters, blurred, behind a grey caption + big title
+//   numbers like a profile (watched / to go / time left — or, once done,
+//   movies / runtime / completed date), then a thin progress line
+//   square actions (pick one · or rewatch marathon + share when complete)
+//   the posters edge to edge, watched ones checked.
 export const CollectionDetailsScreen = ({ route, navigation }) => {
   const { collectionId } = route.params;
   const collection = getCollectionById(collectionId);
@@ -69,6 +76,24 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const watched = useMovieStore((state) => state.watched);
   const startSession = useSessionStore((state) => state.startSession);
+
+  // The header bar: transparent over the blurred posters, then a solid bar
+  // with the title fades in as the top scrolls away — so the flat back and
+  // share icons never float over the grid. (Hooks stay above the early
+  // return.)
+  const [heroHeight, setHeroHeight] = useState(320);
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const barStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [heroHeight - 140, heroHeight - 80],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+  }));
 
   if (!collection) {
     return null;
@@ -83,6 +108,10 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const minutesLeft = collection.movies
     .filter((movie) => !watchedIds.has(movie.id))
     .reduce((sum, movie) => sum + movie.runtime, 0);
+  const totalMinutes = collection.movies.reduce(
+    (sum, movie) => sum + movie.runtime,
+    0,
+  );
 
   const openMovie = (movieId) =>
     navigation.navigate("MovieDetails", { movieId });
@@ -103,7 +132,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     : null;
 
   // Opens the brag image card (posters grid + "I've seen all N …").
-  const shareCompletion = () => openShareCard(collection.id);
+  const shareCollection = () => openShareCard(collection.id);
 
   // A completed collection's own movies as a Swipe session — pick tonight's
   // rewatch from the set you just finished.
@@ -112,11 +141,27 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     navigation.navigate("Swipe");
   };
 
+  const stats = isComplete
+    ? [
+        { value: total, label: "movies" },
+        { value: formatRuntime(totalMinutes), label: "watched" },
+        ...(completedAt
+          ? [{ value: formatShortDate(completedAt), label: "completed" }]
+          : []),
+      ]
+    : [
+        { value: watchedCount, label: "watched" },
+        { value: total - watchedCount, label: "to go" },
+        { value: formatRuntime(minutesLeft), label: "left" },
+      ];
+
   const headerTop = insets.top + spacing.sm;
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
@@ -125,120 +170,122 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             styles.hero,
             { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.lg },
           ]}
+          onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
         >
-          <LinearGradient
-            colors={[
-              isComplete ? `${colors.rating}40` : "rgba(141, 96, 226, 0.28)",
-              colors.background,
-            ]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-
-          <View style={styles.eyebrowRow}>
-            {isComplete && <Trophy size={13} color={colors.rating} />}
-            <Text
-              style={[styles.heroEyebrow, isComplete && styles.heroEyebrowGold]}
-            >
-              {isComplete ? "COMPLETED · " : ""}
-              {(TYPE_LABELS[collection.type] ?? "Collection").toUpperCase()}
-            </Text>
+          {/* The set's own posters, blurred, fading into the page. */}
+          <View style={styles.backdrop} pointerEvents="none">
+            {collection.movies.slice(0, BACKDROP_POSTERS).map((movie) => (
+              <MoviePoster
+                key={movie.id}
+                uri={movie.poster}
+                blurRadius={14}
+                style={styles.backdropPoster}
+              />
+            ))}
+            <LinearGradient
+              colors={[`${colors.background}8C`, colors.background]}
+              locations={[0, 0.95]}
+              style={StyleSheet.absoluteFill}
+            />
           </View>
-          <Text style={styles.heroTitle} numberOfLines={2}>
+
+          <Text style={styles.eyebrow}>
+            {TYPE_LABELS[collection.type] ?? "Collection"}
+            {isComplete ? " · Completed" : ""}
+          </Text>
+          <Text style={styles.title} numberOfLines={2}>
             {collection.title}
           </Text>
 
-          <View style={styles.progressRow}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  isComplete && styles.progressFillComplete,
-                  { width: `${progress * 100}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {watchedCount} / {total} watched
-            </Text>
-          </View>
-
-          <View style={styles.statsRow}>
-            {isComplete ? (
-              completedAt && (
-                <View style={styles.stat}>
-                  <Check size={13} color={colors.rating} strokeWidth={3} />
-                  <Text style={[styles.statText, styles.statTextXP]}>
-                    Completed {formatDate(completedAt)}
-                  </Text>
-                </View>
-              )
-            ) : (
-              <View style={styles.stat}>
-                <Clock size={13} color={colors.textSecondary} />
-                <Text style={styles.statText}>
-                  {formatRuntime(minutesLeft)} left
-                </Text>
+          <View style={styles.stats}>
+            {stats.map(({ value, label }) => (
+              <View key={label} style={styles.stat}>
+                <Text style={styles.statValue}>{value}</Text>
+                <Text style={styles.statLabel}>{label}</Text>
               </View>
-            )}
+            ))}
           </View>
-
-          {!isComplete && (
-            <PrimaryButton
-              label="Pick from this collection"
-              icon={<Shuffle size={16} color="#FFFFFF" />}
-              onPress={pickRandomUnwatched}
-              style={styles.pickButton}
-              contentStyle={styles.pickButtonContent}
-            />
-          )}
         </View>
 
-        {isComplete && (
-          <View style={styles.section}>
-            <View style={styles.trophyCard}>
-              <View style={styles.trophyIcon}>
-                <Trophy size={22} color={colors.rating} />
-              </View>
-              <View style={styles.completeInfo}>
-                <Text style={styles.trophyTitle}>Collection complete</Text>
-                <Text style={styles.completeSubtitle}>
-                  All {total} movies watched
-                </Text>
-              </View>
-            </View>
-            <View style={styles.trophyActions}>
+        {/* Progress: a thin line edge to edge — gold once complete. */}
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              isComplete && styles.progressFillComplete,
+              { width: `${progress * 100}%` },
+            ]}
+          />
+        </View>
+
+        <View style={styles.actions}>
+          {isComplete ? (
+            <>
               <PrimaryButton
                 label="Rewatch marathon"
-                icon={<RotateCw size={15} color="#FFFFFF" />}
                 onPress={startMarathon}
-                style={styles.trophyAction}
-                contentStyle={styles.pickButtonContent}
+                style={styles.action}
+                contentStyle={styles.actionContent}
               />
               <PrimaryButton
                 label="Share"
                 variant="secondary"
-                icon={<Share2 size={15} color={colors.textPrimary} />}
-                onPress={shareCompletion}
-                style={styles.trophyAction}
-                contentStyle={styles.pickButtonContent}
+                onPress={shareCollection}
+                style={styles.action}
+                contentStyle={styles.actionContent}
               />
-            </View>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>All Movies</Text>
+            </>
+          ) : (
+            <PrimaryButton
+              label="Pick from this collection"
+              onPress={pickRandomUnwatched}
+              style={styles.action}
+              contentStyle={styles.actionContent}
+            />
+          )}
         </View>
+
         <MovieGrid
           movies={collection.movies}
           onPressMovie={(movie) => openMovie(movie.id)}
           showWatchedCheck
         />
-      </ScrollView>
+      </Animated.ScrollView>
 
-      <View style={[styles.headerBar, { top: headerTop }]}>
-        <BackButton onPress={() => navigation.goBack()} />
+      <View
+        style={[
+          styles.headerBar,
+          {
+            paddingTop: headerTop,
+            height: headerTop + HEADER_BAR_HEIGHT + spacing.sm,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <Animated.View
+          style={[styles.headerBarFill, barStyle]}
+          pointerEvents="none"
+        />
+        {/* Same width as the share button, so the title stays centred. */}
+        <View style={styles.headerSide}>
+          <BackButton onPress={() => navigation.goBack()} />
+        </View>
+        <Animated.Text
+          style={[styles.headerTitle, barStyle]}
+          numberOfLines={1}
+          pointerEvents="none"
+        >
+          {collection.title}
+        </Animated.Text>
+        <Pressable
+          style={styles.headerIconButton}
+          onPress={shareCollection}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Share this collection"
+        >
+          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -252,132 +299,106 @@ const createStyles = (colors) =>
     },
     headerBar: {
       position: "absolute",
-      left: spacing.md,
-      right: spacing.md,
-      height: HEADER_BAR_HEIGHT,
+      top: 0,
+      left: 0,
+      right: 0,
+      paddingHorizontal: spacing.md,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+    },
+    headerSide: {
+      width: HEADER_BAR_HEIGHT,
+      flexDirection: "row",
+    },
+    headerBarFill: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: {
+      ...typography.title,
+      flex: 1,
+      fontSize: 18,
+      letterSpacing: -0.3,
+      textAlign: "center",
+      color: colors.textPrimary,
+      marginHorizontal: spacing.sm,
+    },
+    // Flat, like the other header icons (no circle).
+    headerIconButton: {
+      width: HEADER_BAR_HEIGHT,
+      height: HEADER_BAR_HEIGHT,
+      alignItems: "flex-end",
+      justifyContent: "center",
     },
     hero: {
       paddingHorizontal: spacing.md,
-      paddingBottom: spacing.lg,
+      paddingBottom: spacing.md,
       overflow: "hidden",
     },
-    heroEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
+    backdrop: {
+      ...StyleSheet.absoluteFill,
+      flexDirection: "row",
     },
-    heroTitle: {
+    backdropPoster: {
+      flex: 1,
+      height: "100%",
+      opacity: 0.55,
+    },
+    eyebrow: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    title: {
       ...typography.display,
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },
-    progressRow: {
+    // Numbers like a profile: value over a small label.
+    stats: {
       flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
+      gap: spacing.lg,
       marginTop: spacing.md,
     },
+    stat: {
+      alignItems: "flex-start",
+    },
+    statValue: {
+      ...typography.hero,
+      fontSize: 19,
+      lineHeight: 24,
+      color: colors.textPrimary,
+    },
+    statLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 1,
+    },
     progressTrack: {
-      flex: 1,
-      height: 8,
-      borderRadius: radius.pill,
-      backgroundColor: "rgba(255, 255, 255, 0.15)",
-      overflow: "hidden",
+      height: 2,
+      backgroundColor: colors.border,
     },
     progressFill: {
       height: "100%",
-      borderRadius: radius.pill,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.textPrimary,
     },
     progressFillComplete: {
       backgroundColor: colors.rating,
     },
-    progressText: {
-      ...typography.label,
-      color: colors.textPrimary,
-    },
-    statsRow: {
+    actions: {
       flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.md,
-      marginTop: spacing.sm,
-    },
-    stat: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-    },
-    statText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    statTextXP: {
-      color: colors.rating,
-    },
-    pickButton: {
-      alignSelf: "flex-start",
-      marginTop: spacing.md,
-    },
-    pickButtonContent: {
-      paddingVertical: 10,
-    },
-    section: {
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.lg,
-    },
-    sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-      marginBottom: spacing.sm,
-    },
-    completeInfo: {
-      flex: 1,
-      justifyContent: "center",
-    },
-    eyebrowRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-    },
-    heroEyebrowGold: {
-      color: colors.rating,
-    },
-    trophyCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
+      gap: 2,
       padding: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: `${colors.rating}14`,
-      borderWidth: 1.5,
-      borderColor: `${colors.rating}88`,
     },
-    trophyIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: `${colors.rating}24`,
-    },
-    trophyTitle: {
-      ...typography.subtitle,
-      color: colors.rating,
-    },
-    trophyActions: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginTop: spacing.sm,
-    },
-    trophyAction: {
+    action: {
       flex: 1,
     },
-    completeSubtitle: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
+    // Square, like the app's other filled boxes.
+    actionContent: {
+      borderRadius: 0,
+      paddingVertical: 12,
     },
   });
 

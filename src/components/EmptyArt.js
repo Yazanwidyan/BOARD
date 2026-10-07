@@ -22,7 +22,7 @@ import { fonts } from "../theme/typography";
 //   allTiered   S / A / B tier tiles fanned, with a check stamp
 //   comingSoon  a little marquee sign: SOON
 
-const LEDGE = "#3A3C66";
+const LEDGE = "#383B40";
 const CASE = "#0D0D12";
 const INK = "rgba(255, 255, 255, 0.28)";
 const TIER = { S: "#F8E08E", A: "#A4E59B", B: "#8FD3F5" };
@@ -123,7 +123,7 @@ const Scene = ({ art, accent, light }) => {
             );
           })}
           {/* hinge */}
-          <Rect x={78} y={18} width={4} height={70} fill="#1A1A24" />
+          <Rect x={78} y={18} width={4} height={70} fill="#1B1C1F" />
         </G>
       );
 
@@ -182,7 +182,7 @@ const Scene = ({ art, accent, light }) => {
                 textAnchor="middle"
                 fontSize={26}
                 fontFamily={fonts.extraBold}
-                fill="#16152A"
+                fill="#161719"
               >
                 {key}
               </SvgText>
@@ -193,7 +193,7 @@ const Scene = ({ art, accent, light }) => {
             cx={128}
             cy={30}
             r={13}
-            fill="#16152A"
+            fill="#161719"
             stroke={TIER.A}
             strokeWidth={2.2}
             strokeDasharray="3 2"
@@ -218,7 +218,7 @@ const Scene = ({ art, accent, light }) => {
             width={104}
             height={54}
             rx={6}
-            fill="#16152A"
+            fill="#161719"
             stroke="rgba(255,231,163,0.45)"
             strokeWidth={1.5}
           />

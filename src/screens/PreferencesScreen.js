@@ -224,7 +224,7 @@ const createStyles = (colors) =>
     },
     resetText: {
       ...typography.bodyBold,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     resetDisabled: {
       color: colors.textMuted,
@@ -253,8 +253,8 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     sectionHint: {
       ...typography.caption,
@@ -268,7 +268,6 @@ const createStyles = (colors) =>
     chip: {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     chipSelected: {
@@ -287,7 +286,7 @@ const createStyles = (colors) =>
       paddingTop: spacing.sm,
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderTopWidth: 1,
+      borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
     },
     matchText: {

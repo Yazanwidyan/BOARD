@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Shuffle } from "lucide-react-native";
+import { Bell, Search, Shuffle } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -11,17 +11,19 @@ import {
 import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
-import { RankGemIcon } from "../components/icons/RankGemIcon";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { DockHeader, useDockHeader } from "../components/ScreenHeader";
+import {
+  DockHeader,
+  HeaderIconButton,
+  useDockHeader,
+} from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { useProfileStore } from "../store/profileStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -32,33 +34,6 @@ import { getLevel, getUserXP } from "../utils/xp";
 
 const RECENT_COUNT = 10;
 
-const DAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-
-// Home's live line — "Friday night, Yazan". Worked out at render, which
-// happens whenever any store Home reads changes, so it never goes stale
-// for long.
-const getTimeGreeting = (date, name) => {
-  const hour = date.getHours();
-  const part =
-    hour < 5
-      ? "night"
-      : hour < 12
-        ? "morning"
-        : hour < 17
-          ? "afternoon"
-          : hour < 21
-            ? "evening"
-            : "night";
-  return `${DAY_NAMES[date.getDay()]} ${part}, ${name}`;
-};
 const WATCHLIST_COUNT = 10;
 // Shelf rail item widths (each includes its own side padding).
 const POSTER_ITEM = 122;
@@ -280,7 +255,6 @@ export const HomeScreen = ({ navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
 
-  const displayName = useProfileStore((state) => state.displayName);
   const pickedMovieId = useMovieStore((state) => state.pickedMovie);
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
@@ -398,15 +372,22 @@ export const HomeScreen = ({ navigation }) => {
       <ScreenBottomFade />
       <DockHeader
         {...header.props}
-        eyebrow={getTimeGreeting(new Date(), displayName)}
-        title="Bored? Let's fix that."
+        title="Reelboard"
         right={
-          <Pressable
-            style={styles.levelBadge}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <RankGemIcon size={18} color={colors.accent} />
-          </Pressable>
+          <>
+            <HeaderIconButton
+              onPress={() => navigation.navigate("Activity")}
+              accessibilityLabel="Activity"
+            >
+              <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />
+            </HeaderIconButton>
+            <HeaderIconButton
+              onPress={() => navigation.navigate("Search")}
+              accessibilityLabel="Search"
+            >
+              <Search size={22} strokeWidth={1.75} color={colors.textPrimary} />
+            </HeaderIconButton>
+          </>
         }
       />
     </SafeAreaView>
@@ -418,20 +399,6 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    levelBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: colors.cardElevatedLight,
-      borderRadius: radius.pill,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    levelBadgeText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
     },
     section: {
       paddingHorizontal: spacing.md,

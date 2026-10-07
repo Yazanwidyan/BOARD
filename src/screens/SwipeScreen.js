@@ -86,7 +86,7 @@ const AisleSpines = ({ count, index, keptIds, movies, styles, colors }) => (
             ? keptIds.has(movie?.id)
               ? colors.success
               : "rgba(255, 255, 255, 0.16)"
-            : "#2A2B44";
+            : "#2E3034";
       return (
         <View key={spineIndex} style={[styles.spine, { backgroundColor }]} />
       );

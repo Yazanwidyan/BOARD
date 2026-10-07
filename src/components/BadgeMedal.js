@@ -91,8 +91,8 @@ const METALS = [
   "#B9BBD2",
   "#E8B94E",
   "#7FE0D6",
-  "#8D9FFF",
-  "#8D60E2",
+  "#A9C4FF",
+  "#5B8DEF",
 ];
 export const metalFor = (tierIndex) =>
   METALS[Math.min(tierIndex, METALS.length - 1)];
@@ -207,7 +207,12 @@ export const Medal = ({
           state === "locked" && styles.artLocked,
         ]}
       >
-        <GoldBadgeArt size={size} />
+        <GoldBadgeArt
+          emblem={badge.category}
+          tier={tier}
+          earned={state === "earned"}
+          size={size}
+        />
         {/* <BadgeArt
           emblem={badge.category}
           tier={tier}

@@ -26,7 +26,7 @@ import { fonts } from "../theme/typography";
 // (A badge moment shows the real badge medal instead — see BadgeArt.)
 
 const GOLD = ["#FFF1BF", "#F2C75C", "#B98A2E"];
-const INK = "#16152A";
+const INK = "#161719";
 
 const toRgb = (hex) => {
   const value = parseInt(hex.slice(1), 16);

@@ -1,5 +1,4 @@
 import * as Haptics from "expo-haptics";
-import { Sparkles } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -21,15 +20,14 @@ import { MoviePoster } from "./MoviePoster";
 
 const POSTER_WIDTH = 28;
 const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
-const POSTER_GAP = 6;
+const POSTER_GAP = 2;
 const MARQUEE_COUNT = 18;
 // Per poster, so the drift speed stays the same whatever the count.
 const MS_PER_POSTER = 1400;
 
-// Decide's own header — unlike the other tabs' plain bars. Card-colored
-// like them, but with a "Surprise me" button (one tap to a pick) and a
-// slim marquee of posters drifting along the bottom edge, like a cinema
-// sign full of options.
+// Decide's own header — the other tabs' plain bar, plus a "Surprise me"
+// text action (one tap to a pick) and a slim marquee of posters drifting
+// along the bottom edge, 2px apart, like a cinema sign full of options.
 //
 // The strip is the list drawn twice side by side and slid left by exactly
 // one copy's width on a linear loop, so the jump back to the start lands
@@ -95,12 +93,13 @@ export const DecideHeader = ({ onSurprise, onMeasure }) => {
             styles.surprise,
             pressed && styles.surprisePressed,
           ]}
+          hitSlop={8}
+          accessibilityRole="button"
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onSurprise();
           }}
         >
-          <Sparkles size={15} color={colors.accentContrast} />
           <Text style={styles.surpriseText}>Surprise me</Text>
         </Pressable>
       </View>
@@ -141,22 +140,17 @@ const createStyles = (colors) =>
       letterSpacing: -0.6,
       color: colors.textPrimary,
     },
+    // A plain text action, like the app's other header actions.
     surprise: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 9,
-      borderRadius: 999,
-      backgroundColor: colors.accent,
+      paddingVertical: spacing.sm,
     },
     surprisePressed: {
-      transform: [{ scale: 0.95 }],
+      opacity: 0.6,
     },
     surpriseText: {
       ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.accentContrast,
+      fontSize: 15,
+      color: colors.textPrimary,
     },
     marqueeClip: {
       marginTop: spacing.sm + 2,
@@ -171,7 +165,6 @@ const createStyles = (colors) =>
     marqueePoster: {
       width: POSTER_WIDTH,
       height: POSTER_HEIGHT,
-      opacity: 0.85,
     },
   });
 

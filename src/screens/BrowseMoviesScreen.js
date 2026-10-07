@@ -148,9 +148,8 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      marginHorizontal: spacing.md,
       marginTop: spacing.sm,
+      minHeight: 48,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
@@ -195,17 +194,14 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
+    // Flat icon action on the row (no circle).
     toggleButton: {
       width: 36,
       height: 36,
-      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.card,
     },
-    toggleButtonActive: {
-      backgroundColor: colors.surfaceSoft,
-    },
+    toggleButtonActive: {},
   });
 
 export default BrowseMoviesScreen;

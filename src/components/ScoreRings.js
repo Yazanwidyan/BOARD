@@ -75,7 +75,7 @@ export const ScoreRings = ({ scores }) => {
                 <Text
                   style={[
                     styles.tierLetter,
-                    { color: info ? "#16152A" : colors.textMuted },
+                    { color: info ? "#161719" : colors.textMuted },
                   ]}
                 >
                   {info ? info.key : "–"}

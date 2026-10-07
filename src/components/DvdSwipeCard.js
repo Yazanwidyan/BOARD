@@ -278,10 +278,10 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   gloss: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   tint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });
 

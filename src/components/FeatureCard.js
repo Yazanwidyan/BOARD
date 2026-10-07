@@ -50,7 +50,7 @@ const createStyles = (colors) =>
       width: 44,
       height: 44,
       borderRadius: radius.sm,
-      backgroundColor: "rgba(141, 96, 226, 0.16)",
+      backgroundColor: "rgba(91, 141, 239, 0.16)",
       alignItems: "center",
       justifyContent: "center",
     },

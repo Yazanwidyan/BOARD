@@ -163,11 +163,7 @@ export const TonightsPickCard = ({ navigation }) => {
             hitSlop={4}
             accessibilityLabel="Watch the trailer"
           >
-            <Play
-              size={16}
-              color={colors.textPrimary}
-              fill={colors.textPrimary}
-            />
+            <Play size={18} color={colors.textPrimary} />
           </Pressable>
           <Pressable
             style={styles.roundButton}

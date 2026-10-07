@@ -1,15 +1,12 @@
 import {
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
 import { Check } from "lucide-react-native";
 
 import { useMovieStore } from "../store/movieStore";
-import { radius, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 
@@ -27,13 +24,14 @@ export const MovieGrid = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const watched = useMovieStore((state) => state.watched);
-  const gap = spacing.md;
-  const horizontalPadding = spacing.md;
-  const cardWidth =
-    (width - horizontalPadding * 2 - gap * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+  // Edge to edge, 2px apart, posters only — like Profile's grids. Whole
+  // pixels and an explicit height so wrapped rows never get clipped.
+  const gap = 2;
+  const cardWidth = Math.floor((width - gap * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
+  const cardSize = { width: cardWidth, height: cardWidth * 1.5 };
 
   return (
-    <View style={[styles.grid, { paddingHorizontal: horizontalPadding, gap }]}>
+    <View style={[styles.grid, { gap }]}>
       {movies.map((movie) => {
         const watchedEntry = watched.find(
           (entry) => entry.movieId === movie.id,
@@ -42,18 +40,11 @@ export const MovieGrid = ({
           <Pressable
             key={movie.id}
             onPress={() => onPressMovie(movie)}
-            style={({ pressed }) => [
-              { width: cardWidth },
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [cardSize, pressed && styles.pressed]}
+            accessibilityLabel={movie.title}
           >
             <View>
-              <MoviePoster
-                uri={movie.poster}
-                shadow
-                radius={0}
-                style={{ width: cardWidth, aspectRatio: 2 / 3 }}
-              />
+              <MoviePoster uri={movie.poster} radius={0} style={cardSize} />
               {showWatchedCheck && watchedEntry && (
                 <View style={styles.watchedBadge}>
                   <Check
@@ -64,10 +55,6 @@ export const MovieGrid = ({
                 </View>
               )}
             </View>
-            <Text style={styles.title} numberOfLines={1}>
-              {movie.title}
-            </Text>
-            <Text style={styles.year}>{movie.year}</Text>
           </Pressable>
         );
       })}
@@ -80,19 +67,10 @@ const createStyles = (colors) =>
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
+      justifyContent: "center",
     },
     pressed: {
       opacity: 0.7,
-    },
-    title: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-      marginTop: spacing.sm,
-    },
-    year: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
     },
     watchedBadge: {
       position: "absolute",

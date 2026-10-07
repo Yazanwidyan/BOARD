@@ -9,7 +9,7 @@ export const TIERS = [
   { key: "S", meaning: "All-time favorite", color: "#F8E08E" },
   { key: "A", meaning: "Loved it", color: "#A4E59B" },
   { key: "B", meaning: "Really good", color: "#8FD3F5" },
-  { key: "C", meaning: "It was fine", color: "#D6BBFF" },
+  { key: "C", meaning: "It was fine", color: "#C8C9CC" },
   { key: "D", meaning: "Not for me", color: "#F5B98F" },
   { key: "F", meaning: "Hated it", color: "#F6A0AC" },
 ];

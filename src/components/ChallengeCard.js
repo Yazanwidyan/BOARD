@@ -1,4 +1,3 @@
-import { ChevronRight, Shuffle } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
@@ -64,7 +63,6 @@ export const ChallengeCard = ({
           <Text style={styles.linkText}>
             {isReveal ? "Accept" : "View details"}
           </Text>
-          <ChevronRight size={15} color={colors.accentLight} />
         </Pressable>
         {secondary && (
           <Pressable
@@ -73,7 +71,6 @@ export const ChallengeCard = ({
             hitSlop={8}
             accessibilityLabel={isReveal ? "Give me another" : "Change dare"}
           >
-            <Shuffle size={14} color={colors.textSecondary} />
             <Text style={styles.secondaryText}>
               {isReveal ? "Another" : "Change"}
             </Text>
@@ -84,7 +81,7 @@ export const ChallengeCard = ({
   );
 };
 
-// No dare yet: the same card, with a dotted placeholder where the poster
+// No dare yet: the same card, with a filled placeholder where the poster
 // goes and one quiet link.
 export const ChallengePrompt = ({ onStart }) => {
   const colors = useColors();
@@ -109,7 +106,6 @@ export const ChallengePrompt = ({ onStart }) => {
       <View style={styles.actions}>
         <Pressable style={styles.link} onPress={onStart} hitSlop={8}>
           <Text style={styles.linkText}>Start a dare</Text>
-          <ChevronRight size={15} color={colors.accentLight} />
         </Pressable>
       </View>
     </Pressable>
@@ -175,12 +171,11 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       marginTop: 3,
     },
+    // A filled square where the poster will go.
     placeholder: {
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: colors.border,
+      backgroundColor: colors.card,
     },
     placeholderMark: {
       ...typography.title,
@@ -201,7 +196,7 @@ const createStyles = (colors) =>
     linkText: {
       ...typography.bodyBold,
       fontSize: 14,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     secondaryText: {
       ...typography.bodyBold,

@@ -1,13 +1,14 @@
-import * as Clipboard from "expo-clipboard";
 import {
   Bell,
   CalendarDays,
   ChevronRight,
   Clapperboard,
+  Layers,
+  LayoutGrid,
+  ListOrdered,
   Pin,
   Settings as SettingsIcon,
   Share2,
-  Star,
   Trophy,
   Users,
 } from "lucide-react-native";
@@ -25,10 +26,16 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { getShowcaseBadges } from "../components/BadgeMedal";
 import { BottomSheet } from "../components/BottomSheet";
+import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
   HeaderIconButton,
@@ -47,6 +54,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getMovieById } from "../data/movies";
 import { getBadges } from "../utils/badges";
+import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
 import { FAVORITE_COUNT, getTasteProfile } from "../utils/taste";
 import { TIERS, getTier, getTierInfo, isRated } from "../utils/tiers";
@@ -83,9 +91,9 @@ const COMPLETED_GROUPS = [
 ];
 
 const PROFILE_TABS = [
-  { key: "overview", label: "Overview" },
-  { key: "tiers", label: "Tier list" },
-  { key: "completed", label: "Full sets" },
+  { key: "overview", label: "Overview", Icon: LayoutGrid },
+  { key: "tiers", label: "Tier list", Icon: ListOrdered },
+  { key: "completed", label: "Collections", Icon: Layers },
 ];
 
 const getHandle = (name) =>
@@ -101,9 +109,14 @@ export const ProfileScreen = ({ navigation, route }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-  const favoriteWidth =
-    (windowWidth - spacing.md * 2 - 2 * (FAVORITE_COLUMNS - 1)) /
-    FAVORITE_COLUMNS;
+  // Edge to edge (no page padding), 2px apart.
+  // Whole pixels, so five always fit on a row without wrapping early.
+  const favoriteWidth = Math.floor(
+    (windowWidth - 2 * (FAVORITE_COLUMNS - 1)) / FAVORITE_COLUMNS,
+  );
+  // An explicit height (not aspectRatio): Yoga can mis-measure a wrapping
+  // row of aspect-ratio items and clip the second row.
+  const favoriteSize = { width: favoriteWidth, height: favoriteWidth * 1.5 };
   const completedWidth =
     (windowWidth - spacing.md * 2 - 2 * (COMPLETED_COLUMNS - 1)) /
     COMPLETED_COLUMNS;
@@ -140,6 +153,14 @@ export const ProfileScreen = ({ navigation, route }) => {
   const watchedCount = watched.length;
   const ratedCount = watched.filter(isRated).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  // Your hand-picked top ten, in rank order (only movies still watched).
+  const topTenIds = useProfileStore((state) => state.topTen) ?? [];
+  const toggleTopTen = useProfileStore((state) => state.toggleTopTen);
+  const topTenMovies = topTenIds
+    .filter((id) => watchedIds.has(id))
+    .map((id) => getMovieById(id))
+    .filter(Boolean);
+  const [isTopTenOpen, setIsTopTenOpen] = useState(false);
   const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
   const completedChallengesCount =
     getCompletedChallengesCount(challengeHistory);
@@ -168,7 +189,6 @@ export const ProfileScreen = ({ navigation, route }) => {
   const taste = getTasteProfile(watched);
 
   // The Watcher card: same data on Profile and in the shared image.
-  const showcase = getShowcaseBadges(badges);
 
   // Tier list: every watched movie in its tier row, most recent first.
   const watchedByRecent = [...watched].sort(
@@ -183,10 +203,11 @@ export const ProfileScreen = ({ navigation, route }) => {
   }));
   const untieredCount = watched.length - ratedCount;
 
-  // Backdrop: your favorites (or, before any tiers, what you watched last).
+  // Backdrop: your top ten (or, before you've picked any, what you watched
+  // last).
   const backdropPosters = (
-    taste.favorites.length > 0
-      ? taste.favorites.map(({ movie }) => movie)
+    topTenMovies.length > 0
+      ? topTenMovies
       : watchedByRecent
           .map((entry) => getMovieById(entry.movieId))
           .filter(Boolean)
@@ -217,16 +238,16 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   const getShareText = () => {
     const genres = taste.topGenres.map(({ genre }) => genre).join(" · ");
-    const favorites = taste.favorites
+    const favorites = topTenMovies
       .slice(0, 5)
-      .map(({ movie }) => movie.title)
+      .map((movie) => movie.title)
       .join(", ");
     const lines = [
       `My Reelboard taste card 🎬`,
       genres && `Into: ${genres}`,
       favorites && `Favorites: ${favorites}`,
       completedSets.length > 0 &&
-        `Full sets: ${completedSets
+        `Collections: ${completedSets
           .slice(0, 3)
           .map((collection) => collection.title)
           .join(" · ")}`,
@@ -242,9 +263,9 @@ export const ProfileScreen = ({ navigation, route }) => {
     bio,
     avatarSource: avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE,
     level,
-    showcase,
-    allBadges: badges,
     earnedBadgeCount,
+    showcase: getShowcaseBadges(badges),
+    allBadges: badges,
     stats: {
       movies: watchedCount,
       hours: Math.round(taste.minutesWatched / 60),
@@ -252,10 +273,67 @@ export const ProfileScreen = ({ navigation, route }) => {
     },
   };
 
-  const handleCopyHandle = async () => {
-    await Clipboard.setStringAsync(getHandle(displayName));
-    showToast("Handle copied", { tone: "success" });
+  // ---- Swipeable profile pages ----
+  // Swipe sideways over the page (or tap an icon) to switch tabs. While you
+  // drag, the page follows your finger and the underline slides with it;
+  // let go past a quarter of the screen (or flick) and the next page slides
+  // in from that side.
+  const tabIndex = PROFILE_TABS.findIndex(({ key }) => key === profileTab);
+  const lastTabIndex = PROFILE_TABS.length - 1;
+  const tabWidth = windowWidth / PROFILE_TABS.length;
+  const tabPosition = useSharedValue(tabIndex);
+  const pageShift = useSharedValue(0);
+
+  // direction: 1 = the new page comes in from the right, -1 from the left.
+  const showTab = (nextIndex, direction) => {
+    setProfileTab(PROFILE_TABS[nextIndex].key);
+    tabPosition.value = withTiming(nextIndex, { duration: 220 });
+    pageShift.value = direction * windowWidth * 0.35;
+    pageShift.value = withTiming(0, { duration: 220 });
   };
+
+  const pageSwipe = Gesture.Pan()
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-12, 12])
+    .onUpdate((event) => {
+      const pastEdge =
+        (tabIndex === 0 && event.translationX > 0) ||
+        (tabIndex === lastTabIndex && event.translationX < 0);
+      // Rubber-band at the first and last page.
+      const shift = pastEdge ? event.translationX * 0.2 : event.translationX;
+      pageShift.value = shift;
+      tabPosition.value = Math.min(
+        lastTabIndex,
+        Math.max(0, tabIndex - shift / windowWidth),
+      );
+    })
+    .onEnd((event) => {
+      const direction = event.translationX < 0 ? 1 : -1;
+      const nextIndex = tabIndex + direction;
+      const committed =
+        Math.abs(event.translationX) > windowWidth * 0.22 ||
+        Math.abs(event.velocityX) > 700;
+      if (committed && nextIndex >= 0 && nextIndex <= lastTabIndex) {
+        pageShift.value = withTiming(
+          -direction * windowWidth * 0.5,
+          { duration: 120 },
+          (finished) => {
+            if (finished) runOnJS(showTab)(nextIndex, direction);
+          },
+        );
+      } else {
+        pageShift.value = withTiming(0, { duration: 180 });
+        tabPosition.value = withTiming(tabIndex, { duration: 180 });
+      }
+    });
+
+  const pageStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pageShift.value }],
+    opacity: 1 - Math.min(Math.abs(pageShift.value) / windowWidth, 1) * 0.7,
+  }));
+  const underlineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tabPosition.value * tabWidth }],
+  }));
 
   const goToLibrary = (initialTab) => {
     navigation.navigate("Library", { initialTab });
@@ -295,30 +373,41 @@ export const ProfileScreen = ({ navigation, route }) => {
         )}
 
         <View style={styles.profileWrap}>
-          {/* Watcher card — level, best badge per track, headline
-              numbers. */}
+          {/* Watcher card — avatar beside the numbers (badges included),
+              name and level, bio as a quote. */}
           <WatcherCard
             {...watcherCardProps}
             xpToNextLevel={xpToNextLevel}
             onPressAvatar={() => setIsLeagueSheetOpen(true)}
-            onCopyHandle={handleCopyHandle}
             onPressBio={() => navigation.navigate("Settings")}
             onPressBadges={() => navigation.navigate("Badges")}
-            onPressBadge={() => navigation.navigate("Badges")}
           />
 
-          {/* Profile tabs */}
+          {/* Profile tabs, Instagram-style: an icon per column over a
+              hairline, the open one white with a thin underline. Swipe the
+              page below to switch too. */}
           <View style={styles.tabTrack}>
-            {PROFILE_TABS.map(({ key, label }) => {
+            {PROFILE_TABS.map(({ key, label, Icon }, index) => {
               const isActive = profileTab === key;
               return (
                 <Pressable
                   key={key}
-                  style={[styles.tabOption, isActive && styles.tabOptionActive]}
-                  onPress={() => setProfileTab(key)}
+                  style={styles.tabOption}
+                  onPress={() => {
+                    if (index !== tabIndex) {
+                      showTab(index, index > tabIndex ? 1 : -1);
+                    }
+                  }}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
                 >
+                  <Icon
+                    size={22}
+                    color={isActive ? colors.textPrimary : colors.textMuted}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                  />
                   <Text
-                    style={[styles.tabText, isActive && styles.tabTextActive]}
+                    style={[styles.tabLabel, isActive && styles.tabLabelActive]}
                     numberOfLines={1}
                   >
                     {label}
@@ -326,367 +415,432 @@ export const ProfileScreen = ({ navigation, route }) => {
                 </Pressable>
               );
             })}
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.tabUnderline, { width: tabWidth }, underlineStyle]}
+            />
           </View>
 
-          {profileTab === "overview" && (
-            <>
-              {/* Favorite ten — best tiers first */}
-              <Text style={[styles.sectionLabel, styles.firstSection]}>
-                Favorite ten
-              </Text>
-              <View style={styles.favoriteRow}>
-                {Array.from({ length: FAVORITE_COUNT }, (_, index) => {
-                  const favorite = taste.favorites[index];
-                  return favorite ? (
-                    <Pressable
-                      key={favorite.movie.id}
-                      style={[styles.favoriteSlot, { width: favoriteWidth }]}
-                      onPress={() =>
-                        navigation.navigate("MovieDetails", {
-                          movieId: favorite.movie.id,
-                        })
-                      }
-                    >
-                      <MoviePoster
-                        uri={favorite.movie.poster}
-                        style={styles.favoritePoster}
-                      />
-                    </Pressable>
-                  ) : (
-                    <Pressable
-                      key={`empty-${index}`}
-                      style={[
-                        styles.favoriteSlot,
-                        styles.favoriteEmpty,
-                        { width: favoriteWidth },
-                      ]}
-                      onPress={() => goToLibrary("watched")}
-                    >
-                      <Star size={14} color={colors.textMuted} />
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {/* Taste */}
-              {taste.topGenres.length > 0 && (
+          <GestureDetector gesture={pageSwipe}>
+            <Animated.View style={pageStyle}>
+              {profileTab === "overview" && (
                 <>
-                  <Text style={styles.sectionLabel}>Taste</Text>
-                  <View style={styles.tasteCard}>
-                    {/* Watch most vs love most */}
-                    <Text style={styles.tasteInsight}>
-                      {!taste.tasteInsight ? (
-                        <>
-                          Tier a few movies to see which genres you really love.{" "}
-                          <Text
-                            style={styles.tasteInsightLink}
-                            onPress={() =>
-                              navigation.navigate("Library", {
-                                showUntiered: true,
-                              })
-                            }
-                          >
-                            See untiered ›
-                          </Text>
-                        </>
-                      ) : taste.tasteInsight.mostWatched ===
-                        taste.tasteInsight.mostLoved ? (
-                        <>
-                          <Text style={styles.tasteInsightStrong}>
-                            {taste.tasteInsight.mostWatched}
-                          </Text>{" "}
-                          is what you watch most — and what you tier highest.
-                        </>
-                      ) : (
-                        <>
-                          You watch{" "}
-                          <Text style={styles.tasteInsightStrong}>
-                            {taste.tasteInsight.mostWatched}
-                          </Text>{" "}
-                          most, but{" "}
-                          <Text style={styles.tasteInsightStrong}>
-                            {taste.tasteInsight.mostLoved}
-                          </Text>{" "}
-                          gets your best tiers.
-                        </>
-                      )}
-                    </Text>
-
-                    {/* Each top genre: how much you watch it, how you tier it */}
-                    {taste.genreTiers.map(
-                      ({ genre, count, tierCounts, tiered, typicalTier }) => (
-                        <View key={genre} style={styles.genreRow}>
-                          <View style={styles.genreRowHead}>
-                            <Text style={styles.genreName} numberOfLines={1}>
-                              {genre}
-                            </Text>
-                            <Text style={styles.genreCount}>
-                              {count} watched
-                            </Text>
-                            <View style={styles.genreSpacer} />
-                            {typicalTier ? (
-                              <Text style={styles.genreTypical}>
-                                mostly{" "}
-                                <Text
-                                  style={[
-                                    styles.genreTypicalTier,
-                                    { color: getTierInfo(typicalTier).color },
-                                  ]}
-                                >
-                                  {typicalTier}
-                                </Text>
-                              </Text>
-                            ) : (
-                              <Pressable
-                                onPress={() =>
-                                  navigation.navigate("Library", {
-                                    showUntiered: true,
-                                  })
-                                }
-                                hitSlop={8}
-                              >
-                                <Text style={styles.genreUntiered}>
-                                  not tiered yet ›
-                                </Text>
-                              </Pressable>
-                            )}
-                          </View>
-                          <View style={styles.tierStrip}>
-                            {TIERS.filter(({ key }) => tierCounts[key] > 0).map(
-                              ({ key, color }) => (
-                                <View
-                                  key={key}
-                                  style={{
-                                    flex: tierCounts[key],
-                                    backgroundColor: color,
-                                  }}
-                                />
-                              ),
-                            )}
-                            {count - tiered > 0 && (
-                              <View
-                                style={{
-                                  flex: count - tiered,
-                                  backgroundColor: colors.surfaceSoft,
-                                }}
-                              />
-                            )}
-                          </View>
-                        </View>
-                      ),
-                    )}
-
-                    <View style={styles.tasteFacts}>
-                      {taste.director && (
-                        <Pressable
-                          style={styles.tasteFact}
-                          disabled={!taste.director.collectionId}
-                          onPress={() =>
-                            navigation.navigate("CollectionDetails", {
-                              collectionId: taste.director.collectionId,
-                            })
-                          }
-                        >
-                          <Clapperboard size={15} color={colors.accentLight} />
-                          <View style={styles.tasteFactText}>
-                            <Text style={styles.tasteFactLabel}>
-                              Most-watched director
-                            </Text>
-                            <Text
-                              style={styles.tasteFactValue}
-                              numberOfLines={1}
-                            >
-                              {taste.director.name} · {taste.director.count}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      )}
-                      {taste.decade && (
-                        <Pressable
-                          style={styles.tasteFact}
-                          disabled={!taste.decade.collectionId}
-                          onPress={() =>
-                            navigation.navigate("CollectionDetails", {
-                              collectionId: taste.decade.collectionId,
-                            })
-                          }
-                        >
-                          <CalendarDays size={15} color={colors.accentLight} />
-                          <View style={styles.tasteFactText}>
-                            <Text style={styles.tasteFactLabel}>
-                              Favorite decade
-                            </Text>
-                            <Text style={styles.tasteFactValue}>
-                              The {taste.decade.label}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      )}
-                    </View>
-                  </View>
-                </>
-              )}
-            </>
-          )}
-
-          {/* Tier list — your real S → F rows */}
-          {profileTab === "tiers" && (
-            <View style={styles.tierList}>
-              {tierRows.map(({ key, meaning, color, movies }) => (
-                <View key={key} style={styles.tierListRow}>
-                  <View
-                    style={[styles.tierListLetter, { backgroundColor: color }]}
-                  >
-                    <Text style={styles.tierListLetterText}>{key}</Text>
-                  </View>
-                  {movies.length > 0 ? (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.tierListPosters}
-                    >
-                      {movies.map((movie) => (
+                  {/* Top ten — picked by hand, right under the tabs.
+                      Tap a poster to open it, long-press to take it out;
+                      empty slots open the picker. */}
+                  <View style={styles.favoriteRow}>
+                    {Array.from({ length: FAVORITE_COUNT }, (_, index) => {
+                      const movie = topTenMovies[index];
+                      return movie ? (
                         <Pressable
                           key={movie.id}
+                          style={[styles.favoriteSlot, favoriteSize]}
                           onPress={() =>
                             navigation.navigate("MovieDetails", {
                               movieId: movie.id,
                             })
                           }
+                          onLongPress={() => {
+                            toggleTopTen(movie.id);
+                            showToast(
+                              `${movie.title} taken out of your top ten`,
+                            );
+                          }}
+                          accessibilityLabel={`Number ${index + 1}, ${movie.title}`}
                         >
                           <MoviePoster
                             uri={movie.poster}
-                            style={styles.tierListPoster}
+                            style={styles.favoritePoster}
                           />
+                          <View style={styles.favoriteRank}>
+                            <Text style={styles.favoriteRankText}>
+                              {index + 1}
+                            </Text>
+                          </View>
                         </Pressable>
-                      ))}
-                    </ScrollView>
-                  ) : (
-                    <View style={styles.tierListEmpty}>
-                      <Text style={styles.tierListEmptyText}>{meaning}</Text>
+                      ) : (
+                        <Pressable
+                          key={`empty-${index}`}
+                          style={[
+                            styles.favoriteSlot,
+                            styles.favoriteEmpty,
+                            favoriteSize,
+                          ]}
+                          onPress={() => setIsTopTenOpen(true)}
+                          accessibilityLabel={`Top ten number ${index + 1}, empty. Pick a movie`}
+                        >
+                          <Text style={styles.favoriteEmptyRank}>
+                            {index + 1}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <View style={styles.topTenBar}>
+                    <Text style={styles.topTenLabel}>
+                      Your top ten
+                      {topTenMovies.length > 0 &&
+                        topTenMovies.length < FAVORITE_COUNT &&
+                        ` · ${topTenMovies.length} of ${FAVORITE_COUNT}`}
+                    </Text>
+                    <Pressable
+                      onPress={() => setIsTopTenOpen(true)}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.topTenEdit}>
+                        {topTenMovies.length > 0 ? "Edit" : "Pick"}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {/* Taste */}
+                  {taste.topGenres.length > 0 && (
+                    <>
+                      <Text style={styles.sectionLabel}>Taste</Text>
+                      <View style={styles.tasteCard}>
+                        {/* Watch most vs love most */}
+                        <Text style={styles.tasteInsight}>
+                          {!taste.tasteInsight ? (
+                            <>
+                              Tier a few movies to see which genres you really
+                              love.{" "}
+                              <Text
+                                style={styles.tasteInsightLink}
+                                onPress={() =>
+                                  navigation.navigate("Library", {
+                                    showUntiered: true,
+                                  })
+                                }
+                              >
+                                See untiered ›
+                              </Text>
+                            </>
+                          ) : taste.tasteInsight.mostWatched ===
+                            taste.tasteInsight.mostLoved ? (
+                            <>
+                              <Text style={styles.tasteInsightStrong}>
+                                {taste.tasteInsight.mostWatched}
+                              </Text>{" "}
+                              is what you watch most — and what you tier
+                              highest.
+                            </>
+                          ) : (
+                            <>
+                              You watch{" "}
+                              <Text style={styles.tasteInsightStrong}>
+                                {taste.tasteInsight.mostWatched}
+                              </Text>{" "}
+                              most, but{" "}
+                              <Text style={styles.tasteInsightStrong}>
+                                {taste.tasteInsight.mostLoved}
+                              </Text>{" "}
+                              gets your best tiers.
+                            </>
+                          )}
+                        </Text>
+
+                        {/* Each top genre: how much you watch it, how you tier it */}
+                        {taste.genreTiers.map(
+                          ({
+                            genre,
+                            count,
+                            tierCounts,
+                            tiered,
+                            typicalTier,
+                          }) => (
+                            <View key={genre} style={styles.genreRow}>
+                              <View style={styles.genreRowHead}>
+                                <Text
+                                  style={styles.genreName}
+                                  numberOfLines={1}
+                                >
+                                  {genre}
+                                </Text>
+                                <Text style={styles.genreCount}>
+                                  {count} watched
+                                </Text>
+                                <View style={styles.genreSpacer} />
+                                {typicalTier ? (
+                                  <Text style={styles.genreTypical}>
+                                    mostly{" "}
+                                    <Text
+                                      style={[
+                                        styles.genreTypicalTier,
+                                        {
+                                          color: getTierInfo(typicalTier).color,
+                                        },
+                                      ]}
+                                    >
+                                      {typicalTier}
+                                    </Text>
+                                  </Text>
+                                ) : (
+                                  <Pressable
+                                    onPress={() =>
+                                      navigation.navigate("Library", {
+                                        showUntiered: true,
+                                      })
+                                    }
+                                    hitSlop={8}
+                                  >
+                                    <Text style={styles.genreUntiered}>
+                                      not tiered yet ›
+                                    </Text>
+                                  </Pressable>
+                                )}
+                              </View>
+                              <View style={styles.tierStrip}>
+                                {TIERS.filter(
+                                  ({ key }) => tierCounts[key] > 0,
+                                ).map(({ key, color }) => (
+                                  <View
+                                    key={key}
+                                    style={{
+                                      flex: tierCounts[key],
+                                      backgroundColor: color,
+                                    }}
+                                  />
+                                ))}
+                                {count - tiered > 0 && (
+                                  <View
+                                    style={{
+                                      flex: count - tiered,
+                                      backgroundColor: colors.surfaceSoft,
+                                    }}
+                                  />
+                                )}
+                              </View>
+                            </View>
+                          ),
+                        )}
+
+                        <View style={styles.tasteFacts}>
+                          {taste.director && (
+                            <Pressable
+                              style={styles.tasteFact}
+                              disabled={!taste.director.collectionId}
+                              onPress={() =>
+                                navigation.navigate("CollectionDetails", {
+                                  collectionId: taste.director.collectionId,
+                                })
+                              }
+                            >
+                              <Clapperboard
+                                size={15}
+                                color={colors.accentLight}
+                              />
+                              <View style={styles.tasteFactText}>
+                                <Text style={styles.tasteFactLabel}>
+                                  Most-watched director
+                                </Text>
+                                <Text
+                                  style={styles.tasteFactValue}
+                                  numberOfLines={1}
+                                >
+                                  {taste.director.name} · {taste.director.count}
+                                </Text>
+                              </View>
+                            </Pressable>
+                          )}
+                          {taste.decade && (
+                            <Pressable
+                              style={styles.tasteFact}
+                              disabled={!taste.decade.collectionId}
+                              onPress={() =>
+                                navigation.navigate("CollectionDetails", {
+                                  collectionId: taste.decade.collectionId,
+                                })
+                              }
+                            >
+                              <CalendarDays
+                                size={15}
+                                color={colors.accentLight}
+                              />
+                              <View style={styles.tasteFactText}>
+                                <Text style={styles.tasteFactLabel}>
+                                  Favorite decade
+                                </Text>
+                                <Text style={styles.tasteFactValue}>
+                                  The {taste.decade.label}
+                                </Text>
+                              </View>
+                            </Pressable>
+                          )}
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Tier list — your real S → F rows */}
+              {profileTab === "tiers" && (
+                <View style={styles.tierList}>
+                  {tierRows.map(({ key, meaning, color, movies }) => (
+                    <View key={key} style={styles.tierListRow}>
+                      <View
+                        style={[
+                          styles.tierListLetter,
+                          { backgroundColor: color },
+                        ]}
+                      >
+                        <Text style={styles.tierListLetterText}>{key}</Text>
+                      </View>
+                      {movies.length > 0 ? (
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.tierListPosters}
+                        >
+                          {movies.map((movie) => (
+                            <Pressable
+                              key={movie.id}
+                              onPress={() =>
+                                navigation.navigate("MovieDetails", {
+                                  movieId: movie.id,
+                                })
+                              }
+                            >
+                              <MoviePoster
+                                uri={movie.poster}
+                                style={styles.tierListPoster}
+                              />
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      ) : (
+                        <View style={styles.tierListEmpty}>
+                          <Text style={styles.tierListEmptyText}>
+                            {meaning}
+                          </Text>
+                        </View>
+                      )}
                     </View>
+                  ))}
+                  {untieredCount > 0 && (
+                    <Pressable
+                      style={styles.untieredLink}
+                      onPress={() =>
+                        navigation.navigate("Library", { showUntiered: true })
+                      }
+                    >
+                      <Text style={styles.untieredLinkText}>
+                        {untieredCount === 1
+                          ? "1 watched movie isn't tiered yet"
+                          : `${untieredCount} watched movies aren't tiered yet`}
+                      </Text>
+                      <ChevronRight size={14} color={colors.textSecondary} />
+                    </Pressable>
                   )}
                 </View>
-              ))}
-              {untieredCount > 0 && (
-                <Pressable
-                  style={styles.untieredLink}
-                  onPress={() =>
-                    navigation.navigate("Library", { showUntiered: true })
-                  }
-                >
-                  <Text style={styles.untieredLinkText}>
-                    {untieredCount === 1
-                      ? "1 watched movie isn't tiered yet"
-                      : `${untieredCount} watched movies aren't tiered yet`}
-                  </Text>
-                  <ChevronRight size={14} color={colors.textSecondary} />
-                </Pressable>
               )}
-            </View>
-          )}
 
-          {/* Completed — the director / actor / franchise sets you've fully
+              {/* Completed — the director / actor / franchise sets you've fully
               watched. Tap to open, long-press to pin to the front. */}
-          {profileTab === "completed" && completedSets.length > 0 && (
-            <Text style={styles.completedIntro}>
-              Actors, directors and franchises you&apos;ve seen every movie of.
-            </Text>
-          )}
-          {profileTab === "completed" &&
-            (completedSets.length > 0 ? (
-              COMPLETED_GROUPS.map(({ type, title, unit }) => {
-                const sets = completedSets.filter(
-                  (collection) => collection.type === type,
-                );
-                if (sets.length === 0) return null;
-                return (
-                  <View key={type}>
-                    <View style={styles.completedHeader}>
-                      <Text style={styles.completedHeaderTitle}>{title}</Text>
-                      <Text style={styles.completedHeaderCount}>
-                        {sets.length}
-                      </Text>
-                    </View>
-                    <View style={styles.completedGrid}>
-                      {sets.map((collection) => {
-                        const isPinned = pinnedCollections.includes(
-                          collection.id,
-                        );
-                        return (
-                          <Pressable
-                            key={collection.id}
-                            style={{ width: completedWidth }}
-                            onPress={() =>
-                              navigation.navigate("CollectionDetails", {
-                                collectionId: collection.id,
-                              })
-                            }
-                            onLongPress={() => togglePin(collection)}
-                            delayLongPress={350}
-                          >
-                            <View
-                              style={[
-                                styles.showcaseCover,
-                                {
-                                  width: completedWidth,
-                                  height: completedWidth,
-                                },
-                              ]}
-                            >
-                              {[0, 1, 2, 3].map((index) => {
-                                const movie =
-                                  collection.movies[
-                                    index % collection.movies.length
-                                  ];
-                                return (
-                                  <MoviePoster
-                                    key={index}
-                                    uri={movie.poster}
-                                    style={styles.showcaseCell}
-                                  />
-                                );
-                              })}
-                              <View style={styles.showcaseTrophy}>
-                                <Trophy size={11} color={colors.background} />
-                              </View>
-                              {isPinned && (
-                                <View style={styles.showcasePin}>
-                                  <Pin size={10} color={colors.textPrimary} />
+              {profileTab === "completed" && completedSets.length > 0 && (
+                <Text style={styles.completedIntro}>
+                  Actors, directors and franchises you&apos;ve seen every movie
+                  of.
+                </Text>
+              )}
+              {profileTab === "completed" &&
+                (completedSets.length > 0 ? (
+                  COMPLETED_GROUPS.map(({ type, title, unit }) => {
+                    const sets = completedSets.filter(
+                      (collection) => collection.type === type,
+                    );
+                    if (sets.length === 0) return null;
+                    return (
+                      <View key={type}>
+                        <View style={styles.completedHeader}>
+                          <Text style={styles.completedHeaderTitle}>
+                            {title}
+                          </Text>
+                          <Text style={styles.completedHeaderCount}>
+                            {sets.length}
+                          </Text>
+                        </View>
+                        <View style={styles.completedGrid}>
+                          {sets.map((collection) => {
+                            const isPinned = pinnedCollections.includes(
+                              collection.id,
+                            );
+                            return (
+                              <Pressable
+                                key={collection.id}
+                                style={{ width: completedWidth }}
+                                onPress={() =>
+                                  navigation.navigate("CollectionDetails", {
+                                    collectionId: collection.id,
+                                  })
+                                }
+                                onLongPress={() => togglePin(collection)}
+                                delayLongPress={350}
+                              >
+                                <View
+                                  style={[
+                                    styles.showcaseCover,
+                                    {
+                                      width: completedWidth,
+                                      height: completedWidth,
+                                    },
+                                  ]}
+                                >
+                                  {[0, 1, 2, 3].map((index) => {
+                                    const movie =
+                                      collection.movies[
+                                        index % collection.movies.length
+                                      ];
+                                    return (
+                                      <MoviePoster
+                                        key={index}
+                                        uri={movie.poster}
+                                        style={styles.showcaseCell}
+                                      />
+                                    );
+                                  })}
+                                  {isPinned && (
+                                    <View style={styles.showcasePin}>
+                                      <Pin
+                                        size={10}
+                                        color={colors.textPrimary}
+                                      />
+                                    </View>
+                                  )}
                                 </View>
-                              )}
-                            </View>
-                            <Text
-                              style={styles.showcaseTitle}
-                              numberOfLines={2}
-                            >
-                              {collection.title}
-                            </Text>
-                            <Text style={styles.showcaseMeta}>
-                              Seen all {collection.movies.length} {unit}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })
-            ) : (
-              <Pressable
-                style={styles.completedEmpty}
-                onPress={() => goToLibrary("collections")}
-              >
-                <Trophy size={22} color={colors.textMuted} />
-                <Text style={styles.completedEmptyText}>
-                  Watch every film from a director, actor or franchise and it
-                  shows up here.
-                </Text>
-                <Text style={styles.completedEmptyLink}>
-                  Continue a collection ›
-                </Text>
-              </Pressable>
-            ))}
+                                <Text
+                                  style={styles.showcaseTitle}
+                                  numberOfLines={2}
+                                >
+                                  {collection.title}
+                                </Text>
+                                <Text style={styles.showcaseMeta}>
+                                  Seen all {collection.movies.length} {unit}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Pressable
+                    style={styles.completedEmpty}
+                    onPress={() => goToLibrary("collections")}
+                  >
+                    <Trophy size={22} color={colors.textMuted} />
+                    <Text style={styles.completedEmptyText}>
+                      Watch every film from a director, actor or franchise and
+                      it shows up here.
+                    </Text>
+                    <Text style={styles.completedEmptyLink}>
+                      Continue a collection ›
+                    </Text>
+                  </Pressable>
+                ))}
+            </Animated.View>
+          </GestureDetector>
         </View>
 
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
@@ -698,30 +852,39 @@ export const ProfileScreen = ({ navigation, route }) => {
         right={
           <>
             <HeaderIconButton onPress={() => setIsShareOpen(true)}>
-              <Share2 size={18} color={colors.textPrimary} strokeWidth={2} />
+              <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
             <HeaderIconButton onPress={() => navigation.navigate("Friends")}>
-              <Users size={18} color={colors.textPrimary} strokeWidth={2} />
+              <Users size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
             <HeaderIconButton onPress={() => navigation.navigate("Activity")}>
-              <Bell size={18} color={colors.textPrimary} strokeWidth={2} />
+              <Bell size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
             <HeaderIconButton onPress={() => navigation.navigate("Settings")}>
               <SettingsIcon
-                size={18}
+                size={22}
                 color={colors.textPrimary}
-                strokeWidth={2}
+                strokeWidth={1.75}
               />
             </HeaderIconButton>
           </>
         }
       />
 
+      <TopTenPicker
+        visible={isTopTenOpen}
+        onClose={() => setIsTopTenOpen(false)}
+        watched={watched}
+      />
+
       <TasteShareSheet
         visible={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         cardProps={watcherCardProps}
-        taste={taste}
+        taste={{
+          ...taste,
+          favorites: topTenMovies.map((movie) => ({ movie })),
+        }}
         fallbackMessage={getShareText()}
       />
 
@@ -787,6 +950,7 @@ const createStyles = (colors) =>
     },
     profileWrap: {
       paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
       marginBottom: spacing.md,
     },
     leagueSummaryLevel: {
@@ -831,24 +995,12 @@ const createStyles = (colors) =>
       flexDirection: "row",
       flexWrap: "wrap",
       overflow: "hidden",
-      borderRadius: radius.sm,
       borderWidth: 1.5,
       borderColor: `${colors.rating}AA`,
     },
     showcaseCell: {
       width: "50%",
       height: "50%",
-    },
-    showcaseTrophy: {
-      position: "absolute",
-      right: 4,
-      bottom: 4,
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.rating,
     },
     showcasePin: {
       position: "absolute",
@@ -885,39 +1037,47 @@ const createStyles = (colors) =>
       height: "100%",
       opacity: 0.55,
     },
+    // Instagram-style: three equal columns edge to edge, a hairline under
+    // the bar, and a thin white underline across the open tab's column.
     tabTrack: {
       flexDirection: "row",
-      marginTop: spacing.lg,
-      padding: 4,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
+      marginTop: spacing.md,
+      marginHorizontal: -spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
     },
     tabOption: {
       flex: 1,
       alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 9,
-      borderRadius: radius.sm - 3,
+      gap: 4,
+      paddingTop: spacing.sm + 2,
+      paddingBottom: spacing.sm,
     },
-    tabOptionActive: {
-      backgroundColor: colors.selected,
+    tabLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textMuted,
     },
-    tabText: {
+    tabLabelActive: {
       ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textSecondary,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textPrimary,
     },
-    tabTextActive: {
-      color: colors.selectedText,
-    },
-    firstSection: {
-      marginTop: spacing.md,
+    // One underline for the bar, slid under the open tab (and along with
+    // a swipe).
+    tabUnderline: {
+      position: "absolute",
+      left: 0,
+      bottom: -StyleSheet.hairlineWidth,
+      height: 1.5,
+      backgroundColor: colors.textPrimary,
     },
     // Edge to edge (cancels the page padding) — a real tier-list maker:
     // the tier letter sits right at the screen edge, rows split by a thin
     // line of page colour.
     tierList: {
-      marginTop: spacing.md,
       marginHorizontal: -spacing.md,
       gap: 2,
     },
@@ -1023,21 +1183,62 @@ const createStyles = (colors) =>
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 2,
+      marginHorizontal: -spacing.md,
+      justifyContent: "center",
     },
     favoriteSlot: {
-      aspectRatio: 2 / 3,
+      overflow: "hidden",
     },
     favoritePoster: {
       width: "100%",
       height: "100%",
     },
+    favoriteRank: {
+      position: "absolute",
+      top: 4,
+      left: 4,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    favoriteRankText: {
+      ...typography.bodyBold,
+      fontSize: 10,
+      lineHeight: 13,
+      color: "#FFFFFF",
+    },
+    // Under the grid: what it is, and the way to change it.
+    topTenBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: spacing.sm + 2,
+    },
+    topTenLabel: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+    topTenEdit: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
+    // Empty slot: a plain card tile with its rank, so the ten still read
+    // as a ranked row before they're filled.
     favoriteEmpty: {
       alignItems: "center",
       justifyContent: "center",
-      gap: 4,
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    favoriteEmptyRank: {
+      ...typography.display,
+      fontSize: 24,
+      lineHeight: 28,
+      color: colors.cardElevatedLight,
     },
     tasteCard: {
       marginHorizontal: -spacing.md,

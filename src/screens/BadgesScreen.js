@@ -169,7 +169,7 @@ export const BadgesScreen = ({ navigation }) => {
                 )
               }
             >
-              <Text style={styles.nextUpEyebrow}>NEXT UP</Text>
+              <Text style={styles.nextUpEyebrow}>Next up</Text>
               <Text style={styles.nextUpTitle} numberOfLines={1}>
                 {nextUp.label}
               </Text>
@@ -451,8 +451,8 @@ const createStyles = (colors) =>
       flex: 1,
     },
     nextUpEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     nextUpTitle: {
       ...typography.subtitle,
@@ -465,7 +465,8 @@ const createStyles = (colors) =>
       marginTop: spacing.xs,
     },
     earnedText: {
-      ...typography.label,
+      ...typography.bodyBold,
+      fontSize: 12,
       color: colors.success,
     },
     bar: {
@@ -493,7 +494,6 @@ const createStyles = (colors) =>
     filterChip: {
       paddingHorizontal: spacing.md,
       paddingVertical: 7,
-      borderRadius: radius.pill,
       backgroundColor: colors.card,
     },
     filterChipActive: {
@@ -519,9 +519,9 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     trackTitle: {
-      ...typography.label,
+      ...typography.caption,
+      color: colors.textMuted,
       flex: 1,
-      color: colors.textSecondary,
     },
     trackCount: {
       ...typography.caption,
@@ -555,7 +555,7 @@ const createStyles = (colors) =>
       color: colors.textMuted,
     },
     nodeThreshold: {
-      ...typography.label,
+      ...typography.caption,
       fontSize: 11,
       color: colors.textMuted,
     },
@@ -569,7 +569,6 @@ const createStyles = (colors) =>
     marqueeCard: {
       width: "48.5%",
       padding: spacing.sm + 2,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: "transparent",
@@ -602,7 +601,8 @@ const createStyles = (colors) =>
       marginTop: spacing.xs,
     },
     marqueeEarnedText: {
-      ...typography.label,
+      ...typography.bodyBold,
+      fontSize: 12,
       color: colors.rating,
     },
     marqueeMeta: {

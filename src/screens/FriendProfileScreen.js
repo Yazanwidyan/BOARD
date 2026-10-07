@@ -280,21 +280,15 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
+    // Section caption, like Settings.
     tag: {
-      alignSelf: "flex-start",
-      marginLeft: spacing.md,
       marginTop: spacing.lg,
-      marginBottom: spacing.sm + 2,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
-      borderRadius: radius.xs,
-      backgroundColor: colors.cardElevated,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     tagText: {
-      ...typography.label,
-      color: colors.textSecondary,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
+      ...typography.caption,
+      color: colors.textMuted,
     },
     railPoster: {
       width: POSTER_ITEM - 2,
@@ -341,27 +335,23 @@ const createStyles = (colors) =>
     tierChip: {
       minWidth: 20,
       paddingHorizontal: 5,
-      borderRadius: 4,
       alignItems: "center",
     },
     tierChipText: {
       ...typography.label,
       fontSize: 12,
-      color: "#16152A",
+      color: "#161719",
     },
+    // A plain text action, not a pill.
     saveButton: {
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 7,
-      borderRadius: radius.pill,
-      backgroundColor: colors.selected,
+      paddingVertical: spacing.xs,
+      paddingLeft: spacing.sm,
     },
-    saveButtonSaved: {
-      backgroundColor: colors.surfaceSoft,
-    },
+    saveButtonSaved: {},
     saveButtonText: {
-      ...typography.label,
-      fontSize: 11,
-      color: colors.selectedText,
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
     },
     saveButtonTextSaved: {
       color: colors.textSecondary,

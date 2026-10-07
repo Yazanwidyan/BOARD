@@ -1,19 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
-  Bookmark,
-  CheckCircle,
-  ChevronRight,
-  Clapperboard,
-  Gift,
-  Info,
-  Pencil,
-  RotateCcw,
-  Shuffle,
-  SlidersHorizontal,
-  Trash,
-} from "lucide-react-native";
-import {
   Alert,
   Image,
   Pressable,
@@ -49,7 +36,9 @@ const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
 // (destructive actions) stay native Alerts below.
 const showStub = (title, message) => showToast(message || title);
 
-const SettingsRow = ({ icon, label, onPress, destructive, value }) => {
+// A plain text row on the page, split from the next by a hairline — no
+// icon, no chevron. Destructive rows are red.
+const SettingsRow = ({ label, onPress, destructive, value }) => {
   const colors = useColors();
   const styles = createStyles(colors);
 
@@ -58,18 +47,14 @@ const SettingsRow = ({ icon, label, onPress, destructive, value }) => {
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? "button" : undefined}
     >
-      <View style={styles.rowIcon}>{icon}</View>
       <Text
         style={[styles.rowLabel, destructive && styles.rowLabelDestructive]}
       >
         {label}
       </Text>
-      {value ? (
-        <Text style={styles.rowValue}>{value}</Text>
-      ) : onPress ? (
-        <ChevronRight size={18} color={colors.textMuted} />
-      ) : null}
+      {!!value && <Text style={styles.rowValue}>{value}</Text>}
     </Pressable>
   );
 };
@@ -148,24 +133,23 @@ export const SettingsScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.avatarWrap}>
-          <Pressable style={styles.avatarPressable} onPress={handlePickAvatar}>
+          <Pressable
+            onPress={handlePickAvatar}
+            accessibilityLabel="Change profile photo"
+          >
             <View style={styles.avatar}>
               <Image
                 source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
                 style={styles.avatarImage}
               />
             </View>
-            <View style={styles.avatarEditBadge}>
-              <Pencil
-                size={13}
-                color={colors.accentContrast}
-                strokeWidth={2.2}
-              />
-            </View>
+          </Pressable>
+          <Pressable onPress={handlePickAvatar} hitSlop={8}>
+            <Text style={styles.avatarEdit}>Edit picture</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.fieldLabel}>Your name</Text>
+        <Text style={styles.fieldLabel}>Name</Text>
         <View style={styles.fieldBox}>
           <TextInput
             value={displayName}
@@ -177,7 +161,12 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.fieldLabel}>About you</Text>
+        <View style={styles.fieldLabelRow}>
+          <Text style={[styles.fieldLabel, styles.fieldLabelInRow]}>Bio</Text>
+          <Text style={styles.fieldCount}>
+            {bio.length}/{BIO_MAX_LENGTH}
+          </Text>
+        </View>
         <View style={styles.fieldBox}>
           <TextInput
             value={bio}
@@ -206,13 +195,11 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.sectionLabel}>Discovery</Text>
         <View style={styles.section}>
           <SettingsRow
-            icon={<SlidersHorizontal size={18} color={colors.textPrimary} />}
             label="Preferences"
             onPress={() => navigation.navigate("Preferences")}
           />
           <SettingsRow
-            icon={<Shuffle size={18} color={colors.textPrimary} />}
-            label="Reset Recommendations"
+            label="Reset recommendations"
             onPress={() =>
               confirmAction(
                 "Reset Recommendations",
@@ -223,11 +210,10 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Your Data</Text>
+        <Text style={styles.sectionLabel}>Your data</Text>
         <View style={styles.section}>
           <SettingsRow
-            icon={<Bookmark size={18} color={colors.danger} />}
-            label="Clear Watchlist"
+            label="Clear watchlist"
             destructive
             onPress={() =>
               confirmAction(
@@ -238,8 +224,7 @@ export const SettingsScreen = ({ navigation }) => {
             }
           />
           <SettingsRow
-            icon={<Clapperboard size={18} color={colors.danger} />}
-            label="Clear Current Pick"
+            label="Clear current pick"
             destructive
             onPress={() =>
               confirmAction(
@@ -250,8 +235,7 @@ export const SettingsScreen = ({ navigation }) => {
             }
           />
           <SettingsRow
-            icon={<CheckCircle size={18} color={colors.danger} />}
-            label="Clear Watched History"
+            label="Clear watched history"
             destructive
             onPress={() =>
               confirmAction(
@@ -265,13 +249,8 @@ export const SettingsScreen = ({ navigation }) => {
 
         <Text style={styles.sectionLabel}>App</Text>
         <View style={styles.section}>
+          <SettingsRow label="Replay onboarding" onPress={replayOnboarding} />
           <SettingsRow
-            icon={<RotateCcw size={18} color={colors.textPrimary} />}
-            label="Replay Onboarding"
-            onPress={replayOnboarding}
-          />
-          <SettingsRow
-            icon={<Info size={18} color={colors.textPrimary} />}
             label="About"
             onPress={() =>
               Alert.alert(
@@ -282,10 +261,9 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Friend Invites</Text>
+        <Text style={styles.sectionLabel}>Friend invites</Text>
         <View style={styles.section}>
           <SettingsRow
-            icon={<Gift size={18} color={colors.textPrimary} />}
             label="Enter referral code"
             onPress={() =>
               showStub(
@@ -296,10 +274,9 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, styles.dangerSection]}>
           <SettingsRow
-            icon={<Trash size={18} color={colors.danger} />}
-            label="Delete Account"
+            label="Delete account"
             destructive
             onPress={() =>
               confirmAction(
@@ -335,40 +312,40 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    // Cards run edge to edge (no page padding, square corners); labels
-    // and field captions keep the inset themselves.
+    // Filled boxes, edge to edge with square corners; labels sit above
+    // them in the page inset. Rows are plain text (no icons or chevrons),
+    // split by hairlines inside their box.
     scrollContent: {
       paddingTop: spacing.md,
     },
     sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-      marginTop: spacing.md,
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.lg,
       marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
     },
     section: {
       backgroundColor: colors.card,
-      overflow: "hidden",
+    },
+    dangerSection: {
+      marginTop: spacing.lg,
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.background,
     },
     rowPressed: {
       backgroundColor: colors.cardElevated,
-    },
-    rowIcon: {
-      width: 28,
-      alignItems: "center",
     },
     rowLabel: {
       ...typography.body,
       color: colors.textPrimary,
       flex: 1,
-      marginLeft: spacing.sm,
     },
     rowLabelDestructive: {
       color: colors.danger,
@@ -381,15 +358,12 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
       textAlign: "center",
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     avatarWrap: {
       alignItems: "center",
+      gap: spacing.sm,
       marginBottom: spacing.md,
-    },
-    avatarPressable: {
-      width: 88,
-      height: 88,
     },
     avatar: {
       width: 88,
@@ -402,25 +376,34 @@ const createStyles = (colors) =>
       width: "100%",
       height: "100%",
     },
-    avatarEditBadge: {
-      position: "absolute",
-      bottom: 0,
-      right: 0,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.accent,
-      borderWidth: 2,
-      borderColor: colors.background,
-      alignItems: "center",
-      justifyContent: "center",
+    avatarEdit: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textPrimary,
     },
-    fieldLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
+    fieldLabelRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginTop: spacing.md,
       marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
+    },
+    fieldLabel: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    fieldLabelInRow: {
+      marginTop: 0,
+      marginBottom: 0,
+      paddingHorizontal: 0,
+    },
+    fieldCount: {
+      ...typography.caption,
+      color: colors.textMuted,
     },
     fieldBox: {
       flexDirection: "row",

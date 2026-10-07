@@ -3,34 +3,61 @@ import { Pressable, StyleSheet } from "react-native";
 
 import colors from "../theme/palettes";
 
-// Same solid black badge every back button in the app uses, so it reads as
-// one consistent control — just the chevron, no label. Fully circular
-// (radius is always half the size) to match the other circular header
-// icon buttons across the app.
-export const BackButton = ({ onPress, size = 40 }) => (
-  <Pressable
-    onPress={onPress}
-    hitSlop={8}
-    style={[
-      styles.button,
-      {
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: colors.cardElevated,
-        borderWidth: 1,
-        borderColor: colors.border,
-      },
-    ]}
-  >
-    <ChevronLeft size={size * 0.55} color="#FFFFFF" strokeWidth={2.4} />
-  </Pressable>
-);
+// The app's back control: a flat chevron, no circle or border, so it sits
+// quietly in the header like the other header icons.
+//
+// `floating` brings back a solid circle for the few places the button sits
+// over photos (Movie details, Collection details) and needs contrast.
+// lucide's chevron-left is drawn from x≈8 of its 24-unit box; the flat
+// button pulls it left by that much so the stroke lines up with the page's
+// left edge instead of floating in from it.
+const CHEVRON_INSET = 8 / 24;
+
+export const BackButton = ({ onPress, size = 40, floating = false }) => {
+  const iconSize = floating ? size * 0.55 : size * 0.72;
+  return (
+    <Pressable
+      onPress={onPress}
+      // The flat button is only as wide as the chevron, so widen the touch
+      // area to keep it easy to hit.
+      hitSlop={floating ? 8 : { top: 8, bottom: 8, left: 12, right: 16 }}
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      style={({ pressed }) => [
+        styles.button,
+        floating
+          ? { width: size, height: size }
+          : {
+              height: size,
+              width: iconSize * (1 - CHEVRON_INSET),
+              marginLeft: -iconSize * CHEVRON_INSET,
+              alignItems: "flex-start",
+            },
+        floating && {
+          borderRadius: size / 2,
+          backgroundColor: colors.cardElevated,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+        pressed && styles.pressed,
+      ]}
+    >
+      <ChevronLeft
+        size={iconSize}
+        color="#FFFFFF"
+        strokeWidth={floating ? 2.4 : 1.75}
+      />
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  pressed: {
+    opacity: 0.6,
   },
 });
 
