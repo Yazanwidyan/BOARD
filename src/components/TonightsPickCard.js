@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Bookmark, Check, Layers, Play, Shuffle } from "lucide-react-native";
+import { Play, Shuffle } from "lucide-react-native";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MOVIES, getMovieById } from "../data/movies";
@@ -16,7 +16,6 @@ import {
 } from "../utils/collections";
 import { getMood, pickMovieForMood } from "../utils/moods";
 import { formatRuntime } from "../utils/movieFilters";
-import { TargetIcon } from "./icons/TabIcons";
 import { HomeHero } from "./HomeHero";
 import { PrimaryButton } from "./PrimaryButton";
 
@@ -59,19 +58,16 @@ export const TonightsPickCard = ({ navigation }) => {
   const reason =
     activeChallenge?.targetMovieId === pickedMovie.id
       ? {
-          Icon: TargetIcon,
-          text: "Your active challenge",
-          color: colors.accentLight,
+          text: "Your active dare",
+          color: colors.textPrimary,
         }
       : inProgressCollection
         ? {
-            Icon: Layers,
             text: `Next in ${inProgressCollection.title}`,
             color: colors.success,
           }
         : bucketList.some((entry) => entry.movieId === pickedMovie.id)
           ? {
-              Icon: Bookmark,
               text: "From your watchlist",
               color: colors.textSecondary,
             }
@@ -131,20 +127,17 @@ export const TonightsPickCard = ({ navigation }) => {
   return (
     <HomeHero
       posterUri={pickedMovie.poster}
-      eyebrow="TONIGHT'S PICK"
+      eyebrow="Tonight's pick"
       title={pickedMovie.title}
       meta={`${pickedMovie.year} · ${pickedMovie.genres[0]} · ${formatRuntime(pickedMovie.runtime)}`}
       reason={
         reason && (
-          <View style={styles.reasonRow}>
-            <reason.Icon size={13} color={reason.color} />
-            <Text
-              style={[styles.reasonText, { color: reason.color }]}
-              numberOfLines={1}
-            >
-              {reason.text}
-            </Text>
-          </View>
+          <Text
+            style={[styles.reasonText, { color: reason.color }]}
+            numberOfLines={1}
+          >
+            {reason.text}
+          </Text>
         )
       }
       onPress={openDetails}
@@ -153,9 +146,9 @@ export const TonightsPickCard = ({ navigation }) => {
         <>
           <PrimaryButton
             label="Watched it"
-            icon={<Check size={16} color="#FFFFFF" strokeWidth={3} />}
             onPress={markWatched}
             style={styles.mainButton}
+            contentStyle={styles.square}
           />
           <Pressable
             style={styles.roundButton}
@@ -181,26 +174,24 @@ export const TonightsPickCard = ({ navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    reasonRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-      marginTop: spacing.xs,
-    },
     reasonText: {
       ...typography.caption,
-      flexShrink: 1,
+      marginTop: spacing.xs,
     },
     mainButton: {
       flex: 1,
     },
+    // Square filled boxes, the same height as the main button.
+    square: {
+      borderRadius: 0,
+      minHeight: 48,
+    },
     roundButton: {
       width: 48,
       height: 48,
-      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      backgroundColor: colors.card,
     },
   });
 

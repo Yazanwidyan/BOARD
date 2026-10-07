@@ -58,7 +58,7 @@ const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
   if (isFreshAccount) {
     return (
       <HomeHero
-        eyebrow="WELCOME"
+        eyebrow="Welcome"
         title="Find your first movie"
         meta="Save what you want to see and tier what you've watched — Reelboard learns from both."
         actions={
@@ -66,6 +66,7 @@ const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
             label="Start discovering"
             onPress={() => navigation.navigate("Discover")}
             style={styles.heroMain}
+            contentStyle={styles.heroSquare}
           />
         }
       />
@@ -127,7 +128,7 @@ const WatchlistSuggestion = ({ navigation, styles, colors }) => {
   return (
     <HomeHero
       posterUri={movie.poster}
-      eyebrow="NO PICK FOR TONIGHT YET"
+      eyebrow="No pick for tonight yet"
       title={movie.title}
       meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}
       reason={
@@ -149,6 +150,7 @@ const WatchlistSuggestion = ({ navigation, styles, colors }) => {
               togglePickedMovie(movie.id);
             }}
             style={styles.heroMain}
+            contentStyle={styles.heroSquare}
           />
           {candidates.length > 1 && (
             <Pressable
@@ -446,17 +448,22 @@ const createStyles = (colors) =>
     heroMain: {
       flex: 1,
     },
+    // Square filled boxes, like Tonight's pick.
+    heroSquare: {
+      borderRadius: 0,
+      minHeight: 48,
+    },
     heroRound: {
       width: 48,
       height: 48,
-      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      backgroundColor: colors.card,
     },
     suggestReason: {
       ...typography.caption,
-      color: colors.accentLight,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
     },
   });
 

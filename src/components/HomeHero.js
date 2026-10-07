@@ -55,7 +55,7 @@ export const HomeHero = ({
           hitSlop={10}
           accessibilityLabel="Remove"
         >
-          <X size={16} color={colors.textPrimary} strokeWidth={2.4} />
+          <X size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
       )}
 
@@ -91,6 +91,7 @@ const createStyles = (colors) =>
       paddingBottom: spacing.md,
       overflow: "hidden",
     },
+    // A flat ✕ like the header icons (no circle).
     dismiss: {
       position: "absolute",
       top: spacing.md,
@@ -98,10 +99,8 @@ const createStyles = (colors) =>
       zIndex: 2,
       width: 32,
       height: 32,
-      borderRadius: 16,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      alignItems: "flex-end",
+      justifyContent: "flex-start",
     },
     row: {
       flexDirection: "row",
@@ -117,10 +116,8 @@ const createStyles = (colors) =>
       paddingRight: spacing.lg,
     },
     eyebrow: {
-      ...typography.label,
-      fontSize: 11,
-      letterSpacing: 1.4,
-      color: colors.accentLight,
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     title: {
       ...typography.display,
