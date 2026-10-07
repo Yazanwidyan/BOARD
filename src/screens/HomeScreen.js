@@ -439,7 +439,7 @@ const createStyles = (colors) =>
     seeAllText: {
       ...typography.bodyBold,
       fontSize: 13,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     railPoster: {
       width: POSTER_ITEM - 2,

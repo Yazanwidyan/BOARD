@@ -33,7 +33,7 @@ export const AvatarLevelRing = ({ source, level, avatarSize = 88 }) => {
           cx={size / 2}
           cy={size / 2}
           r={ringRadius}
-          stroke={colors.accentLight}
+          stroke={colors.textPrimary}
           strokeWidth={RING_STROKE}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -46,7 +46,7 @@ export const AvatarLevelRing = ({ source, level, avatarSize = 88 }) => {
         <Image source={source} style={styles.avatarImage} />
       </View>
       <View style={styles.levelPill}>
-        <Text style={styles.levelPillText}>LV {level.level}</Text>
+        <Text style={styles.levelPillText}>Lv {level.level}</Text>
       </View>
     </View>
   );
@@ -75,16 +75,17 @@ const createStyles = (colors, size, avatarSize) =>
       position: "absolute",
       bottom: -6,
       paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: radius.pill,
+      paddingVertical: 1,
       borderWidth: 2,
       borderColor: colors.background,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.textPrimary,
     },
+    // A small square white tag, like the rank tags on posters.
     levelPillText: {
-      ...typography.label,
+      ...typography.bodyBold,
       fontSize: 11,
-      color: colors.accentContrast,
+      lineHeight: 14,
+      color: colors.background,
     },
   });
 

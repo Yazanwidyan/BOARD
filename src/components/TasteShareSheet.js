@@ -127,7 +127,7 @@ export const TasteShareSheet = ({
 
           {(insight || taste.genreTiers.length > 0 || favorites.length > 0) && (
             <View style={styles.tastePanel}>
-              <Text style={styles.sectionLabel}>TASTE</Text>
+              <Text style={styles.sectionLabel}>Taste</Text>
               {insight && <Text style={styles.insight}>{insight}</Text>}
               {taste.genreTiers.length > 0 && (
                 <View style={styles.genreRow}>
@@ -187,7 +187,6 @@ const createStyles = (colors) =>
     image: {
       width: CARD_WIDTH,
       padding: spacing.md,
-      borderRadius: radius.lg,
       overflow: "hidden",
       backgroundColor: colors.background,
     },
@@ -208,13 +207,11 @@ const createStyles = (colors) =>
     tastePanel: {
       marginTop: spacing.md,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-      letterSpacing: 1.2,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     insight: {
       ...typography.body,
@@ -233,7 +230,6 @@ const createStyles = (colors) =>
       gap: 6,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 5,
-      borderRadius: radius.pill,
       backgroundColor: colors.surfaceSoft,
     },
     genreText: {
@@ -253,8 +249,9 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
     },
     brand: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.textMuted,
       marginTop: spacing.md,
       alignSelf: "flex-end",
     },

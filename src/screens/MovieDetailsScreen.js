@@ -375,7 +375,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
         <View style={styles.content}>
           <PrimaryButton
-            label={isWatched ? "Watched" : "Mark as Watched"}
+            label={isWatched ? "Watched" : "Mark as watched"}
             variant={isWatched ? "secondary" : "primary"}
             icon={
               isWatched ? (

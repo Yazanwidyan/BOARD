@@ -398,13 +398,13 @@ export const LibraryScreen = ({ navigation, route }) => {
                 art={query || hasActiveFilter ? "noMatches" : "emptyShelf"}
                 title={
                   query || hasActiveFilter
-                    ? "Nothing on this shelf"
-                    : "The shelves are bare."
+                    ? "No matches"
+                    : "Your watchlist is empty"
                 }
                 subtitle={
                   query || hasActiveFilter
                     ? "Nothing on your watchlist matches that."
-                    : "Save movies you want to see and they'll stand here."
+                    : "Save movies you want to see and they'll show up here."
                 }
                 actionLabel={
                   query || hasActiveFilter ? undefined : "Browse movies"
@@ -435,17 +435,17 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }
                 title={
                   untieredOnly && !query && !hasActiveFilter
-                    ? "Every disc has a tier."
+                    ? "Everything's tiered"
                     : query || hasActiveFilter
-                      ? "Nothing on this shelf"
-                      : "No discs played yet."
+                      ? "No matches"
+                      : "Nothing watched yet"
                 }
                 subtitle={
                   untieredOnly && !query && !hasActiveFilter
                     ? "Your whole collection is ranked."
                     : query || hasActiveFilter
                       ? "Nothing you've watched matches that."
-                      : "Mark a movie as watched and it lands here as a DVD."
+                      : "Mark a movie as watched and it shows up here."
                 }
                 actionLabel={
                   untieredOnly || query || hasActiveFilter
@@ -674,7 +674,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               <View style={styles.sectionMenuLabel}>
                 <Icon
                   size={16}
-                  color={selected ? colors.accentLight : colors.textSecondary}
+                  color={selected ? colors.textPrimary : colors.textSecondary}
                   strokeWidth={2.2}
                 />
                 <Text
@@ -688,7 +688,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                 </Text>
               </View>
               <Text style={styles.sectionMenuCount}>{count}</Text>
-              {selected && <Check size={16} color={colors.accentLight} />}
+              {selected && <Check size={16} color={colors.textPrimary} />}
             </Pressable>
           );
         })}
@@ -780,7 +780,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               >
                 {option.label}
               </Text>
-              {selected && <Check size={16} color={colors.accentLight} />}
+              {selected && <Check size={16} color={colors.textPrimary} />}
             </Pressable>
           );
         })}
@@ -924,8 +924,8 @@ const createStyles = (colors) =>
       marginTop: spacing.lg,
     },
     sectionTitle: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
       marginBottom: spacing.sm,
     },
     collectionCard: {
@@ -933,9 +933,8 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.md,
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       padding: spacing.sm,
-      marginBottom: spacing.sm,
+      marginBottom: 2,
     },
     collectionCollage: {
       width: 76,
@@ -956,15 +955,13 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     collectionBarTrack: {
-      height: 6,
-      borderRadius: 2,
+      height: 3,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
     },
     collectionBarFill: {
       height: "100%",
-      borderRadius: 2,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.textPrimary,
     },
     collectionProgressText: {
       ...typography.caption,
@@ -1024,7 +1021,7 @@ const createStyles = (colors) =>
     },
     sortRowTextActive: {
       ...typography.bodyBold,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
   });
 

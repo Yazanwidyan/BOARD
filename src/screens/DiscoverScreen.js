@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Check, ChevronRight, Plus, Search } from "lucide-react-native";
+import { Check, Plus, Search } from "lucide-react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -27,7 +27,7 @@ import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { isInBucketList } from "../utils/movieFilters";
 
-// One row: title + "All ›" (opens the full list in Browse), then posters
+// One row: title + "See all" (opens the full list in Browse), then posters
 // with the IMDb rating and a one-tap save-to-watchlist button.
 const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
   const openAll = () =>
@@ -45,7 +45,6 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
         {rail.movies.length > RAIL_PREVIEW && (
           <Pressable style={styles.allLink} onPress={openAll} hitSlop={8}>
             <Text style={styles.allText}>See all</Text>
-            <ChevronRight size={14} color={colors.accentLight} />
           </Pressable>
         )}
       </View>
@@ -80,7 +79,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
                   {saved ? (
                     <Check
                       size={14}
-                      color={colors.accentContrast}
+                      color={colors.selectedText}
                       strokeWidth={3}
                     />
                   ) : (
@@ -225,16 +224,15 @@ const createStyles = (colors) =>
       flex: 1,
     },
     // Browse / Reels, in the header.
+    // Square filled boxes, like the Library filters — the open one white.
     modeSwitch: {
       flexDirection: "row",
-      padding: 3,
-      borderRadius: radius.pill,
-      backgroundColor: colors.background,
+      gap: 2,
     },
     modeOption: {
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: 6,
-      borderRadius: radius.pill,
+      backgroundColor: colors.card,
     },
     modeOptionActive: {
       backgroundColor: colors.selected,
@@ -273,7 +271,7 @@ const createStyles = (colors) =>
     allText: {
       ...typography.bodyBold,
       fontSize: 13,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     railContent: {
       paddingHorizontal: spacing.md,
@@ -304,16 +302,13 @@ const createStyles = (colors) =>
       bottom: 6,
       width: 34,
       height: 34,
-      borderRadius: 17,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-      borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.35)",
+      backgroundColor: "rgba(0, 0, 0, 0.65)",
     },
+    // Saved: a white square with a dark check.
     saveButtonSaved: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
+      backgroundColor: colors.selected,
     },
   });
 

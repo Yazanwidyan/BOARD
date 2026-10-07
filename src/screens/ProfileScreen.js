@@ -1,15 +1,11 @@
 import {
   Bell,
-  CalendarDays,
-  ChevronRight,
-  Clapperboard,
   Layers,
   LayoutGrid,
   ListOrdered,
   Pin,
   Settings as SettingsIcon,
   Share2,
-  Trophy,
   Users,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,6 +31,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { BottomSheet } from "../components/BottomSheet";
+import { EmptyState } from "../components/EmptyState";
 import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
@@ -512,7 +509,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                   })
                                 }
                               >
-                                See untiered ›
+                                See untiered
                               </Text>
                             </>
                           ) : taste.tasteInsight.mostWatched ===
@@ -584,7 +581,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                     hitSlop={8}
                                   >
                                     <Text style={styles.genreUntiered}>
-                                      not tiered yet ›
+                                      not tiered yet
                                     </Text>
                                   </Pressable>
                                 )}
@@ -625,10 +622,6 @@ export const ProfileScreen = ({ navigation, route }) => {
                                 })
                               }
                             >
-                              <Clapperboard
-                                size={15}
-                                color={colors.accentLight}
-                              />
                               <View style={styles.tasteFactText}>
                                 <Text style={styles.tasteFactLabel}>
                                   Most-watched director
@@ -652,10 +645,6 @@ export const ProfileScreen = ({ navigation, route }) => {
                                 })
                               }
                             >
-                              <CalendarDays
-                                size={15}
-                                color={colors.accentLight}
-                              />
                               <View style={styles.tasteFactText}>
                                 <Text style={styles.tasteFactLabel}>
                                   Favorite decade
@@ -729,7 +718,6 @@ export const ProfileScreen = ({ navigation, route }) => {
                           ? "1 watched movie isn't tiered yet"
                           : `${untieredCount} watched movies aren't tiered yet`}
                       </Text>
-                      <ChevronRight size={14} color={colors.textSecondary} />
                     </Pressable>
                   )}
                 </View>
@@ -825,19 +813,13 @@ export const ProfileScreen = ({ navigation, route }) => {
                     );
                   })
                 ) : (
-                  <Pressable
-                    style={styles.completedEmpty}
-                    onPress={() => goToLibrary("collections")}
-                  >
-                    <Trophy size={22} color={colors.textMuted} />
-                    <Text style={styles.completedEmptyText}>
-                      Watch every film from a director, actor or franchise and
-                      it shows up here.
-                    </Text>
-                    <Text style={styles.completedEmptyLink}>
-                      Continue a collection ›
-                    </Text>
-                  </Pressable>
+                  <EmptyState
+                    art="noCollections"
+                    title="No collections yet"
+                    subtitle="Watch every film from a director, actor or franchise and it shows up here."
+                    actionLabel="Continue a collection"
+                    onAction={() => goToLibrary("collections")}
+                  />
                 ))}
             </Animated.View>
           </GestureDetector>
@@ -959,18 +941,17 @@ const createStyles = (colors) =>
       lineHeight: 48,
       color: colors.textPrimary,
     },
+    // A thin line, like the other progress lines.
     sheetBar: {
       alignSelf: "stretch",
-      height: 6,
+      height: 3,
       marginTop: spacing.md,
-      borderRadius: radius.pill,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
     },
     sheetBarFill: {
       height: "100%",
-      borderRadius: radius.pill,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.textPrimary,
     },
     sheetSectionGap: {
       marginTop: spacing.lg,
@@ -1153,29 +1134,9 @@ const createStyles = (colors) =>
       gap: 2,
       rowGap: spacing.md,
     },
-    completedEmpty: {
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-      padding: spacing.lg,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderStyle: "dashed",
-      borderColor: colors.border,
-    },
-    completedEmptyText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-    completedEmptyLink: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.accentLight,
-    },
     sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
       marginTop: spacing.lg,
       marginBottom: spacing.sm,
     },
@@ -1200,7 +1161,6 @@ const createStyles = (colors) =>
       minWidth: 18,
       height: 18,
       paddingHorizontal: 4,
-      borderRadius: 9,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -1252,7 +1212,7 @@ const createStyles = (colors) =>
     },
     tasteInsightLink: {
       ...typography.bodyBold,
-      color: colors.accentLight,
+      color: colors.textPrimary,
     },
     tasteInsightStrong: {
       ...typography.bodyBold,
@@ -1296,7 +1256,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       height: 8,
       gap: 2,
-      borderRadius: radius.pill,
       overflow: "hidden",
     },
     tasteFacts: {
@@ -1310,7 +1269,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       padding: spacing.sm,
-      borderRadius: radius.sm,
       backgroundColor: colors.surfaceSoft,
     },
     tasteFactText: {
@@ -1327,8 +1285,8 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     badgeSectionTitle: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
       marginBottom: spacing.sm,
     },
     leagueSummary: {
@@ -1347,7 +1305,6 @@ const createStyles = (colors) =>
     },
     leagueFormulaCard: {
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       padding: spacing.md,
       gap: spacing.xs,
       marginBottom: spacing.md,

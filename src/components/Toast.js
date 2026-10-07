@@ -33,7 +33,7 @@ export const Toast = () => {
         {isSuccess ? (
           <CheckCircle size={16} color={colors.success} />
         ) : (
-          <Info size={16} color={colors.accentLight} />
+          <Info size={16} color={colors.textPrimary} />
         )}
         <Text style={styles.text} numberOfLines={2}>
           {toast.message}

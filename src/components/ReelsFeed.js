@@ -439,10 +439,7 @@ const Reel = ({
           }}
           styles={styles}
         >
-          <SaveMark
-            color={isSaved ? colors.accentLight : "#FFFFFF"}
-            filled={isSaved}
-          />
+          <SaveMark color="#FFFFFF" filled={isSaved} />
         </RailButton>
         <RailButton
           label={watchedEntry ? "Seen" : "Seen it"}
@@ -608,7 +605,6 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
-      borderRadius: radius.pill,
       backgroundColor: colors.selected,
     },
     youtubeButtonText: {
@@ -629,7 +625,6 @@ const createStyles = (colors) =>
       gap: 4,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
-      borderRadius: radius.pill,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
     },
     soundText: {
@@ -651,7 +646,7 @@ const createStyles = (colors) =>
     },
     reason: {
       ...typography.caption,
-      color: colors.accentLight,
+      color: "rgba(255, 255, 255, 0.8)",
       marginBottom: spacing.xs,
     },
     title: {
@@ -674,11 +669,10 @@ const createStyles = (colors) =>
     chip: {
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 5,
-      borderRadius: radius.pill,
-      backgroundColor: "rgba(255, 255, 255, 0.16)",
+      backgroundColor: "rgba(0, 0, 0, 0.45)",
     },
     chipMatch: {
-      backgroundColor: colors.accent,
+      backgroundColor: "rgba(0, 0, 0, 0.45)",
     },
     chipText: {
       ...typography.caption,

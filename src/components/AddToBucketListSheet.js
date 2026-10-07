@@ -156,7 +156,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
       marginBottom: spacing.md,
@@ -174,9 +173,8 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.background,
-      borderRadius: radius.sm,
       padding: spacing.sm,
-      marginBottom: spacing.sm,
+      marginBottom: 2,
     },
     rowPoster: {
       width: 64,
@@ -203,13 +201,11 @@ const createStyles = (colors) =>
     toggleButton: {
       width: 36,
       height: 36,
-      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.card,
     },
     toggleButtonActive: {
-      backgroundColor: colors.surfaceSoft,
+      backgroundColor: "transparent",
     },
     empty: {
       ...typography.body,

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTierInfo } from "../utils/tiers";
@@ -52,7 +52,8 @@ const Ring = ({ fraction, color, value, styles, trackColor }) => {
 
 // Movie Details' scores as rings: IMDb (out of 10), Rotten Tomatoes and
 // Metacritic (out of 100), each filling to its score, then your Reelboard
-// tier as a filled tile in its colour (dashed and empty until you tier it).
+// tier as a square tile in its colour (a plain grey square until you tier
+// it). Sits in a square filled box, edge to edge.
 //
 // scores: [{ key, value, color?, fraction? }] — key "reelboard" is the tier.
 export const ScoreRings = ({ scores }) => {
@@ -108,12 +109,14 @@ export const ScoreRings = ({ scores }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // A filled box edge to edge (cancels Movie Details' page padding),
+    // square — like the other boxes.
     row: {
       flexDirection: "row",
       justifyContent: "space-between",
+      marginHorizontal: -spacing.md,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     item: {
@@ -134,14 +137,12 @@ const createStyles = (colors) =>
     tierTile: {
       width: SIZE,
       height: SIZE,
-      borderRadius: radius.sm,
       alignItems: "center",
       justifyContent: "center",
     },
+    // Not tiered yet: a plain filled square with a dash.
     tierTileEmpty: {
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: colors.textMuted,
+      backgroundColor: colors.cardElevatedLight,
     },
     tierLetter: {
       ...typography.display,

@@ -261,9 +261,8 @@ const createStyles = (colors) =>
       marginRight: spacing.sm,
     },
     leftEyebrow: {
-      ...typography.label,
-      fontSize: 11,
-      color: colors.accentLight,
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     leftTitle: {
       ...typography.subtitle,
@@ -275,7 +274,6 @@ const createStyles = (colors) =>
     iconButton: {
       width: 40,
       height: 40,
-      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -283,8 +281,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
     },
     introEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.caption,
+      color: colors.textSecondary,
       marginBottom: spacing.xs,
     },
     introTitle: {

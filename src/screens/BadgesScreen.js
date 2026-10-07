@@ -470,16 +470,14 @@ const createStyles = (colors) =>
       color: colors.success,
     },
     bar: {
-      height: 6,
-      borderRadius: radius.pill,
+      height: 3,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
       marginTop: spacing.sm,
     },
     barFill: {
       height: "100%",
-      borderRadius: radius.pill,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.textPrimary,
     },
     barFillGold: {
       backgroundColor: colors.rating,

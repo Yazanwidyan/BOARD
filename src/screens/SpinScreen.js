@@ -380,10 +380,8 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: styleColors.card,
   },
   disabled: {
     opacity: 0.4,
@@ -403,9 +401,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   eyebrow: {
-    ...typography.label,
-    color: styleColors.textSecondary,
-    letterSpacing: 2,
+    ...typography.caption,
+    color: styleColors.textMuted,
   },
   wheelWrap: {
     width: WHEEL_SIZE,
@@ -497,10 +494,10 @@ const styles = StyleSheet.create({
   actionContent: {
     paddingVertical: 10,
   },
+  // Square, like the other filled boxes.
   roundButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: styleColors.card,

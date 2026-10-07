@@ -20,6 +20,7 @@ import {
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { CollectionCollage } from "./CollectionCollage";
+import { EmptyState } from "./EmptyState";
 import { MoviePoster } from "./MoviePoster";
 
 const TYPE_FILTERS = [
@@ -216,12 +217,11 @@ export const CollectionsShelf = ({
       </ScrollView>
 
       {tracked.length === 0 && (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>No collections yet.</Text>
-          <Text style={styles.emptyText}>
-            Watch a movie that belongs to one, or pick some to track.
-          </Text>
-        </View>
+        <EmptyState
+          art="noCollections"
+          title="No collections yet"
+          subtitle="Watch a movie that belongs to one, or pick some to track below."
+        />
       )}
 
       {inProgress.length > 0 && (

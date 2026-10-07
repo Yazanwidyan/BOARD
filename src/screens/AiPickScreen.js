@@ -85,12 +85,8 @@ const Projector = ({ posters, colors, styles }) => {
       <Svg width={220} height={150} style={styles.beam}>
         <Defs>
           <SvgGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-            <Stop
-              offset="0"
-              stopColor={colors.accentLight}
-              stopOpacity={0.55}
-            />
-            <Stop offset="1" stopColor={colors.accentLight} stopOpacity={0} />
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.35} />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
           </SvgGradient>
         </Defs>
         <Path d="M96 0 H124 L220 150 H0 Z" fill="url(#beam)" />
@@ -116,7 +112,7 @@ const MatchRing = ({ match, colors, styles }) => {
       <Svg width={RING} height={RING}>
         <Defs>
           <SvgGradient id="match" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={colors.accentLight} />
+            <Stop offset="0" stopColor={colors.textPrimary} />
             <Stop offset="1" stopColor={colors.success} />
           </SvgGradient>
         </Defs>
@@ -224,7 +220,7 @@ const ThinkingLine = ({ text, active, dwell, onDone, colors, styles }) => {
     <View style={styles.stepRow}>
       <View style={styles.stepMarker}>
         {active ? (
-          <Spinner color={colors.accentLight} />
+          <Spinner color={colors.textPrimary} />
         ) : (
           <StampCheck color={colors.success} size={16} />
         )}
@@ -335,7 +331,7 @@ export const AiPickScreen = ({ navigation }) => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <View style={styles.headerText} pointerEvents="none">
-          <Text style={styles.headerTitle}>REELBOARD PICKS</Text>
+          <Text style={styles.headerTitle}>Reelboard picks</Text>
           <Text style={styles.headerSubtitle}>From your tiers & taste</Text>
         </View>
         <View style={styles.headerSpacer} />
@@ -404,10 +400,10 @@ export const AiPickScreen = ({ navigation }) => {
             entering={FadeInDown.delay(160).duration(260)}
             style={styles.reasons}
           >
-            <Text style={styles.reasonsLabel}>WHY THIS ONE</Text>
+            <Text style={styles.reasonsLabel}>Why this one</Text>
             {pick.reasons.map((reason) => (
               <View key={reason} style={styles.reasonRow}>
-                <FrameBullet color={colors.accentLight} />
+                <FrameBullet color={colors.textPrimary} />
                 <Text style={styles.reasonText}>{reason}</Text>
               </View>
             ))}
@@ -514,9 +510,10 @@ const createStyles = (colors) =>
       alignItems: "center",
     },
     headerTitle: {
-      ...typography.label,
+      ...typography.title,
+      fontSize: 18,
+      letterSpacing: -0.3,
       color: colors.textPrimary,
-      letterSpacing: 2,
     },
     headerSubtitle: {
       ...typography.caption,
@@ -545,7 +542,6 @@ const createStyles = (colors) =>
       width: 120,
       height: 180,
       padding: 4,
-      borderRadius: 4,
       backgroundColor: "#0D0D12",
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.12)",
@@ -561,8 +557,8 @@ const createStyles = (colors) =>
       right: 0,
       top: "45%",
       height: 2,
-      backgroundColor: colors.accentLight,
-      opacity: 0.7,
+      backgroundColor: "#FFFFFF",
+      opacity: 0.5,
     },
     steps: {
       marginTop: spacing.lg,
@@ -651,9 +647,8 @@ const createStyles = (colors) =>
       gap: spacing.sm + 2,
     },
     reasonsLabel: {
-      ...typography.label,
-      color: colors.accentLight,
-      letterSpacing: 1.5,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     reasonRow: {
       flexDirection: "row",
@@ -694,14 +689,12 @@ const createStyles = (colors) =>
     },
     signalTrack: {
       flex: 1,
-      height: 6,
-      borderRadius: radius.pill,
+      height: 4,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
     },
     signalBar: {
       height: "100%",
-      borderRadius: radius.pill,
     },
     signalValue: {
       ...typography.caption,

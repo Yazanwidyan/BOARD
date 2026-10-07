@@ -139,7 +139,6 @@ const createStyles = (colors) =>
     quick: {
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
-      borderRadius: radius.pill,
       backgroundColor: colors.card,
     },
     quickActive: {
@@ -162,7 +161,6 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       marginTop: spacing.md,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     pickLabel: {
@@ -171,7 +169,7 @@ const createStyles = (colors) =>
     },
     pickValue: {
       ...typography.body,
-      color: colors.accentLight,
+      color: colors.textSecondary,
     },
   });
 

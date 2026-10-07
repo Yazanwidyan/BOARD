@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Check, Shuffle, Sparkles } from "lucide-react-native";
+import { Check, Shuffle } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -71,7 +71,7 @@ const OptionCard = ({
         </View>
         {selected && (
           <View style={styles.check}>
-            <Check size={14} color={colors.accentContrast} strokeWidth={3} />
+            <Check size={14} color={colors.selectedText} strokeWidth={3} />
           </View>
         )}
       </Pressable>
@@ -136,7 +136,6 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.intro}>
-          <Sparkles size={16} color={colors.accentLight} />
           <Text style={styles.introText}>
             Pick the one that sounds most fun tonight.
           </Text>
@@ -264,10 +263,9 @@ const createStyles = (colors) =>
       left: spacing.sm + 4,
       width: 22,
       height: 22,
-      borderRadius: 11,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.accent,
+      backgroundColor: colors.selected,
     },
     reshuffleLink: {
       flexDirection: "row",

@@ -6,7 +6,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { shadows } from "../theme/shadows";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -126,7 +126,8 @@ const createStyles = (colors) =>
       justifyContent: "center",
       paddingVertical: 11,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.sm,
+      // Square, like every other filled box in the app.
+      borderRadius: 0,
       overflow: "hidden",
     },
     baseDense: {

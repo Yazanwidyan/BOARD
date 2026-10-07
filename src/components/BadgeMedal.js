@@ -196,7 +196,7 @@ export const Medal = ({
           size={size}
           stroke={4}
           progress={badge.progress / badge.threshold}
-          color={colors.accentLight}
+          color={colors.textPrimary}
           trackColor={colors.surfaceSoft}
         />
       )}

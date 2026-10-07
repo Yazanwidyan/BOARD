@@ -158,7 +158,7 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
       style={styles.duel}
     >
       <Text style={styles.duelCount}>
-        DUEL {duelNumber} OF {totalDuels}
+        Duel {duelNumber} of {totalDuels}
       </Text>
       <Text style={styles.duelHeading}>Which would you rather watch?</Text>
       <View style={styles.duelRow}>
@@ -178,7 +178,7 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
               {movie.year} · {movie.genres[0]}
             </Text>
             <Pressable onPress={() => onDetails(movie)} hitSlop={8}>
-              <Text style={styles.duelDetails}>Details ›</Text>
+              <Text style={styles.duelDetails}>Details</Text>
             </Pressable>
           </View>
         ))}
@@ -338,10 +338,10 @@ export const SwipeScreen = ({ navigation }) => {
           colors={[colors.card, colors.background]}
           style={StyleSheet.absoluteFill}
         />
-        {header(`AISLE ${roundNumber}`, "Done")}
+        {header(`Aisle ${roundNumber}`, "Done")}
         <FadeInView style={styles.transitionBody}>
           <Text style={styles.transitionEyebrow}>
-            NEXT · AISLE {roundNumber + 1}
+            Next · Aisle {roundNumber + 1}
           </Text>
           <Text style={styles.transitionTitle}>
             You&apos;re holding {transition.toCount}
@@ -389,7 +389,7 @@ export const SwipeScreen = ({ navigation }) => {
           style={StyleSheet.absoluteFill}
         />
         {header(
-          roundMovies.length === 2 ? "FINAL TWO" : "FINAL THREE",
+          roundMovies.length === 2 ? "Final two" : "Final three",
           `Aisle ${roundNumber}`,
         )}
         <Duels
@@ -419,7 +419,7 @@ export const SwipeScreen = ({ navigation }) => {
           colors={[colors.card, colors.background]}
           style={StyleSheet.absoluteFill}
         />
-        {header("IT'S DECIDED", null, () => {
+        {header("It's decided", null, () => {
           endSession();
           navigation.goBack();
         })}
@@ -489,7 +489,7 @@ export const SwipeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {header(
-        `AISLE ${roundNumber}`,
+        `Aisle ${roundNumber}`,
         `${Math.min(roundIndex + 1, roundMovies.length)} of ${roundMovies.length}`,
       )}
       <AisleSpines
@@ -637,9 +637,10 @@ const createStyles = (colors) =>
       alignItems: "center",
     },
     headerTitle: {
-      ...typography.label,
+      ...typography.title,
+      fontSize: 18,
+      letterSpacing: -0.3,
       color: colors.textPrimary,
-      letterSpacing: 2,
     },
     headerSubtitle: {
       ...typography.caption,
@@ -692,7 +693,6 @@ const createStyles = (colors) =>
       paddingLeft: 10,
       paddingRight: 16,
       paddingVertical: 7,
-      borderRadius: 10,
       shadowColor: "#000000",
       shadowOpacity: 0.35,
       shadowRadius: 6,
@@ -746,7 +746,6 @@ const createStyles = (colors) =>
     bigButton: {
       width: 66,
       height: 66,
-      borderRadius: 33,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
@@ -762,7 +761,6 @@ const createStyles = (colors) =>
       width: 48,
       height: 48,
       marginTop: 9,
-      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
@@ -773,8 +771,8 @@ const createStyles = (colors) =>
       transform: [{ scale: 0.94 }],
     },
     actionLabel: {
-      ...typography.label,
-      fontSize: 11,
+      ...typography.caption,
+      fontSize: 12,
       color: colors.textSecondary,
     },
 
@@ -788,8 +786,8 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm,
       minHeight: 56,
       backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.1)",
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
     basketCases: {
       flexDirection: "row",
@@ -842,9 +840,8 @@ const createStyles = (colors) =>
       paddingBottom: spacing.xl,
     },
     transitionEyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
-      letterSpacing: 2,
+      ...typography.caption,
+      color: colors.textMuted,
     },
     transitionTitle: {
       ...typography.hero,
@@ -886,9 +883,8 @@ const createStyles = (colors) =>
       paddingBottom: spacing.xl,
     },
     duelCount: {
-      ...typography.label,
-      color: colors.accentLight,
-      letterSpacing: 2,
+      ...typography.caption,
+      color: colors.textMuted,
       textAlign: "center",
     },
     duelHeading: {
@@ -920,8 +916,9 @@ const createStyles = (colors) =>
       marginTop: 2,
     },
     duelDetails: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
       marginTop: spacing.sm,
     },
     vs: {
@@ -962,9 +959,8 @@ const createStyles = (colors) =>
       marginTop: spacing.xs,
     },
     finalFrom: {
-      ...typography.label,
-      color: "#FFE7A3",
-      letterSpacing: 1,
+      ...typography.caption,
+      color: colors.textMuted,
       marginTop: spacing.sm,
     },
     finalActions: {

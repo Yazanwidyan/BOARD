@@ -120,7 +120,7 @@ export const SearchScreen = ({ navigation }) => {
         results.length === 0 ? (
           <EmptyState
             art="noMatches"
-            title="Nothing on this shelf"
+            title="No matches"
             subtitle={`Nothing found for "${query}"`}
           />
         ) : (
@@ -203,7 +203,7 @@ export const SearchScreen = ({ navigation }) => {
               />
             ) : (
               <PrimaryButton
-                label="Find Titles"
+                label="Find titles"
                 onPress={handlePasteSubmit}
                 disabled={!pasteText.trim()}
                 style={styles.pasteAction}
@@ -234,7 +234,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
@@ -250,8 +249,6 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      marginHorizontal: spacing.md,
       marginBottom: spacing.md,
       paddingVertical: spacing.md,
     },
@@ -290,7 +287,6 @@ const createStyles = (colors) =>
       ...typography.body,
       color: colors.textPrimary,
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       padding: spacing.md,
       minHeight: 140,
     },

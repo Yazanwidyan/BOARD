@@ -47,14 +47,14 @@ const CONFETTI_COUNT = 22;
 // once ("Big Night!"). Big moments also get a confetti burst.
 const getKindTheme = (kind, colors) =>
   ({
-    watched: { color: colors.accentLight, confetti: false },
-    rewatch: { color: colors.accentLight, confetti: false },
+    watched: { color: colors.textPrimary, confetti: false },
+    rewatch: { color: colors.textPrimary, confetti: false },
     badge: { color: colors.rating, confetti: false },
     collection: { color: colors.success, confetti: true },
     challenge: { color: colors.accent, confetti: true },
     multi: { color: colors.rating, confetti: true },
     level: { color: colors.rating, confetti: true },
-  })[kind] ?? { color: colors.accentLight, confetti: false };
+  })[kind] ?? { color: colors.textPrimary, confetti: false };
 
 // 8-digit hex (#RRGGBBAA) — every theme color is a plain 6-digit hex.
 const withAlpha = (hex, alphaHex) => `${hex}${alphaHex}`;
@@ -327,7 +327,11 @@ const AchievementDialog = ({ achievement }) => {
           {tierEntry && (
             <View style={styles.tierBlock}>
               <Text style={styles.tierPrompt}>How was it?</Text>
-              <TierPicker tier={getTier(tierEntry)} onChange={handleTier} compact />
+              <TierPicker
+                tier={getTier(tierEntry)}
+                onChange={handleTier}
+                compact
+              />
             </View>
           )}
 
@@ -341,7 +345,7 @@ const AchievementDialog = ({ achievement }) => {
             />
           ) : (
             <PrimaryButton
-              label="View Details"
+              label="View details"
               onPress={handleViewDetails}
               style={styles.primaryButton}
             />
@@ -371,9 +375,6 @@ const createStyles = (colors) =>
       width: "100%",
       alignItems: "center",
       backgroundColor: colors.cardElevated,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.08)",
       paddingTop: spacing.lg,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
@@ -436,8 +437,8 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
     },
     tierPrompt: {
-      ...typography.label,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
       marginBottom: spacing.sm,
     },
     // Receipt: dashed tear edges top and bottom, one line per reward with a

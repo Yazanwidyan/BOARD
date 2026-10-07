@@ -147,7 +147,7 @@ export const CompletionShareSheet = () => {
             </View>
             <View style={styles.trophyRow}>
               <Trophy size={18} color={colors.rating} />
-              <Text style={styles.completed}>COMPLETED</Text>
+              <Text style={styles.completed}>Completed</Text>
             </View>
             <Text style={styles.headline}>{bragHeadline(collection)}</Text>
             <Text style={styles.meta}>
@@ -173,7 +173,6 @@ const createStyles = (colors) =>
     card: {
       width: CARD_WIDTH,
       padding: spacing.md,
-      borderRadius: radius.lg,
       overflow: "hidden",
       backgroundColor: colors.background,
     },
@@ -189,9 +188,9 @@ const createStyles = (colors) =>
       marginTop: spacing.lg,
     },
     completed: {
-      ...typography.label,
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.rating,
-      letterSpacing: 1.5,
     },
     headline: {
       ...typography.hero,
@@ -204,8 +203,9 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
     },
     brand: {
-      ...typography.label,
-      color: colors.accentLight,
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.textMuted,
       marginTop: spacing.md,
       alignSelf: "flex-end",
     },

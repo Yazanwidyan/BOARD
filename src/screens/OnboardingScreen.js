@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Bookmark, Check, Sparkles } from "lucide-react-native";
+import { Bookmark, Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Pressable,
@@ -53,6 +53,9 @@ const TASTE_COLUMNS = 3;
 const PICK_COUNT = 3;
 const WALL_COLUMNS = 3;
 const WALL_PER_COLUMN = 6;
+// Posters sit 2px apart everywhere in the app.
+const WALL_GAP = 2;
+const GRID_GAP = 2;
 const TOP_GENRES = 3;
 
 // Tap cycle on a taste poster: nothing → seen → want → nothing.
@@ -107,7 +110,7 @@ const ProgressBar = ({ step, styles }) => (
 const WallColumn = ({ movies, index, width, styles }) => {
   const offset = useSharedValue(0);
   const posterHeight = width * 1.5;
-  const travel = posterHeight + spacing.sm;
+  const travel = posterHeight + WALL_GAP;
   // Reduce Motion: the poster wall stays still.
   const reduceMotion = useReducedMotion();
 
@@ -137,7 +140,6 @@ const WallColumn = ({ movies, index, width, styles }) => {
         <MoviePoster
           key={movie.id}
           uri={movie.poster}
-          radius={radius.sm}
           style={{ width, height: posterHeight }}
         />
       ))}
@@ -147,7 +149,7 @@ const WallColumn = ({ movies, index, width, styles }) => {
 
 const WelcomeStep = ({ colors, styles }) => {
   const { width } = useWindowDimensions();
-  const columnWidth = (width - spacing.sm * (WALL_COLUMNS + 1)) / WALL_COLUMNS;
+  const columnWidth = (width - WALL_GAP * (WALL_COLUMNS + 1)) / WALL_COLUMNS;
   const wallMovies = MOVIES.slice(0, WALL_COLUMNS * WALL_PER_COLUMN);
 
   return (
@@ -173,7 +175,7 @@ const WelcomeStep = ({ colors, styles }) => {
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.welcomeText}>
-        <BoardBIcon size={56} color={colors.accent} />
+        <BoardBIcon size={56} color={colors.textPrimary} />
         <Text style={styles.welcomeTitle}>Bored? Let&apos;s fix that.</Text>
         <Text style={styles.subtitle}>
           Mark what you&apos;ve seen, earn XP, and let Reelboard pick
@@ -208,8 +210,12 @@ const NameStep = ({ name, onChangeName, onSubmit, colors, styles }) => (
 
 const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
   const { width } = useWindowDimensions();
-  const tileWidth =
-    (width - spacing.md * 2 - spacing.sm * (TASTE_COLUMNS - 1)) / TASTE_COLUMNS;
+  // Edge to edge, whole pixels; an explicit height so wrapped rows are
+  // never clipped.
+  const tileWidth = Math.floor(
+    (width - GRID_GAP * (TASTE_COLUMNS - 1)) / TASTE_COLUMNS,
+  );
+  const tileSize = { width: tileWidth, height: tileWidth * 1.5 };
   const seenCount = Object.values(marks).filter((m) => m === "seen").length;
   const wantCount = Object.values(marks).filter((m) => m === "want").length;
 
@@ -222,7 +228,7 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
       <Text style={styles.tasteCounter}>
         <Text style={{ color: colors.success }}>{seenCount} seen</Text>
         {"  ·  "}
-        <Text style={{ color: colors.accentLight }}>{wantCount} saved</Text>
+        <Text style={{ color: colors.textPrimary }}>{wantCount} saved</Text>
       </Text>
       <View style={styles.tasteGrid}>
         {movies.map((movie) => {
@@ -236,31 +242,11 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
               <View>
                 <MoviePoster
                   uri={movie.poster}
-                  radius={radius.sm}
-                  style={[
-                    { width: tileWidth, aspectRatio: 2 / 3 },
-                    mark && styles.tastePosterMarked,
-                  ]}
+                  style={[tileSize, mark && styles.tastePosterMarked]}
                 />
                 {mark && (
-                  <View
-                    style={[
-                      styles.tasteOverlay,
-                      {
-                        borderColor:
-                          mark === "seen" ? colors.success : colors.accentLight,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.tasteBadge,
-                        {
-                          backgroundColor:
-                            mark === "seen" ? colors.success : colors.accent,
-                        },
-                      ]}
-                    >
+                  <View style={styles.tasteOverlay}>
+                    <View style={styles.tasteBadge}>
                       {mark === "seen" ? (
                         <Check
                           size={16}
@@ -270,8 +256,8 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
                       ) : (
                         <Bookmark
                           size={14}
-                          color={colors.accentContrast}
-                          fill={colors.accentContrast}
+                          color={colors.background}
+                          fill={colors.background}
                         />
                       )}
                     </View>
@@ -291,10 +277,7 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
 
 const RewardStep = ({ summary, colors, styles }) => (
   <View style={[styles.step, styles.centered]}>
-    <View style={styles.rewardGlow}>
-      <Sparkles size={44} color={colors.rating} />
-    </View>
-    <Text style={styles.title}>Nice taste.</Text>
+    <Text style={[styles.title, styles.rewardTitle]}>Nice taste.</Text>
     {summary.xp > 0 && <Text style={styles.rewardXP}>+{summary.xp} XP</Text>}
     <View style={styles.rewardRows}>
       {summary.seenCount > 0 && (
@@ -332,8 +315,9 @@ const RewardStep = ({ summary, colors, styles }) => (
 
 const PickStep = ({ movies, selectedId, onSelect, styles, colors }) => {
   const { width } = useWindowDimensions();
-  const cardWidth =
-    (width - spacing.md * 2 - spacing.sm * (PICK_COUNT - 1)) / PICK_COUNT;
+  const cardWidth = Math.floor(
+    (width - spacing.md * 2 - GRID_GAP * (PICK_COUNT - 1)) / PICK_COUNT,
+  );
 
   return (
     <View style={styles.step}>
@@ -353,9 +337,8 @@ const PickStep = ({ movies, selectedId, onSelect, styles, colors }) => {
               <View>
                 <MoviePoster
                   uri={movie.poster}
-                  radius={radius.sm}
                   style={[
-                    { width: cardWidth, aspectRatio: 2 / 3 },
+                    { width: cardWidth, height: cardWidth * 1.5 },
                     selectedId && !isSelected && styles.pickPosterDimmed,
                   ]}
                 />
@@ -364,7 +347,7 @@ const PickStep = ({ movies, selectedId, onSelect, styles, colors }) => {
                     <View style={styles.pickCheck}>
                       <Check
                         size={16}
-                        color={colors.accentContrast}
+                        color={colors.background}
                         strokeWidth={3.5}
                       />
                     </View>
@@ -528,11 +511,11 @@ export const OnboardingScreen = () => {
 
   const markedCount = Object.keys(marks).length;
   const buttonLabel = {
-    [STEP.welcome]: "Get Started",
+    [STEP.welcome]: "Get started",
     [STEP.name]: name.trim() ? "Continue" : "Skip for now",
     [STEP.taste]: markedCount > 0 ? "Continue" : "I'll do this later",
     [STEP.reward]: "Continue",
-    [STEP.pick]: selectedPickId ? "Set as Tonight's Pick" : "Maybe later",
+    [STEP.pick]: selectedPickId ? "Set as tonight's pick" : "Maybe later",
   }[step];
 
   return (
@@ -628,6 +611,7 @@ export const OnboardingScreen = () => {
               : "primary"
           }
           onPress={handleNext}
+          contentStyle={styles.footerButton}
         />
       </View>
     </SafeAreaView>
@@ -635,7 +619,6 @@ export const OnboardingScreen = () => {
 };
 
 const TOP_BAR_SLOT_WIDTH = 56;
-const REWARD_GLOW_SIZE = 104;
 
 const createStyles = (colors) =>
   StyleSheet.create({
@@ -662,19 +645,19 @@ const createStyles = (colors) =>
       ...typography.body,
       color: colors.textSecondary,
     },
+    // Square segments: white for done, grey to go.
     progressRow: {
       flex: 1,
       flexDirection: "row",
-      gap: 6,
+      gap: 4,
     },
     progressSegment: {
       flex: 1,
-      height: 4,
-      borderRadius: 2,
+      height: 3,
       backgroundColor: colors.surfaceSoft,
     },
     progressSegmentActive: {
-      backgroundColor: colors.accent,
+      backgroundColor: colors.textPrimary,
     },
     contentWrap: {
       flex: 1,
@@ -706,6 +689,10 @@ const createStyles = (colors) =>
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
     },
+    footerButton: {
+      borderRadius: 0,
+      minHeight: 50,
+    },
 
     // Welcome
     welcome: {
@@ -716,12 +703,12 @@ const createStyles = (colors) =>
     wall: {
       ...StyleSheet.absoluteFill,
       flexDirection: "row",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.sm,
+      gap: WALL_GAP,
+      paddingHorizontal: WALL_GAP,
       transform: [{ rotate: "-6deg" }, { scale: 1.2 }],
     },
     wallColumn: {
-      gap: spacing.sm,
+      gap: WALL_GAP,
     },
     welcomeText: {
       paddingHorizontal: spacing.md,
@@ -740,70 +727,70 @@ const createStyles = (colors) =>
       marginTop: spacing.xl,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.sm,
+      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
       color: colors.textPrimary,
     },
 
     // Taste
     tasteCounter: {
-      ...typography.label,
+      ...typography.bodyBold,
+      fontSize: 13,
       marginTop: spacing.md,
       color: colors.textSecondary,
     },
     tasteGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: spacing.sm,
+      justifyContent: "center",
+      columnGap: GRID_GAP,
+      rowGap: spacing.sm,
       marginTop: spacing.md,
+      marginHorizontal: -spacing.md,
     },
     tastePosterMarked: {
       opacity: 0.55,
     },
+    // Marked: a white frame and a small white square badge — like the
+    // top-ten picker.
     tasteOverlay: {
       ...StyleSheet.absoluteFill,
-      borderWidth: 3,
+      borderWidth: 2,
+      borderColor: colors.textPrimary,
       alignItems: "center",
       justifyContent: "center",
     },
     tasteBadge: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: 30,
+      height: 30,
       alignItems: "center",
       justifyContent: "center",
+      backgroundColor: colors.textPrimary,
     },
     tasteTitle: {
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 4,
+      paddingHorizontal: spacing.xs,
     },
 
     // Reward
-    rewardGlow: {
-      width: REWARD_GLOW_SIZE,
-      height: REWARD_GLOW_SIZE,
-      borderRadius: REWARD_GLOW_SIZE / 2,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: `${colors.rating}24`,
-      borderWidth: 1,
-      borderColor: `${colors.rating}55`,
+    rewardTitle: {
       marginTop: spacing.xl,
-      marginBottom: spacing.md,
     },
     rewardXP: {
       ...typography.display,
       color: colors.rating,
       marginTop: spacing.xs,
     },
+    // Filled rows edge to edge, split by a line of page colour.
     rewardRows: {
       alignSelf: "stretch",
       marginTop: spacing.lg,
+      marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.surfaceSoft,
+      backgroundColor: colors.card,
     },
     rewardRow: {
       flexDirection: "row",
@@ -812,7 +799,7 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingVertical: spacing.sm + 2,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.background,
     },
     rewardLabel: {
       ...typography.bodyBold,
@@ -838,7 +825,7 @@ const createStyles = (colors) =>
     // Pick
     pickRow: {
       flexDirection: "row",
-      gap: spacing.sm,
+      gap: GRID_GAP,
       marginTop: spacing.xl,
     },
     pickCard: {
@@ -849,18 +836,17 @@ const createStyles = (colors) =>
     },
     pickSelectedRing: {
       ...StyleSheet.absoluteFill,
-      borderWidth: 3,
-      borderColor: colors.accent,
+      borderWidth: 2,
+      borderColor: colors.textPrimary,
       alignItems: "flex-end",
       padding: 6,
     },
     pickCheck: {
       width: 28,
       height: 28,
-      borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.accent,
+      backgroundColor: colors.textPrimary,
     },
     pickTitle: {
       ...typography.bodyBold,

@@ -3,15 +3,15 @@ import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
   AppState,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { fonts } from "../../theme/typography";
+import { useProfileStore } from "../../store/profileStore";
 import { useColors } from "../../theme/useColors";
 import { DEFAULT_ICON_SIZE, ICON_SIZES, LABELS, getTabIcon } from "./tabConfig";
 
@@ -25,6 +25,9 @@ const SIDE_INSET = 16;
 // over the glass without competing with the active tab's accent color.
 const INACTIVE_COLOR = "rgba(255, 255, 255, 0.82)";
 const BOTTOM_GAP = 8;
+// The Profile tab shows your photo (once you've set one) instead of the
+// person icon — like Instagram.
+const AVATAR_SIZE = 28;
 
 // Re-creates the BlurView whenever the app comes back to the foreground —
 // iOS can stop the paused animator expo-blur uses for intensity while the
@@ -41,14 +44,15 @@ const useForegroundKey = () => {
 };
 
 // Frosted-glass floating tab bar: a full-width rounded slab with a real
-// blur (iOS) behind icons + labels, and a soft highlight pill behind the
-// active tab. Android has no blur for this view (expo-blur needs a
+// blur (iOS) behind the icons (no labels), and a soft highlight pill behind
+// the active tab. Profile shows your photo when you have one. Android has no blur for this view (expo-blur needs a
 // BlurTargetView there), so it gets a denser tint instead.
 export const GlassTabBar = ({ state, navigation }) => {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
   const blurKey = useForegroundKey();
+  const avatarUri = useProfileStore((state) => state.avatarUri);
 
   const selectIndex = (index) => {
     const route = state.routes[index];
@@ -83,27 +87,33 @@ export const GlassTabBar = ({ state, navigation }) => {
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const Icon = getTabIcon(route.name, isFocused);
-        const color = isFocused ? colors.accentLight : INACTIVE_COLOR;
+        const color = isFocused ? colors.textPrimary : INACTIVE_COLOR;
         return (
           <Pressable
             key={route.key}
             style={styles.item}
             onPress={() => selectIndex(index)}
             accessibilityRole="button"
+            accessibilityLabel={LABELS[route.name]}
             accessibilityState={{ selected: isFocused }}
           >
-            {/* The highlight wraps icon + label together. */}
+            {/* Icons only — the highlight sits behind the icon. */}
             <View style={[styles.pill, isFocused && styles.pillActive]}>
-              <Icon
-                size={ICON_SIZES[route.name] ?? DEFAULT_ICON_SIZE}
-                color={color}
-              />
-              <Text
-                numberOfLines={1}
-                style={[styles.label, isFocused && styles.labelActive]}
-              >
-                {LABELS[route.name]}
-              </Text>
+              {route.name === "Profile" && avatarUri ? (
+                <View
+                  style={[
+                    styles.avatarRing,
+                    isFocused && styles.avatarRingActive,
+                  ]}
+                >
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                </View>
+              ) : (
+                <Icon
+                  size={ICON_SIZES[route.name] ?? DEFAULT_ICON_SIZE}
+                  color={color}
+                />
+              )}
             </View>
           </Pressable>
         );
@@ -145,19 +155,29 @@ const createStyles = (colors) =>
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      gap: 2,
       borderRadius: (GLASS_TAB_BAR_HEIGHT - 12) / 2,
     },
     pillActive: {
       backgroundColor: "rgba(255, 255, 255, 0.14)",
     },
-    label: {
-      fontFamily: fonts.semiBold,
-      fontSize: 11,
-      color: INACTIVE_COLOR,
+    // A thin ring around the photo marks it as the open tab.
+    avatarRing: {
+      width: AVATAR_SIZE + 4,
+      height: AVATAR_SIZE + 4,
+      borderRadius: (AVATAR_SIZE + 4) / 2,
+      borderWidth: 1.5,
+      borderColor: "transparent",
+      alignItems: "center",
+      justifyContent: "center",
     },
-    labelActive: {
-      color: colors.accentLight,
+    avatarRingActive: {
+      borderColor: colors.textPrimary,
+    },
+    avatar: {
+      width: AVATAR_SIZE - 2,
+      height: AVATAR_SIZE - 2,
+      borderRadius: (AVATAR_SIZE - 2) / 2,
+      backgroundColor: colors.card,
     },
   });
 
