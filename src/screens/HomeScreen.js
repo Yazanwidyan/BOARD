@@ -1,22 +1,21 @@
+import * as Haptics from "expo-haptics";
 import { Shuffle } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
-
-import * as Haptics from "expo-haptics";
 
 import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
-import { DockHeader, useDockHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { DockHeader, useDockHeader } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { MOVIES, getMovieById } from "../data/movies";
@@ -27,8 +26,8 @@ import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
-import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { formatRuntime } from "../utils/movieFilters";
+import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getLevel, getUserXP } from "../utils/xp";
 
 const RECENT_COUNT = 10;
@@ -407,7 +406,6 @@ export const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate("Profile")}
           >
             <RankGemIcon size={18} color={colors.accent} />
-            <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
           </Pressable>
         }
       />

@@ -21,28 +21,28 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
 
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
-import { Popover } from "../components/Popover";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { MoviePoster } from "../components/MoviePoster";
+import { Popover } from "../components/Popover";
+import { MosaicSections, PosterMosaic } from "../components/PosterMosaic";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
   DockHeader,
   HEADER_BAR_HEIGHT,
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
-import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { MosaicSections, PosterMosaic } from "../components/PosterMosaic";
 import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -876,10 +876,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
-      paddingHorizontal: spacing.md - 2,
       paddingVertical: 7,
-      borderRadius: radius.pill,
-      backgroundColor: colors.background,
     },
     toolChipActive: {
       backgroundColor: colors.selected,

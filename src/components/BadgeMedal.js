@@ -13,6 +13,7 @@ import Svg, { Circle } from "react-native-svg";
 
 import { useColors } from "../theme/useColors";
 import { BadgeArt, badgeTrackColor } from "./BadgeArt";
+import GoldBadgeArt from "./GoldBadgeArt";
 import { TargetIcon } from "./icons/TabIcons";
 
 // One track per badge category: its medal icon, what the count measures
@@ -206,13 +207,14 @@ export const Medal = ({
           state === "locked" && styles.artLocked,
         ]}
       >
-        <BadgeArt
+        <GoldBadgeArt size={size} />
+        {/* <BadgeArt
           emblem={badge.category}
           tier={tier}
           metal={metal}
           earned={state === "earned"}
           size={size}
-        />
+        /> */}
       </View>
       {state === "locked" && (
         <View

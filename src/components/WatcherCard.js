@@ -45,8 +45,15 @@ export const WatcherCard = ({
       {/* Identity: avatar (with its level ring) beside name, level, handle,
           bio. Tapping the avatar or level opens the watcher profile sheet. */}
       <View style={styles.identityRow}>
-        <Touch onPress={onPressAvatar} accessibilityLabel="Your watcher profile">
-          <AvatarLevelRing source={avatarSource} level={level} avatarSize={72} />
+        <Touch
+          onPress={onPressAvatar}
+          accessibilityLabel="Your watcher profile"
+        >
+          <AvatarLevelRing
+            source={avatarSource}
+            level={level}
+            avatarSize={72}
+          />
         </Touch>
         <View style={styles.identityText}>
           <Text style={styles.name} numberOfLines={1}>
@@ -55,18 +62,9 @@ export const WatcherCard = ({
           <Touch onPress={onPressAvatar} hitSlop={6}>
             <Text style={styles.rankLine} numberOfLines={1}>
               <Text style={styles.levelName}>{level.name}</Text>
-              {isShare
-                ? ` · Level ${level.level}`
-                : ` · ${xpToNextLevel.toLocaleString()} XP to Level ${level.level + 1}`}
             </Text>
           </Touch>
-          {isShare ? (
-            <Text style={styles.handle}>{handle}</Text>
-          ) : (
-            <Pressable onPress={onCopyHandle} hitSlop={6}>
-              <Text style={styles.handle}>{handle} · Copy</Text>
-            </Pressable>
-          )}
+          {isShare && <Text style={styles.handle}>{handle}</Text>}
           {isShare ? (
             !!bio && (
               <Text style={[styles.bio, styles.bioShare]} numberOfLines={2}>
@@ -74,9 +72,13 @@ export const WatcherCard = ({
               </Text>
             )
           ) : (
-            <Pressable onPress={onPressBio} hitSlop={6} style={styles.bioButton}>
+            <Pressable
+              onPress={onPressBio}
+              hitSlop={6}
+              style={styles.bioButton}
+            >
               {!bio && (
-                <Plus size={12} color={colors.accentLight} strokeWidth={2.4} />
+                <Plus size={12} color={colors.textMuted} strokeWidth={2.4} />
               )}
               <Text
                 style={[styles.bio, !bio && styles.bioPlaceholder]}
@@ -149,7 +151,6 @@ export const WatcherCard = ({
       ) : (
         <Text style={styles.badgeEmpty}>Badges you earn show up here.</Text>
       )}
-
     </View>
   );
 };
@@ -172,7 +173,7 @@ const createStyles = (colors) =>
     },
     rankLine: {
       ...typography.caption,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     levelName: {
       ...typography.bodyBold,
@@ -181,7 +182,7 @@ const createStyles = (colors) =>
     },
     handle: {
       ...typography.caption,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     bioButton: {
       flexDirection: "row",
@@ -192,7 +193,7 @@ const createStyles = (colors) =>
     bio: {
       ...typography.body,
       fontSize: 13,
-      color: colors.textPrimary,
+      color: colors.textMuted,
       lineHeight: 17,
       flexShrink: 1,
     },
@@ -200,7 +201,7 @@ const createStyles = (colors) =>
       marginTop: spacing.xs,
     },
     bioPlaceholder: {
-      color: colors.accentLight,
+      color: colors.textMuted,
     },
     sectionHeader: {
       flexDirection: "row",
