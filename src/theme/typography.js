@@ -45,6 +45,12 @@ export const typography = {
     fontFamily: fonts.medium,
     fontSize: 12,
   },
+  // The smallest text in the app (badges on posters, tiny meta). Nothing
+  // goes below 11px — 9–10px labels were hard to read.
+  micro: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+  },
   label: {
     fontFamily: fonts.bold,
     fontSize: 11,

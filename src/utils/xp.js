@@ -1,75 +1,116 @@
-// The single XP ledger every progression system reads from — Level and Rank
-// (in league.js) both derive from the same getUserXP() total through
-// different lenses (fine-grained vs. coarse/permanent), so there's nothing
-// to keep in sync between them. Values are deliberately simple/round, per
-// the spec's own "exact values can be mocked, the system should be
-// consistent" instruction.
+import { getMovieById } from "../data/movies";
+import { isRated } from "./tiers";
+import { getCollectionProgress, getCollectionSections } from "./collections";
+
+// XP is a picture of what kind of movie watcher you are — earned only from
+// what you've actually watched, weighted toward range (new genres, new
+// decades) and depth (knowing a director, finishing a collection). It
+// never decays, doesn't care when you watched, and nothing rewards simply
+// opening the app. Badges and challenges are recognition / fun ways to
+// choose — they don't add XP of their own (a challenge's movie still
+// counts as a normal watch).
+//
+// Everything is derived from the watched list each time — nothing stored —
+// and each bonus counts once per genre / decade / director / collection,
+// so the total doesn't depend on the order movies were watched in.
 export const WATCH_XP = 100;
-export const RATE_XP = 25;
-export const COLLECTION_XP = 750;
-export const BADGE_XP = 250;
-// Deliberately well below WATCH_XP — a rewatch is real engagement worth
-// something, but paying it out at full price would make "rewatch the same
-// movie forever" a better XP farm than actually watching new things.
-export const REWATCH_XP = 30;
+export const NEW_GENRE_XP = 50;
+export const NEW_DECADE_XP = 50;
+// Awarded once per director, when you've seen 3 of their films.
+export const DIRECTOR_DEPTH_XP = 75;
+export const DIRECTOR_DEPTH_FILMS = 3;
+export const COLLECTION_XP = 200;
+// Only finishing a real body of work counts: a franchise, a director's or
+// an actor's films, with at least this many in the catalog. Genre/decade
+// "Best of" lists fill up as a side effect of watching anyway, and 2-film
+// sets are too small to be an achievement — counting them double-paid
+// for watching itself.
+const XP_COLLECTION_TYPES = ["franchise", "director", "actor"];
+const XP_COLLECTION_MIN_SIZE = 3;
 
-// Only completed challenges pay out — a skipped one earns nothing.
-export const getChallengeXP = (history) =>
-  history
-    .filter((entry) => entry.status === 'completed')
-    .reduce((sum, entry) => sum + entry.xpReward, 0);
+const XP_COLLECTIONS = () =>
+  getCollectionSections()
+    .filter((section) => XP_COLLECTION_TYPES.includes(section.type))
+    .flatMap((section) => section.collections)
+    .filter((collection) => collection.movies.length >= XP_COLLECTION_MIN_SIZE);
 
-// Only the rewatches count, not the first watch (that's WATCH_XP's job) —
-// watchCount is absent on entries from before rewatching existed, treated
-// as 1 (no rewatches yet) the same way every other reader does.
-export const getRewatchXP = (watched) =>
-  watched.reduce((sum, entry) => sum + (((entry.watchCount ?? 1) - 1) * REWATCH_XP), 0);
+export const getCompletedXPCollections = (watchedIds) =>
+  XP_COLLECTIONS().filter(
+    (collection) =>
+      getCollectionProgress(collection, watchedIds).progress === 1,
+  );
+export const RATE_XP = 10;
 
-export const getCompletedChallengesCount = (history) =>
-  history.filter((entry) => entry.status === 'completed').length;
+export const decadeOf = (year) => `${Math.floor(year / 10) * 10}s`;
 
-export const DIFFICULTY = {
-  EASY: { label: 'Easy', min: 100, max: 250 },
-  MEDIUM: { label: 'Medium', min: 300, max: 600 },
-  HARD: { label: 'Hard', min: 700, max: 1200 },
-  EXTREME: { label: 'Extreme', min: 1500, max: 2000 },
+// Each XP source, counted from the watched list. Rewatches add nothing —
+// they're part of your history, not more range.
+export const getXPBreakdown = (watched) => {
+  const movies = watched
+    .map((entry) => getMovieById(entry.movieId))
+    .filter(Boolean);
+  const genres = new Set(movies.flatMap((movie) => movie.genres));
+  const decades = new Set(movies.map((movie) => decadeOf(movie.year)));
+  const directorCounts = new Map();
+  movies.forEach((movie) =>
+    directorCounts.set(
+      movie.director,
+      (directorCounts.get(movie.director) ?? 0) + 1,
+    ),
+  );
+  const deepDirectors = [...directorCounts.entries()]
+    .filter(([, count]) => count >= DIRECTOR_DEPTH_FILMS)
+    .map(([director]) => director);
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+
+  // XP per source, plus the sets behind the bonuses (so feedback can say
+  // *which* genre / decade / director was new).
+  const xp = {
+    watched: movies.length * WATCH_XP,
+    genres: genres.size * NEW_GENRE_XP,
+    decades: decades.size * NEW_DECADE_XP,
+    directors: deepDirectors.length * DIRECTOR_DEPTH_XP,
+    collections: getCompletedXPCollections(watchedIds).length * COLLECTION_XP,
+    rated: watched.filter(isRated).length * RATE_XP,
+  };
+  return {
+    xp,
+    total: Object.values(xp).reduce((sum, value) => sum + value, 0),
+    genres: [...genres],
+    decades: [...decades],
+    deepDirectors,
+  };
 };
 
-// Sums every real, derived signal into one number — nothing here is stored,
-// it's recomputed from watched/rated/challenge-history/collections/badges
-// each time, same as every other system built this session.
-export const getUserXP = ({
-  watchedCount,
-  ratedCount,
-  challengeXP = 0,
-  rewatchXP = 0,
-  completedCollectionsCount,
-  earnedBadgeCount,
-}) => (
-  watchedCount * WATCH_XP
-  + ratedCount * RATE_XP
-  + challengeXP
-  + rewatchXP
-  + completedCollectionsCount * COLLECTION_XP
-  + earnedBadgeCount * BADGE_XP
-);
+export const getUserXP = (watched) => getXPBreakdown(watched).total;
+
+export const getCompletedChallengesCount = (history) =>
+  history.filter((entry) => entry.status === "completed").length;
+
+// Challenge difficulty bands — still used to size a challenge (Easy /
+// Medium / Hard), even though challenges no longer add XP themselves.
+export const DIFFICULTY = {
+  EASY: { label: "Easy", min: 100, max: 250 },
+  MEDIUM: { label: "Medium", min: 300, max: 600 },
+  HARD: { label: "Hard", min: 700, max: 1200 },
+  EXTREME: { label: "Extreme", min: 1500, max: 2000 },
+};
 
 // XP required to clear a given level — grows steadily so higher levels take
 // meaningfully longer, without needing a lookup table.
 const levelRequirement = (level) => 800 + (level - 1) * 90;
 
 const LEVEL_NAMES = [
-  { through: 5, name: 'Newcomer' },
-  { through: 12, name: 'Movie Fan' },
-  { through: 20, name: 'Film Buff' },
-  { through: 30, name: 'Cinephile' },
-  { through: 45, name: 'Film Expert' },
-  { through: Infinity, name: 'Cinema Legend' },
+  { through: 5, name: "Opening Credits" },
+  { through: 12, name: "Movie Fan" },
+  { through: 20, name: "Film Buff" },
+  { through: 30, name: "Cinephile" },
+  { through: 45, name: "Film Expert" },
+  { through: Infinity, name: "Cinema Legend" },
 ];
 
-const getLevelName = (level) => (
-  LEVEL_NAMES.find(({ through }) => level <= through).name
-);
+export const getLevelName = (level) =>
+  LEVEL_NAMES.find(({ through }) => level <= through).name;
 
 // Walks up from level 1, spending XP on each level's requirement, until
 // there's not enough left for the next one — that's the current level, and

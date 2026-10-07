@@ -1,10 +1,5 @@
-import {
-  Check,
-  ChevronRight,
-  ListPlus,
-  Plus,
-  Trophy,
-} from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { ChevronRight, ListPlus, Plus, Trophy } from "lucide-react-native";
 import { useState } from "react";
 import {
   Pressable,
@@ -14,7 +9,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -26,6 +20,7 @@ import {
   getSuggestedCollections,
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
+import { BoxSet } from "./BoxSet";
 import { MoviePoster } from "./MoviePoster";
 
 const TYPE_FILTERS = [
@@ -51,8 +46,7 @@ const MONTHS = [
   "Dec",
 ];
 const ALMOST_THERE_MAX_LEFT = 2;
-const CAROUSEL_CARD = 156;
-const RING_SIZE = 34;
+const CAROUSEL_CARD = 150;
 
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
@@ -81,40 +75,59 @@ const Cover = ({ movies, size, dimmed, styles }) => {
   );
 };
 
-const Ring = ({ progress, colors }) => {
-  const stroke = 4;
-  const r = (RING_SIZE - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  return (
-    <Svg width={RING_SIZE} height={RING_SIZE}>
-      <Circle
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={r}
-        stroke="rgba(255, 255, 255, 0.18)"
-        strokeWidth={stroke}
-        fill="none"
+// One box set standing on its stretch of shelf, with its name and a line
+// underneath. Cards sit edge to edge, so their ledge pieces join into one
+// continuous shelf.
+const ShelfCard = ({
+  item,
+  state,
+  width,
+  meta,
+  metaColor,
+  watchedIds,
+  onPress,
+  styles,
+}) => (
+  <Pressable
+    style={({ pressed }) => [{ width }, pressed && styles.pressed]}
+    onPress={onPress}
+  >
+    <View style={styles.shelfCardBox}>
+      <BoxSet
+        collection={item.collection}
+        watchedIds={watchedIds}
+        state={state}
+        size={width - spacing.sm * 2}
       />
-      <Circle
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={r}
-        stroke={colors.accentLight}
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - progress)}
-        fill="none"
-        transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-      />
-    </Svg>
-  );
-};
+    </View>
+    <View style={styles.ledgePiece} />
+    <LinearGradient
+      colors={["rgba(0, 0, 0, 0.45)", "rgba(0, 0, 0, 0)"]}
+      style={styles.ledgeShadow}
+      pointerEvents="none"
+    />
+    <View style={styles.shelfCardText}>
+      <Text style={styles.cardTitle} numberOfLines={1}>
+        {item.collection.title}
+      </Text>
+      <Text
+        style={[styles.cardMeta, metaColor && { color: metaColor }]}
+        numberOfLines={1}
+      >
+        {meta}
+      </Text>
+    </View>
+  </Pressable>
+);
 
-const SectionTitle = ({ title, count, styles }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {count != null && <Text style={styles.sectionCount}>{count}</Text>}
+// Section headers as the little tags clipped to a store shelf.
+const SectionTitle = ({ title, count, icon, color, styles }) => (
+  <View style={styles.tag}>
+    {icon}
+    <Text style={[styles.tagText, color && { color }]}>
+      {title.toUpperCase()}
+    </Text>
+    {count != null && <Text style={styles.tagCount}>{count}</Text>}
   </View>
 );
 
@@ -129,6 +142,7 @@ export const CollectionsShelf = ({
   onOpen,
   onToggleTrack,
   onSeeAll,
+  onOpenMovie,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -183,7 +197,8 @@ export const CollectionsShelf = ({
     unlockedCollectionIds,
   ).filter(({ collection }) => matchesType({ collection }));
 
-  const gridCell = (width - spacing.md * 2 - spacing.sm) / 2;
+  // Not started: two box sets per shelf.
+  const gridCell = (width - spacing.sm * 2) / 2;
 
   return (
     <View>
@@ -234,31 +249,16 @@ export const CollectionsShelf = ({
             contentContainerStyle={styles.carousel}
           >
             {inProgress.map((item) => (
-              <Pressable
+              <ShelfCard
                 key={item.collection.id}
-                style={styles.carouselCard}
+                item={item}
+                state="progress"
+                width={CAROUSEL_CARD}
+                meta={`${item.watchedCount} of ${item.total} · ${formatRuntime(item.minutesLeft)} left`}
+                watchedIds={watchedIds}
                 onPress={() => onOpen(item.collection.id)}
-              >
-                <View>
-                  <Cover
-                    movies={item.collection.movies}
-                    size={CAROUSEL_CARD}
-                    styles={styles}
-                  />
-                  <View style={styles.ringBadge}>
-                    <Ring progress={item.progress} colors={colors} />
-                    <Text style={styles.ringText}>
-                      {Math.round(item.progress * 100)}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {item.collection.title}
-                </Text>
-                <Text style={styles.cardMeta} numberOfLines={1}>
-                  {item.left} left · {formatRuntime(item.minutesLeft)}
-                </Text>
-              </Pressable>
+                styles={styles}
+              />
             ))}
           </ScrollView>
         </View>
@@ -268,29 +268,63 @@ export const CollectionsShelf = ({
         <View style={styles.section}>
           <SectionTitle title="Almost there" styles={styles} />
           <View style={styles.list}>
-            {almostThere.map((item) => (
-              <Pressable
-                key={item.collection.id}
-                style={styles.almostRow}
-                onPress={() => onOpen(item.collection.id)}
-              >
-                <MoviePoster
-                  uri={item.nextMovie?.poster}
-                  style={styles.almostPoster}
-                />
-                <View style={styles.almostInfo}>
-                  <Text style={styles.almostTitle} numberOfLines={1}>
-                    {item.collection.title}
-                  </Text>
-                  <Text style={styles.almostMeta} numberOfLines={1}>
-                    {item.left === 1
-                      ? `1 left · ${item.nextMovie?.title}`
-                      : `${item.left} left · next: ${item.nextMovie?.title}`}
-                  </Text>
-                </View>
-                <ChevronRight size={18} color={colors.textSecondary} />
-              </Pressable>
-            ))}
+            {/* Missing pieces: the box set with its gap, and the movies
+                that would fill it in dashed shelf slots — tap one to open
+                it, or the card for the whole collection. */}
+            {almostThere.map((item) => {
+              const missing = item.collection.movies.filter(
+                (movie) => !watchedIds.has(movie.id),
+              );
+              return (
+                <Pressable
+                  key={item.collection.id}
+                  style={({ pressed }) => [
+                    styles.missingCard,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => onOpen(item.collection.id)}
+                >
+                  <BoxSet
+                    collection={item.collection}
+                    watchedIds={watchedIds}
+                    state="progress"
+                    size={84}
+                  />
+                  <View style={styles.missingInfo}>
+                    <Text style={styles.missingTitle} numberOfLines={1}>
+                      {item.collection.title}
+                    </Text>
+                    <Text style={styles.missingMeta}>
+                      <Text style={styles.missingCount}>
+                        {item.left === 1 ? "1 movie" : `${item.left} movies`}
+                      </Text>{" "}
+                      to complete it
+                    </Text>
+                    <View style={styles.missingSlots}>
+                      {missing.map((movie) => (
+                        <Pressable
+                          key={movie.id}
+                          style={styles.missingSlot}
+                          onPress={() =>
+                            onOpenMovie
+                              ? onOpenMovie(movie.id)
+                              : onOpen(item.collection.id)
+                          }
+                          hitSlop={4}
+                          accessibilityLabel={`Open ${movie.title}`}
+                        >
+                          <MoviePoster
+                            uri={movie.poster}
+                            style={styles.missingPoster}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  <ChevronRight size={18} color={colors.textSecondary} />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       )}
@@ -302,39 +336,31 @@ export const CollectionsShelf = ({
             count={notStarted.length}
             styles={styles}
           />
-          <View style={styles.grid}>
+          <View style={styles.shelfGrid}>
             {notStarted.map((item) => (
-              <Pressable
+              <ShelfCard
                 key={item.collection.id}
-                style={{ width: gridCell }}
+                item={item}
+                state="sealed"
+                width={gridCell}
+                meta={`${item.total} movies · ${formatRuntime(item.minutesLeft)}`}
+                watchedIds={watchedIds}
                 onPress={() => onOpen(item.collection.id)}
-              >
-                <Cover
-                  movies={item.collection.movies}
-                  size={gridCell}
-                  styles={styles}
-                />
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {item.collection.title}
-                </Text>
-                <Text style={styles.cardMeta}>
-                  0/{item.total} · {formatRuntime(item.minutesLeft)}
-                </Text>
-              </Pressable>
+                styles={styles}
+              />
             ))}
           </View>
         </View>
       )}
-
       {completed.length > 0 && (
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Trophy size={14} color={colors.rating} />
-            <Text style={[styles.sectionTitle, styles.trophyTitle]}>
-              Trophy shelf
-            </Text>
-            <Text style={styles.sectionCount}>{completed.length}</Text>
-          </View>
+          <SectionTitle
+            title="Trophy shelf"
+            count={completed.length}
+            icon={<Trophy size={12} color={colors.rating} />}
+            color={colors.rating}
+            styles={styles}
+          />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -342,34 +368,21 @@ export const CollectionsShelf = ({
             contentContainerStyle={styles.carousel}
           >
             {completed.map((item) => (
-              <Pressable
+              <ShelfCard
                 key={item.collection.id}
-                style={styles.trophyCard}
-                onPress={() => onOpen(item.collection.id)}
-              >
-                <View>
-                  <Cover
-                    movies={item.collection.movies}
-                    size={CAROUSEL_CARD - 16}
-                    styles={styles}
-                  />
-                  <View style={styles.trophyRibbon}>
-                    <Check
-                      size={12}
-                      color={colors.background}
-                      strokeWidth={3}
-                    />
-                  </View>
-                </View>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {item.collection.title}
-                </Text>
-                <Text style={styles.trophyMeta} numberOfLines={1}>
-                  {item.completedAt
+                item={item}
+                state="complete"
+                width={CAROUSEL_CARD}
+                meta={
+                  item.completedAt
                     ? `Completed ${formatDate(item.completedAt)}`
-                    : "Completed"}
-                </Text>
-              </Pressable>
+                    : "Completed"
+                }
+                metaColor={colors.rating}
+                watchedIds={watchedIds}
+                onPress={() => onOpen(item.collection.id)}
+                styles={styles}
+              />
             ))}
           </ScrollView>
         </View>
@@ -440,7 +453,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
     },
     chipActive: {
-      backgroundColor: "#FFFFFF",
+      backgroundColor: colors.selected,
     },
     chipText: {
       ...typography.bodyBold,
@@ -468,30 +481,57 @@ const createStyles = (colors) =>
     section: {
       marginTop: spacing.lg,
     },
-    sectionHeader: {
+    tag: {
       flexDirection: "row",
       alignItems: "center",
+      alignSelf: "flex-start",
       gap: spacing.xs + 2,
-      paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      marginLeft: spacing.md,
+      marginBottom: spacing.sm + 2,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+      borderRadius: radius.xs,
+      backgroundColor: colors.cardElevated,
     },
-    sectionTitle: {
+    tagText: {
       ...typography.label,
       color: colors.textSecondary,
+      letterSpacing: 1.2,
     },
-    sectionCount: {
+    tagCount: {
       ...typography.caption,
+      fontSize: 11,
       color: colors.textMuted,
     },
-    trophyTitle: {
-      color: colors.rating,
-    },
+    // Cards sit edge to edge (no gap) so the ledge runs unbroken; each
+    // card pads its own box instead.
     carousel: {
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
     },
-    carouselCard: {
-      width: CAROUSEL_CARD,
+    shelfGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      rowGap: spacing.lg,
+      paddingHorizontal: spacing.sm,
+    },
+    shelfCardBox: {
+      paddingHorizontal: spacing.sm,
+    },
+    ledgePiece: {
+      height: 7,
+      backgroundColor: colors.cardElevated,
+      borderTopWidth: 1,
+      borderTopColor: "rgba(255, 255, 255, 0.14)",
+    },
+    ledgeShadow: {
+      height: 10,
+    },
+    shelfCardText: {
+      paddingHorizontal: spacing.sm,
+      marginTop: -2,
+    },
+    pressed: {
+      opacity: 0.75,
     },
     cover: {
       flexDirection: "row",
@@ -501,24 +541,6 @@ const createStyles = (colors) =>
     },
     coverDimmed: {
       opacity: 0.5,
-    },
-    ringBadge: {
-      position: "absolute",
-      right: 6,
-      bottom: 6,
-      width: RING_SIZE,
-      height: RING_SIZE,
-      borderRadius: RING_SIZE / 2,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(2, 0, 2, 0.7)",
-    },
-    ringText: {
-      ...typography.label,
-      fontSize: 9,
-      letterSpacing: 0,
-      position: "absolute",
-      color: colors.textPrimary,
     },
     cardTitle: {
       ...typography.bodyBold,
@@ -535,19 +557,49 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
     },
-    almostRow: {
+    missingCard: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm + 2,
-      padding: spacing.sm,
+      gap: spacing.md,
+      padding: spacing.md,
       borderRadius: radius.sm,
       backgroundColor: colors.card,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.success,
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.08)",
     },
-    almostPoster: {
-      width: 34,
-      aspectRatio: 2 / 3,
+    missingInfo: {
+      flex: 1,
+    },
+    missingTitle: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+    },
+    missingMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    missingCount: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.success,
+    },
+    missingSlots: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    // An empty spot on the shelf, waiting for this movie.
+    missingSlot: {
+      padding: 3,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: `${colors.success}AA`,
+    },
+    missingPoster: {
+      width: 36,
+      height: 54,
     },
     almostInfo: {
       flex: 1,
@@ -560,37 +612,6 @@ const createStyles = (colors) =>
     almostMeta: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    trophyCard: {
-      width: CAROUSEL_CARD,
-      padding: spacing.sm,
-      borderRadius: radius.sm,
-      backgroundColor: `${colors.rating}14`,
-      borderWidth: 1.5,
-      borderColor: `${colors.rating}88`,
-    },
-    trophyRibbon: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.rating,
-    },
-    trophyMeta: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.rating,
-      marginTop: 1,
     },
     suggestionRow: {
       flexDirection: "row",

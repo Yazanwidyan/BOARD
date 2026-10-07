@@ -1,16 +1,16 @@
-import { X } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { StackHeader } from "../components/ScreenHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MOVIES } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { useUserStore } from "../store/userStore";
+import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -37,9 +37,10 @@ const GENRES = [
 ];
 const DECADES = Object.keys(DECADE_RANGES);
 const RUNTIMES = Object.keys(RUNTIME_RANGES);
-// Catalog ratings run 7.0–9.5, so these steps all mean something.
+// Real IMDb scores (from OMDb) run roughly 5–9.3 across the catalog.
 const RATINGS = [
   { label: "Any", value: null },
+  { label: "7+", value: 7 },
   { label: "7.5+", value: 7.5 },
   { label: "8+", value: 8 },
   { label: "8.5+", value: 8.5 },
@@ -86,17 +87,12 @@ export const PreferencesScreen = ({ navigation }) => {
     MOVIES.filter((movie) => !watchedSet.has(movie.id)),
     preferences,
   ).length;
-  // The default minRating is 7.0 — the catalog's floor — so it reads as
-  // "Any" here.
-  const ratingValue =
-    preferences.minRating && preferences.minRating > 7
-      ? preferences.minRating
-      : null;
+  const ratingValue = preferences.minRating ?? null;
   const isDefault =
     preferences.genres.length === 0 &&
     preferences.decade === "Any" &&
     preferences.runtime === "Any" &&
-    ratingValue == null;
+    ratingValue === DEFAULT_PREFERENCES.minRating;
 
   const toggleGenre = (genre) => {
     const isSelected = preferences.genres.includes(genre);
@@ -121,27 +117,22 @@ export const PreferencesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable
-          style={styles.closeButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={8}
-          accessibilityLabel="Close"
-        >
-          <X size={18} color={colors.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Swipe setup</Text>
-        <Pressable
-          onPress={resetPreferences}
-          disabled={isDefault}
-          hitSlop={8}
-          style={styles.resetButton}
-        >
-          <Text style={[styles.resetText, isDefault && styles.resetDisabled]}>
-            Reset
-          </Text>
-        </Pressable>
-      </View>
+      <StackHeader
+        title="Swipe setup"
+        close
+        onBack={() => navigation.goBack()}
+        right={
+          <Pressable
+            onPress={resetPreferences}
+            disabled={isDefault}
+            hitSlop={8}
+          >
+            <Text style={[styles.resetText, isDefault && styles.resetDisabled]}>
+              Reset
+            </Text>
+          </Pressable>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -231,33 +222,6 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    closeButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
-    },
-    headerTitle: {
-      ...typography.subtitle,
-      fontSize: 17,
-      color: colors.textPrimary,
-    },
-    resetButton: {
-      minWidth: 38,
-      alignItems: "flex-end",
-    },
     resetText: {
       ...typography.bodyBold,
       color: colors.accentLight,
@@ -308,7 +272,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
     },
     chipSelected: {
-      backgroundColor: colors.accent,
+      backgroundColor: colors.selected,
     },
     chipText: {
       ...typography.bodyBold,
@@ -316,7 +280,7 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     chipTextSelected: {
-      color: colors.accentContrast,
+      color: colors.selectedText,
     },
     footer: {
       paddingHorizontal: spacing.md,

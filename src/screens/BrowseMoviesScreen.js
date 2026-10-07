@@ -13,9 +13,8 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { BackButton } from "../components/BackButton";
+import { StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
-import { RatingBadge } from "../components/RatingBadge";
 import { MOVIES } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
@@ -37,7 +36,6 @@ const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
         </Text>
         <View style={styles.rowMeta}>
           <Text style={styles.rowYear}>{movie.year}</Text>
-          <RatingBadge rating={movie.rating} size="sm" />
         </View>
       </View>
       <Pressable
@@ -87,13 +85,10 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {rowTitle ?? "Browse Movies"}
-        </Text>
-        <View style={styles.backButton} />
-      </View>
+      <StackHeader
+        title={rowTitle ?? "Browse Movies"}
+        onBack={() => navigation.goBack()}
+      />
 
       <View style={styles.searchBar}>
         <Search size={16} color={colors.textSecondary} />
@@ -141,13 +136,6 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.sm,
-    },
     backButton: {
       width: 40,
       height: 40,
@@ -156,13 +144,6 @@ const createStyles = (colors) =>
     },
     // Row titles from Discover can be long ("Because you love …"), so it
     // takes the middle space and truncates rather than pushing the sides.
-    headerTitle: {
-      ...typography.subtitle,
-      flex: 1,
-      textAlign: "center",
-      marginHorizontal: spacing.sm,
-      color: colors.textPrimary,
-    },
     searchBar: {
       flexDirection: "row",
       alignItems: "center",
@@ -180,16 +161,17 @@ const createStyles = (colors) =>
       ...typography.body,
     },
     listContent: {
-      paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
     },
+    // Full-width rows split by hairlines.
     row: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
     },
     rowPoster: {
       width: 44,

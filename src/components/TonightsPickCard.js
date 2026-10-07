@@ -1,13 +1,5 @@
 import * as Haptics from "expo-haptics";
-import {
-  Bookmark,
-  Check,
-  Layers,
-  Play,
-  Shuffle,
-  Star,
-  X,
-} from "lucide-react-native";
+import { Bookmark, Check, Layers, Play, Shuffle, X } from "lucide-react-native";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MOVIES, getMovieById } from "../data/movies";
@@ -25,6 +17,7 @@ import {
 import { getMood, pickMovieForMood } from "../utils/moods";
 import { formatRuntime } from "../utils/movieFilters";
 import { TargetIcon } from "./icons/TabIcons";
+import { MarqueeSign } from "./MarqueeSign";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
 
@@ -32,7 +25,7 @@ const SIMILAR_POOL = 20;
 
 const randomFrom = (items) => items[Math.floor(Math.random() * items.length)];
 
-// Poster-forward Tonight's Pick: a bigger poster with the movie's own
+// Tonight's Pick as a cinema marquee sign (see MarqueeSign) — poster-forward: a bigger poster with the movie's own
 // description (so the card sells it a little), one main action — Watched
 // it — plus round Trailer and Swap buttons, and a quiet ✕ in the corner
 // to drop the pick. Tapping the card opens the movie. Renders nothing when
@@ -69,28 +62,22 @@ export const TonightsPickCard = ({ navigation }) => {
     activeChallenge?.targetMovieId === pickedMovie.id
       ? {
           Icon: TargetIcon,
-          text: `Your active challenge · +${activeChallenge.xpReward} XP`,
+          text: "Your active challenge",
           color: colors.accentLight,
         }
-      : mood
+      : inProgressCollection
         ? {
-            emoji: mood.emoji,
-            text: `${mood.label} pick`,
-            color: colors.accentLight,
+            Icon: Layers,
+            text: `Next in ${inProgressCollection.title}`,
+            color: colors.success,
           }
-        : inProgressCollection
+        : bucketList.some((entry) => entry.movieId === pickedMovie.id)
           ? {
-              Icon: Layers,
-              text: `Next in ${inProgressCollection.title}`,
-              color: colors.success,
+              Icon: Bookmark,
+              text: "From your watchlist",
+              color: colors.textSecondary,
             }
-          : bucketList.some((entry) => entry.movieId === pickedMovie.id)
-            ? {
-                Icon: Bookmark,
-                text: "From your watchlist",
-                color: colors.textSecondary,
-              }
-            : null;
+          : null;
 
   const openDetails = () =>
     navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
@@ -99,8 +86,9 @@ export const TonightsPickCard = ({ navigation }) => {
     const { watched: watchedBefore, bucketList: bucketListBefore } =
       useMovieStore.getState();
     toggleWatched(pickedMovie.id);
+    // Stays on Home — the achievement dialog is the confirmation, and
+    // the card itself goes away since the pick is now watched.
     giveWatchedFeedback(pickedMovie.id, watchedBefore, bucketListBefore);
-    openDetails();
   };
 
   const openTrailer = () => {
@@ -143,14 +131,11 @@ export const TonightsPickCard = ({ navigation }) => {
   };
 
   return (
-    <Pressable style={styles.card} onPress={openDetails}>
-      <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>TONIGHT&apos;S PICK</Text>
-        <View style={styles.headerRight}>
-          <View style={styles.imdbRow}>
-            <Star size={12} color={colors.rating} fill={colors.rating} />
-            <Text style={styles.imdbText}>{pickedMovie.rating.toFixed(1)}</Text>
-          </View>
+    <Pressable onPress={openDetails}>
+      <MarqueeSign
+        label="NOW SHOWING · TONIGHT"
+        backdropUri={pickedMovie.poster}
+        right={
           <Pressable
             style={styles.dismiss}
             onPress={clearPickedMovie}
@@ -159,109 +144,75 @@ export const TonightsPickCard = ({ navigation }) => {
           >
             <X size={14} color={colors.textSecondary} strokeWidth={2.5} />
           </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <MoviePoster uri={pickedMovie.poster} style={styles.poster} />
-        <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={2}>
-            {pickedMovie.title}
-          </Text>
-          <Text style={styles.metaText} numberOfLines={1}>
-            {pickedMovie.year} · {formatRuntime(pickedMovie.runtime)} ·{" "}
-            {pickedMovie.genres[0]}
-          </Text>
-          {reason && (
-            <View style={styles.reasonRow}>
-              {reason.Icon ? (
+        }
+      >
+        <View style={styles.body}>
+          <MoviePoster uri={pickedMovie.poster} style={styles.poster} />
+          <View style={styles.info}>
+            <Text style={styles.title} numberOfLines={2}>
+              {pickedMovie.title}
+            </Text>
+            <Text style={styles.metaText} numberOfLines={1}>
+              {pickedMovie.year} · {formatRuntime(pickedMovie.runtime)} ·{" "}
+              {pickedMovie.genres[0]}
+            </Text>
+            {reason && (
+              <View style={styles.reasonRow}>
                 <reason.Icon size={13} color={reason.color} />
-              ) : (
-                <Text style={styles.reasonEmoji}>{reason.emoji}</Text>
-              )}
-              <Text
-                style={[styles.reasonText, { color: reason.color }]}
-                numberOfLines={1}
-              >
-                {reason.text}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.description} numberOfLines={3}>
-            {pickedMovie.description}
-          </Text>
+                <Text
+                  style={[styles.reasonText, { color: reason.color }]}
+                  numberOfLines={1}
+                >
+                  {reason.text}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.description} numberOfLines={3}>
+              {pickedMovie.description}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.actions}>
-        <PrimaryButton
-          label="Watched it"
-          icon={<Check size={16} color="#FFFFFF" strokeWidth={3} />}
-          onPress={markWatched}
-          style={styles.mainButton}
-          contentStyle={styles.buttonContent}
-        />
-        <Pressable
-          style={styles.roundButton}
-          onPress={openTrailer}
-          hitSlop={4}
-          accessibilityLabel="Watch the trailer"
-        >
-          <Play
-            size={16}
-            color={colors.textPrimary}
-            fill={colors.textPrimary}
+        <View style={styles.actions}>
+          <PrimaryButton
+            label="Watched it"
+            icon={<Check size={16} color="#FFFFFF" strokeWidth={3} />}
+            onPress={markWatched}
+            style={styles.mainButton}
+            contentStyle={styles.buttonContent}
           />
-        </Pressable>
-        <Pressable
-          style={styles.roundButton}
-          onPress={swap}
-          hitSlop={4}
-          accessibilityLabel="Swap for another movie"
-        >
-          <Shuffle size={18} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+          <Pressable
+            style={styles.roundButton}
+            onPress={openTrailer}
+            hitSlop={4}
+            accessibilityLabel="Watch the trailer"
+          >
+            <Play
+              size={16}
+              color={colors.textPrimary}
+              fill={colors.textPrimary}
+            />
+          </Pressable>
+          <Pressable
+            style={styles.roundButton}
+            onPress={swap}
+            hitSlop={4}
+            accessibilityLabel="Swap for another movie"
+          >
+            <Shuffle size={18} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+      </MarqueeSign>
     </Pressable>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: spacing.md,
-    },
-    headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    eyebrow: {
-      ...typography.label,
-      color: colors.accentLight,
-    },
-    headerRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    imdbRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    imdbText: {
-      ...typography.label,
-      color: colors.rating,
-    },
     dismiss: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.surfaceSoft,
@@ -269,7 +220,6 @@ const createStyles = (colors) =>
     body: {
       flexDirection: "row",
       gap: spacing.md,
-      marginTop: spacing.md,
     },
     poster: {
       width: 104,
@@ -291,9 +241,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
-    },
-    reasonEmoji: {
-      fontSize: 12,
     },
     reasonText: {
       ...typography.caption,

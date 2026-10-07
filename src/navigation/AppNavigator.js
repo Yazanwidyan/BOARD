@@ -1,12 +1,10 @@
-import {
-  DarkTheme,
-  NavigationContainer,
-} from "@react-navigation/native";
+import { DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AchievementModal } from "../components/AchievementModal";
+import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { BadgesScreen } from "../screens/BadgesScreen";
@@ -20,7 +18,9 @@ import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SpinScreen } from "../screens/SpinScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
-import { seedDemoState } from "../data/seedDemoState";
+import { AiPickScreen } from "../screens/AiPickScreen";
+import { FriendProfileScreen } from "../screens/FriendProfileScreen";
+import { FriendsScreen } from "../screens/FriendsScreen";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -54,24 +54,11 @@ export const AppNavigator = () => {
   const hasProfileHydrated = useHasHydrated(useProfileStore);
   const hasChallengeHydrated = useHasHydrated(useChallengeStore);
   const hasHydrated =
-    hasUserHydrated && hasMovieHydrated && hasProfileHydrated && hasChallengeHydrated;
+    hasUserHydrated &&
+    hasMovieHydrated &&
+    hasProfileHydrated &&
+    hasChallengeHydrated;
   const colors = useColors();
-
-  // Runs once, ever, per install — seeds a plausible demo profile instead
-  // of real zero. Gated on every relevant store being hydrated first (so it
-  // can't race a real user's persisted data mid-load) and, as a second
-  // safety net beyond the hasSeeded flag, only fires if the movie store is
-  // actually still empty.
-  useEffect(() => {
-    if (!hasHydrated) return;
-    const { hasSeeded, markSeeded } = useUserStore.getState();
-    if (hasSeeded) return;
-    const { watched, bucketList } = useMovieStore.getState();
-    if (watched.length === 0 && bucketList.length === 0) {
-      seedDemoState();
-    }
-    markSeeded();
-  }, [hasHydrated]);
 
   const navigationTheme = {
     ...DarkTheme,
@@ -114,6 +101,7 @@ export const AppNavigator = () => {
               component={SpinScreen}
               options={{ gestureEnabled: false }}
             />
+            <Stack.Screen name="AiPick" component={AiPickScreen} />
             <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} />
             <Stack.Screen
               name="CollectionDetails"
@@ -131,12 +119,18 @@ export const AppNavigator = () => {
               options={{ animation: "slide_from_bottom" }}
             />
             <Stack.Screen name="Activity" component={ActivityScreen} />
+            <Stack.Screen name="Friends" component={FriendsScreen} />
+            <Stack.Screen
+              name="FriendProfile"
+              component={FriendProfileScreen}
+            />
             <Stack.Screen name="Badges" component={BadgesScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
           </>
         )}
       </Stack.Navigator>
       <AchievementModal />
+      <CompletionShareSheet />
       <Toast />
     </NavigationContainer>
   );

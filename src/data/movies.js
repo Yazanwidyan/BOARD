@@ -1,4 +1,5 @@
 import { CAST } from "./cast";
+import { DETAILS } from "./details";
 
 // Local Top 250 movie dataset.
 // To move to a real API (e.g. TMDB), replace this file with src/services/movieApi.js
@@ -2325,12 +2326,16 @@ export const MOVIES = RAW_MOVIES.map(
       rank,
       title,
       year,
-      rating: seededRating(rank, title),
+      // The real IMDb score from OMDb (details.js); the generated rating is
+      // only a fallback for the rare movie OMDb has no score for.
+      rating: DETAILS[id]?.imdbRating ?? seededRating(rank, title),
       runtime,
       genres,
       director,
       // Top-billed actors (see cast.js); empty until that's been generated.
       cast: CAST[id] ?? [],
+      // Critic scores, awards, age rating, language… (see details.js).
+      details: DETAILS[id] ?? null,
       description,
       franchise: franchise ?? null,
       poster: buildPoster(index, id),

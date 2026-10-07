@@ -1,24 +1,20 @@
-import {
-  Bookmark,
-  Check,
-  Film,
-  Layers,
-  Lock,
-  RotateCw,
-  Sparkles,
-  Star,
-} from "lucide-react-native";
+import { Check, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 
-import { BackButton } from "../components/BackButton";
+import { StackHeader } from "../components/ScreenHeader";
 import { BottomSheet } from "../components/BottomSheet";
-import { TargetIcon } from "../components/icons/TabIcons";
+import {
+  BADGE_CATEGORIES as CATEGORIES,
+  BADGE_CATEGORY_BY_KEY as CATEGORY_BY_KEY,
+  Medal,
+  ProgressRing,
+  metalFor,
+} from "../components/BadgeMedal";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useChallengeStore } from "../store/challengeStore";
@@ -26,79 +22,13 @@ import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { isRated } from "../utils/tiers";
 import { getBadges } from "../utils/badges";
 import {
   getCollectionById,
   getCompletedCollectionsCount,
 } from "../utils/collections";
-import { TIERS } from "../utils/league";
-import { BADGE_XP, getCompletedChallengesCount } from "../utils/xp";
-
-// One track per category: its medal icon, what the count measures (for
-// "3 more movies" / "Watch 10 movies"), and where "How to earn" goes.
-const CATEGORIES = [
-  {
-    key: "watched",
-    title: "Watching",
-    Icon: Film,
-    verb: "Watch",
-    unit: "movies",
-    cta: { label: "Find something to watch", route: "Discover" },
-  },
-  {
-    key: "critic",
-    title: "Critic",
-    Icon: Star,
-    verb: "Rate",
-    unit: "movies",
-    cta: {
-      label: "Rate what you've watched",
-      route: "Library",
-      params: { initialTab: "watched" },
-    },
-  },
-  {
-    key: "rewatch",
-    title: "Rewatch",
-    Icon: RotateCw,
-    verb: "Rewatch",
-    unit: "different movies",
-    cta: {
-      label: "Revisit a favorite",
-      route: "Library",
-      params: { initialTab: "watched" },
-    },
-  },
-  {
-    key: "collections",
-    title: "Collections",
-    Icon: Layers,
-    verb: "Complete",
-    unit: "collections",
-    cta: {
-      label: "Continue a collection",
-      route: "Library",
-      params: { initialTab: "collections" },
-    },
-  },
-  {
-    key: "challenges",
-    title: "Challenges",
-    Icon: TargetIcon,
-    verb: "Complete",
-    unit: "challenges",
-    cta: { label: "Start a challenge", route: "Decide" },
-  },
-  {
-    key: "watchlist",
-    title: "Watchlist",
-    Icon: Bookmark,
-    verb: "Save",
-    unit: "movies to your watchlist",
-    cta: { label: "Build your watchlist", route: "Discover" },
-  },
-];
-const CATEGORY_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
+import { getCompletedChallengesCount } from "../utils/xp";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -109,89 +39,6 @@ const FILTERS = [
 const MEDAL_SIZE = 56;
 const NODE_WIDTH = 78;
 const SUMMARY_RING = 76;
-
-// Tier "metal" — climbs the league's own color ladder (bronze, silver,
-// gold, platinum, diamond, master) as a track's tiers rise, so a higher
-// badge looks more valuable than a lower one.
-const metalFor = (tierIndex) =>
-  TIERS[Math.min(tierIndex + 1, TIERS.length - 1)].color;
-
-const ProgressRing = ({ size, stroke, progress, color, trackColor }) => {
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  return (
-    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        stroke={trackColor}
-        strokeWidth={stroke}
-        fill="none"
-      />
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        stroke={color}
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - Math.min(1, progress))}
-        fill="none"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </Svg>
-  );
-};
-
-// earned → filled in its metal; current (next to earn) → progress ring;
-// locked → dim with a lock.
-const Medal = ({ badge, Icon, metal, state, size, colors, styles }) => (
-  <View style={{ width: size, height: size }}>
-    {state === "current" && (
-      <ProgressRing
-        size={size}
-        stroke={4}
-        progress={badge.progress / badge.threshold}
-        color={colors.accentLight}
-        trackColor={colors.surfaceSoft}
-      />
-    )}
-    <View
-      style={[
-        styles.medal,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-        },
-        state === "earned" && {
-          backgroundColor: `${metal}2E`,
-          borderColor: metal,
-        },
-        state === "current" && styles.medalCurrent,
-        state === "locked" && styles.medalLocked,
-      ]}
-    >
-      <Icon
-        size={size * 0.4}
-        color={state === "earned" ? metal : colors.textMuted}
-        strokeWidth={2}
-      />
-    </View>
-    {state === "locked" && (
-      <View style={styles.lockBadge}>
-        <Lock size={10} color={colors.textMuted} strokeWidth={2.5} />
-      </View>
-    )}
-    {state === "earned" && (
-      <View style={[styles.checkBadge, { backgroundColor: metal }]}>
-        <Check size={10} color={colors.background} strokeWidth={3.5} />
-      </View>
-    )}
-  </View>
-);
 
 const formatThreshold = (value) =>
   value >= 1000 ? `${value / 1000}k` : String(value);
@@ -209,11 +56,10 @@ export const BadgesScreen = ({ navigation }) => {
   const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const challengeHistory = useChallengeStore((state) => state.history);
-
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const badges = getBadges({
     watchedCount: watched.length,
-    ratedCount: watched.filter((entry) => entry.rating != null).length,
+    ratedCount: watched.filter(isRated).length,
     queuedCount: bucketListEntries.length,
     completedCollectionsCount: getCompletedCollectionsCount(watchedIds),
     completedChallengesCount: getCompletedChallengesCount(challengeHistory),
@@ -290,11 +136,7 @@ export const BadgesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle}>Badges</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <StackHeader title="Badges" onBack={() => navigation.goBack()} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -335,8 +177,7 @@ export const BadgesScreen = ({ navigation }) => {
               </View>
               <Text style={styles.nextUpMeta} numberOfLines={1}>
                 {(nextUp.threshold - nextUp.progress).toLocaleString()} more
-                {nextUpCategory ? ` ${nextUpCategory.unit}` : " to go"} ·{" "}
-                <Text style={styles.xpText}>+{BADGE_XP} XP</Text>
+                {nextUpCategory ? ` ${nextUpCategory.unit}` : " to go"}
               </Text>
             </Pressable>
           ) : (
@@ -399,12 +240,9 @@ export const BadgesScreen = ({ navigation }) => {
                   >
                     <Medal
                       badge={badge}
-                      Icon={category.Icon}
                       metal={metal}
                       state={state}
                       size={MEDAL_SIZE}
-                      colors={colors}
-                      styles={styles}
                     />
                   </Pressable>
                   <Text
@@ -520,16 +358,9 @@ export const BadgesScreen = ({ navigation }) => {
           <View style={styles.detail}>
             <Medal
               badge={selected.badge}
-              Icon={
-                selected.badge.category === "marquee"
-                  ? Sparkles
-                  : selectedCategory.Icon
-              }
               metal={selected.metal}
               state={selected.state}
               size={92}
-              colors={colors}
-              styles={styles}
             />
             <Text style={styles.detailTitle}>{selected.badge.label}</Text>
             <Text style={styles.detailDescription}>
@@ -554,9 +385,9 @@ export const BadgesScreen = ({ navigation }) => {
                 ).toLocaleString()}{" "}
                 / {selected.badge.threshold.toLocaleString()}
               </Text>
-              <Text style={styles.xpText}>
-                {selected.badge.earned ? "Earned" : "Worth"} +{BADGE_XP} XP
-              </Text>
+              {selected.badge.earned && (
+                <Text style={styles.earnedText}>Earned</Text>
+              )}
             </View>
             {!selected.badge.earned && (
               <PrimaryButton
@@ -582,29 +413,13 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-    },
-    headerTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    headerSpacer: {
-      width: 40,
-    },
 
     summary: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
-      marginHorizontal: spacing.md,
       marginTop: spacing.sm,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
     },
     summaryRing: {
@@ -619,7 +434,7 @@ const createStyles = (colors) =>
     },
     summaryTotal: {
       ...typography.caption,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textSecondary,
     },
     nextUp: {
@@ -639,9 +454,9 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: spacing.xs,
     },
-    xpText: {
+    earnedText: {
       ...typography.label,
-      color: colors.rating,
+      color: colors.success,
     },
     bar: {
       height: 6,
@@ -672,7 +487,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
     },
     filterChipActive: {
-      backgroundColor: colors.accent,
+      backgroundColor: colors.selected,
     },
     filterText: {
       ...typography.bodyBold,
@@ -680,7 +495,7 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     filterTextActive: {
-      color: colors.accentContrast,
+      color: colors.selectedText,
     },
 
     track: {
@@ -731,48 +546,8 @@ const createStyles = (colors) =>
     },
     nodeThreshold: {
       ...typography.label,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
-    },
-    medal: {
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 2,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
-    },
-    medalCurrent: {
-      borderWidth: 0,
-      backgroundColor: colors.card,
-      transform: [{ scale: 0.82 }],
-    },
-    medalLocked: {
-      opacity: 0.45,
-    },
-    lockBadge: {
-      position: "absolute",
-      right: -2,
-      bottom: -2,
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.background,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    checkBadge: {
-      position: "absolute",
-      right: -2,
-      bottom: -2,
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 2,
-      borderColor: colors.background,
     },
 
     marqueeGrid: {

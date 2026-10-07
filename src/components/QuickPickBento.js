@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, Sparkles } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -12,7 +13,7 @@ import { MoviePoster } from "./MoviePoster";
 // mini preview reads as the thing you're about to open.
 const WHEEL_SLICE_COLORS = ["#8D60E2", "#4A4D84"];
 const WHEEL_SLICES = 8;
-const WHEEL_SIZE = 72;
+const WHEEL_SIZE = 108;
 
 // Highest-rated titles make the decorative posters — computed once at
 // module load, the catalog is static.
@@ -46,7 +47,7 @@ const MiniWheel = ({ colors }) => {
             fill={WHEEL_SLICE_COLORS[i % WHEEL_SLICE_COLORS.length]}
           />
         ))}
-        <Circle cx={r} cy={r} r={7} fill={colors.card} />
+        <Circle cx={r} cy={r} r={10} fill={colors.card} />
       </Svg>
       <Svg width={14} height={12} style={miniWheelPointer}>
         <Path d="M0 0 H14 L7 12 Z" fill={colors.textPrimary} />
@@ -61,40 +62,50 @@ const miniWheelPointer = {
   left: WHEEL_SIZE / 2 - 7,
 };
 
-// Decide's Quick Pick as a bento: AI as the full-width hero (blue, real
-// posters leaning in from the right), Swipe and Spin as half tiles that
-// each preview what they do — a fanned poster stack and a mini wheel.
+// Decide's Quick Pick as a bento, in the screen's "cinema night" look: AI
+// as the full-width hero — a dark card with a purple edge glow and real
+// posters bleeding in from the right — and Swipe / Spin as tall glass
+// tiles that each preview what they do (a fanned poster stack, a wheel).
 export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
   const colors = useColors();
   const styles = createStyles(colors);
 
   return (
     <View style={styles.grid}>
-      <Pressable style={styles.aiTile} onPress={onAI}>
-        <View style={styles.aiPosters} pointerEvents="none">
-          {AI_POSTERS.map((uri, index) => (
-            <MoviePoster
-              key={uri}
-              uri={uri}
-              radius={radius.xs}
-              style={[
-                styles.aiPoster,
-                index === 0 ? styles.aiPosterBack : styles.aiPosterFront,
-              ]}
+      <Pressable style={styles.aiGlow} onPress={onAI}>
+        <View style={styles.aiTile}>
+          <View style={styles.aiPosters} pointerEvents="none">
+            {AI_POSTERS.map((uri, index) => (
+              <MoviePoster
+                key={uri}
+                uri={uri}
+                radius={radius.xs}
+                style={[
+                  styles.aiPoster,
+                  index === 0 ? styles.aiPosterBack : styles.aiPosterFront,
+                ]}
+              />
+            ))}
+            {/* Posters fade into the card on their left edge. */}
+            <LinearGradient
+              colors={[colors.card, `${colors.card}00`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.7, y: 0 }}
+              style={StyleSheet.absoluteFill}
             />
-          ))}
-        </View>
-
-        <View style={styles.aiText}>
-          <View style={styles.aiEyebrowRow}>
-            <Sparkles size={12} color={colors.accentContrast} />
-            <Text style={styles.aiEyebrow}>AI PICK</Text>
           </View>
-          <Text style={styles.aiTitle}>Let BOARD choose</Text>
-          <Text style={styles.aiSubtitle}>Based on your taste</Text>
-          <View style={styles.aiCta}>
-            <Text style={styles.aiCtaText}>Pick for me</Text>
-            <ArrowRight size={14} color={colors.accent} />
+
+          <View style={styles.aiText}>
+            <View style={styles.aiEyebrowRow}>
+              <Sparkles size={12} color={colors.accentLight} />
+              <Text style={styles.aiEyebrow}>AI PICK</Text>
+            </View>
+            <Text style={styles.aiTitle}>Let Reelboard choose</Text>
+            <Text style={styles.aiSubtitle}>Based on your taste</Text>
+            <View style={styles.aiCta}>
+              <Text style={styles.aiCtaText}>Pick for me</Text>
+              <ArrowRight size={14} color={colors.selectedText} />
+            </View>
           </View>
         </View>
       </Pressable>
@@ -127,14 +138,16 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
   );
 };
 
-const FAN_POSTER_WIDTH = 40;
+const FAN_POSTER_WIDTH = 62;
 
 // Left / right cards tilt out and sit lower; the middle one is raised and
 // drawn last so it's on top.
 const FAN_POSITIONS = [
-  { transform: [{ translateX: -26 }, { translateY: 6 }, { rotate: "-12deg" }] },
-  { transform: [{ translateX: 26 }, { translateY: 6 }, { rotate: "12deg" }] },
-  { transform: [{ translateY: -2 }], zIndex: 1 },
+  {
+    transform: [{ translateX: -38 }, { translateY: 10 }, { rotate: "-12deg" }],
+  },
+  { transform: [{ translateX: 38 }, { translateY: 10 }, { rotate: "12deg" }] },
+  { transform: [{ translateY: -4 }], zIndex: 1 },
 ];
 
 const createStyles = (colors) =>
@@ -142,35 +155,46 @@ const createStyles = (colors) =>
     grid: {
       gap: spacing.sm,
     },
-    aiTile: {
-      backgroundColor: colors.accent,
+    // The glow lives on an outer view: iOS clips a shadow on a view that
+    // also has overflow: hidden.
+    aiGlow: {
       borderRadius: radius.sm,
+      shadowColor: colors.accent,
+      shadowOpacity: 0.55,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 0 },
+    },
+    aiTile: {
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: `${colors.accent}AA`,
       padding: spacing.md,
       overflow: "hidden",
-      minHeight: 140,
+      minHeight: 156,
     },
     aiPosters: {
       position: "absolute",
       top: 0,
       right: 0,
       bottom: 0,
-      width: 150,
+      width: 190,
     },
     aiPoster: {
       position: "absolute",
-      width: 70,
+      width: 92,
       aspectRatio: 2 / 3,
     },
     aiPosterBack: {
-      top: 22,
-      right: 54,
-      transform: [{ rotate: "-10deg" }],
-      opacity: 0.85,
+      top: 10,
+      right: 70,
+      transform: [{ rotate: "-8deg" }],
+      opacity: 0.8,
     },
     aiPosterFront: {
-      top: 34,
-      right: -6,
-      transform: [{ rotate: "8deg" }],
+      top: 26,
+      right: -10,
+      transform: [{ rotate: "7deg" }],
     },
     aiText: {
       maxWidth: "58%",
@@ -182,16 +206,17 @@ const createStyles = (colors) =>
     },
     aiEyebrow: {
       ...typography.label,
-      color: "rgba(255, 255, 255, 0.85)",
+      color: colors.accentLight,
+      letterSpacing: 1.2,
     },
     aiTitle: {
       ...typography.title,
-      color: colors.accentContrast,
+      color: colors.textPrimary,
       marginTop: spacing.xs,
     },
     aiSubtitle: {
       ...typography.caption,
-      color: "rgba(255, 255, 255, 0.8)",
+      color: colors.textSecondary,
       marginTop: 2,
     },
     aiCta: {
@@ -203,25 +228,29 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       borderRadius: radius.pill,
-      backgroundColor: colors.accentContrast,
+      backgroundColor: colors.selected,
     },
     aiCtaText: {
       ...typography.label,
-      color: colors.accent,
+      color: colors.selectedText,
     },
     halfRow: {
       flexDirection: "row",
       gap: spacing.sm,
     },
+    // Dark glass: slightly see-through so the projector glow behind the
+    // screen shows through, with a thin light edge.
     halfTile: {
       flex: 1,
-      backgroundColor: colors.card,
+      backgroundColor: `${colors.card}D9`,
       borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.08)",
       padding: spacing.md,
       overflow: "hidden",
     },
     preview: {
-      height: 86,
+      height: 128,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.sm,

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -36,8 +37,11 @@ const MS_PER_POSTER = 1400;
 const Marquee = ({ movies, styles }) => {
   const offset = useSharedValue(0);
   const loopWidth = movies.length * (POSTER_WIDTH + POSTER_GAP);
+  // Reduce Motion: the strip stays still.
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reduceMotion) return;
     offset.value = withRepeat(
       withTiming(-loopWidth, {
         duration: movies.length * MS_PER_POSTER,
@@ -85,9 +89,6 @@ export const DecideHeader = ({ onSurprise, onMeasure }) => {
       <View style={styles.topRow}>
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Decide</Text>
-          <Text style={styles.subtitle}>
-            Can&apos;t choose? We&apos;ve got you.
-          </Text>
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -137,11 +138,6 @@ const createStyles = (colors) =>
       ...typography.title,
       fontSize: 20,
       color: colors.textPrimary,
-    },
-    subtitle: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 1,
     },
     surprise: {
       flexDirection: "row",

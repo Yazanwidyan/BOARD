@@ -5,10 +5,9 @@ import {
   RotateCw,
   Share2,
   Shuffle,
-  Sparkles,
   Trophy,
 } from "lucide-react-native";
-import { Share, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -19,6 +18,7 @@ import { MovieGrid } from "../components/MovieGrid";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
+import { openShareCard } from "../store/shareCardStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -29,7 +29,6 @@ import {
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
-import { COLLECTION_XP } from "../utils/xp";
 
 const TYPE_LABELS = {
   franchise: "Franchise",
@@ -76,9 +75,6 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   }
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const ratingsById = new Map(
-    watched.map((entry) => [entry.movieId, entry.rating]),
-  );
   const { watchedCount, total, progress } = getCollectionProgress(
     collection,
     watchedIds,
@@ -106,11 +102,8 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     ? getCollectionCompletedAt(collection, watched)
     : null;
 
-  const shareCompletion = () => {
-    Share.share({
-      message: `I finished every movie in the ${collection.title} collection on BOARD (${total} movies). 🏆`,
-    });
-  };
+  // Opens the brag image card (posters grid + "I've seen all N …").
+  const shareCompletion = () => openShareCard(collection.id);
 
   // A completed collection's own movies as a Swipe session — pick tonight's
   // rewatch from the set you just finished.
@@ -188,19 +181,11 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             )}
-            <View style={styles.stat}>
-              <Sparkles size={13} color={colors.rating} />
-              <Text style={[styles.statText, styles.statTextXP]}>
-                {isComplete
-                  ? `+${COLLECTION_XP} XP earned`
-                  : `+${COLLECTION_XP} XP on finish`}
-              </Text>
-            </View>
           </View>
 
           {!isComplete && (
             <PrimaryButton
-              label="Pick one for me"
+              label="Pick from this collection"
               icon={<Shuffle size={16} color="#FFFFFF" />}
               onPress={pickRandomUnwatched}
               style={styles.pickButton}
@@ -218,7 +203,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               <View style={styles.completeInfo}>
                 <Text style={styles.trophyTitle}>Collection complete</Text>
                 <Text style={styles.completeSubtitle}>
-                  All {total} watched · +{COLLECTION_XP} XP earned
+                  All {total} movies watched
                 </Text>
               </View>
             </View>

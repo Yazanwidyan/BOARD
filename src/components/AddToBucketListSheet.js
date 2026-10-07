@@ -20,7 +20,6 @@ import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
-import { RatingBadge } from "./RatingBadge";
 
 const RESULTS_LIMIT = 40;
 
@@ -97,7 +96,6 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
                   </Text>
                   <View style={styles.rowMeta}>
                     <Text style={styles.rowYear}>{movie.year}</Text>
-                    <RatingBadge rating={movie.rating} size="sm" />
                   </View>
                 </View>
                 <View

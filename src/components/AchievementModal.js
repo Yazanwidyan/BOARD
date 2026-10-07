@@ -1,5 +1,4 @@
 import { useNavigation } from "@react-navigation/native";
-import { Award, CheckCircle, RotateCw, Sparkles } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Modal,
@@ -13,48 +12,63 @@ import Animated, {
   Easing,
   FadeIn,
   FadeOut,
+  ZoomIn,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
 
 import { useAchievementStore } from "../store/achievementStore";
+import { useMovieStore } from "../store/movieStore";
+import { openShareCard } from "../store/shareCardStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { LayersIcon, TargetIcon } from "./icons/TabIcons";
+import { getMovieById } from "../data/movies";
+import { useChallengeStore } from "../store/challengeStore";
+import { badgeParams, giveRatingFeedback } from "../utils/achievementFeedback";
+import { getBadges } from "../utils/badges";
+import { getTier } from "../utils/tiers";
+import { BadgeArt } from "./BadgeArt";
+import { getBadgeLook } from "./BadgeMedal";
+import { DialogArt, StampCheck } from "./DialogArt";
 import { PrimaryButton } from "./PrimaryButton";
+import { TierPicker } from "./TierPicker";
 
-const GLOW_SIZE = 104;
+const HERO_SIZE = 132;
 const COUNT_UP_MS = 700;
 const CONFETTI_COUNT = 22;
 
-// Each reward type gets its own icon + color, so finishing a collection
-// doesn't look identical to marking one movie watched. "multi" is when one
-// action earned several kinds at once ("Big Night!"). Big moments also get
-// a confetti burst.
+// Each reward type gets its own colour (the hero art draws in it — see
+// DialogArt), so finishing a collection doesn't look identical to marking
+// one movie watched. "multi" is when one action earned several kinds at
+// once ("Big Night!"). Big moments also get a confetti burst.
 const getKindTheme = (kind, colors) =>
   ({
-    watched: { Icon: CheckCircle, color: colors.accentLight, confetti: false },
-    rewatch: { Icon: RotateCw, color: colors.accentLight, confetti: false },
-    badge: { Icon: Award, color: colors.rating, confetti: false },
-    collection: { Icon: LayersIcon, color: colors.success, confetti: true },
-    challenge: { Icon: TargetIcon, color: colors.accent, confetti: true },
-    multi: { Icon: Sparkles, color: colors.rating, confetti: true },
-  })[kind] ?? {
-    Icon: Sparkles,
-    color: colors.accentLight,
-    confetti: false,
-  };
+    watched: { color: colors.accentLight, confetti: false },
+    rewatch: { color: colors.accentLight, confetti: false },
+    badge: { color: colors.rating, confetti: false },
+    collection: { color: colors.success, confetti: true },
+    challenge: { color: colors.accent, confetti: true },
+    multi: { color: colors.rating, confetti: true },
+    level: { color: colors.rating, confetti: true },
+  })[kind] ?? { color: colors.accentLight, confetti: false };
 
 // 8-digit hex (#RRGGBBAA) — every theme color is a plain 6-digit hex.
 const withAlpha = (hex, alphaHex) => `${hex}${alphaHex}`;
 
 // Counts from 0 up to `value` once on mount, easing out.
+// With the system's Reduce Motion on, it just shows the final number.
 const useCountUp = (value) => {
-  const [display, setDisplay] = useState(0);
+  const reduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(reduceMotion ? value : 0);
   useEffect(() => {
+    if (reduceMotion) {
+      setDisplay(value);
+      return undefined;
+    }
     let frame;
     const start = Date.now();
     const tick = () => {
@@ -65,7 +79,7 @@ const useCountUp = (value) => {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [value]);
+  }, [value, reduceMotion]);
   return display;
 };
 
@@ -111,8 +125,11 @@ const ConfettiPiece = ({ index, width, palette }) => {
   );
 };
 
+// Skipped entirely when the system's Reduce Motion setting is on.
 export const Confetti = ({ palette }) => {
   const { width } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
+  if (reduceMotion) return null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {Array.from({ length: CONFETTI_COUNT }, (_, index) => (
@@ -161,10 +178,45 @@ const AchievementDialog = ({ achievement }) => {
   const navigation = useNavigation();
   const hideAchievement = useAchievementStore((state) => state.hideAchievement);
 
-  const { title, rows, total, kind } = achievement;
+  const { title, rows, total, kind, shareCollectionId, tierMovieId } =
+    achievement;
+  // Just marked watched → tier it right here, no trip to the movie page.
+  const tierEntry = useMovieStore((state) =>
+    tierMovieId
+      ? state.watched.find((entry) => entry.movieId === tierMovieId)
+      : null,
+  );
+  const handleTier = (tier) => {
+    const watchedBefore = useMovieStore.getState().watched;
+    useMovieStore.getState().setWatchedTier(tierMovieId, tier);
+    giveRatingFeedback(watchedBefore);
+  };
   const theme = getKindTheme(kind, colors);
-  const { Icon } = theme;
   const countedTotal = useCountUp(total);
+
+  // The movie this is about (a watch), shown under the title.
+  const movie = tierMovieId ? getMovieById(tierMovieId) : null;
+  // A badge moment shows the real medal (the highest one earned here).
+  const badgeRow = kind === "badge" ? rows.find((row) => row.badge) : null;
+  // Plain store values only — a selector that builds a new array each
+  // time would re-render forever.
+  const watchedNow = useMovieStore((state) => state.watched);
+  const bucketListNow = useMovieStore((state) => state.bucketList);
+  const challengeHistory = useChallengeStore((state) => state.history);
+  const allBadges = badgeRow
+    ? getBadges(badgeParams(watchedNow, bucketListNow, challengeHistory))
+    : null;
+  const badgeLook =
+    badgeRow && allBadges ? getBadgeLook(badgeRow.badge, allBadges) : null;
+  const levelNumber = Number(
+    rows.find((row) => row.label === "Level up")?.detail?.match(/\d+/)?.[0],
+  );
+
+  const handleShare = () => {
+    hideAchievement();
+    // After the dialog's Modal has closed, so the two don't overlap.
+    setTimeout(() => openShareCard(shareCollectionId), 250);
+  };
 
   const handleViewDetails = () => {
     hideAchievement();
@@ -206,48 +258,94 @@ const AchievementDialog = ({ achievement }) => {
           exiting={FadeOut.duration(150)}
           style={styles.card}
         >
-          <View
-            style={[
-              styles.glow,
-              {
-                backgroundColor: withAlpha(theme.color, "24"),
-                borderColor: withAlpha(theme.color, "55"),
-              },
-            ]}
-          >
-            <Icon size={44} color={theme.color} strokeWidth={2} />
-          </View>
+          {/* Hero art — custom, per kind of moment */}
+          <Animated.View entering={ZoomIn.duration(280)} style={styles.hero}>
+            {badgeLook ? (
+              <BadgeArt
+                emblem={badgeRow.badge.category}
+                tier={badgeLook.tierIndex}
+                metal={badgeLook.metal}
+                size={HERO_SIZE - 16}
+              />
+            ) : (
+              <DialogArt
+                kind={kind}
+                color={theme.color}
+                level={Number.isFinite(levelNumber) ? levelNumber : null}
+                size={HERO_SIZE}
+              />
+            )}
+          </Animated.View>
 
           <Text style={styles.title}>{title}</Text>
-
-          <View style={styles.totalRow}>
-            <Text style={[styles.totalValue, { color: theme.color }]}>
-              +{countedTotal}
+          {movie && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {movie.title}
             </Text>
-            <Text style={styles.totalUnit}>XP</Text>
-          </View>
+          )}
 
-          <View style={styles.rows}>
+          {/* XP as an admit-one ticket */}
+          {total > 0 && (
+            <View
+              style={[
+                styles.xpTicket,
+                { borderColor: withAlpha(theme.color, "88") },
+              ]}
+            >
+              <View style={[styles.xpNotch, styles.xpNotchLeft]} />
+              <View style={[styles.xpNotch, styles.xpNotchRight]} />
+              <Text style={[styles.xpValue, { color: theme.color }]}>
+                +{countedTotal}
+              </Text>
+              <Text style={styles.xpUnit}>XP</Text>
+            </View>
+          )}
+
+          {/* What it was for, as a box-office receipt */}
+          <View style={styles.receipt}>
             {rows.map((row, index) => (
-              <View key={`${index}-${row.label}`} style={styles.row}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowLabel}>{row.label}</Text>
-                  {row.detail && (
-                    <Text style={styles.rowDetail} numberOfLines={1}>
+              <View key={`${index}-${row.label}`} style={styles.receiptRow}>
+                <Text style={styles.receiptLabel} numberOfLines={1}>
+                  {row.label}
+                  {row.detail ? (
+                    <Text style={styles.receiptDetail}>
+                      {"  "}
                       {row.detail}
                     </Text>
-                  )}
-                </View>
-                <Text style={styles.rowXP}>+{row.xp}</Text>
+                  ) : null}
+                </Text>
+                <View style={styles.receiptLeader} />
+                {row.xp != null ? (
+                  <Text style={styles.receiptXP}>+{row.xp}</Text>
+                ) : (
+                  <StampCheck color={colors.success} />
+                )}
               </View>
             ))}
           </View>
 
-          <PrimaryButton
-            label="View Details"
-            onPress={handleViewDetails}
-            style={styles.primaryButton}
-          />
+          {tierEntry && (
+            <View style={styles.tierBlock}>
+              <Text style={styles.tierPrompt}>How was it?</Text>
+              <TierPicker tier={getTier(tierEntry)} onChange={handleTier} />
+            </View>
+          )}
+
+          {/* Finishing a director / actor / franchise set makes sharing
+              the main action — that's the brag moment. */}
+          {shareCollectionId ? (
+            <PrimaryButton
+              label="Share it"
+              onPress={handleShare}
+              style={styles.primaryButton}
+            />
+          ) : (
+            <PrimaryButton
+              label="View Details"
+              onPress={handleViewDetails}
+              style={styles.primaryButton}
+            />
+          )}
           <PrimaryButton
             label="Nice"
             variant="ghost"
@@ -276,18 +374,12 @@ const createStyles = (colors) =>
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.08)",
-      paddingTop: spacing.xl,
+      paddingTop: spacing.lg,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
     },
-    glow: {
-      width: GLOW_SIZE,
-      height: GLOW_SIZE,
-      borderRadius: GLOW_SIZE / 2,
-      borderWidth: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: spacing.md,
+    hero: {
+      marginBottom: spacing.sm,
     },
     title: {
       ...typography.hero,
@@ -295,48 +387,94 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       textAlign: "center",
     },
-    totalRow: {
+    subtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: 2,
+    },
+    // An admit-one ticket: dashed edge, a half-circle notch cut into each
+    // side (circles in the card's colour).
+    xpTicket: {
       flexDirection: "row",
       alignItems: "baseline",
-      gap: 4,
-      marginTop: spacing.xs,
+      gap: 5,
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.lg + 4,
+      paddingVertical: spacing.xs,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      overflow: "hidden",
     },
-    totalValue: {
+    xpNotch: {
+      position: "absolute",
+      top: "50%",
+      width: 14,
+      height: 14,
+      marginTop: -7,
+      borderRadius: 7,
+      backgroundColor: colors.cardElevated,
+    },
+    xpNotchLeft: {
+      left: -8,
+    },
+    xpNotchRight: {
+      right: -8,
+    },
+    xpValue: {
       ...typography.display,
+      fontSize: 30,
+      lineHeight: 38,
     },
-    totalUnit: {
+    xpUnit: {
       ...typography.subtitle,
       color: colors.textSecondary,
     },
-    rows: {
+    tierBlock: {
       width: "100%",
       marginTop: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.surfaceSoft,
-      paddingHorizontal: spacing.md,
     },
-    row: {
+    tierPrompt: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    // Receipt: dashed tear edges top and bottom, one line per reward with a
+    // dotted leader to the value.
+    receipt: {
+      width: "100%",
+      marginTop: spacing.md,
+      paddingVertical: spacing.sm,
+      borderTopWidth: 1.5,
+      borderBottomWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: "rgba(255, 255, 255, 0.18)",
+    },
+    receiptRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.sm + 2,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      gap: spacing.xs + 2,
+      paddingVertical: 6,
     },
-    rowText: {
-      flex: 1,
-      marginRight: spacing.sm,
-      gap: 1,
-    },
-    rowLabel: {
+    receiptLabel: {
       ...typography.bodyBold,
+      flexShrink: 1,
       color: colors.textPrimary,
     },
-    rowDetail: {
+    receiptDetail: {
       ...typography.caption,
       color: colors.textSecondary,
     },
-    rowXP: {
+    receiptLeader: {
+      flex: 1,
+      minWidth: spacing.md,
+      height: 1,
+      borderBottomWidth: 1.5,
+      borderStyle: "dotted",
+      borderColor: "rgba(255, 255, 255, 0.22)",
+    },
+    receiptXP: {
       ...typography.bodyBold,
       color: colors.success,
     },

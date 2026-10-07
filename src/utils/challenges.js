@@ -332,7 +332,7 @@ const surpriseMe = ({ watched }) => {
     id: "surprise-me",
     type: "random",
     title: "Surprise Me",
-    description: `BOARD picked ${movie.title} for you tonight.`,
+    description: `Reelboard picked ${movie.title} for you tonight.`,
     targetMovieId: movie.id,
     difficulty: "EASY",
   });

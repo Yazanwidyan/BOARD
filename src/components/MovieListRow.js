@@ -6,7 +6,6 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 import { MoviePoster } from "./MoviePoster";
-import { RatingBadge } from "./RatingBadge";
 
 // Shared list-row (poster + title/meta/rating + a "+ Watchlist" pill) used
 // anywhere movies are browsed as a vertical list — Explore's list sub-tabs
@@ -34,7 +33,6 @@ export const MovieListRow = ({
         <Text style={styles.meta} numberOfLines={1}>
           {movie.year} · {formatRuntime(movie.runtime)} · {movie.genres[0]}
         </Text>
-        <RatingBadge rating={movie.rating} size="sm" />
       </View>
       {onToggleQueue && (
         <Pressable
@@ -58,13 +56,15 @@ export const MovieListRow = ({
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // A full-width list row, split from the next by a hairline.
     row: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
     },
     poster: {
       width: 48,

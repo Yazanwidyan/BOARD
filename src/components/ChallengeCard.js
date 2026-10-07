@@ -57,7 +57,10 @@ export const ChallengeCard = ({
           <View style={styles.info}>
             <View style={styles.eyebrowRow}>
               <View
-                style={[styles.difficultyDot, { backgroundColor: difficultyColor }]}
+                style={[
+                  styles.difficultyDot,
+                  { backgroundColor: difficultyColor },
+                ]}
               />
               <Text style={styles.eyebrow}>
                 CHALLENGE · {challenge.difficultyLabel.toUpperCase()}
@@ -68,7 +71,8 @@ export const ChallengeCard = ({
             </Text>
             {movie && (
               <Text style={styles.metaText} numberOfLines={1}>
-                {movie.year} · {movie.genres[0]} · {formatRuntime(movie.runtime)}
+                {movie.year} · {movie.genres[0]} ·{" "}
+                {formatRuntime(movie.runtime)}
               </Text>
             )}
           </View>
@@ -92,8 +96,8 @@ export const ChallengeCard = ({
 
       <View style={styles.stub}>
         <View style={styles.reward}>
-          <Text style={styles.rewardLabel}>REWARD</Text>
-          <Text style={styles.rewardValue}>+{challenge.xpReward} XP</Text>
+          <Text style={styles.rewardLabel}>DIFFICULTY</Text>
+          <Text style={styles.rewardValue}>{challenge.difficultyLabel}</Text>
         </View>
         <PrimaryButton
           label={isReveal ? "Accept" : "View Details"}
@@ -107,7 +111,9 @@ export const ChallengeCard = ({
             style={styles.shuffleButton}
             onPress={secondaryAction}
             hitSlop={6}
-            accessibilityLabel={isReveal ? "Give me another" : "Change challenge"}
+            accessibilityLabel={
+              isReveal ? "Give me another" : "Change challenge"
+            }
           >
             <Shuffle size={18} color={colors.accentContrast} />
           </Pressable>
@@ -216,7 +222,7 @@ const createStyles = (colors, notchColor) =>
     },
     rewardLabel: {
       ...typography.label,
-      fontSize: 10,
+      fontSize: 11,
       color: "rgba(255, 255, 255, 0.75)",
     },
     rewardValue: {

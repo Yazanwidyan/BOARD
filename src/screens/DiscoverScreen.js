@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Check, ChevronRight, Plus, Search, Star } from "lucide-react-native";
+import { Check, ChevronRight, Plus, Search } from "lucide-react-native";
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -63,12 +63,6 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
             >
               <View>
                 <MoviePoster uri={movie.poster} style={styles.railPoster} />
-                <View style={styles.imdbBadge}>
-                  <Star size={10} color={colors.rating} fill={colors.rating} />
-                  <Text style={styles.imdbBadgeText}>
-                    {movie.rating.toFixed(1)}
-                  </Text>
-                </View>
                 <Pressable
                   style={[styles.saveButton, saved && styles.saveButtonSaved]}
                   onPress={() => {
@@ -216,31 +210,14 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
-    imdbBadge: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-    },
-    imdbBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.rating,
-    },
     // Bottom-right of the poster: + to save, ✓ once it's on the watchlist.
     saveButton: {
       position: "absolute",
       right: 6,
       bottom: 6,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(2, 0, 2, 0.65)",

@@ -3,12 +3,9 @@ import { Check, Shuffle, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BackButton } from "../components/BackButton";
+import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { getMovieById } from "../data/movies";
@@ -59,7 +56,6 @@ const OptionCard = ({
                 {challenge.difficultyLabel}
               </Text>
             </View>
-            <Text style={styles.xp}>+{challenge.xpReward} XP</Text>
           </View>
           <Text style={styles.movieTitle} numberOfLines={1}>
             {movie ? movie.title : challenge.title}
@@ -89,7 +85,6 @@ const OptionCard = ({
 export const ChallengeGeneratorScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const insets = useSafeAreaInsets();
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);
 
   const deal = () => {
@@ -118,7 +113,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
     if (!selected) return;
     acceptChallenge(selected);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(`Challenge accepted · +${selected.xpReward} XP waiting`, {
+    showToast("Challenge accepted", {
       tone: "success",
     });
     navigation.goBack();
@@ -126,18 +121,15 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle}>New challenge</Text>
-        <Pressable
-          style={styles.headerButton}
-          onPress={reshuffle}
-          hitSlop={6}
-          accessibilityLabel="Deal new challenges"
-        >
-          <Shuffle size={18} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+      <StackHeader
+        title="New challenge"
+        onBack={() => navigation.goBack()}
+        right={
+          <HeaderIconButton onPress={reshuffle}>
+            <Shuffle size={18} color={colors.textPrimary} />
+          </HeaderIconButton>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -146,7 +138,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         <View style={styles.intro}>
           <Sparkles size={16} color={colors.accentLight} />
           <Text style={styles.introText}>
-            Pick one. Harder challenges earn more XP.
+            Pick the one that sounds most fun tonight.
           </Text>
         </View>
 
@@ -180,11 +172,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={
-            selected
-              ? `Accept · +${selected.xpReward} XP`
-              : "Select a challenge"
-          }
+          label={selected ? "Accept challenge" : "Select a challenge"}
           variant={selected ? "primary" : "secondary"}
           disabled={!selected}
           onPress={handleAccept}
@@ -199,30 +187,6 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      ...typography.title,
-      fontSize: 20,
-      flex: 1,
-      color: colors.textPrimary,
-    },
-    headerButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
     },
     content: {
       padding: spacing.md,
@@ -282,11 +246,7 @@ const createStyles = (colors) =>
     },
     difficultyText: {
       ...typography.label,
-      fontSize: 10,
-    },
-    xp: {
-      ...typography.label,
-      color: colors.rating,
+      fontSize: 11,
     },
     movieTitle: {
       ...typography.subtitle,

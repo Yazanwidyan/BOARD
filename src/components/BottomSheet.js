@@ -1,5 +1,5 @@
 import { X } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -81,12 +81,24 @@ export const BottomSheet = ({
   const translateY = useSharedValue(windowHeight);
   const sheetHeight = useSharedValue(windowHeight);
 
+  // Whether the sheet should still be up, read when a close finishes.
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  const unmountIfClosed = () => {
+    if (!visibleRef.current) setIsMounted(false);
+  };
+
+  // The Modal is unmounted when the close ends, even if the animation was
+  // cut short (a drag, a quick reopen/close, the system share sheet…). It
+  // used to wait for `finished` — an interrupted close then left an
+  // invisible full-screen Modal behind that swallowed every touch and
+  // froze the app. Reopening in the meantime keeps it (visibleRef).
   const close = () => {
     translateY.value = withTiming(
       sheetHeight.value + insets.bottom,
       { duration: CLOSE_DURATION },
-      (finished) => {
-        if (finished) runOnJS(setIsMounted)(false);
+      () => {
+        runOnJS(unmountIfClosed)();
       },
     );
   };
@@ -95,13 +107,20 @@ export const BottomSheet = ({
     if (visible) {
       setIsMounted(true);
       translateY.value = withTiming(0, OPEN_TIMING);
-    } else if (isMounted) {
-      close();
+      return undefined;
     }
+    if (!isMounted) return undefined;
+    close();
+    // Backstop in case the animation callback never runs at all.
+    const timer = setTimeout(unmountIfClosed, CLOSE_DURATION + 200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  // No dragging while it's closing — that's what used to interrupt the
+  // close animation.
   const pan = Gesture.Pan()
+    .enabled(!!visible)
     .onUpdate((event) => {
       // A little resistance when pulled up past fully-open.
       translateY.value =

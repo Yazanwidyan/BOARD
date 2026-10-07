@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BOARD",
+    "name": "Reelboard",
     "slug": "BOARD",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -40,9 +40,10 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "BOARD needs access to your photos so you can set a profile picture."
+          "photosPermission": "Reelboard needs access to your photos so you can set a profile picture."
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }

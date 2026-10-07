@@ -1,15 +1,14 @@
 import {
-  ArrowDownWideNarrow,
   Bookmark,
   Check,
   CheckCircle,
-  ChevronRight,
+  ChevronDown,
   Circle,
-  Filter,
+  Disc3,
+  Layers,
   Plus,
   Search,
   Shuffle,
-  Star,
   X,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -33,7 +32,7 @@ import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
-import { MovieGrid } from "../components/MovieGrid";
+import { PosterShelf } from "../components/PosterShelf";
 import { Popover } from "../components/Popover";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MoviePoster } from "../components/MoviePoster";
@@ -44,6 +43,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { DvdShelf } from "../components/DvdShelf";
 import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -57,10 +57,10 @@ import {
 } from "../utils/collections";
 import { matchesGenres } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
+import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
 
 const PICK_MAX = 10;
 const PICK_MIN = 2;
-const NUM_COLUMNS = 3;
 const GENRES = [
   "Action",
   "Adventure",
@@ -75,6 +75,7 @@ const GENRES = [
   "Sci-Fi",
   "Thriller",
 ];
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -90,27 +91,53 @@ const MONTH_NAMES = [
   "December",
 ];
 
-// Watched "diary": entries grouped under "OCTOBER 2026" headers, newest
-// month first (entries arrive already newest-first). Entries without a
-// timestamp land in an "Earlier" group at the end.
+// "Recently watched" view: one shelf section per month, newest first
+// (items arrive newest-first); undated entries last, under "Earlier".
 const groupByMonth = (items) => {
   const groups = [];
   items.forEach((item) => {
     const date = item.timestamp ? new Date(item.timestamp) : null;
     const key = date ? `${date.getFullYear()}-${date.getMonth()}` : "earlier";
-    const label = date
-      ? `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
-      : "Earlier";
     let group = groups.find((existing) => existing.key === key);
     if (!group) {
-      group = { key, label, items: [] };
+      group = {
+        key,
+        label: date
+          ? `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
+          : "Earlier",
+        items: [],
+      };
       groups.push(group);
     }
     group.items.push(item);
   });
-  const dated = groups.filter((group) => group.key !== "earlier");
-  const undated = groups.filter((group) => group.key === "earlier");
-  return [...dated, ...undated];
+  return [
+    ...groups.filter((group) => group.key !== "earlier"),
+    ...groups.filter((group) => group.key === "earlier"),
+  ];
+};
+
+// "Best tier" view: one section per tier (S first), then the movies you
+// haven't tiered yet. Items arrive already sorted by tier.
+const UNTIERED_RANK = TIERS.length;
+const groupByTier = (items) => {
+  const groups = [];
+  items.forEach((item) => {
+    const key = TIERS[item.tierRank]?.key ?? "untiered";
+    let group = groups.find((existing) => existing.key === key);
+    if (!group) {
+      const info = getTierInfo(key);
+      group = {
+        key,
+        label: info ? `${info.key} · ${info.meaning}` : "Not tiered yet",
+        color: info?.color,
+        items: [],
+      };
+      groups.push(group);
+    }
+    group.items.push(item);
+  });
+  return groups;
 };
 
 const matchesQuery = (movie, query) =>
@@ -118,7 +145,7 @@ const matchesQuery = (movie, query) =>
 
 const SORT_OPTIONS = [
   { key: "recent", label: "Recently Watched" },
-  { key: "rating", label: "Highest Rated" },
+  { key: "rating", label: "Best tier" },
   { key: "watchCount", label: "Most Watched" },
 ];
 
@@ -192,15 +219,22 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [sortBy, setSortBy] = useState("recent");
+  // Watched tab narrowed to the movies that don't have a tier yet.
+  const [untieredOnly, setUntieredOnly] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState({ top: 0, right: spacing.md });
   const sortButtonRef = useRef(null);
   const header = useDockHeader();
   const [isAllCollectionsOpen, setIsAllCollectionsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  // Measured height of the fixed tab switcher under the header, added to
-  // the content's top inset. Starts at a close estimate for the first frame.
-  const [switcherHeight, setSwitcherHeight] = useState(60);
+  // Search lives behind the header's search icon; open while there's text.
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // The header title is the section switcher; this opens its menu.
+  const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
+  // Measured height of the fixed chip bar under the header (Watchlist /
+  // Watched only), added to the content's top inset. Starts at a close
+  // estimate for the first frame.
+  const [toolBarHeight, setToolBarHeight] = useState(52);
 
   // The tab screen stays mounted between visits, so a fresh `initialTab`
   // param (e.g. tapping a stat a second time) needs to actually switch the
@@ -210,6 +244,15 @@ export const LibraryScreen = ({ navigation, route }) => {
       setTab(route.params.initialTab);
     }
   }, [route?.params?.initialTab]);
+
+  // Profile's taste card links here to show the untiered watched movies.
+  useEffect(() => {
+    if (route?.params?.showUntiered) {
+      setTab("watched");
+      setUntieredOnly(true);
+      navigation.setParams({ showUntiered: undefined });
+    }
+  }, [route?.params?.showUntiered, navigation]);
 
   const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
@@ -231,7 +274,7 @@ export const LibraryScreen = ({ navigation, route }) => {
       return movie
         ? {
             movie,
-            rating: entry.rating,
+            tierRank: tierRank(entry),
             watchCount: entry.watchCount ?? 1,
             timestamp: entry.timestamp,
           }
@@ -243,38 +286,25 @@ export const LibraryScreen = ({ navigation, route }) => {
     (movie) =>
       matchesGenres(movie, selectedGenres) && matchesQuery(movie, query),
   );
+  const untieredCount = watchedMovies.filter(
+    (item) => item.tierRank === UNTIERED_RANK,
+  ).length;
   const visibleWatchedMovies = watchedMovies
     .filter(
-      ({ movie }) =>
-        matchesGenres(movie, selectedGenres) && matchesQuery(movie, query),
+      ({ movie, tierRank: rank }) =>
+        matchesGenres(movie, selectedGenres) &&
+        matchesQuery(movie, query) &&
+        (!untieredOnly || rank === UNTIERED_RANK),
     )
     .sort((a, b) => {
-      if (sortBy === "rating") return (b.rating ?? -1) - (a.rating ?? -1);
+      if (sortBy === "rating") {
+        return (
+          a.tierRank - b.tierRank || (b.timestamp ?? 0) - (a.timestamp ?? 0)
+        );
+      }
       if (sortBy === "watchCount") return b.watchCount - a.watchCount;
       return (b.timestamp ?? 0) - (a.timestamp ?? 0);
     });
-
-  // Diary stats — over everything watched, not just what the current
-  // search/filter shows.
-  const totalMinutes = watchedMovies.reduce(
-    (sum, { movie, watchCount }) => sum + movie.runtime * watchCount,
-    0,
-  );
-  const ratedEntries = watchedMovies.filter(({ rating }) => rating != null);
-  const averageRating =
-    ratedEntries.length > 0
-      ? ratedEntries.reduce((sum, { rating }) => sum + rating, 0) /
-        ratedEntries.length
-      : null;
-  const now = new Date();
-  const watchedThisMonth = watchedMovies.filter(({ timestamp }) => {
-    if (!timestamp) return false;
-    const date = new Date(timestamp);
-    return (
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth()
-    );
-  }).length;
 
   const canPick = bucketListMovies.length >= PICK_MIN;
   const hasActiveFilter = selectedGenres.length > 0;
@@ -290,10 +320,31 @@ export const LibraryScreen = ({ navigation, route }) => {
     0,
   );
   const tabOptions = [
-    { key: "bucketlist", label: "Watchlist", count: bucketListMovies.length },
-    { key: "watched", label: "Watched", count: watchedMovies.length },
-    { key: "collections", label: "Collections", count: unlockedCount },
+    {
+      key: "bucketlist",
+      Icon: Bookmark,
+      label: "Watchlist",
+      count: bucketListMovies.length,
+      subtitle: `${bucketListMovies.length} saved`,
+    },
+    {
+      key: "collections",
+      Icon: Layers,
+      label: "Collections",
+      count: unlockedCount,
+      subtitle: `${unlockedCount} tracked`,
+    },
+    {
+      key: "watched",
+      Icon: Disc3,
+      label: "Watched",
+      count: watchedMovies.length,
+      subtitle: `${watchedMovies.length} ${watchedMovies.length === 1 ? "movie" : "movies"}`,
+    },
   ];
+  const currentTab =
+    tabOptions.find((option) => option.key === tab) ?? tabOptions[0];
+
   const openCollection = (collectionId) =>
     navigation.navigate("CollectionDetails", { collectionId });
 
@@ -314,11 +365,6 @@ export const LibraryScreen = ({ navigation, route }) => {
   const openDetails = (movieId) =>
     navigation.navigate("MovieDetails", { movieId });
 
-  const gap = spacing.md;
-  const horizontalPadding = spacing.md;
-  const cardWidth =
-    (width - horizontalPadding * 2 - gap * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
-
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
@@ -327,11 +373,116 @@ export const LibraryScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: header.contentInset + switcherHeight },
+          {
+            paddingTop:
+              header.contentInset + (tab === "collections" ? 0 : toolBarHeight),
+          },
         ]}
       >
-        {tab !== "collections" ? (
-          <View style={styles.toolbar}>
+        {tab === "collections" ? (
+          <CollectionsShelf
+            watched={watched}
+            unlockedCollectionIds={unlockedCollectionIds}
+            onOpen={openCollection}
+            onToggleTrack={toggleUnlockedCollection}
+            onSeeAll={() => setIsAllCollectionsOpen(true)}
+            onOpenMovie={openDetails}
+          />
+        ) : tab === "bucketlist" ? (
+          <>
+            {visibleBucketListMovies.length === 0 ? (
+              <EmptyState
+                art={query || hasActiveFilter ? "noMatches" : "emptyShelf"}
+                title={
+                  query || hasActiveFilter
+                    ? "Nothing on this shelf"
+                    : "The shelves are bare."
+                }
+                subtitle={
+                  query || hasActiveFilter
+                    ? "Nothing on your watchlist matches that."
+                    : "Save movies you want to see and they'll stand here."
+                }
+                actionLabel={
+                  query || hasActiveFilter ? undefined : "Browse movies"
+                }
+                onAction={
+                  query || hasActiveFilter
+                    ? undefined
+                    : () => navigation.navigate("Discover")
+                }
+              />
+            ) : (
+              <PosterShelf
+                movies={visibleBucketListMovies}
+                onPressMovie={(movie) => openDetails(movie.id)}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {visibleWatchedMovies.length === 0 ? (
+              <EmptyState
+                art={
+                  untieredOnly && !query && !hasActiveFilter
+                    ? "allTiered"
+                    : query || hasActiveFilter
+                      ? "noMatches"
+                      : "noDiscs"
+                }
+                title={
+                  untieredOnly && !query && !hasActiveFilter
+                    ? "Every disc has a tier."
+                    : query || hasActiveFilter
+                      ? "Nothing on this shelf"
+                      : "No discs played yet."
+                }
+                subtitle={
+                  untieredOnly && !query && !hasActiveFilter
+                    ? "Your whole collection is ranked."
+                    : query || hasActiveFilter
+                      ? "Nothing you've watched matches that."
+                      : "Mark a movie as watched and it lands here as a DVD."
+                }
+                actionLabel={
+                  untieredOnly || query || hasActiveFilter
+                    ? undefined
+                    : "Find something to watch"
+                }
+                onAction={
+                  untieredOnly || query || hasActiveFilter
+                    ? undefined
+                    : () => navigation.navigate("Discover")
+                }
+              />
+            ) : (
+              // Watched as DVD shelves — by month, by tier, or one run
+              // for "Most watched".
+              <DvdShelf
+                groups={
+                  sortBy === "recent"
+                    ? groupByMonth(visibleWatchedMovies)
+                    : sortBy === "rating"
+                      ? groupByTier(visibleWatchedMovies)
+                      : [{ key: "all", items: visibleWatchedMovies }]
+                }
+                onPressMovie={(movie) => openDetails(movie.id)}
+              />
+            )}
+          </>
+        )}
+
+        <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
+      </Animated.ScrollView>
+      <ScreenBottomFade />
+      {tab !== "collections" && (
+        <View
+          style={[styles.toolBar, { top: insets.top + HEADER_BAR_HEIGHT }]}
+          onLayout={(event) =>
+            setToolBarHeight(event.nativeEvent.layout.height)
+          }
+        >
+          {(isSearchOpen || query.length > 0) && (
             <View style={styles.searchField}>
               <Search size={16} color={colors.textMuted} />
               <TextInput
@@ -346,331 +497,201 @@ export const LibraryScreen = ({ navigation, route }) => {
                 style={styles.searchInput}
                 returnKeyType="search"
                 autoCorrect={false}
+                autoFocus={query.length === 0}
               />
-              {query.length > 0 && (
-                <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                  <X size={16} color={colors.textMuted} />
+              <Pressable
+                onPress={() => {
+                  setQuery("");
+                  setIsSearchOpen(false);
+                }}
+                hitSlop={8}
+                accessibilityLabel="Close search"
+              >
+                <X size={16} color={colors.textMuted} />
+              </Pressable>
+            </View>
+          )}
+
+          {/* One chip row: what's sorted / filtered, and the shortcuts. */}
+          {
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.toolRow}
+              contentContainerStyle={styles.toolRowContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {tab === "watched" && (
+                <Pressable
+                  ref={sortButtonRef}
+                  style={styles.toolChip}
+                  onPress={() => {
+                    sortButtonRef.current?.measureInWindow(
+                      (x, y, chipWidth, chipHeight) => {
+                        setSortAnchor({
+                          top: y + chipHeight + spacing.xs,
+                          // The menu (220 wide) opens left-aligned with
+                          // the chip, kept on screen.
+                          right: Math.max(spacing.md, width - x - 220),
+                        });
+                        setIsSortOpen(true);
+                      },
+                    );
+                  }}
+                >
+                  <Text style={styles.toolChipText}>
+                    {
+                      SORT_OPTIONS.find((option) => option.key === sortBy)
+                        ?.label
+                    }
+                  </Text>
+                  <ChevronDown size={14} color={colors.textPrimary} />
                 </Pressable>
               )}
-            </View>
-            {tab === "watched" && (
               <Pressable
-                ref={sortButtonRef}
-                style={[styles.toolButton, styles.toolIconButton]}
-                onPress={() => {
-                  sortButtonRef.current?.measureInWindow(
-                    (x, y, buttonWidth, buttonHeight) => {
-                      setSortAnchor({
-                        top: y + buttonHeight + spacing.xs,
-                        right: width - (x + buttonWidth),
-                      });
-                      setIsSortOpen(true);
-                    },
-                  );
-                }}
-              >
-                <ArrowDownWideNarrow
-                  size={16}
-                  color={colors.textPrimary}
-                  strokeWidth={2.2}
-                />
-                {sortBy !== "recent" && <View style={styles.toolButtonDot} />}
-              </Pressable>
-            )}
-            <Pressable
-              style={[styles.toolButton, styles.toolIconButton]}
-              onPress={() => setIsFilterOpen(true)}
-            >
-              <Filter size={15} color={colors.textPrimary} strokeWidth={2.2} />
-              {hasActiveFilter && <View style={styles.toolButtonDot} />}
-            </Pressable>
-          </View>
-        ) : null}
-
-        {tab === "collections" ? (
-          <CollectionsShelf
-            watched={watched}
-            unlockedCollectionIds={unlockedCollectionIds}
-            onOpen={openCollection}
-            onToggleTrack={toggleUnlockedCollection}
-            onSeeAll={() => setIsAllCollectionsOpen(true)}
-          />
-        ) : tab === "bucketlist" ? (
-          <>
-            {canPick && !query && !hasActiveFilter && (
-              <Pressable style={styles.pickCard} onPress={handlePickFromList}>
-                <View style={styles.pickIcon}>
-                  <Shuffle size={18} color={colors.accentContrast} />
-                </View>
-                <View style={styles.pickText}>
-                  <Text style={styles.pickTitle}>Can&apos;t choose?</Text>
-                  <Text style={styles.pickSubtitle}>
-                    Swipe through {Math.min(bucketListMovies.length, PICK_MAX)}{" "}
-                    from your watchlist
-                  </Text>
-                </View>
-                <ChevronRight size={18} color={colors.accentContrast} />
-              </Pressable>
-            )}
-            {visibleBucketListMovies.length === 0 ? (
-              <EmptyState
-                icon={<Bookmark size={40} color={colors.textMuted} />}
-                title={
-                  query || hasActiveFilter
-                    ? "No matches"
-                    : "Your board is empty."
-                }
-                subtitle={
-                  query || hasActiveFilter
-                    ? "Nothing on your watchlist matches that."
-                    : "That's either impressive or a problem."
-                }
-                actionLabel={
-                  query || hasActiveFilter ? undefined : "Find Something"
-                }
-                onAction={
-                  query || hasActiveFilter
-                    ? undefined
-                    : () => navigation.navigate("Discover")
-                }
-              />
-            ) : (
-              <MovieGrid
-                movies={visibleBucketListMovies}
-                onPressMovie={(movie) => openDetails(movie.id)}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            {watchedMovies.length > 0 && (
-              <View style={styles.statsStrip}>
-                <View style={styles.statCell}>
-                  <Text style={styles.statValue}>
-                    {Math.round(totalMinutes / 60)}h
-                  </Text>
-                  <Text style={styles.statLabel}>watched</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCell}>
-                  <Text style={styles.statValue}>
-                    {averageRating != null
-                      ? `★ ${averageRating.toFixed(1)}`
-                      : "—"}
-                  </Text>
-                  <Text style={styles.statLabel}>avg rating</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{watchedThisMonth}</Text>
-                  <Text style={styles.statLabel}>this month</Text>
-                </View>
-              </View>
-            )}
-            {visibleWatchedMovies.length === 0 ? (
-              <EmptyState
-                icon={<CheckCircle size={40} color={colors.textMuted} />}
-                title={
-                  query || hasActiveFilter
-                    ? "No matches"
-                    : "Nothing watched yet."
-                }
-                subtitle={
-                  query || hasActiveFilter
-                    ? "Nothing you've watched matches that."
-                    : "Let's change that."
-                }
-              />
-            ) : sortBy === "recent" ? (
-              groupByMonth(visibleWatchedMovies).map((group) => (
-                <View key={group.key} style={styles.monthGroup}>
-                  <Text style={styles.monthHeader}>
-                    {group.label.toUpperCase()} · {group.items.length}
-                  </Text>
-                  <View
-                    style={[
-                      styles.grid,
-                      { paddingHorizontal: horizontalPadding, gap },
-                    ]}
-                  >
-                    {group.items.map(({ movie, rating, watchCount }) => (
-                      <Pressable
-                        key={movie.id}
-                        onPress={() => openDetails(movie.id)}
-                        style={({ pressed }) => [
-                          { width: cardWidth },
-                          pressed && styles.pressed,
-                        ]}
-                      >
-                        <View>
-                          <MoviePoster
-                            uri={movie.poster}
-                            shadow
-                            radius={radius.sm}
-                            style={{ width: cardWidth, aspectRatio: 2 / 3 }}
-                          />
-                          <View style={styles.imdbBadge}>
-                            <Star
-                              size={10}
-                              color={colors.rating}
-                              fill={colors.rating}
-                            />
-                            <Text style={styles.imdbBadgeText}>
-                              {movie.rating.toFixed(1)}
-                            </Text>
-                          </View>
-                          {rating != null && (
-                            <View style={styles.userRatingBadge}>
-                              <Star
-                                size={10}
-                                color={colors.accentContrast}
-                                fill={colors.accentContrast}
-                              />
-                              <Text style={styles.userRatingBadgeText}>
-                                {rating.toFixed(1)}
-                              </Text>
-                            </View>
-                          )}
-                          {watchCount > 1 && (
-                            <View style={styles.rewatchBadge}>
-                              <Text style={styles.rewatchBadgeText}>
-                                ×{watchCount}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.movieTitle} numberOfLines={1}>
-                          {movie.title}
-                        </Text>
-                        <Text style={styles.movieYear}>{movie.year}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              ))
-            ) : (
-              <View
                 style={[
-                  styles.grid,
-                  styles.monthGroup,
-                  { paddingHorizontal: horizontalPadding, gap },
+                  styles.toolChip,
+                  hasActiveFilter && styles.toolChipActive,
                 ]}
-              >
-                {visibleWatchedMovies.map(({ movie, rating, watchCount }) => (
-                  <Pressable
-                    key={movie.id}
-                    onPress={() => openDetails(movie.id)}
-                    style={({ pressed }) => [
-                      { width: cardWidth },
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View>
-                      <MoviePoster
-                        uri={movie.poster}
-                        shadow
-                        radius={radius.sm}
-                        style={{ width: cardWidth, aspectRatio: 2 / 3 }}
-                      />
-                      <View style={styles.imdbBadge}>
-                        <Star
-                          size={10}
-                          color={colors.rating}
-                          fill={colors.rating}
-                        />
-                        <Text style={styles.imdbBadgeText}>
-                          {movie.rating.toFixed(1)}
-                        </Text>
-                      </View>
-                      {rating != null && (
-                        <View style={styles.userRatingBadge}>
-                          <Star
-                            size={10}
-                            color={colors.accentContrast}
-                            fill={colors.accentContrast}
-                          />
-                          <Text style={styles.userRatingBadgeText}>
-                            {rating.toFixed(1)}
-                          </Text>
-                        </View>
-                      )}
-                      {watchCount > 1 && (
-                        <View style={styles.rewatchBadge}>
-                          <Text style={styles.rewatchBadgeText}>
-                            ×{watchCount}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.movieTitle} numberOfLines={1}>
-                      {movie.title}
-                    </Text>
-                    <Text style={styles.movieYear}>{movie.year}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </>
-        )}
-
-        <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
-      </Animated.ScrollView>
-      <ScreenBottomFade />
-      <View
-        style={[styles.switcherWrap, { top: insets.top + HEADER_BAR_HEIGHT }]}
-        onLayout={(event) => setSwitcherHeight(event.nativeEvent.layout.height)}
-      >
-        <View style={styles.switcher}>
-          {tabOptions.map(({ key, label, count }) => {
-            const isActive = tab === key;
-            return (
-              <Pressable
-                key={key}
-                style={[
-                  styles.switchOption,
-                  isActive && styles.switchOptionActive,
-                ]}
-                onPress={() => setTab(key)}
+                onPress={() => setIsFilterOpen(true)}
               >
                 <Text
                   style={[
-                    styles.switchText,
-                    isActive && styles.switchTextActive,
+                    styles.toolChipText,
+                    hasActiveFilter && styles.toolChipTextActive,
+                  ]}
+                >
+                  {selectedGenres.length === 0
+                    ? "All genres"
+                    : selectedGenres.length === 1
+                      ? selectedGenres[0]
+                      : `${selectedGenres[0]} +${selectedGenres.length - 1}`}
+                </Text>
+                <ChevronDown
+                  size={14}
+                  color={
+                    hasActiveFilter ? colors.selectedText : colors.textPrimary
+                  }
+                />
+              </Pressable>
+              {tab === "bucketlist" && canPick && (
+                <Pressable style={styles.toolChip} onPress={handlePickFromList}>
+                  <Shuffle size={14} color={colors.accentLight} />
+                  <Text style={styles.toolChipText}>Pick for me</Text>
+                </Pressable>
+              )}
+              {tab === "watched" && (untieredCount > 0 || untieredOnly) && (
+                <Pressable
+                  style={[
+                    styles.toolChip,
+                    untieredOnly && styles.toolChipActive,
+                  ]}
+                  onPress={() => setUntieredOnly((value) => !value)}
+                  accessibilityState={{ selected: untieredOnly }}
+                >
+                  <View
+                    style={[
+                      styles.untieredDot,
+                      untieredOnly && styles.untieredDotActive,
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.toolChipText,
+                      untieredOnly && styles.toolChipTextActive,
+                    ]}
+                  >
+                    {untieredCount} untiered
+                  </Text>
+                </Pressable>
+              )}
+            </ScrollView>
+          }
+        </View>
+      )}
+      <DockHeader
+        {...header.props}
+        title={currentTab.label}
+        subtitle={currentTab.subtitle}
+        onPressTitle={() => setIsSectionMenuOpen(true)}
+        right={
+          tab !== "collections" && (
+            <>
+              <HeaderIconButton
+                onPress={() => {
+                  if (isSearchOpen || query.length > 0) {
+                    setQuery("");
+                    setIsSearchOpen(false);
+                  } else {
+                    setIsSearchOpen(true);
+                  }
+                }}
+              >
+                <Search
+                  size={18}
+                  color={colors.textPrimary}
+                  strokeWidth={2.2}
+                />
+              </HeaderIconButton>
+              <HeaderIconButton
+                onPress={() =>
+                  tab === "bucketlist"
+                    ? setIsAddOpen(true)
+                    : setIsAddWatchedOpen(true)
+                }
+              >
+                <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
+              </HeaderIconButton>
+            </>
+          )
+        }
+      />
+      <Popover
+        visible={isSectionMenuOpen}
+        anchor={{
+          top: insets.top + HEADER_BAR_HEIGHT + spacing.xs,
+          right: width - spacing.md - 220,
+        }}
+        onClose={() => setIsSectionMenuOpen(false)}
+      >
+        {tabOptions.map(({ key, label, Icon, count }) => {
+          const selected = tab === key;
+          return (
+            <Pressable
+              key={key}
+              style={({ pressed }) => [
+                styles.sortRow,
+                pressed && styles.sortRowPressed,
+              ]}
+              onPress={() => {
+                setTab(key);
+                setIsSectionMenuOpen(false);
+              }}
+              accessibilityState={{ selected }}
+            >
+              <View style={styles.sectionMenuLabel}>
+                <Icon
+                  size={16}
+                  color={selected ? colors.accentLight : colors.textSecondary}
+                  strokeWidth={2.2}
+                />
+                <Text
+                  style={[
+                    styles.sortRowText,
+                    selected && styles.sortRowTextActive,
                   ]}
                   numberOfLines={1}
                 >
                   {label}
                 </Text>
-                <Text
-                  style={[
-                    styles.switchCount,
-                    isActive && styles.switchCountActive,
-                  ]}
-                >
-                  {count}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-      <DockHeader
-        {...header.props}
-        title="Library"
-        right={
-          tab !== "collections" && (
-            <HeaderIconButton
-              onPress={() =>
-                tab === "bucketlist"
-                  ? setIsAddOpen(true)
-                  : setIsAddWatchedOpen(true)
-              }
-            >
-              <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
-            </HeaderIconButton>
-          )
-        }
-      />
+              </View>
+              <Text style={styles.sectionMenuCount}>{count}</Text>
+              {selected && <Check size={16} color={colors.accentLight} />}
+            </Pressable>
+          );
+        })}
+      </Popover>
+
       <AddToBucketListSheet
         visible={isAddOpen}
         onClose={() => setIsAddOpen(false)}
@@ -818,70 +839,77 @@ const createStyles = (colors) =>
     // scroll content is flexGrow: 1 too (for EmptyState centering) — so on
     // a short tab the chip row grew to soak up the spare height and the
     // chips stretched into tall pills. Pin it to its content height.
-    // Fixed strip under the header — card background like the header, a
-    // darker rounded track, and a white segment for the selected tab.
-    switcherWrap: {
+    // Fixed chip bar under the header — card background like the header,
+    // one hairline under it.
+    toolBar: {
       position: "absolute",
       left: 0,
       right: 0,
       zIndex: 99,
       elevation: 16,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.sm + 2,
+      gap: spacing.sm,
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
-    switcher: {
-      flexDirection: "row",
-      padding: 4,
-      borderRadius: radius.sm,
-      backgroundColor: colors.background,
-    },
-    switchOption: {
+    sectionMenuLabel: {
       flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      paddingVertical: 9,
-      borderRadius: radius.sm - 3,
-    },
-    switchOptionActive: {
-      backgroundColor: "#FFFFFF",
-    },
-    switchText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    switchTextActive: {
-      color: colors.background,
-    },
-    switchCount: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-    switchCountActive: {
-      color: colors.accent,
-    },
-    toolbar: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
+    },
+    sectionMenuCount: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginRight: spacing.xs,
+    },
+    toolRow: {
+      flexGrow: 0,
+      marginHorizontal: -spacing.md,
+    },
+    toolRowContent: {
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.md,
+    },
+    toolChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: spacing.md - 2,
+      paddingVertical: 7,
+      borderRadius: radius.pill,
+      backgroundColor: colors.background,
+    },
+    toolChipActive: {
+      backgroundColor: colors.selected,
+    },
+    toolChipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
+    toolChipTextActive: {
+      color: colors.selectedText,
+    },
+    untieredDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: colors.rating,
+    },
+    untieredDotActive: {
+      backgroundColor: colors.selectedText,
     },
     searchField: {
-      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
       height: 40,
       paddingHorizontal: spacing.sm + 2,
       borderRadius: radius.sm,
-      backgroundColor: colors.card,
+      backgroundColor: colors.background,
     },
     searchInput: {
       ...typography.body,
@@ -889,101 +917,7 @@ const createStyles = (colors) =>
       paddingVertical: 0,
       color: colors.textPrimary,
     },
-    toolButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-      height: 40,
-      paddingHorizontal: spacing.sm + 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
     // Sort and genre are icon-only squares.
-    toolIconButton: {
-      width: 40,
-      justifyContent: "center",
-      paddingHorizontal: 0,
-    },
-    toolButtonText: {
-      ...typography.label,
-      color: colors.textPrimary,
-    },
-    toolButtonDot: {
-      position: "absolute",
-      top: 6,
-      right: 6,
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-      backgroundColor: colors.accentLight,
-    },
-    pickCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
-      padding: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-    },
-    pickIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
-    },
-    pickText: {
-      flex: 1,
-    },
-    pickTitle: {
-      ...typography.subtitle,
-      color: colors.accentContrast,
-    },
-    pickSubtitle: {
-      ...typography.caption,
-      color: "rgba(255, 255, 255, 0.85)",
-      marginTop: 1,
-    },
-    statsStrip: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-      paddingVertical: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
-    statCell: {
-      flex: 1,
-      alignItems: "center",
-    },
-    statValue: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    statLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    statDivider: {
-      width: 1,
-      alignSelf: "stretch",
-      backgroundColor: colors.border,
-    },
-    monthGroup: {
-      marginTop: spacing.md,
-    },
-    monthHeader: {
-      ...typography.label,
-      color: colors.textSecondary,
-      paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-    },
     section: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.lg,
@@ -1036,71 +970,6 @@ const createStyles = (colors) =>
       fontSize: 12,
       color: colors.textSecondary,
     },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-    },
-    pressed: {
-      opacity: 0.7,
-    },
-    movieTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-      marginTop: spacing.sm,
-    },
-    movieYear: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    imdbBadge: {
-      position: "absolute",
-      top: 6,
-      right: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-    },
-    imdbBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.rating,
-    },
-    userRatingBadge: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-    },
-    userRatingBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.accentContrast,
-    },
-    rewatchBadge: {
-      position: "absolute",
-      bottom: 6,
-      right: 6,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-    },
-    rewatchBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: "#FFFFFF",
-    },
     chipsWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -1114,7 +983,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     chipSelected: {
-      backgroundColor: colors.textPrimary,
+      backgroundColor: colors.selected,
     },
     chipText: {
       ...typography.bodyBold,

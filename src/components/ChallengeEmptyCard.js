@@ -7,7 +7,7 @@ import { PrimaryButton } from "./PrimaryButton";
 
 export const ChallengeEmptyCard = ({
   title = "No Active Challenge",
-  subtitle = "Create a challenge to earn XP and level up.",
+  subtitle = "Let a challenge pick something new for tonight.",
   buttonLabel = "Create a Challenge",
   icon,
   onPress,

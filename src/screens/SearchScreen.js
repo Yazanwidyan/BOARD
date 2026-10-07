@@ -119,7 +119,8 @@ export const SearchScreen = ({ navigation }) => {
       {trimmed ? (
         results.length === 0 ? (
           <EmptyState
-            title="No matches"
+            art="noMatches"
+            title="Nothing on this shelf"
             subtitle={`Nothing found for "${query}"`}
           />
         ) : (
@@ -258,9 +259,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       color: colors.textPrimary,
     },
-    list: {
-      paddingHorizontal: spacing.md,
-    },
+    list: {},
     pasteOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(0, 0, 0, 0.5)",

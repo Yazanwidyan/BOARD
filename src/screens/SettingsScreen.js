@@ -1,4 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
 import {
   Bookmark,
   CheckCircle,
@@ -27,14 +28,15 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { BackButton } from "../components/BackButton";
+import { AvatarCropper } from "../components/AvatarCropper";
+import { StackHeader } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useUserStore } from "../store/userStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { resetAppData } from "../utils/resetAppData";
@@ -105,6 +107,9 @@ export const SettingsScreen = ({ navigation }) => {
     if (bio.trim() !== bio) setBio(bio.trim());
   };
 
+  // The picked photo waiting in the circular cropper.
+  const [cropImage, setCropImage] = useState(null);
+
   const handlePickAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -114,24 +119,26 @@ export const SettingsScreen = ({ navigation }) => {
       );
       return;
     }
+    // No system crop (it's square-only) — the photo goes to our own
+    // circular cropper instead.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
+      allowsEditing: false,
+      quality: 0.9,
     });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      setAvatarUri(result.assets[0].uri);
+    const asset = result.assets?.[0];
+    if (!result.canceled && asset?.uri) {
+      setCropImage({
+        uri: asset.uri,
+        width: asset.width,
+        height: asset.height,
+      });
     }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <StackHeader title="Settings" onBack={() => navigation.goBack()} />
 
       <ScrollView
         contentContainerStyle={[
@@ -268,8 +275,8 @@ export const SettingsScreen = ({ navigation }) => {
             label="About"
             onPress={() =>
               Alert.alert(
-                "BOARD",
-                "BOARD turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.",
+                "Reelboard",
+                "Reelboard turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.",
               )
             }
           />
@@ -283,7 +290,7 @@ export const SettingsScreen = ({ navigation }) => {
             onPress={() =>
               showStub(
                 "Referral Codes",
-                "BOARD doesn't have referral codes yet.",
+                "Reelboard doesn't have referral codes yet.",
               )
             }
           />
@@ -297,7 +304,7 @@ export const SettingsScreen = ({ navigation }) => {
             onPress={() =>
               confirmAction(
                 "Delete Account",
-                "BOARD doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
+                "Reelboard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
                 resetAppData,
               )
             }
@@ -307,6 +314,17 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.footerText}>Version {APP_VERSION}</Text>
       </ScrollView>
       <ScreenBottomFade />
+      {cropImage && (
+        <AvatarCropper
+          key={cropImage.uri}
+          image={cropImage}
+          onCancel={() => setCropImage(null)}
+          onDone={(uri) => {
+            setAvatarUri(uri);
+            setCropImage(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -317,26 +335,9 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    headerSpacer: {
-      width: 40,
-      height: 40,
-    },
+    // Cards run edge to edge (no page padding, square corners); labels
+    // and field captions keep the inset themselves.
     scrollContent: {
-      paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
     },
     sectionLabel: {
@@ -344,10 +345,10 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: spacing.md,
       marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     section: {
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       overflow: "hidden",
     },
     row: {
@@ -419,12 +420,12 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: spacing.md,
       marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     fieldBox: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
       paddingHorizontal: spacing.md,
       minHeight: 48,
     },

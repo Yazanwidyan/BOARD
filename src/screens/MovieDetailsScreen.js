@@ -8,7 +8,7 @@ import {
   Play,
   RotateCw,
   Share2,
-  Star,
+  Trophy,
 } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -33,7 +33,7 @@ import { BackButton } from "../components/BackButton";
 import { TargetIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { RatingInput } from "../components/RatingInput";
+import { TierPicker } from "../components/TierPicker";
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
@@ -47,9 +47,12 @@ import {
   toggleBucketListWithFeedback,
 } from "../utils/achievementFeedback";
 import {
+  getCollectionById,
   getCollectionProgress,
   getCollectionsForMovie,
 } from "../utils/collections";
+import { getFamilyRating } from "../utils/familyRating";
+import { getTier, getTierInfo } from "../utils/tiers";
 import { formatRuntime, isInBucketList } from "../utils/movieFilters";
 
 const POSTER_WIDTH = 168;
@@ -58,23 +61,88 @@ const STICKY_BAR_HEIGHT = 52;
 const DESCRIPTION_LINES = 4;
 const SIMILAR_COUNT = 10;
 
-// Same director first (closest match), then same lead genre, best-rated
-// first within each — so the rail always has something even for a
-// one-film director.
-const getSimilarMovies = (movie) => {
-  const byRating = (a, b) => b.rating - a.rating;
-  const others = MOVIES.filter((other) => other.id !== movie.id);
-  const sameDirector = others
-    .filter((other) => other.director === movie.director)
-    .sort(byRating);
-  const sameGenre = others
-    .filter(
-      (other) =>
-        other.director !== movie.director &&
-        other.genres[0] === movie.genres[0],
-    )
-    .sort(byRating);
-  return [...sameDirector, ...sameGenre].slice(0, SIMILAR_COUNT);
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp);
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
+
+const timeAgo = (timestamp) => {
+  const days = Math.floor((Date.now() - timestamp) / DAY_MS);
+  if (days < 1) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  return `${Math.round(days / 30)} months ago`;
+};
+
+const slugify = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const runtimeCategory = (minutes) =>
+  minutes < 100
+    ? "Short"
+    : minutes < 135
+      ? "Standard length"
+      : minutes < 165
+        ? "Long"
+        : "Epic";
+
+const initials = (name) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+// The director's other films get their own "Also by" row, so "More like
+// this" is purely the same lead genre (best-rated first) — no overlap.
+const getSimilarMovies = (movie) =>
+  MOVIES.filter(
+    (other) =>
+      other.id !== movie.id &&
+      other.director !== movie.director &&
+      other.genres[0] === movie.genres[0],
+  )
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, SIMILAR_COUNT);
+
+const getDirectorMovies = (movie) =>
+  MOVIES.filter(
+    (other) => other.id !== movie.id && other.director === movie.director,
+  ).sort((a, b) => a.year - b.year);
+
+// Good / mixed / poor by each site's own thresholds: Rotten Tomatoes ≥ 60
+// is "fresh"; Metacritic ≥ 61 is "generally favorable", 40–60 "mixed".
+const scoreColor = (source, value, colors) => {
+  if (source === "rt") return value >= 60 ? colors.success : colors.danger;
+  if (source === "mc")
+    return value >= 61
+      ? colors.success
+      : value >= 40
+        ? colors.rating
+        : colors.danger;
+  return colors.rating;
 };
 
 // One button of the action dock — icon over a short label, lit in accent
@@ -112,8 +180,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     isInBucketList(state.bucketList, movieId),
   );
   const watched = useMovieStore((state) => state.watched);
+  const bucketEntry = useMovieStore((state) =>
+    state.bucketList.find((entry) => entry.movieId === movieId),
+  );
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
-  const setWatchedRating = useMovieStore((state) => state.setWatchedRating);
+  const setWatchedTier = useMovieStore((state) => state.setWatchedTier);
   const isPicked = useMovieStore((state) => state.pickedMovie === movieId);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
@@ -145,6 +216,68 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const isChallengeTarget = activeChallenge?.targetMovieId === movieId;
   const collections = getCollectionsForMovie(movieId);
   const similarMovies = getSimilarMovies(movie);
+  const directorMovies = getDirectorMovies(movie);
+  const details = movie.details;
+
+  const openList = (title, movies) =>
+    navigation.push("BrowseMovies", {
+      title,
+      movieIds: movies.map((item) => item.id),
+    });
+
+  const openActor = (actor) => {
+    const collection = getCollectionById(`actor-${slugify(actor)}`);
+    if (collection) {
+      navigation.push("CollectionDetails", { collectionId: collection.id });
+    } else {
+      openList(
+        `Starring ${actor}`,
+        MOVIES.filter((item) => item.cast?.includes(actor)),
+      );
+    }
+  };
+
+  const scores = [
+    {
+      key: "imdb",
+      label: "IMDb",
+      value: movie.rating.toFixed(1),
+      suffix: "/10",
+    },
+    details?.rottenTomatoes != null && {
+      key: "rt",
+      label: "Rotten Tomatoes",
+      value: String(details.rottenTomatoes),
+      suffix: "%",
+      color: scoreColor("rt", details.rottenTomatoes, colors),
+    },
+    details?.metacritic != null && {
+      key: "mc",
+      label: "Metacritic",
+      value: String(details.metacritic),
+      suffix: "/100",
+      color: scoreColor("mc", details.metacritic, colors),
+    },
+    {
+      key: "reelboard",
+      label: "Reelboard",
+      value: getTier(watchedEntry) ?? "–",
+      suffix: "",
+      color: getTierInfo(getTier(watchedEntry))?.color ?? colors.textMuted,
+    },
+  ].filter(Boolean);
+
+  const family = getFamilyRating(movie);
+
+  const facts = [
+    { label: "Family", value: family.note },
+    { label: "Director", value: movie.director },
+    details?.writers && { label: "Writers", value: details.writers },
+    details?.language && { label: "Language", value: details.language },
+    details?.country && { label: "Country", value: details.country },
+    details?.boxOffice && { label: "Box office", value: details.boxOffice },
+  ].filter(Boolean);
+  const decade = `${Math.floor(movie.year / 10) * 10}s`;
 
   const handleToggleWatched = () => {
     const wasWatched = isWatched;
@@ -156,9 +289,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleRate = (rating) => {
+  const handleTier = (tier) => {
     const { watched: watchedBefore } = useMovieStore.getState();
-    setWatchedRating(movieId, rating);
+    setWatchedTier(movieId, tier);
     giveRatingFeedback(watchedBefore);
   };
 
@@ -169,7 +302,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
   const handleShare = () => {
     Share.share({
-      message: `Check out ${movie.title} (${movie.year}) on BOARD — rated ${movie.rating.toFixed(1)}.`,
+      message: `Check out ${movie.title} (${movie.year}) on Reelboard — rated ${movie.rating.toFixed(1)}.`,
     });
   };
 
@@ -204,33 +337,22 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               radius={radius.md}
               shadow
             />
-            <View style={styles.imdbBadge}>
-              <Star size={11} color={colors.rating} fill={colors.rating} />
-              <Text style={styles.imdbBadgeText}>
-                {movie.rating.toFixed(1)}
-              </Text>
-            </View>
-            {watchedEntry?.rating != null && (
-              <View style={styles.userRatingBadge}>
-                <Star
-                  size={11}
-                  color={colors.accentContrast}
-                  fill={colors.accentContrast}
-                />
-                <Text style={styles.userRatingBadgeText}>
-                  {watchedEntry.rating.toFixed(1)}
-                </Text>
-              </View>
-            )}
           </View>
 
           <Text style={styles.title}>{movie.title}</Text>
           <Text style={styles.director} numberOfLines={1}>
             {movie.director} · {movie.year}
           </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
-          </Text>
+          <View style={styles.metaRow}>
+            {details?.rated && (
+              <View style={styles.ageBadge}>
+                <Text style={styles.ageText}>{details.rated}</Text>
+              </View>
+            )}
+            <Text style={styles.meta} numberOfLines={1}>
+              {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.content}>
@@ -302,7 +424,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <TargetIcon size={18} color={colors.accentContrast} />
               <View style={styles.bannerText}>
                 <Text style={styles.challengeEyebrow}>
-                  ACTIVE CHALLENGE · +{activeChallenge.xpReward} XP
+                  ACTIVE CHALLENGE ·{" "}
+                  {activeChallenge.difficultyLabel.toUpperCase()}
                 </Text>
                 <Text style={styles.challengeDescription} numberOfLines={2}>
                   {activeChallenge.description}
@@ -311,16 +434,32 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {isWatched && (
+          {isWatched ? (
             <View style={styles.ratingCard}>
               <View style={styles.ratingHeader}>
-                <Text style={styles.sectionLabelInline}>Your rating</Text>
+                <Text style={styles.sectionLabelInline}>Your history</Text>
                 <Text style={styles.watchCount}>
-                  Watched {watchedEntry.watchCount ?? 1}×
+                  {watchedEntry.timestamp
+                    ? `Watched ${formatDate(watchedEntry.timestamp)}`
+                    : "Watched"}{" "}
+                  · {watchedEntry.watchCount ?? 1}×
                 </Text>
               </View>
-              <RatingInput rating={watchedEntry.rating} onRate={handleRate} />
+              <Text style={styles.tierPrompt}>Your Reelboard tier</Text>
+              <TierPicker tier={getTier(watchedEntry)} onChange={handleTier} />
             </View>
+          ) : (
+            bucketEntry && (
+              <View style={styles.savedRow}>
+                <Bookmark size={14} color={colors.accentLight} />
+                <Text style={styles.savedText}>
+                  On your watchlist
+                  {bucketEntry.addedAt
+                    ? ` · saved ${timeAgo(bucketEntry.addedAt)}`
+                    : ""}
+                </Text>
+              </View>
+            )
           )}
 
           <Text style={styles.sectionLabel}>Overview</Text>
@@ -348,6 +487,129 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               </Text>
             </Pressable>
           )}
+
+          <Text style={styles.sectionLabel}>Scores</Text>
+          <View style={styles.scoresRow}>
+            {scores.map((score) => (
+              <View key={score.key} style={styles.scoreTile}>
+                <Text
+                  style={[
+                    styles.scoreValue,
+                    { color: score.color ?? colors.rating },
+                  ]}
+                >
+                  {score.value}
+                  <Text style={styles.scoreSuffix}>{score.suffix}</Text>
+                </Text>
+                <Text style={styles.scoreLabel} numberOfLines={1}>
+                  {score.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {details?.awards && (
+            <View style={styles.awardsRow}>
+              <Trophy size={15} color={colors.rating} />
+              <Text style={styles.awardsText}>{details.awards}</Text>
+            </View>
+          )}
+
+          <View style={styles.factChips}>
+            <View style={styles.factChip}>
+              <Text style={styles.factChipText}>
+                {runtimeCategory(movie.runtime)} ·{" "}
+                {formatRuntime(movie.runtime)}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.factChip}
+              onPress={() =>
+                openList(
+                  `The ${decade}`,
+                  MOVIES.filter(
+                    (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
+                  ).sort((a, b) => b.rating - a.rating),
+                )
+              }
+            >
+              <Text style={styles.factChipText}>The {decade}</Text>
+              <ChevronRight size={12} color={colors.textSecondary} />
+            </Pressable>
+            {movie.genres.map((genre) => (
+              <Pressable
+                key={genre}
+                style={styles.factChip}
+                onPress={() =>
+                  openList(
+                    genre,
+                    MOVIES.filter((item) => item.genres.includes(genre)).sort(
+                      (a, b) => b.rating - a.rating,
+                    ),
+                  )
+                }
+              >
+                <Text style={styles.factChipText}>{genre}</Text>
+                <ChevronRight size={12} color={colors.textSecondary} />
+              </Pressable>
+            ))}
+          </View>
+
+          {movie.cast?.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Cast</Text>
+              <View style={styles.castList}>
+                {movie.cast.map((actor) => {
+                  const hasCollection = !!getCollectionById(
+                    `actor-${slugify(actor)}`,
+                  );
+                  const filmCount = MOVIES.filter((item) =>
+                    item.cast?.includes(actor),
+                  ).length;
+                  return (
+                    <Pressable
+                      key={actor}
+                      style={styles.castRow}
+                      onPress={() => openActor(actor)}
+                    >
+                      <View style={styles.castAvatar}>
+                        <Text style={styles.castInitials}>
+                          {initials(actor)}
+                        </Text>
+                      </View>
+                      <View style={styles.castInfo}>
+                        <Text style={styles.castName} numberOfLines={1}>
+                          {actor}
+                        </Text>
+                        <Text style={styles.castMeta}>
+                          {filmCount > 1
+                            ? `${filmCount} films in Reelboard${hasCollection ? " · collection" : ""}`
+                            : "1 film in Reelboard"}
+                        </Text>
+                      </View>
+                      <ChevronRight size={16} color={colors.textMuted} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          <Text style={styles.sectionLabel}>Details</Text>
+          <View style={styles.factsCard}>
+            {facts.map((fact, index) => (
+              <View
+                key={fact.label}
+                style={[
+                  styles.factRow,
+                  index === facts.length - 1 && styles.factRowLast,
+                ]}
+              >
+                <Text style={styles.factLabel}>{fact.label}</Text>
+                <Text style={styles.factValue}>{fact.value}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {collections.length > 0 && (
@@ -396,6 +658,43 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   </Pressable>
                 );
               })}
+            </ScrollView>
+          </>
+        )}
+
+        {directorMovies.length > 0 && (
+          <>
+            <Text style={[styles.sectionLabel, styles.railLabel]}>
+              Also by {movie.director}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.railContent}
+            >
+              {directorMovies.map((other) => (
+                <Pressable
+                  key={other.id}
+                  style={styles.similarCard}
+                  onPress={() =>
+                    navigation.push("MovieDetails", { movieId: other.id })
+                  }
+                >
+                  <MoviePoster
+                    uri={other.poster}
+                    style={styles.similarPoster}
+                  />
+                  {watchedIds.has(other.id) && (
+                    <View style={styles.watchedTick}>
+                      <CheckCircle size={14} color={colors.success} />
+                    </View>
+                  )}
+                  <Text style={styles.similarTitle} numberOfLines={1}>
+                    {other.title}
+                  </Text>
+                  <Text style={styles.similarYear}>{other.year}</Text>
+                </Pressable>
+              ))}
             </ScrollView>
           </>
         )}
@@ -469,6 +768,169 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.xs + 2,
+      marginTop: 2,
+      maxWidth: "100%",
+    },
+    ageBadge: {
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.textMuted,
+    },
+    ageText: {
+      ...typography.label,
+      fontSize: 11,
+      letterSpacing: 0.3,
+      color: colors.textSecondary,
+    },
+    tierPrompt: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs + 2,
+    },
+    savedRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      marginTop: spacing.md,
+    },
+    savedText: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    scoresRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    scoreTile: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: colors.card,
+    },
+    scoreValue: {
+      ...typography.hero,
+      fontSize: 22,
+      lineHeight: 26,
+    },
+    scoreSuffix: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+    scoreLabel: {
+      ...typography.micro,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    awardsRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      marginHorizontal: -spacing.md,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+      backgroundColor: `${colors.rating}14`,
+    },
+    awardsText: {
+      ...typography.caption,
+      flex: 1,
+      color: colors.textPrimary,
+    },
+    factChips: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    factChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radius.pill,
+      backgroundColor: colors.card,
+    },
+    factChipText: {
+      ...typography.caption,
+      color: colors.textPrimary,
+    },
+    castList: {
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
+    },
+    castRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 2,
+      paddingVertical: spacing.sm + 2,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    castAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    castInitials: {
+      ...typography.label,
+      color: colors.textPrimary,
+    },
+    castInfo: {
+      flex: 1,
+    },
+    castName: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    castMeta: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+    factsCard: {
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
+    },
+    factRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    factRowLast: {
+      borderBottomWidth: 0,
+    },
+    factLabel: {
+      ...typography.caption,
+      width: 84,
+      color: colors.textMuted,
+    },
+    factValue: {
+      ...typography.caption,
+      flex: 1,
+      color: colors.textPrimary,
+    },
+    watchedTick: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      borderRadius: 8,
+      backgroundColor: colors.background,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -501,40 +963,6 @@ const createStyles = (colors) =>
       width: POSTER_WIDTH,
       aspectRatio: 2 / 3,
     },
-    imdbBadge: {
-      position: "absolute",
-      top: 8,
-      right: 8,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.scrim,
-    },
-    imdbBadgeText: {
-      ...typography.label,
-      fontSize: 11,
-      color: colors.rating,
-    },
-    userRatingBadge: {
-      position: "absolute",
-      top: 8,
-      left: 8,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-    },
-    userRatingBadgeText: {
-      ...typography.label,
-      fontSize: 11,
-      color: colors.accentContrast,
-    },
     title: {
       ...typography.hero,
       color: colors.textPrimary,
@@ -549,9 +977,9 @@ const createStyles = (colors) =>
     },
     meta: {
       ...typography.caption,
+      flexShrink: 1,
       color: colors.textMuted,
       textAlign: "center",
-      marginTop: 2,
     },
     content: {
       paddingHorizontal: spacing.md,
@@ -612,8 +1040,8 @@ const createStyles = (colors) =>
     },
     ratingCard: {
       marginTop: spacing.md,
+      marginHorizontal: -spacing.md,
       padding: spacing.md,
-      borderRadius: radius.sm,
       backgroundColor: colors.card,
       gap: spacing.sm,
     },

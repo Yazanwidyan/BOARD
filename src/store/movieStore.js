@@ -12,7 +12,9 @@ export const useMovieStore = create(
       // Tied to the movie id, so any other way of picking makes it stale
       // (readers ignore a mismatch) without having to clear it everywhere.
       pickMood: null,
-      // [{ movieId, timestamp, rating: 0.5-5 in 0.5 steps | null, watchCount }]
+      // [{ movieId, timestamp, tier: 'S'|'A'|'B'|'C'|'D'|'F' | null, watchCount }]
+      // Older entries may carry `rating` (0.5–5 stars) instead of `tier` —
+      // utils/tiers.js getTier() converts those on read.
       // One entry per movie, never duplicated — a rewatch bumps watchCount
       // and timestamp on the same entry rather than adding a second one, so
       // every existing "one entry per movie" assumption elsewhere (badges,
@@ -64,6 +66,14 @@ export const useMovieStore = create(
           pickedMovie: state.pickedMovie === movieId ? null : state.pickedMovie,
         };
       }),
+
+      // Reelboard's rating: a tier (S–F), or null to clear it. Drops any old
+      // star rating so the tier is the only source of truth from now on.
+      setWatchedTier: (movieId, tier) => set((state) => ({
+        watched: state.watched.map((entry) => (
+          entry.movieId === movieId ? { ...entry, tier, rating: null } : entry
+        )),
+      })),
 
       setWatchedRating: (movieId, rating) => set((state) => ({
         watched: state.watched.map((entry) => (

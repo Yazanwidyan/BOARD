@@ -15,6 +15,7 @@ import Animated, {
   Easing,
   FadeIn,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -38,7 +39,7 @@ import {
   getCollectionProgress,
   getCollectionsForMovie,
 } from "../utils/collections";
-import { WATCH_XP } from "../utils/xp";
+import { getUserXP } from "../utils/xp";
 
 // "Play, don't tell": instead of slides explaining XP and collections,
 // onboarding runs the app's core loop once — mark what you've seen, earn
@@ -57,9 +58,9 @@ const TOP_GENRES = 3;
 // Tap cycle on a taste poster: nothing → seen → want → nothing.
 const NEXT_MARK = { undefined: "seen", seen: "want", want: undefined };
 
-// Well-known movies the user doesn't already have — a new install is
-// seeded with demo watch history (see seedDemoState), and offering movies
-// that are already watched would make a "seen" tap un-watch them.
+// Well-known movies the user doesn't already have — on a replay of
+// onboarding some are already watched or saved, and offering those would
+// make a "seen" tap un-watch them.
 const pickTasteMovies = () => {
   const { watched, bucketList } = useMovieStore.getState();
   const known = new Set([
@@ -107,8 +108,11 @@ const WallColumn = ({ movies, index, width, styles }) => {
   const offset = useSharedValue(0);
   const posterHeight = width * 1.5;
   const travel = posterHeight + spacing.sm;
+  // Reduce Motion: the poster wall stays still.
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reduceMotion) return;
     offset.value = withRepeat(
       withTiming(1, { duration: 18000 + index * 4000, easing: Easing.linear }),
       -1,
@@ -172,8 +176,8 @@ const WelcomeStep = ({ colors, styles }) => {
         <BoardBIcon size={56} color={colors.accent} />
         <Text style={styles.welcomeTitle}>Bored? Let&apos;s fix that.</Text>
         <Text style={styles.subtitle}>
-          Mark what you&apos;ve seen, earn XP, and let BOARD pick what&apos;s
-          next. Takes a minute.
+          Mark what you&apos;ve seen, earn XP, and let Reelboard pick
+          what&apos;s next. Takes a minute.
         </Text>
       </View>
     </View>
@@ -184,7 +188,7 @@ const NameStep = ({ name, onChangeName, onSubmit, colors, styles }) => (
   <View style={styles.step}>
     <Text style={styles.title}>What should we call you?</Text>
     <Text style={styles.subtitle}>
-      It&apos;s how BOARD greets you, and it builds your handle.
+      It&apos;s how Reelboard greets you, and it builds your handle.
     </Text>
     <TextInput
       value={name}
@@ -297,7 +301,7 @@ const RewardStep = ({ summary, colors, styles }) => (
         <View style={styles.rewardRow}>
           <Text style={styles.rewardLabel}>
             {summary.seenCount} movie{summary.seenCount === 1 ? "" : "s"}{" "}
-            watched
+            watched, incl. new genres & decades
           </Text>
           <Text style={styles.rewardValue}>+{summary.xp}</Text>
         </View>
@@ -424,6 +428,7 @@ export const OnboardingScreen = () => {
   // and tonight's recommendations.
   const applyTaste = () => {
     const { toggleWatched, toggleBucketList } = useMovieStore.getState();
+    const xpBefore = getUserXP(useMovieStore.getState().watched);
     const newSeen = [];
     const newWant = [];
     Object.entries(marks).forEach(([movieId, mark]) => {
@@ -470,7 +475,9 @@ export const OnboardingScreen = () => {
     setSummary({
       seenCount: seenTotal.length,
       wantCount: wantIds.length,
-      xp: seenTotal.length * WATCH_XP,
+      // The real XP this added — watches plus any new-genre / new-decade /
+      // director bonuses they unlocked.
+      xp: getUserXP(useMovieStore.getState().watched) - xpBefore,
       collections: [...startedCollections.values()].slice(0, 3),
     });
 

@@ -7,17 +7,15 @@ import Animated, {
   FadeIn,
   runOnJS,
   useAnimatedReaction,
+  useReducedMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
-import { BackButton } from "../components/BackButton";
+import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { generateRecommendations } from "../services/recommendations";
@@ -148,7 +146,6 @@ const Wheel = ({ candidates, winnerId, rotatorStyle, colors }) => {
 
 export const SpinScreen = ({ navigation }) => {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const bucketList = useMovieStore((state) => state.bucketList);
   const pickedMovie = useMovieStore((state) => state.pickedMovie);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
@@ -164,6 +161,8 @@ export const SpinScreen = ({ navigation }) => {
   const [phase, setPhase] = useState("idle"); // idle | spinning | landed
   const [winner, setWinner] = useState(null);
   const rotation = useSharedValue(0);
+  // Reduce Motion: a short, single-turn spin instead of five fast turns.
+  const reduceMotion = useReducedMotion();
   const sliceAngle = 360 / Math.max(1, candidates.length);
 
   // A light tick each time a slice boundary passes the pointer — the
@@ -198,13 +197,14 @@ export const SpinScreen = ({ navigation }) => {
     // Rotating by R brings angle a to a + R; we want center + jitter at 0
     // (the pointer), at least FULL_SPINS turns past wherever it is now.
     const current = rotation.value;
-    const base = Math.ceil(current / 360) * 360 + FULL_SPINS * 360;
+    const base =
+      Math.ceil(current / 360) * 360 + (reduceMotion ? 1 : FULL_SPINS) * 360;
     const target = base - (center + jitter);
 
     rotation.value = withTiming(
       target,
       {
-        duration: SPIN_DURATION_MS,
+        duration: reduceMotion ? 1200 : SPIN_DURATION_MS,
         // Fast start, long smooth slowdown — no overshoot or bounce.
         easing: Easing.bezier(0.15, 0.6, 0.2, 1),
       },
@@ -224,7 +224,6 @@ export const SpinScreen = ({ navigation }) => {
   const makeTonightsPick = () => {
     if (pickedMovie !== winner.id) togglePickedMovie(winner.id);
     showToast(`${winner.title} is tonight's pick`, { tone: "success" });
-    navigation.navigate("Main", { screen: "Home" });
   };
 
   const rotatorStyle = useAnimatedStyle(() => ({
@@ -240,19 +239,18 @@ export const SpinScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
-        <Text style={styles.headerTitle}>Spin</Text>
-        <Pressable
-          style={[styles.headerButton, phase === "spinning" && styles.disabled]}
-          onPress={newWheel}
-          disabled={phase === "spinning"}
-          hitSlop={6}
-          accessibilityLabel="New wheel"
-        >
-          <Shuffle size={18} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+      <StackHeader
+        title="Spin"
+        onBack={() => navigation.goBack()}
+        right={
+          <HeaderIconButton
+            onPress={newWheel}
+            style={phase === "spinning" && styles.disabled}
+          >
+            <Shuffle size={18} color={colors.textPrimary} />
+          </HeaderIconButton>
+        }
+      />
 
       {candidates.length === 0 ? (
         <View style={styles.empty}>
@@ -329,7 +327,15 @@ export const SpinScreen = ({ navigation }) => {
                 </Pressable>
                 <View style={styles.actions}>
                   <PrimaryButton
-                    label="Make it tonight's pick"
+                    label={
+                      pickedMovie === winner.id
+                        ? "Tonight's pick ✓"
+                        : "Make it tonight's pick"
+                    }
+                    variant={
+                      pickedMovie === winner.id ? "secondary" : "primary"
+                    }
+                    disabled={pickedMovie === winner.id}
                     onPress={makeTonightsPick}
                     style={styles.mainAction}
                     contentStyle={styles.actionContent}
@@ -370,11 +376,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    fontSize: 17,
-    color: styleColors.textPrimary,
   },
   headerButton: {
     width: 40,

@@ -64,6 +64,7 @@ const IMDB_IDS = {
   "Se7en|1995": "tt0114369",
   "Memento|2000": "tt0209144",
   "WALL-E|2008": "tt0910970",
+  "Amelie|2001": "tt0211915",
 };
 
 const fetchCast = async (movie) => {

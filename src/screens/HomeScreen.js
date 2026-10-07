@@ -1,13 +1,6 @@
-import {
-  ChevronRight,
-  Compass,
-  RotateCw,
-  Shuffle,
-  Sparkles,
-  Star,
-  Trophy,
-} from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ChevronRight, Compass, Shuffle } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -17,36 +10,28 @@ import Animated from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
 import { ChallengeCard } from "../components/ChallengeCard";
-import { CollectionContinueCard } from "../components/CollectionContinueCard";
+import { BoxSet } from "../components/BoxSet";
+import { DvdCase } from "../components/DvdShelf";
 import { RankGemIcon } from "../components/icons/RankGemIcon";
-import { TargetIcon } from "../components/icons/TabIcons";
+import { MarqueeSign } from "../components/MarqueeSign";
 import { DockHeader, useDockHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { SealedChallengeTicket } from "../components/SealedChallengeTicket";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { ShelfRail } from "../components/ShelfRail";
 import { TonightsPickCard } from "../components/TonightsPickCard";
-import { getMovieById } from "../data/movies";
+import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getBadges, getLatestBadge } from "../utils/badges";
-import {
-  getCompletedCollectionsCount,
-  getInProgressCollections,
-} from "../utils/collections";
-import { getRank } from "../utils/league";
-import { MOODS, pickMovieForMood } from "../utils/moods";
+import { getInProgressCollections } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
-import {
-  DIFFICULTY,
-  getChallengeXP,
-  getCompletedChallengesCount,
-  getLevel,
-  getRewatchXP,
-  getUserXP,
-} from "../utils/xp";
+import { formatRuntime } from "../utils/movieFilters";
+import { getLevel, getUserXP } from "../utils/xp";
 
 const RECENT_COUNT = 10;
 
@@ -78,28 +63,30 @@ const getTimeGreeting = (date, name) => {
   return `${DAY_NAMES[date.getDay()]} ${part}, ${name}`;
 };
 const WATCHLIST_COUNT = 10;
+// Shelf rail item widths (each includes its own side padding).
+const POSTER_ITEM = 112;
+const BOX_ITEM = 140;
+const DVD_ITEM = 124;
 
-// The hardest difficulty the generator actually hands out — so the
-// "up to" on the challenge prompt is a real number, not marketing.
-const MAX_CHALLENGE_XP = DIFFICULTY.HARD.max;
-
-const DECIDE_MODES = [
-  { label: "Swipe", Icon: Shuffle, route: "Swipe" },
-  { label: "Spin", Icon: RotateCw, route: "Spin" },
-  { label: "Ask AI", Icon: Sparkles, route: "Preferences" },
-];
+// Section labels as the little tags clipped to a store shelf, with an
+// optional link on the right.
+const ShelfTag = ({ label, right, styles }) => (
+  <View style={styles.tagRow}>
+    <View style={styles.tag}>
+      <Text style={styles.tagText}>{label.toUpperCase()}</Text>
+    </View>
+    {right}
+  </View>
+);
 
 // Home's top slot when there's no Tonight's Pick: the header asks "Bored?",
 // so the first thing under it is the way out — straight into Swipe, Spin
 // or AI. A brand-new account (nothing watched or saved yet) gets one
 // "Start Discovering" button instead, since there's no taste to work from.
 const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
-  const setMoodPick = useMovieStore((state) => state.setMoodPick);
-
   if (isFreshAccount) {
     return (
-      <View style={styles.decideCard}>
-        <Text style={styles.decideEyebrow}>WELCOME</Text>
+      <MarqueeSign label="OPENING NIGHT">
         <Text style={styles.decideTitle}>Find your first movie</Text>
         <Pressable
           style={styles.decideButtonSolid}
@@ -108,74 +95,123 @@ const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
           <Compass size={16} color={colors.accent} />
           <Text style={styles.decideButtonTextSolid}>Start Discovering</Text>
         </Pressable>
-      </View>
+      </MarqueeSign>
     );
   }
 
-  const pickForMood = (moodKey) => {
-    const movie = pickMovieForMood(moodKey);
-    if (!movie) return;
-    Haptics.selectionAsync();
-    setMoodPick(movie.id, moodKey);
-  };
-
   return (
-    <View style={styles.decideCard}>
-      <Text style={styles.decideEyebrow}>WHAT ARE WE WATCHING?</Text>
-      <Text style={styles.decideTitle}>
-        Pick a mood, we&apos;ll pick the movie.
-      </Text>
-      <View style={styles.moodGrid}>
-        {MOODS.map((mood) => (
-          <Pressable
-            key={mood.key}
-            style={({ pressed }) => [
-              styles.moodChip,
-              pressed && styles.moodChipPressed,
-            ]}
-            onPress={() => pickForMood(mood.key)}
-          >
-            <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-            <Text style={styles.moodLabel} numberOfLines={1}>
-              {mood.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.modesRow}>
-        <Text style={styles.modesOr}>or</Text>
-        {DECIDE_MODES.map(({ label, Icon, route }) => (
-          <Pressable
-            key={label}
-            style={styles.modeLink}
-            onPress={() => navigation.navigate(route)}
-            hitSlop={6}
-          >
-            <Icon size={14} color={colors.accentContrast} />
-            <Text style={styles.modeLinkText}>{label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    <WatchlistSuggestion
+      navigation={navigation}
+      styles={styles}
+      colors={colors}
+    />
   );
 };
 
-// An empty challenge slot shouldn't take as much room as a full one — one
-// slim row instead of the big dashed empty card.
-const ChallengePrompt = ({ onPress, styles, colors }) => (
-  <Pressable style={styles.promptRow} onPress={onPress}>
-    <View style={styles.promptIcon}>
-      <TargetIcon size={18} color={colors.accentLight} />
-    </View>
-    <View style={styles.promptText}>
-      <Text style={styles.promptTitle}>Start a challenge</Text>
-      <Text style={styles.promptSubtitle}>
-        Earn up to +{MAX_CHALLENGE_XP.toLocaleString()} XP
-      </Text>
-    </View>
-    <ChevronRight size={18} color={colors.textSecondary} />
-  </Pressable>
-);
+const SUGGESTION_FALLBACK_POOL = 20;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const timeAgo = (timestamp) => {
+  const days = Math.floor((Date.now() - timestamp) / DAY_MS);
+  if (days < 1) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  return `${Math.round(days / 30)} months ago`;
+};
+
+// Home's slot when there's no Tonight's Pick: one concrete suggestion from
+// the user's own watchlist — oldest saves first, so things saved long ago
+// finally get watched — with a one-tap "make it tonight's pick" and ⇄ to
+// step to the next one. With nothing (unwatched) saved, it suggests
+// well-rated movies they haven't seen instead.
+const WatchlistSuggestion = ({ navigation, styles, colors }) => {
+  const bucketList = useMovieStore((state) => state.bucketList);
+  const watched = useMovieStore((state) => state.watched);
+  const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
+  const [offset, setOffset] = useState(0);
+
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const saved = [...bucketList]
+    .filter((entry) => !watchedIds.has(entry.movieId))
+    .sort((a, b) => (a.addedAt ?? 0) - (b.addedAt ?? 0))
+    .map((entry) => ({
+      movie: getMovieById(entry.movieId),
+      addedAt: entry.addedAt,
+    }))
+    .filter((item) => item.movie);
+  const fromWatchlist = saved.length > 0;
+  const candidates = fromWatchlist
+    ? saved
+    : MOVIES.filter((movie) => !watchedIds.has(movie.id))
+        .sort((a, b) => b.rating - a.rating)
+        .slice(0, SUGGESTION_FALLBACK_POOL)
+        .map((movie) => ({ movie, addedAt: null }));
+  if (candidates.length === 0) return null;
+
+  const { movie, addedAt } = candidates[offset % candidates.length];
+
+  return (
+    <MarqueeSign label="NOTHING SHOWING YET" backdropUri={movie.poster}>
+      <Pressable
+        style={styles.suggestBody}
+        onPress={() =>
+          navigation.navigate("MovieDetails", { movieId: movie.id })
+        }
+      >
+        <MoviePoster uri={movie.poster} style={styles.suggestPoster} />
+        <View style={styles.suggestInfo}>
+          <Text style={styles.suggestLead}>How about</Text>
+          <Text style={styles.suggestTitle} numberOfLines={2}>
+            {movie.title}?
+          </Text>
+          <Text style={styles.suggestMeta} numberOfLines={1}>
+            {movie.year} · {movie.genres[0]} · {formatRuntime(movie.runtime)}
+          </Text>
+          <Text style={styles.suggestReason} numberOfLines={1}>
+            {fromWatchlist
+              ? addedAt
+                ? `On your watchlist · saved ${timeAgo(addedAt)}`
+                : "On your watchlist"
+              : "Highly rated, and you haven't seen it"}
+          </Text>
+        </View>
+      </Pressable>
+      <View style={styles.suggestActions}>
+        <PrimaryButton
+          label="Make it tonight's pick"
+          onPress={() => {
+            Haptics.selectionAsync();
+            togglePickedMovie(movie.id);
+          }}
+          style={styles.suggestMain}
+          contentStyle={styles.suggestButtonContent}
+        />
+        {candidates.length > 1 && (
+          <Pressable
+            style={styles.suggestSwap}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setOffset((value) => value + 1);
+            }}
+            hitSlop={4}
+            accessibilityLabel="Suggest another"
+          >
+            <Shuffle size={18} color={colors.textPrimary} />
+          </Pressable>
+        )}
+      </View>
+      <Pressable
+        style={styles.suggestLink}
+        onPress={() => navigation.navigate("Decide")}
+        hitSlop={6}
+      >
+        <Text style={styles.suggestLinkText}>Open Decide</Text>
+        <ChevronRight size={14} color={colors.accentLight} />
+      </Pressable>
+    </MarqueeSign>
+  );
+};
 
 // Newest-saved first — the freshest "I want to see that" is the likeliest
 // pick for tonight.
@@ -192,74 +228,32 @@ const WatchlistRail = ({ bucketList, navigation }) => {
 
   return (
     <View style={styles.railSection}>
-      <View style={[styles.sectionHeaderRow, styles.railLabelPadding]}>
-        <Text style={styles.sectionLabel}>From Your Watchlist</Text>
-        <Pressable
-          hitSlop={8}
-          onPress={() =>
-            navigation.navigate("Library", { initialTab: "bucketlist" })
-          }
-        >
-          <Text style={styles.seeAllText}>See All</Text>
-        </Pressable>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.railContent}
-      >
-        {movies.map((movie) => (
+      <ShelfTag
+        label="From your watchlist"
+        styles={styles}
+        right={
           <Pressable
-            key={movie.id}
-            style={styles.railCard}
+            hitSlop={8}
             onPress={() =>
-              navigation.navigate("MovieDetails", { movieId: movie.id })
+              navigation.navigate("Library", { initialTab: "bucketlist" })
             }
           >
-            <MoviePoster
-              uri={movie.poster}
-              radius={0}
-              style={styles.railPoster}
-            />
-            <View style={styles.imdbBadge}>
-              <Star size={10} color={colors.rating} fill={colors.rating} />
-              <Text style={styles.imdbBadgeText}>
-                {movie.rating.toFixed(1)}
-              </Text>
-            </View>
+            <Text style={styles.seeAllText}>See All</Text>
           </Pressable>
-        ))}
-      </ScrollView>
+        }
+      />
+      <ShelfRail
+        itemWidth={POSTER_ITEM}
+        items={movies.map((movie) => ({
+          key: movie.id,
+          onPress: () =>
+            navigation.navigate("MovieDetails", { movieId: movie.id }),
+          content: (
+            <MoviePoster uri={movie.poster} shadow style={styles.railPoster} />
+          ),
+        }))}
+      />
     </View>
-  );
-};
-
-// Replaces the old "Latest Achievement" card: real progress (XP to the next
-// level) plus the newest badge's name, in one slim tappable strip.
-const ProgressStrip = ({ level, latestBadge, onPress, styles }) => {
-  const xpToGo = Math.max(0, Math.ceil(level.requiredXP - level.currentXP));
-  return (
-    <Pressable style={styles.progressStrip} onPress={onPress}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressLevel}>
-          Lv {level.level} → {level.level + 1}
-        </Text>
-        <Text style={styles.progressToGo}>
-          {xpToGo.toLocaleString()} XP to go
-        </Text>
-      </View>
-      <View style={styles.progressTrack}>
-        <View
-          style={[styles.progressFill, { width: `${level.progress * 100}%` }]}
-        />
-      </View>
-      {latestBadge && (
-        <Text style={styles.progressBadge} numberOfLines={1}>
-          Latest badge:{" "}
-          <Text style={styles.progressBadgeName}>{latestBadge.label}</Text>
-        </Text>
-      )}
-    </Pressable>
   );
 };
 
@@ -270,53 +264,26 @@ const RecentlyWatchedRail = ({ watched, navigation }) => {
 
   return (
     <View style={styles.railSection}>
-      <Text style={[styles.sectionLabel, styles.railLabelPadding]}>
-        Recently Watched
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.railContent}
-      >
-        {watched.slice(0, RECENT_COUNT).map((entry) => {
-          const movie = getMovieById(entry.movieId);
-          if (!movie) return null;
-          return (
-            <Pressable
-              key={entry.movieId}
-              style={styles.railCard}
-              onPress={() =>
-                navigation.navigate("MovieDetails", { movieId: movie.id })
-              }
-            >
-              <MoviePoster
-                uri={movie.poster}
-                radius={0}
-                style={styles.railPoster}
+      <ShelfTag label="Recently watched" styles={styles} />
+      <ShelfRail
+        itemWidth={DVD_ITEM}
+        items={watched
+          .slice(0, RECENT_COUNT)
+          .map((entry) => ({ entry, movie: getMovieById(entry.movieId) }))
+          .filter(({ movie }) => movie)
+          .map(({ entry, movie }) => ({
+            key: entry.movieId,
+            onPress: () =>
+              navigation.navigate("MovieDetails", { movieId: movie.id }),
+            content: (
+              <DvdCase
+                movie={movie}
+                watchCount={entry.watchCount ?? 1}
+                columnWidth={DVD_ITEM - spacing.sm * 2}
               />
-              {entry.rating != null && (
-                <View style={styles.userRatingBadge}>
-                  <Star
-                    size={10}
-                    color={colors.accentContrast}
-                    fill={colors.accentContrast}
-                  />
-                  <Text style={styles.userRatingBadgeText}>
-                    {entry.rating.toFixed(1)}
-                  </Text>
-                </View>
-              )}
-              {(entry.watchCount ?? 1) > 1 && (
-                <View style={styles.rewatchBadge}>
-                  <Text style={styles.rewatchBadgeText}>
-                    ×{entry.watchCount}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+            ),
+          }))}
+      />
     </View>
   );
 };
@@ -332,39 +299,11 @@ export const HomeScreen = ({ navigation }) => {
   const watched = useMovieStore((state) => state.watched);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
   const skipChallenge = useChallengeStore((state) => state.skipChallenge);
-  const challengeHistory = useChallengeStore((state) => state.history);
 
   const queuedCount = bucketList.length;
   const watchedCount = watched.length;
-  const ratedCount = watched.filter((entry) => entry.rating != null).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
-  const completedChallengesCount =
-    getCompletedChallengesCount(challengeHistory);
-  const rewatchedCount = watched.filter(
-    (entry) => (entry.watchCount ?? 1) > 1,
-  ).length;
-  const badges = getBadges({
-    watchedCount,
-    ratedCount,
-    queuedCount,
-    completedCollectionsCount,
-    completedChallengesCount,
-    rewatchedCount,
-    watchedIds,
-  });
-  const earnedBadgeCount = badges.filter((badge) => badge.earned).length;
-  const xp = getUserXP({
-    watchedCount,
-    ratedCount,
-    challengeXP: getChallengeXP(challengeHistory),
-    rewatchXP: getRewatchXP(watched),
-    completedCollectionsCount,
-    earnedBadgeCount,
-  });
-  const rank = getRank(xp);
-  const level = getLevel(xp);
-  const latestBadge = getLatestBadge(badges);
+  const level = getLevel(getUserXP(watched));
   const inProgressCollections = getInProgressCollections(watchedIds, 4);
   const isFreshAccount =
     !pickedMovieId &&
@@ -406,7 +345,7 @@ export const HomeScreen = ({ navigation }) => {
         <View style={styles.section}>
           {activeChallenge ? (
             <>
-              <Text style={styles.sectionLabel}>Your Challenge</Text>
+              <ShelfTag label="Your challenge" styles={styles} />
               <ChallengeCard
                 challenge={activeChallenge}
                 mode="active"
@@ -419,11 +358,10 @@ export const HomeScreen = ({ navigation }) => {
               />
             </>
           ) : (
-            <ChallengePrompt
-              onPress={handleCreateChallenge}
-              styles={styles}
-              colors={colors}
-            />
+            <>
+              <ShelfTag label="Your challenge" styles={styles} />
+              <SealedChallengeTicket onPress={handleCreateChallenge} />
+            </>
           )}
         </View>
 
@@ -431,25 +369,10 @@ export const HomeScreen = ({ navigation }) => {
 
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
-            <View style={[styles.sectionHeaderRow, styles.railLabelPadding]}>
-              <Text style={styles.sectionLabel}>Continue a Collection</Text>
-              <View style={styles.sectionHeaderActions}>
-                {completedCollectionsCount > 0 && (
-                  <Pressable
-                    hitSlop={8}
-                    style={styles.trophyLink}
-                    onPress={() =>
-                      navigation.navigate("Library", {
-                        initialTab: "collections",
-                      })
-                    }
-                  >
-                    <Trophy size={12} color={colors.rating} />
-                    <Text style={styles.trophyLinkText}>
-                      {completedCollectionsCount} completed
-                    </Text>
-                  </Pressable>
-                )}
+            <ShelfTag
+              label="Continue a collection"
+              styles={styles}
+              right={
                 <Pressable
                   hitSlop={8}
                   onPress={() =>
@@ -460,40 +383,37 @@ export const HomeScreen = ({ navigation }) => {
                 >
                   <Text style={styles.seeAllText}>See All</Text>
                 </Pressable>
-              </View>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.railContent}
-            >
-              {inProgressCollections.map((collection) => (
-                <View key={collection.id} style={styles.collectionCardWrap}>
-                  <CollectionContinueCard
-                    collection={collection}
-                    watchedIds={watchedIds}
-                    onPress={() =>
-                      navigation.navigate("CollectionDetails", {
-                        collectionId: collection.id,
-                      })
-                    }
-                  />
-                </View>
-              ))}
-            </ScrollView>
+              }
+            />
+            <ShelfRail
+              itemWidth={BOX_ITEM}
+              items={inProgressCollections.map((collection) => {
+                const seen = collection.movies.filter((movie) =>
+                  watchedIds.has(movie.id),
+                ).length;
+                return {
+                  key: collection.id,
+                  onPress: () =>
+                    navigation.navigate("CollectionDetails", {
+                      collectionId: collection.id,
+                    }),
+                  content: (
+                    <BoxSet
+                      collection={collection}
+                      watchedIds={watchedIds}
+                      state="progress"
+                      size={BOX_ITEM - spacing.sm * 2}
+                    />
+                  ),
+                  title: collection.title,
+                  meta: `${seen} of ${collection.movies.length} watched`,
+                };
+              })}
+            />
           </View>
         )}
 
         <RecentlyWatchedRail watched={watched} navigation={navigation} />
-
-        <View style={styles.section}>
-          <ProgressStrip
-            level={level}
-            latestBadge={latestBadge}
-            onPress={() => navigation.navigate("Profile")}
-            styles={styles}
-          />
-        </View>
       </Animated.ScrollView>
       <ScreenBottomFade />
       <DockHeader
@@ -505,7 +425,7 @@ export const HomeScreen = ({ navigation }) => {
             style={styles.levelBadge}
             onPress={() => navigation.navigate("Profile")}
           >
-            <RankGemIcon size={18} color={rank.color} />
+            <RankGemIcon size={18} color={colors.accent} />
             <Text style={styles.levelBadgeText}>Lv {level.level}</Text>
           </Pressable>
         }
@@ -545,155 +465,102 @@ const createStyles = (colors) =>
     railSection: {
       marginTop: spacing.lg,
     },
-    railLabelPadding: {
-      paddingHorizontal: spacing.md,
-    },
     // The header inset already leaves the gap under the header.
     firstSection: {
       marginTop: 0,
     },
-    sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-      marginBottom: spacing.sm,
-    },
-    sectionHeaderRow: {
+    tagRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm + 2,
     },
-    sectionHeaderActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
+    tag: {
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+      borderRadius: radius.xs,
+      backgroundColor: colors.cardElevated,
     },
-    trophyLink: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginBottom: spacing.sm,
-    },
-    trophyLinkText: {
+    tagText: {
       ...typography.label,
-      color: colors.rating,
+      color: colors.textSecondary,
+      letterSpacing: 1.2,
     },
     seeAllText: {
       ...typography.label,
       color: colors.accentLight,
-      marginBottom: spacing.sm,
-    },
-    railContent: {
-      paddingHorizontal: spacing.md,
-      gap: spacing.sm,
-    },
-    collectionCardWrap: {
-      width: 220,
-    },
-    railCard: {
-      width: 104,
     },
     railPoster: {
-      width: 104,
+      width: POSTER_ITEM - spacing.sm * 2,
       aspectRatio: 2 / 3,
-    },
-    userRatingBadge: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-    },
-    userRatingBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.accentContrast,
-    },
-    rewatchBadge: {
-      position: "absolute",
-      bottom: 6,
-      right: 6,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-    },
-    rewatchBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: "#FFFFFF",
-    },
-    decideCard: {
-      backgroundColor: colors.accent,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-    },
-    decideEyebrow: {
-      ...typography.label,
-      color: "rgba(255, 255, 255, 0.8)",
     },
     decideTitle: {
       ...typography.title,
-      color: colors.accentContrast,
-      marginTop: spacing.xs,
-    },
-    moodGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      marginTop: spacing.md,
+      color: colors.textPrimary,
     },
     // Three per row: (100% - 2 gaps) / 3, with the gap as a percentage-ish
     // allowance so it holds on any width.
-    moodChip: {
-      width: "31.5%",
-      alignItems: "center",
-      gap: 4,
-      paddingVertical: spacing.sm + 2,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(255, 255, 255, 0.16)",
-    },
-    moodChipPressed: {
-      backgroundColor: "rgba(255, 255, 255, 0.3)",
-      transform: [{ scale: 0.96 }],
-    },
-    moodEmoji: {
-      fontSize: 22,
-    },
-    moodLabel: {
-      ...typography.label,
-      fontSize: 11,
-      letterSpacing: 0.2,
-      textTransform: "none",
-      color: colors.accentContrast,
-    },
-    modesRow: {
+    suggestBody: {
       flexDirection: "row",
-      alignItems: "center",
-      flexWrap: "wrap",
       gap: spacing.md,
-      marginTop: spacing.md,
-      paddingTop: spacing.sm + 2,
-      borderTopWidth: 1,
-      borderTopColor: "rgba(255, 255, 255, 0.18)",
     },
-    modesOr: {
+    suggestPoster: {
+      width: 84,
+      aspectRatio: 2 / 3,
+    },
+    suggestInfo: {
+      flex: 1,
+      justifyContent: "center",
+      gap: 3,
+    },
+    suggestLead: {
       ...typography.caption,
-      color: "rgba(255, 255, 255, 0.7)",
+      color: colors.textMuted,
     },
-    modeLink: {
+    suggestTitle: {
+      ...typography.title,
+      color: colors.textPrimary,
+    },
+    suggestMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    suggestReason: {
+      ...typography.caption,
+      color: colors.accentLight,
+    },
+    suggestActions: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
-    modeLinkText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.accentContrast,
+    suggestMain: {
+      flex: 1,
+    },
+    suggestButtonContent: {
+      paddingVertical: 10,
+    },
+    suggestSwap: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+    },
+    suggestLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "center",
+      gap: 2,
+      marginTop: spacing.sm + 2,
+    },
+    suggestLinkText: {
+      ...typography.label,
+      color: colors.accentLight,
     },
     decideButtonSolid: {
       flexDirection: "row",
@@ -709,89 +576,6 @@ const createStyles = (colors) =>
     decideButtonTextSolid: {
       ...typography.label,
       color: colors.accent,
-    },
-    promptRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.sm + 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
-    promptIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(141, 96, 226, 0.16)",
-    },
-    promptText: {
-      flex: 1,
-    },
-    promptTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    promptSubtitle: {
-      ...typography.caption,
-      color: colors.rating,
-      marginTop: 1,
-    },
-    imdbBadge: {
-      position: "absolute",
-      top: 6,
-      right: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.scrim,
-    },
-    imdbBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.rating,
-    },
-    progressStrip: {
-      padding: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
-    progressHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    progressLevel: {
-      ...typography.label,
-      color: colors.textPrimary,
-    },
-    progressToGo: {
-      ...typography.caption,
-      color: colors.accentLight,
-    },
-    progressTrack: {
-      height: 6,
-      borderRadius: radius.pill,
-      marginTop: spacing.sm,
-      backgroundColor: colors.surfaceSoft,
-      overflow: "hidden",
-    },
-    progressFill: {
-      height: "100%",
-      borderRadius: radius.pill,
-      backgroundColor: colors.accentLight,
-    },
-    progressBadge: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.sm,
-    },
-    progressBadgeName: {
-      color: colors.textPrimary,
     },
   });
 

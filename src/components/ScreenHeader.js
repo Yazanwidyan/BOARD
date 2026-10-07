@@ -1,3 +1,4 @@
+import { ChevronDown, X } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   useAnimatedScrollHandler,
@@ -8,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { BackButton } from "./BackButton";
 
 export const HEADER_BAR_HEIGHT = 52;
 
@@ -50,7 +52,15 @@ export const HeaderIconButton = ({ onPress, children, style }) => {
 
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
 // greeting) on the left, actions on the right — no centered title.
-export const DockHeader = ({ title, eyebrow, right }) => {
+// `onPressTitle` turns the title into a switcher (with a ▾), and
+// `subtitle` adds a small line under it — Library uses both.
+export const DockHeader = ({
+  title,
+  eyebrow,
+  subtitle,
+  onPressTitle,
+  right,
+}) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -68,13 +78,66 @@ export const DockHeader = ({ title, eyebrow, right }) => {
             {eyebrow}
           </Text>
         )}
-        <Text
-          style={eyebrow ? styles.leftTitle : styles.title}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        {onPressTitle ? (
+          <Pressable
+            onPress={onPressTitle}
+            hitSlop={8}
+            style={styles.titleButton}
+            accessibilityRole="button"
+            accessibilityLabel={`${title}, switch section`}
+          >
+            <Text
+              style={[styles.title, subtitle && styles.titleWithSubtitle]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+            <ChevronDown size={18} color={colors.textSecondary} strokeWidth={2.4} />
+          </Pressable>
+        ) : (
+          <Text
+            style={[
+              eyebrow ? styles.leftTitle : styles.title,
+              subtitle && styles.titleWithSubtitle,
+            ]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+        )}
+        {!!subtitle && (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        )}
       </View>
+      {right ? <View style={styles.right}>{right}</View> : null}
+    </View>
+  );
+};
+
+// The header for pages pushed on top of the tabs (Settings, Badges, Spin,
+// the challenge generator…): same card bar + border + left title + right
+// actions as the tab headers, plus a leading back button — or a ✕ for
+// modal-style flows (`close`). It sits in normal layout flow, not
+// absolute, since these pages don't scroll under it.
+export const StackHeader = ({ title, onBack, close = false, right }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={[styles.stackBar, { paddingTop: insets.top + spacing.sm }]}>
+      {close ? (
+        <HeaderIconButton onPress={onBack}>
+          <X size={18} color={colors.textPrimary} />
+        </HeaderIconButton>
+      ) : (
+        <BackButton onPress={onBack} />
+      )}
+      <Text style={styles.stackTitle} numberOfLines={1}>
+        {title}
+      </Text>
       {right ? <View style={styles.right}>{right}</View> : null}
     </View>
   );
@@ -128,13 +191,45 @@ const createStyles = (colors) =>
       fontSize: 20,
       color: colors.textPrimary,
     },
+    stackBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    stackTitle: {
+      ...typography.title,
+      fontSize: 20,
+      flex: 1,
+      color: colors.textPrimary,
+    },
+    titleButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      gap: 4,
+    },
+    titleWithSubtitle: {
+      fontSize: 19,
+      lineHeight: 23,
+    },
+    subtitle: {
+      ...typography.caption,
+      fontSize: 12,
+      lineHeight: 15,
+      color: colors.textMuted,
+    },
     leftTitleBlock: {
       flex: 1,
       marginRight: spacing.sm,
     },
     leftEyebrow: {
       ...typography.label,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.accentLight,
     },
     leftTitle: {
@@ -144,9 +239,9 @@ const createStyles = (colors) =>
       marginTop: 1,
     },
     iconButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.cardElevatedLight,

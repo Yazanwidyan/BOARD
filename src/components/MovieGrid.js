@@ -5,7 +5,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Check, Star } from "lucide-react-native";
+import { Check } from "lucide-react-native";
 
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
@@ -38,8 +38,6 @@ export const MovieGrid = ({
         const watchedEntry = watched.find(
           (entry) => entry.movieId === movie.id,
         );
-        const userRating = watchedEntry?.rating;
-
         return (
           <Pressable
             key={movie.id}
@@ -56,25 +54,7 @@ export const MovieGrid = ({
                 radius={0}
                 style={{ width: cardWidth, aspectRatio: 2 / 3 }}
               />
-              <View style={styles.imdbBadge}>
-                <Star size={10} color={colors.rating} fill={colors.rating} />
-                <Text style={styles.imdbBadgeText}>
-                  {movie.rating.toFixed(1)}
-                </Text>
-              </View>
-              {userRating != null && (
-                <View style={styles.userRatingBadge}>
-                  <Star
-                    size={10}
-                    color={colors.accentContrast}
-                    fill={colors.accentContrast}
-                  />
-                  <Text style={styles.userRatingBadgeText}>
-                    {userRating.toFixed(1)}
-                  </Text>
-                </View>
-              )}
-              {showWatchedCheck && watchedEntry && userRating == null && (
+              {showWatchedCheck && watchedEntry && (
                 <View style={styles.watchedBadge}>
                   <Check
                     size={12}
@@ -114,35 +94,6 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    imdbBadge: {
-      position: "absolute",
-      top: 6,
-      right: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: "rgba(2, 0, 2, 0.65)",
-    },
-    imdbBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.rating,
-    },
-    userRatingBadge: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      paddingHorizontal: 5,
-      paddingVertical: 3,
-      borderRadius: radius.sm,
-      backgroundColor: colors.accent,
-    },
     watchedBadge: {
       position: "absolute",
       top: 6,
@@ -153,11 +104,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.success,
-    },
-    userRatingBadgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.accentContrast,
     },
   });
 
