@@ -342,12 +342,12 @@ const createStyles = (colors) =>
     },
     posterRow: {
       flexDirection: "row",
-      gap: 6,
+      gap: 2,
       marginTop: spacing.sm + 2,
     },
     miniPoster: {
-      width: 44,
-      height: 66,
+      width: 52,
+      height: 78,
     },
     footnote: {
       ...typography.caption,

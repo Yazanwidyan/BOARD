@@ -29,7 +29,6 @@ import Svg, {
 
 import { BackButton } from "../components/BackButton";
 import { StampCheck } from "../components/DialogArt";
-import { DvdCase } from "../components/DvdShelf";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MOVIES, getMovieById } from "../data/movies";
@@ -378,10 +377,10 @@ export const AiPickScreen = ({ navigation }) => {
               }
               accessibilityLabel={`Open ${pick.movie.title}`}
             >
-              <DvdCase
-                movie={pick.movie}
-                watchCount={1}
-                columnWidth={caseColumn}
+              <MoviePoster
+                uri={pick.movie.poster}
+                shadow
+                style={{ width: caseColumn * 0.8, aspectRatio: 2 / 3 }}
               />
             </Pressable>
             <MatchRing match={pick.match} colors={colors} styles={styles} />

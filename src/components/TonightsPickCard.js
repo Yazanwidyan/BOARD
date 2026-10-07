@@ -1,12 +1,12 @@
 import * as Haptics from "expo-haptics";
-import { Bookmark, Check, Layers, Play, Shuffle, X } from "lucide-react-native";
+import { Bookmark, Check, Layers, Play, Shuffle } from "lucide-react-native";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
@@ -17,19 +17,17 @@ import {
 import { getMood, pickMovieForMood } from "../utils/moods";
 import { formatRuntime } from "../utils/movieFilters";
 import { TargetIcon } from "./icons/TabIcons";
-import { MarqueeSign } from "./MarqueeSign";
-import { MoviePoster } from "./MoviePoster";
+import { HomeHero } from "./HomeHero";
 import { PrimaryButton } from "./PrimaryButton";
 
 const SIMILAR_POOL = 20;
 
 const randomFrom = (items) => items[Math.floor(Math.random() * items.length)];
 
-// Tonight's Pick as a cinema marquee sign (see MarqueeSign) — poster-forward: a bigger poster with the movie's own
-// description (so the card sells it a little), one main action — Watched
-// it — plus round Trailer and Swap buttons, and a quiet ✕ in the corner
-// to drop the pick. Tapping the card opens the movie. Renders nothing when
-// there's no real pick, by design.
+// Tonight's Pick as Home's hero banner (see HomeHero): the poster over a
+// blur of itself, a big title, one line of meta and why it's the pick,
+// then Watched it plus Trailer and Swap; ✕ drops the pick. Tapping it
+// opens the movie. Renders nothing when there's no pick.
 export const TonightsPickCard = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -131,55 +129,33 @@ export const TonightsPickCard = ({ navigation }) => {
   };
 
   return (
-    <Pressable onPress={openDetails}>
-      <MarqueeSign
-        label="NOW SHOWING · TONIGHT"
-        backdropUri={pickedMovie.poster}
-        right={
-          <Pressable
-            style={styles.dismiss}
-            onPress={clearPickedMovie}
-            hitSlop={8}
-            accessibilityLabel="Remove tonight's pick"
-          >
-            <X size={14} color={colors.textSecondary} strokeWidth={2.5} />
-          </Pressable>
-        }
-      >
-        <View style={styles.body}>
-          <MoviePoster uri={pickedMovie.poster} style={styles.poster} />
-          <View style={styles.info}>
-            <Text style={styles.title} numberOfLines={2}>
-              {pickedMovie.title}
-            </Text>
-            <Text style={styles.metaText} numberOfLines={1}>
-              {pickedMovie.year} · {formatRuntime(pickedMovie.runtime)} ·{" "}
-              {pickedMovie.genres[0]}
-            </Text>
-            {reason && (
-              <View style={styles.reasonRow}>
-                <reason.Icon size={13} color={reason.color} />
-                <Text
-                  style={[styles.reasonText, { color: reason.color }]}
-                  numberOfLines={1}
-                >
-                  {reason.text}
-                </Text>
-              </View>
-            )}
-            <Text style={styles.description} numberOfLines={3}>
-              {pickedMovie.description}
+    <HomeHero
+      posterUri={pickedMovie.poster}
+      eyebrow="TONIGHT'S PICK"
+      title={pickedMovie.title}
+      meta={`${pickedMovie.year} · ${pickedMovie.genres[0]} · ${formatRuntime(pickedMovie.runtime)}`}
+      reason={
+        reason && (
+          <View style={styles.reasonRow}>
+            <reason.Icon size={13} color={reason.color} />
+            <Text
+              style={[styles.reasonText, { color: reason.color }]}
+              numberOfLines={1}
+            >
+              {reason.text}
             </Text>
           </View>
-        </View>
-
-        <View style={styles.actions}>
+        )
+      }
+      onPress={openDetails}
+      onDismiss={clearPickedMovie}
+      actions={
+        <>
           <PrimaryButton
             label="Watched it"
             icon={<Check size={16} color="#FFFFFF" strokeWidth={3} />}
             onPress={markWatched}
             style={styles.mainButton}
-            contentStyle={styles.buttonContent}
           />
           <Pressable
             style={styles.roundButton}
@@ -201,76 +177,34 @@ export const TonightsPickCard = ({ navigation }) => {
           >
             <Shuffle size={18} color={colors.textPrimary} />
           </Pressable>
-        </View>
-      </MarqueeSign>
-    </Pressable>
+        </>
+      }
+    />
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    dismiss: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.surfaceSoft,
-    },
-    body: {
-      flexDirection: "row",
-      gap: spacing.md,
-    },
-    poster: {
-      width: 104,
-      aspectRatio: 2 / 3,
-    },
-    info: {
-      flex: 1,
-      gap: 4,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-    },
-    metaText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
     reasonRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
+      marginTop: spacing.xs,
     },
     reasonText: {
       ...typography.caption,
       flexShrink: 1,
     },
-    description: {
-      ...typography.caption,
-      color: colors.textMuted,
-      lineHeight: 17,
-      marginTop: spacing.xs,
-    },
-    actions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
     mainButton: {
       flex: 1,
     },
-    buttonContent: {
-      paddingVertical: 10,
-    },
     roundButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
+      backgroundColor: "rgba(255, 255, 255, 0.12)",
     },
   });
 

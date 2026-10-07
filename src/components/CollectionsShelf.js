@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { ChevronRight, ListPlus, Plus, Trophy } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -20,7 +19,7 @@ import {
   getSuggestedCollections,
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
-import { BoxSet } from "./BoxSet";
+import { CollectionCollage } from "./CollectionCollage";
 import { MoviePoster } from "./MoviePoster";
 
 const TYPE_FILTERS = [
@@ -46,7 +45,7 @@ const MONTHS = [
   "Dec",
 ];
 const ALMOST_THERE_MAX_LEFT = 2;
-const CAROUSEL_CARD = 150;
+const CAROUSEL_CARD = 136;
 
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
@@ -75,12 +74,9 @@ const Cover = ({ movies, size, dimmed, styles }) => {
   );
 };
 
-// One box set standing on its stretch of shelf, with its name and a line
-// underneath. Cards sit edge to edge, so their ledge pieces join into one
-// continuous shelf.
+// One collection as a poster collage with its name and a line underneath.
 const ShelfCard = ({
   item,
-  state,
   width,
   meta,
   metaColor,
@@ -93,19 +89,12 @@ const ShelfCard = ({
     onPress={onPress}
   >
     <View style={styles.shelfCardBox}>
-      <BoxSet
+      <CollectionCollage
         collection={item.collection}
         watchedIds={watchedIds}
-        state={state}
-        size={width - spacing.sm * 2}
+        size={width - 2}
       />
     </View>
-    <View style={styles.ledgePiece} />
-    <LinearGradient
-      colors={["rgba(0, 0, 0, 0.45)", "rgba(0, 0, 0, 0)"]}
-      style={styles.ledgeShadow}
-      pointerEvents="none"
-    />
     <View style={styles.shelfCardText}>
       <Text style={styles.cardTitle} numberOfLines={1}>
         {item.collection.title}
@@ -197,8 +186,8 @@ export const CollectionsShelf = ({
     unlockedCollectionIds,
   ).filter(({ collection }) => matchesType({ collection }));
 
-  // Not started: two box sets per shelf.
-  const gridCell = (width - spacing.sm * 2) / 2;
+  // Not started: two collages per row.
+  const gridCell = (width - (spacing.md - 1) * 2) / 2;
 
   return (
     <View>
@@ -252,7 +241,6 @@ export const CollectionsShelf = ({
               <ShelfCard
                 key={item.collection.id}
                 item={item}
-                state="progress"
                 width={CAROUSEL_CARD}
                 meta={`${item.watchedCount} of ${item.total} · ${formatRuntime(item.minutesLeft)} left`}
                 watchedIds={watchedIds}
@@ -268,7 +256,7 @@ export const CollectionsShelf = ({
         <View style={styles.section}>
           <SectionTitle title="Almost there" styles={styles} />
           <View style={styles.list}>
-            {/* Missing pieces: the box set with its gap, and the movies
+            {/* Missing pieces: the collection's collage, and the movies
                 that would fill it in dashed shelf slots — tap one to open
                 it, or the card for the whole collection. */}
             {almostThere.map((item) => {
@@ -284,10 +272,9 @@ export const CollectionsShelf = ({
                   ]}
                   onPress={() => onOpen(item.collection.id)}
                 >
-                  <BoxSet
+                  <CollectionCollage
                     collection={item.collection}
                     watchedIds={watchedIds}
-                    state="progress"
                     size={84}
                   />
                   <View style={styles.missingInfo}>
@@ -341,7 +328,6 @@ export const CollectionsShelf = ({
               <ShelfCard
                 key={item.collection.id}
                 item={item}
-                state="sealed"
                 width={gridCell}
                 meta={`${item.total} movies · ${formatRuntime(item.minutesLeft)}`}
                 watchedIds={watchedIds}
@@ -371,7 +357,6 @@ export const CollectionsShelf = ({
               <ShelfCard
                 key={item.collection.id}
                 item={item}
-                state="complete"
                 width={CAROUSEL_CARD}
                 meta={
                   item.completedAt
@@ -503,32 +488,25 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textMuted,
     },
-    // Cards sit edge to edge (no gap) so the ledge runs unbroken; each
+    // Cards sit edge to edge (no gap); each
     // card pads its own box instead.
     carousel: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md - 1,
     },
     shelfGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
       rowGap: spacing.lg,
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md - 1,
     },
+    // 1px a side: covers sit 2px apart, like Library's poster grid.
     shelfCardBox: {
-      paddingHorizontal: spacing.sm,
-    },
-    ledgePiece: {
-      height: 7,
-      backgroundColor: colors.cardElevated,
-      borderTopWidth: 1,
-      borderTopColor: "rgba(255, 255, 255, 0.14)",
-    },
-    ledgeShadow: {
-      height: 10,
+      paddingHorizontal: 1,
     },
     shelfCardText: {
-      paddingHorizontal: spacing.sm,
-      marginTop: -2,
+      paddingHorizontal: 1,
+      paddingRight: spacing.sm,
+      marginTop: spacing.sm,
     },
     pressed: {
       opacity: 0.75,
@@ -598,8 +576,8 @@ const createStyles = (colors) =>
       borderColor: `${colors.success}AA`,
     },
     missingPoster: {
-      width: 36,
-      height: 54,
+      width: 44,
+      height: 66,
     },
     almostInfo: {
       flex: 1,

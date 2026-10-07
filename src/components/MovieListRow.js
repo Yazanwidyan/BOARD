@@ -67,7 +67,7 @@ const createStyles = (colors) =>
       borderBottomColor: colors.border,
     },
     poster: {
-      width: 48,
+      width: 64,
       aspectRatio: 2 / 3,
     },
     info: {

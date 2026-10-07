@@ -174,7 +174,7 @@ const createStyles = (colors) =>
       borderBottomColor: colors.border,
     },
     rowPoster: {
-      width: 44,
+      width: 64,
       aspectRatio: 2 / 3,
     },
     rowInfo: {

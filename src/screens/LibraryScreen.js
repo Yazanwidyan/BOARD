@@ -32,7 +32,6 @@ import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
-import { PosterShelf } from "../components/PosterShelf";
 import { Popover } from "../components/Popover";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MoviePoster } from "../components/MoviePoster";
@@ -43,7 +42,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { DvdShelf } from "../components/DvdShelf";
+import { MosaicSections, PosterMosaic } from "../components/PosterMosaic";
 import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -413,8 +412,8 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }
               />
             ) : (
-              <PosterShelf
-                movies={visibleBucketListMovies}
+              <PosterMosaic
+                items={visibleBucketListMovies.map((movie) => ({ movie }))}
                 onPressMovie={(movie) => openDetails(movie.id)}
               />
             )}
@@ -456,9 +455,9 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }
               />
             ) : (
-              // Watched as DVD shelves — by month, by tier, or one run
-              // for "Most watched".
-              <DvdShelf
+              // Watched as a poster mosaic — sectioned by month, by tier, or
+              // one run for "Most watched".
+              <MosaicSections
                 groups={
                   sortBy === "recent"
                     ? groupByMonth(visibleWatchedMovies)
@@ -850,8 +849,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       gap: spacing.sm,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     sectionMenuLabel: {

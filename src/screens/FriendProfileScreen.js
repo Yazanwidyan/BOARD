@@ -21,7 +21,7 @@ import {
 import { getTierInfo } from "../utils/tiers";
 import { getLevelName } from "../utils/xp";
 
-const POSTER_ITEM = 104;
+const POSTER_ITEM = 122;
 
 const TierChip = ({ tier, styles }) => (
   <View style={[styles.tierChip, { backgroundColor: getTierInfo(tier).color }]}>
@@ -297,7 +297,7 @@ const createStyles = (colors) =>
       textTransform: "uppercase",
     },
     railPoster: {
-      width: POSTER_ITEM - spacing.sm * 2,
+      width: POSTER_ITEM - 2,
       aspectRatio: 2 / 3,
     },
     none: {
@@ -318,8 +318,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
     },
     recPoster: {
-      width: 40,
-      height: 60,
+      width: 52,
+      height: 78,
     },
     recText: {
       flex: 1,

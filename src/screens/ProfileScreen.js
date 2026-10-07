@@ -70,7 +70,7 @@ const FAVORITE_COLUMNS = 5;
 // Completed tab: a 3-column grid of collection covers.
 const COMPLETED_COLUMNS = 3;
 // Tier list rows: poster size beside each tier letter.
-const TIER_POSTER_WIDTH = 54;
+const TIER_POSTER_WIDTH = 64;
 // The blurred poster strip behind the identity.
 const BACKDROP_POSTERS = 5;
 const BACKDROP_HEIGHT = 190;
@@ -102,10 +102,10 @@ export const ProfileScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const favoriteWidth =
-    (windowWidth - spacing.md * 2 - spacing.sm * (FAVORITE_COLUMNS - 1)) /
+    (windowWidth - spacing.md * 2 - 2 * (FAVORITE_COLUMNS - 1)) /
     FAVORITE_COLUMNS;
   const completedWidth =
-    (windowWidth - spacing.md * 2 - spacing.sm * (COMPLETED_COLUMNS - 1)) /
+    (windowWidth - spacing.md * 2 - 2 * (COMPLETED_COLUMNS - 1)) /
     COMPLETED_COLUMNS;
   const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -939,7 +939,7 @@ const createStyles = (colors) =>
       color: colors.background,
     },
     tierListPosters: {
-      gap: 4,
+      gap: 2,
       padding: 4,
     },
     tierListPoster: {
@@ -990,7 +990,7 @@ const createStyles = (colors) =>
     completedGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: spacing.sm,
+      gap: 2,
       rowGap: spacing.md,
     },
     completedEmpty: {
@@ -1022,7 +1022,7 @@ const createStyles = (colors) =>
     favoriteRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: spacing.sm,
+      gap: 2,
     },
     favoriteSlot: {
       aspectRatio: 2 / 3,

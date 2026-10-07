@@ -327,7 +327,7 @@ const AchievementDialog = ({ achievement }) => {
           {tierEntry && (
             <View style={styles.tierBlock}>
               <Text style={styles.tierPrompt}>How was it?</Text>
-              <TierPicker tier={getTier(tierEntry)} onChange={handleTier} />
+              <TierPicker tier={getTier(tierEntry)} onChange={handleTier} compact />
             </View>
           )}
 

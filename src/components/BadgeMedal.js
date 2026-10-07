@@ -12,7 +12,7 @@ import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
 import { useColors } from "../theme/useColors";
-import { BadgeArt } from "./BadgeArt";
+import { BadgeArt, badgeTrackColor } from "./BadgeArt";
 import { TargetIcon } from "./icons/TabIcons";
 
 // One track per badge category: its medal icon, what the count measures
@@ -98,13 +98,14 @@ export const metalFor = (tierIndex) =>
 // Marquee (named franchise) badges count as gold-level brags.
 const MARQUEE_TIER_INDEX = 2;
 
-// How a badge looks anywhere outside its ladder: its icon, its metal, and
+// How a badge looks anywhere outside its ladder: its icon, its track
+// colour (still called `metal` by callers), and
 // how high up its track it sits (used to rank the auto showcase).
 export const getBadgeLook = (badge, badges) => {
   if (badge.category === "marquee") {
     return {
       Icon: Sparkles,
-      metal: metalFor(MARQUEE_TIER_INDEX),
+      metal: badgeTrackColor("marquee"),
       tierIndex: MARQUEE_TIER_INDEX,
     };
   }
@@ -113,7 +114,7 @@ export const getBadgeLook = (badge, badges) => {
     .findIndex((other) => other.id === badge.id);
   return {
     Icon: BADGE_CATEGORY_BY_KEY[badge.category]?.Icon ?? Sparkles,
-    metal: metalFor(tierIndex),
+    metal: badgeTrackColor(badge.category),
     tierIndex,
   };
 };
@@ -218,10 +219,18 @@ export const Medal = ({
           style={[
             styles.corner,
             styles.lockBadge,
-            { width: cornerSize, height: cornerSize, borderRadius: cornerSize / 2 },
+            {
+              width: cornerSize,
+              height: cornerSize,
+              borderRadius: cornerSize / 2,
+            },
           ]}
         >
-          <Lock size={cornerSize * 0.5} color={colors.textMuted} strokeWidth={2.5} />
+          <Lock
+            size={cornerSize * 0.5}
+            color={colors.textMuted}
+            strokeWidth={2.5}
+          />
         </View>
       )}
       {state === "earned" && showCheck && (

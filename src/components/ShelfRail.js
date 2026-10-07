@@ -1,13 +1,11 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
-// A sideways-scrolling shelf: items stand edge to edge, each on its own
-// piece of ledge, so the pieces join into one continuous shelf (same
-// ledge as Library's shelves). Optional caption under each item.
+// A sideways-scrolling row of posters (or collages), each with an
+// optional caption underneath. Plain — no shelf ledge.
 //
 // items: [{ key, onPress, content, title?, meta?, metaColor? }]
 export const ShelfRail = ({ items, itemWidth }) => {
@@ -31,12 +29,6 @@ export const ShelfRail = ({ items, itemWidth }) => {
           ]}
         >
           <View style={styles.item}>{content}</View>
-          <View style={styles.ledge} />
-          <LinearGradient
-            colors={["rgba(0, 0, 0, 0.45)", "rgba(0, 0, 0, 0)"]}
-            style={styles.ledgeShadow}
-            pointerEvents="none"
-          />
           {(title || meta) && (
             <View style={styles.caption}>
               {!!title && (
@@ -67,25 +59,19 @@ const createStyles = (colors) =>
     },
     // Items carry their own side padding, so the rail only adds enough to
     // line the first item up with the page margin.
+    // Each item pads 1px a side, so posters sit 2px apart — the same
+    // hairline gap as Library's poster grid.
     content: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md - 1,
     },
     item: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: 1,
       justifyContent: "flex-end",
     },
-    ledge: {
-      height: 7,
-      backgroundColor: colors.cardElevated,
-      borderTopWidth: 1,
-      borderTopColor: "rgba(255, 255, 255, 0.14)",
-    },
-    ledgeShadow: {
-      height: 10,
-    },
     caption: {
-      paddingHorizontal: spacing.sm,
-      marginTop: -2,
+      paddingHorizontal: 1,
+      paddingRight: spacing.sm,
+      marginTop: spacing.sm,
     },
     title: {
       ...typography.bodyBold,

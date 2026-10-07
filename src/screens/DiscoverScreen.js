@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Check, ChevronRight, Plus, Search } from "lucide-react-native";
-import { useMemo } from "react";
+import { useIsFocused } from "@react-navigation/native";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   SafeAreaView,
@@ -9,8 +10,10 @@ import {
 import Animated from "react-native-reanimated";
 
 import { MoviePoster } from "../components/MoviePoster";
+import { ReelsFeed } from "../components/ReelsFeed";
 import {
   DockHeader,
+  HEADER_BAR_HEIGHT,
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
@@ -41,7 +44,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
         </Text>
         {rail.movies.length > RAIL_PREVIEW && (
           <Pressable style={styles.allLink} onPress={openAll} hitSlop={8}>
-            <Text style={styles.allText}>All</Text>
+            <Text style={styles.allText}>See all</Text>
             <ChevronRight size={14} color={colors.accentLight} />
           </Pressable>
         )}
@@ -111,6 +114,9 @@ export const DiscoverScreen = ({ navigation }) => {
   const watched = useMovieStore((state) => state.watched);
   const preferences = useUserStore((state) => state.preferences);
   const header = useDockHeader();
+  // Reels (full-screen trailer clips, the default) or Browse (the rails).
+  const [mode, setMode] = useState("reels");
+  const isFocused = useIsFocused();
 
   // Memoized on what the rows actually depend on — "Recommended" is
   // shuffled, so rebuilding on every render (e.g. tapping + on a poster,
@@ -119,6 +125,50 @@ export const DiscoverScreen = ({ navigation }) => {
     () => buildDiscoverRails({ watched, preferences }),
     [watched, preferences],
   );
+
+  const modeSwitch = (
+    <View style={styles.modeSwitch}>
+      {[
+        ["browse", "Browse"],
+        ["reels", "Reels"],
+      ].map(([key, label]) => {
+        const active = mode === key;
+        return (
+          <Pressable
+            key={key}
+            style={[styles.modeOption, active && styles.modeOptionActive]}
+            onPress={() => setMode(key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+          >
+            <Text style={[styles.modeText, active && styles.modeTextActive]}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  if (mode === "reels") {
+    return (
+      <SafeAreaView style={styles.reelsContainer} edges={[]}>
+        <View
+          style={[
+            styles.reelsArea,
+            { paddingTop: insets.top + HEADER_BAR_HEIGHT },
+          ]}
+        >
+          <ReelsFeed
+            navigation={navigation}
+            active={isFocused}
+            bottomInset={insets.bottom + TAB_BAR_CLEARANCE}
+          />
+        </View>
+        <DockHeader title="Discover" right={modeSwitch} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -149,9 +199,12 @@ export const DiscoverScreen = ({ navigation }) => {
         {...header.props}
         title="Discover"
         right={
-          <HeaderIconButton onPress={() => navigation.navigate("Search")}>
-            <Search size={18} color={colors.textPrimary} strokeWidth={2} />
-          </HeaderIconButton>
+          <>
+            {modeSwitch}
+            <HeaderIconButton onPress={() => navigation.navigate("Search")}>
+              <Search size={18} color={colors.textPrimary} strokeWidth={2} />
+            </HeaderIconButton>
+          </>
         }
       />
     </SafeAreaView>
@@ -164,6 +217,36 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    reelsContainer: {
+      flex: 1,
+      backgroundColor: "#000000",
+    },
+    reelsArea: {
+      flex: 1,
+    },
+    // Browse / Reels, in the header.
+    modeSwitch: {
+      flexDirection: "row",
+      padding: 3,
+      borderRadius: radius.pill,
+      backgroundColor: colors.background,
+    },
+    modeOption: {
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: 6,
+      borderRadius: radius.pill,
+    },
+    modeOptionActive: {
+      backgroundColor: colors.selected,
+    },
+    modeText: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    modeTextActive: {
+      color: colors.selectedText,
+    },
     rail: {
       marginTop: spacing.lg,
     },
@@ -175,7 +258,10 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     railTitle: {
-      ...typography.subtitle,
+      ...typography.title,
+      fontSize: 18,
+      lineHeight: 24,
+      letterSpacing: -0.3,
       flex: 1,
       color: colors.textPrimary,
     },
@@ -185,18 +271,19 @@ const createStyles = (colors) =>
       gap: 1,
     },
     allText: {
-      ...typography.label,
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.accentLight,
     },
     railContent: {
       paddingHorizontal: spacing.md,
-      gap: spacing.sm,
+      gap: 2,
     },
     railCard: {
-      width: 108,
+      width: 120,
     },
     railPoster: {
-      width: 108,
+      width: 120,
       aspectRatio: 2 / 3,
     },
     railMovieTitle: {

@@ -159,16 +159,10 @@ const createStyles = (colors) =>
     // also has overflow: hidden.
     aiGlow: {
       borderRadius: radius.sm,
-      shadowColor: colors.accent,
-      shadowOpacity: 0.55,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 0 },
     },
     aiTile: {
       backgroundColor: colors.card,
       borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: `${colors.accent}AA`,
       padding: spacing.md,
       overflow: "hidden",
       minHeight: 156,
@@ -238,14 +232,11 @@ const createStyles = (colors) =>
       flexDirection: "row",
       gap: spacing.sm,
     },
-    // Dark glass: slightly see-through so the projector glow behind the
-    // screen shows through, with a thin light edge.
+    // Flat, solid tiles.
     halfTile: {
       flex: 1,
-      backgroundColor: `${colors.card}D9`,
+      backgroundColor: colors.card,
       borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.08)",
       padding: spacing.md,
       overflow: "hidden",
     },

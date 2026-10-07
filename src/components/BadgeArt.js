@@ -2,41 +2,49 @@ import { useId } from "react";
 import Svg, {
   Circle,
   Defs,
-  Ellipse,
   G,
   LinearGradient,
   Path,
   Polygon,
+  Rect,
   Stop,
 } from "react-native-svg";
 
-// Hand-drawn badge medals. Every badge is the same build — ribbons, a
-// metal frame, a dark inner disc, and an emblem — and two things vary:
+// Geometric badge tokens. Each track has its own shape and colour —
+//   watching    hexagon  · purple       critic      shield   · gold
+//   rewatch     circle   · teal         collections diamond  · blue
+//   challenges  octagon  · coral        watchlist   squircle · green
+//   marquee     seal     · warm gold
+// — filled with a smooth two-tone gradient, a bold white emblem in the
+// middle, and the tier shown as pips underneath (one more pip per tier, up
+// to five; past that the pips turn gold). Locked badges are the same
+// shape in flat grey. Flat and crisp: no ribbons, metal or shine.
 //
-// - the emblem says WHICH track (film reel = watching, star = critic,
-//   loop = rewatch, layers = collections, target = challenges, bookmark =
-//   watchlist, crown = a marquee franchise);
-// - the frame says HOW HIGH up the track: a plain coin, then an octagon,
-//   then a rosette with ribbons, then a sunburst — plus the metal colour
-//   (bronze → silver → gold → platinum → diamond → master).
-//
-// Drawn in a 100 × 100 box; the medal body is centred slightly high so
-// the ribbons have room underneath.
+// Same props as before (`metal` is no longer used for colour).
 
-const CX = 50;
-const CY = 46;
-const DISC_R = 30;
-const UNEARNED_METAL = "#7A7D9C";
-const DISC_BASE = "#14152B";
+const TRACKS = {
+  watched: { shape: "hexagon", from: "#B48CFF", to: "#6A3FC4" },
+  critic: { shape: "shield", from: "#FFE7A0", to: "#D9A12E" },
+  rewatch: { shape: "circle", from: "#8FF0E2", to: "#2A9C91" },
+  collections: { shape: "diamond", from: "#A6DDFB", to: "#3B82C9" },
+  challenges: { shape: "octagon", from: "#FFB3BE", to: "#D4505F" },
+  watchlist: { shape: "squircle", from: "#B9F0AE", to: "#46A04F" },
+  marquee: { shape: "seal", from: "#FFE08A", to: "#C7860A" },
+};
 
-// Emblems are drawn in a 24 × 24 box (lucide-style strokes) and scaled
-// into the disc.
-const EMBLEM_SCALE = 1.5;
-const EMBLEM_OFFSET_X = CX - 12 * EMBLEM_SCALE;
-const EMBLEM_OFFSET_Y = CY - 12 * EMBLEM_SCALE;
+// The track's main colour — for checks, bars and connectors next to it.
+export const badgeTrackColor = (category) => {
+  const track = TRACKS[category] ?? TRACKS.marquee;
+  return track.from;
+};
 
+const LOCKED_FILL = "#2C2E54";
+const LOCKED_EDGE = "#4A4D84";
+const LOCKED_INK = "#8A8CB0";
+const PIP_GOLD = "#FFE08A";
+
+// Emblems in a 24 × 24 box, drawn white.
 const EMBLEMS = {
-  // A film reel: rim, five spool holes, hub, and a trailing strip.
   watched: {
     strokes: ["M12 21h9"],
     circles: [
@@ -46,10 +54,9 @@ const EMBLEMS = {
         return {
           cx: 12 + Math.cos(angle) * 4.6,
           cy: 12 + Math.sin(angle) * 4.6,
-          r: 1.8,
+          r: 1.9,
         };
       }),
-      { cx: 12, cy: 12, r: 1.1 },
     ],
   },
   critic: {
@@ -62,7 +69,6 @@ const EMBLEMS = {
       "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8",
       "M21 3v5h-5",
     ],
-    circles: [{ cx: 12, cy: 12, r: 2.2 }],
   },
   collections: {
     strokes: [
@@ -77,7 +83,7 @@ const EMBLEMS = {
     circles: [
       { cx: 12, cy: 12, r: 9.5, stroke: true },
       { cx: 12, cy: 12, r: 5.5, stroke: true },
-      { cx: 12, cy: 12, r: 2 },
+      { cx: 12, cy: 12, r: 2.2 },
     ],
   },
   watchlist: {
@@ -91,167 +97,129 @@ const EMBLEMS = {
   },
 };
 
-// ---- colour helpers (all theme metals are plain #RRGGBB) ----
-const toRgb = (hex) => {
-  const value = parseInt(hex.slice(1), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-};
-const mix = (hex, other, amount) => {
-  const a = toRgb(hex);
-  const b = toRgb(other);
-  const channel = (index) =>
-    Math.round(a[index] + (b[index] - a[index]) * amount)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${channel(0)}${channel(1)}${channel(2)}`;
-};
+const polygon = (points, radius, rotation, cx = 50, cy = 50) =>
+  Array.from({ length: points }, (_, index) => {
+    const angle = ((rotation + (index * 360) / points) * Math.PI) / 180;
+    return `${(cx + Math.cos(angle) * radius).toFixed(2)},${(cy + Math.sin(angle) * radius).toFixed(2)}`;
+  }).join(" ");
 
-// A regular star/polygon around the medal centre: `points` tips at
-// `outer`, valleys at `inner` (inner === outer → plain polygon corners).
-const starPoints = (points, outer, inner, rotation = -90) => {
-  const coords = [];
-  const steps = inner === outer ? points : points * 2;
-  for (let index = 0; index < steps; index += 1) {
-    const radius = inner === outer || index % 2 === 0 ? outer : inner;
-    const angle = ((rotation + (index * 360) / steps) * Math.PI) / 180;
-    coords.push(
-      `${(CX + Math.cos(angle) * radius).toFixed(2)},${(CY + Math.sin(angle) * radius).toFixed(2)}`,
-    );
+const seal = (points, outer, inner) =>
+  Array.from({ length: points * 2 }, (_, index) => {
+    const radius = index % 2 === 0 ? outer : inner;
+    const angle = ((-90 + (index * 180) / points) * Math.PI) / 180;
+    return `${(50 + Math.cos(angle) * radius).toFixed(2)},${(50 + Math.sin(angle) * radius).toFixed(2)}`;
+  }).join(" ");
+
+// The token shape, filled and edged. A same-colour stroke with round
+// joins softens the polygon corners.
+const Shape = ({ shape, fill, edge }) => {
+  const common = {
+    fill,
+    stroke: edge,
+    strokeWidth: 4,
+    strokeLinejoin: "round",
+  };
+  switch (shape) {
+    case "hexagon":
+      return <Polygon points={polygon(6, 44, -90)} {...common} />;
+    case "octagon":
+      return <Polygon points={polygon(8, 44, 22.5)} {...common} />;
+    case "shield":
+      return (
+        <Path
+          d="M50 6 L87 17 V47 C87 71 71 87 50 95 C29 87 13 71 13 47 V17 Z"
+          {...common}
+        />
+      );
+    case "diamond":
+      return (
+        <Rect
+          x={19}
+          y={19}
+          width={62}
+          height={62}
+          rx={14}
+          transform="rotate(45 50 50)"
+          {...common}
+        />
+      );
+    case "squircle":
+      return <Rect x={8} y={8} width={84} height={84} rx={28} {...common} />;
+    case "seal":
+      return <Polygon points={seal(14, 46, 40)} {...common} />;
+    case "circle":
+    default:
+      return <Circle cx={50} cy={50} r={43} {...common} />;
   }
-  return coords.join(" ");
 };
 
-// Frame shape per tier: 0 coin, 1 octagon, 2 rosette, 3+ sunburst.
-const Frame = ({ tier, fill, stroke }) => {
-  if (tier <= 0) {
-    return (
-      <Circle
-        cx={CX}
-        cy={CY}
-        r={42}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={1.5}
-      />
-    );
-  }
-  const points =
-    tier === 1
-      ? starPoints(8, 43, 43, -90 + 22.5)
-      : tier === 2
-        ? starPoints(16, 44, 40)
-        : starPoints(tier >= 5 ? 24 : 14, 46, tier >= 5 ? 38 : 36);
-  return (
-    <Polygon
-      points={points}
-      fill={fill}
-      stroke={stroke}
-      strokeWidth={1.5}
-      strokeLinejoin="round"
-    />
-  );
-};
-
-// Two ribbon tails hanging behind the medal (tier 2 and up).
-const Ribbons = ({ color, shade }) => (
-  <G>
-    <Polygon points="33,58 21,97 30,91 36,99 47,64" fill={shade} />
-    <Polygon points="67,58 79,97 70,91 64,99 53,64" fill={shade} />
-    <Polygon points="35,58 25,92 31,88 36,95 45,63" fill={color} />
-    <Polygon points="65,58 75,92 69,88 64,95 55,63" fill={color} />
-  </G>
-);
-// Ribboned tiers draw the body a little smaller and higher so the tails
-// show underneath.
-const RIBBON_BODY = `translate(${CX} 39) scale(0.84) translate(${-CX} ${-CY})`;
-
-export const BadgeArt = ({ emblem, tier = 0, metal, earned = true, size }) => {
+export const BadgeArt = ({ emblem, tier = 0, earned = true, size }) => {
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const base = earned ? metal : UNEARNED_METAL;
-  const light = mix(base, "#FFFFFF", 0.5);
-  const dark = mix(base, "#000000", 0.4);
-  const disc = mix(base, DISC_BASE, 0.84);
+  const track = TRACKS[emblem] ?? TRACKS.marquee;
   const spec = EMBLEMS[emblem] ?? EMBLEMS.marquee;
-  const emblemColor = earned
-    ? mix(base, "#FFFFFF", 0.25)
-    : mix(base, "#FFFFFF", 0.1);
-  const strokeWidth = 2.1;
+  const ink = earned ? "#FFFFFF" : LOCKED_INK;
+  const pips = Math.max(1, Math.min(5, tier + 1));
+  const pipColor = earned ? (tier >= 5 ? PIP_GOLD : "#FFFFFF") : LOCKED_INK;
+  const strokeWidth = 2.4;
+  // Emblem sits a little high, leaving room for the pips.
+  const emblemScale = 1.45;
+  const ex = 50 - 12 * emblemScale;
+  const ey = 44 - 12 * emblemScale;
 
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Defs>
-        <LinearGradient id={`metal${id}`} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={light} />
-          <Stop offset="0.45" stopColor={base} />
-          <Stop offset="1" stopColor={dark} />
-        </LinearGradient>
-        <LinearGradient id={`disc${id}`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={mix(disc, "#FFFFFF", 0.08)} />
-          <Stop offset="1" stopColor={disc} />
+        <LinearGradient id={`fill${id}`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={track.from} />
+          <Stop offset="1" stopColor={track.to} />
         </LinearGradient>
       </Defs>
 
-      {tier >= 2 && <Ribbons color={base} shade={dark} />}
+      <Shape
+        shape={track.shape}
+        fill={earned ? `url(#fill${id})` : LOCKED_FILL}
+        edge={earned ? track.to : LOCKED_EDGE}
+      />
 
-      <G transform={tier >= 2 ? RIBBON_BODY : undefined}>
-        <Frame tier={tier} fill={`url(#metal${id})`} stroke={dark} />
-
-        {/* Inner disc with a bright rim */}
-        <Circle
-          cx={CX}
-          cy={CY}
-          r={DISC_R + 3}
-          fill="none"
-          stroke={light}
-          strokeOpacity={0.55}
-          strokeWidth={1.2}
-        />
-        <Circle cx={CX} cy={CY} r={DISC_R} fill={`url(#disc${id})`} />
-
-        {/* Emblem */}
-        <G
-          transform={`translate(${EMBLEM_OFFSET_X} ${EMBLEM_OFFSET_Y}) scale(${EMBLEM_SCALE})`}
-        >
-          {(spec.fills ?? []).map((d) => (
-            <Path key={d} d={d} fill={emblemColor} />
-          ))}
-          {(spec.strokes ?? []).map((d) => (
-            <Path
-              key={d}
-              d={d}
-              fill="none"
-              stroke={emblemColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ))}
-          {(spec.circles ?? []).map(({ cx, cy, r, stroke }) => (
-            <Circle
-              key={`${cx}-${cy}-${r}`}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill={stroke ? "none" : emblemColor}
-              stroke={stroke ? emblemColor : "none"}
-              strokeWidth={stroke ? strokeWidth : 0}
-            />
-          ))}
-        </G>
-
-        {/* Shine across the top-left of the frame */}
-        {earned && (
-          <Ellipse
-            cx={36}
-            cy={24}
-            rx={16}
-            ry={6}
-            fill="#FFFFFF"
-            fillOpacity={0.22}
-            transform="rotate(-32 36 24)"
+      <G transform={`translate(${ex} ${ey}) scale(${emblemScale})`}>
+        {(spec.fills ?? []).map((d) => (
+          <Path key={d} d={d} fill={ink} />
+        ))}
+        {(spec.strokes ?? []).map((d) => (
+          <Path
+            key={d}
+            d={d}
+            fill="none"
+            stroke={ink}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-        )}
+        ))}
+        {(spec.circles ?? []).map(({ cx, cy, r, stroke }) => (
+          <Circle
+            key={`${cx}-${cy}-${r}`}
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill={stroke ? "none" : ink}
+            stroke={stroke ? ink : "none"}
+            strokeWidth={stroke ? strokeWidth : 0}
+          />
+        ))}
       </G>
+
+      {/* Tier pips */}
+      {Array.from({ length: pips }, (_, index) => (
+        <Circle
+          key={index}
+          cx={50 + (index - (pips - 1) / 2) * 8}
+          cy={77}
+          r={2.6}
+          fill={pipColor}
+          opacity={earned ? 1 : 0.7}
+        />
+      ))}
     </Svg>
   );
 };

@@ -177,18 +177,21 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
+      // Instagram-style: the page's own colour, a hairline underneath.
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     right: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     title: {
-      ...typography.title,
-      fontSize: 20,
+      ...typography.display,
+      fontSize: 24,
+      lineHeight: 30,
+      letterSpacing: -0.6,
       color: colors.textPrimary,
     },
     stackBar: {
@@ -197,13 +200,14 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     stackTitle: {
       ...typography.title,
       fontSize: 20,
+      letterSpacing: -0.4,
       flex: 1,
       color: colors.textPrimary,
     },
@@ -238,13 +242,13 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: 1,
     },
+    // Plain icons, no circle behind them.
     iconButton: {
       width: 40,
       height: 40,
       borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
     },
     intro: {
       paddingHorizontal: spacing.md,

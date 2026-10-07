@@ -12,6 +12,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import {
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -31,6 +32,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
 import { TargetIcon } from "../components/icons/TabIcons";
+import { ScoreRings } from "../components/ScoreRings";
+import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { TierPicker } from "../components/TierPicker";
@@ -55,7 +58,6 @@ import { getFamilyRating } from "../utils/familyRating";
 import { getTier, getTierInfo } from "../utils/tiers";
 import { formatRuntime, isInBucketList } from "../utils/movieFilters";
 
-const POSTER_WIDTH = 168;
 const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
 const DESCRIPTION_LINES = 4;
@@ -162,9 +164,9 @@ const DockButton = ({ icon, label, active, onPress, styles }) => (
   </Pressable>
 );
 
-// Poster stage (the real poster, large and centered on the same accent
-// gradient as Collection Details — the per-movie backdrops are stock
-// placeholders, so they're no longer used) → one primary "Mark as Watched"
+// Cinematic hero (the poster itself, full width, fading into the page,
+// with the title, facts and scores on it — the per-movie stock backdrops
+// are placeholders, so they're not used) → one primary "Mark as Watched"
 // plus an action dock for everything else → context that only shows when
 // it applies (active challenge, your rating) → overview → the collections
 // it's part of → more like this.
@@ -175,6 +177,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
+  const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
+  // Measured height of the poster stage, for the blurred backdrop behind it.
+  const [stageHeight, setStageHeight] = useState(0);
   const [canExpand, setCanExpand] = useState(false);
   const inBucketList = useMovieStore((state) =>
     isInBucketList(state.bucketList, movieId),
@@ -185,6 +190,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   );
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
   const setWatchedTier = useMovieStore((state) => state.setWatchedTier);
+  const setWatchedDate = useMovieStore((state) => state.setWatchedDate);
   const isPicked = useMovieStore((state) => state.pickedMovie === movieId);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
@@ -243,12 +249,14 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       label: "IMDb",
       value: movie.rating.toFixed(1),
       suffix: "/10",
+      fraction: movie.rating / 10,
     },
     details?.rottenTomatoes != null && {
       key: "rt",
       label: "Rotten Tomatoes",
       value: String(details.rottenTomatoes),
       suffix: "%",
+      fraction: details.rottenTomatoes / 100,
       color: scoreColor("rt", details.rottenTomatoes, colors),
     },
     details?.metacritic != null && {
@@ -256,6 +264,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       label: "Metacritic",
       value: String(details.metacritic),
       suffix: "/100",
+      fraction: details.metacritic / 100,
       color: scoreColor("mc", details.metacritic, colors),
     },
     {
@@ -318,27 +327,39 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Backdrop: the movie's own poster, blurred, fading into the
+            page. Sized from the stage's measured height (not stretched to
+            fill it), with a plain Image. */}
+        {stageHeight > 0 && (
+          <View
+            pointerEvents="none"
+            style={[styles.backdrop, { height: stageHeight }]}
+          >
+            <Image
+              source={{ uri: movie.poster }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              blurRadius={14}
+            />
+            <LinearGradient
+              colors={[
+                `${colors.background}14`,
+                `${colors.background}66`,
+                colors.background,
+              ]}
+              locations={[0, 0.55, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        )}
         <View
+          onLayout={(event) => setStageHeight(event.nativeEvent.layout.height)}
           style={[
             styles.stage,
             { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.md },
           ]}
         >
-          <LinearGradient
-            colors={["rgba(141, 96, 226, 0.28)", colors.background]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-
-          <View>
-            <MoviePoster
-              uri={movie.poster}
-              style={styles.poster}
-              radius={radius.md}
-              shadow
-            />
-          </View>
-
+          <MoviePoster uri={movie.poster} style={styles.poster} shadow />
           <Text style={styles.title}>{movie.title}</Text>
           <Text style={styles.director} numberOfLines={1}>
             {movie.director} · {movie.year}
@@ -421,7 +442,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
           {isChallengeTarget && (
             <View style={styles.challengeBanner}>
-              <TargetIcon size={18} color={colors.accentContrast} />
+              <TargetIcon size={18} color={colors.accentLight} />
               <View style={styles.bannerText}>
                 <Text style={styles.challengeEyebrow}>
                   ACTIVE CHALLENGE ·{" "}
@@ -438,12 +459,22 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             <View style={styles.ratingCard}>
               <View style={styles.ratingHeader}>
                 <Text style={styles.sectionLabelInline}>Your history</Text>
-                <Text style={styles.watchCount}>
-                  {watchedEntry.timestamp
-                    ? `Watched ${formatDate(watchedEntry.timestamp)}`
-                    : "Watched"}{" "}
-                  · {watchedEntry.watchCount ?? 1}×
-                </Text>
+                {/* Tap the date to change when you watched it. */}
+                <Pressable
+                  onPress={() => setIsDateSheetOpen(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change when you watched it"
+                >
+                  <Text style={styles.watchCount}>
+                    <Text style={styles.watchDate}>
+                      {watchedEntry.timestamp
+                        ? formatDate(watchedEntry.timestamp)
+                        : "Add date"}
+                    </Text>{" "}
+                    · {watchedEntry.watchCount ?? 1}×
+                  </Text>
+                </Pressable>
               </View>
               <Text style={styles.tierPrompt}>Your Reelboard tier</Text>
               <TierPicker tier={getTier(watchedEntry)} onChange={handleTier} />
@@ -489,24 +520,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           )}
 
           <Text style={styles.sectionLabel}>Scores</Text>
-          <View style={styles.scoresRow}>
-            {scores.map((score) => (
-              <View key={score.key} style={styles.scoreTile}>
-                <Text
-                  style={[
-                    styles.scoreValue,
-                    { color: score.color ?? colors.rating },
-                  ]}
-                >
-                  {score.value}
-                  <Text style={styles.scoreSuffix}>{score.suffix}</Text>
-                </Text>
-                <Text style={styles.scoreLabel} numberOfLines={1}>
-                  {score.label}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <ScoreRings scores={scores} />
 
           {details?.awards && (
             <View style={styles.awardsRow}>
@@ -670,7 +684,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.railContent}
+              contentContainerStyle={styles.posterRailContent}
             >
               {directorMovies.map((other) => (
                 <Pressable
@@ -707,7 +721,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.railContent}
+              contentContainerStyle={styles.posterRailContent}
             >
               {similarMovies.map((similar) => (
                 <Pressable
@@ -747,6 +761,16 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         </Pressable>
       </View>
 
+      <WatchDateSheet
+        visible={isDateSheetOpen}
+        timestamp={watchedEntry?.timestamp}
+        onClose={() => setIsDateSheetOpen(false)}
+        onSave={(timestamp) => {
+          setWatchedDate(movieId, timestamp);
+          setIsDateSheetOpen(false);
+        }}
+      />
+
       {/* Fades in once the poster scrolls away, so there's always a title
           and a way back on screen. */}
       <Animated.View
@@ -773,7 +797,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: spacing.xs + 2,
-      marginTop: 2,
+      marginTop: 4,
       maxWidth: "100%",
     },
     ageBadge: {
@@ -804,31 +828,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    scoresRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    scoreTile: {
-      flex: 1,
-      alignItems: "center",
-      paddingVertical: spacing.md,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-    },
-    scoreValue: {
-      ...typography.hero,
-      fontSize: 22,
-      lineHeight: 26,
-    },
-    scoreSuffix: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    scoreLabel: {
-      ...typography.micro,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
     awardsRow: {
       flexDirection: "row",
       alignItems: "flex-start",
@@ -854,10 +853,11 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 2,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 6,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: 7,
       borderRadius: radius.pill,
-      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     factChipText: {
       ...typography.caption,
@@ -959,12 +959,22 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.lg,
     },
+    backdrop: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      overflow: "hidden",
+    },
     poster: {
-      width: POSTER_WIDTH,
+      width: 168,
       aspectRatio: 2 / 3,
     },
     title: {
-      ...typography.hero,
+      ...typography.display,
+      fontSize: 28,
+      lineHeight: 34,
+      letterSpacing: -0.6,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.md,
@@ -995,20 +1005,14 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       marginTop: spacing.sm,
     },
+    // Clean icon + label buttons — no tile behind them.
     dockButton: {
       flex: 1,
       alignItems: "center",
       gap: 6,
-      paddingVertical: spacing.sm + 2,
-      borderRadius: radius.sm,
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: "transparent",
+      paddingVertical: spacing.sm,
     },
-    dockButtonActive: {
-      backgroundColor: "rgba(141, 96, 226, 0.16)",
-      borderColor: colors.accent,
-    },
+    dockButtonActive: {},
     dockLabel: {
       ...typography.caption,
       fontSize: 11,
@@ -1024,18 +1028,23 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       borderRadius: radius.sm,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.card,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent,
     },
     bannerText: {
       flex: 1,
     },
     challengeEyebrow: {
       ...typography.label,
-      color: colors.accentContrast,
+      fontSize: 11,
+      letterSpacing: 1.2,
+      color: colors.accentLight,
     },
     challengeDescription: {
-      ...typography.caption,
-      color: "rgba(255, 255, 255, 0.85)",
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textPrimary,
       marginTop: 2,
     },
     ratingCard: {
@@ -1058,10 +1067,20 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
+    // The date reads as a link — tap to change it.
+    watchDate: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.accentLight,
+      textDecorationLine: "underline",
+    },
     sectionLabel: {
-      ...typography.label,
-      color: colors.textSecondary,
-      marginTop: spacing.lg,
+      ...typography.title,
+      fontSize: 18,
+      lineHeight: 24,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
+      marginTop: spacing.xl,
       marginBottom: spacing.sm,
     },
     description: {
@@ -1080,6 +1099,11 @@ const createStyles = (colors) =>
     railContent: {
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
+    },
+    // Poster rails: the same 2px hairline gap as Library's grid.
+    posterRailContent: {
+      paddingHorizontal: spacing.md,
+      gap: 2,
     },
     collectionChip: {
       width: 180,
@@ -1101,7 +1125,7 @@ const createStyles = (colors) =>
       height: 4,
       borderRadius: 2,
       marginTop: spacing.sm,
-      backgroundColor: colors.surfaceSoft,
+      backgroundColor: colors.cardElevatedLight,
       overflow: "hidden",
     },
     chipFill: {
@@ -1115,10 +1139,10 @@ const createStyles = (colors) =>
       marginTop: 4,
     },
     similarCard: {
-      width: 100,
+      width: 120,
     },
     similarPoster: {
-      width: 100,
+      width: 120,
       aspectRatio: 2 / 3,
     },
     similarTitle: {

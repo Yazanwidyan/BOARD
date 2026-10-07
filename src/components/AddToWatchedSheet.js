@@ -189,7 +189,7 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     rowPoster: {
-      width: 44,
+      width: 64,
       aspectRatio: 2 / 3,
     },
     rowInfo: {

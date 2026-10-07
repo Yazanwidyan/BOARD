@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     backgroundColor: styleColors.card,
   },
   resultPoster: {
-    width: 56,
+    width: 72,
     aspectRatio: 2 / 3,
   },
   resultInfo: {

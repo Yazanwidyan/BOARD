@@ -13,8 +13,8 @@ import {
   BADGE_CATEGORY_BY_KEY as CATEGORY_BY_KEY,
   Medal,
   ProgressRing,
-  metalFor,
 } from "../components/BadgeMedal";
+import { badgeTrackColor } from "../components/BadgeArt";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useChallengeStore } from "../store/challengeStore";
@@ -90,7 +90,8 @@ export const BadgesScreen = ({ navigation }) => {
       nodes: tierBadges
         .map((badge, tierIndex) => ({
           badge,
-          metal: metalFor(tierIndex),
+          metal: badgeTrackColor(category.key),
+          tierIndex,
           state: badge.earned
             ? "earned"
             : badge.id === currentId
@@ -105,8 +106,8 @@ export const BadgesScreen = ({ navigation }) => {
     .filter((badge) => badge.category === "marquee")
     .filter(passesFilter);
 
-  const openSelected = (badge, metal, state) => {
-    setSelected({ badge, metal, state });
+  const openSelected = (badge, metal, state, tierIndex) => {
+    setSelected({ badge, metal, state, tierIndex });
     setIsDetailOpen(true);
   };
 
@@ -158,7 +159,14 @@ export const BadgesScreen = ({ navigation }) => {
             <Pressable
               style={styles.nextUp}
               onPress={() =>
-                openSelected(nextUp, colors.accentLight, "current")
+                openSelected(
+                  nextUp,
+                  badgeTrackColor(nextUp.category),
+                  "current",
+                  badges
+                    .filter((badge) => badge.category === nextUp.category)
+                    .findIndex((badge) => badge.id === nextUp.id),
+                )
               }
             >
               <Text style={styles.nextUpEyebrow}>NEXT UP</Text>
@@ -224,7 +232,7 @@ export const BadgesScreen = ({ navigation }) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.ladder}
             >
-              {nodes.map(({ badge, metal, state }, index) => (
+              {nodes.map(({ badge, metal, tierIndex, state }, index) => (
                 <View key={badge.id} style={styles.node}>
                   {index > 0 && (
                     <View
@@ -235,12 +243,13 @@ export const BadgesScreen = ({ navigation }) => {
                     />
                   )}
                   <Pressable
-                    onPress={() => openSelected(badge, metal, state)}
+                    onPress={() => openSelected(badge, metal, state, tierIndex)}
                     hitSlop={4}
                   >
                     <Medal
                       badge={badge}
                       metal={metal}
+                      tierIndex={tierIndex}
                       state={state}
                       size={MEDAL_SIZE}
                     />
@@ -288,7 +297,7 @@ export const BadgesScreen = ({ navigation }) => {
                     onPress={() =>
                       openSelected(
                         badge,
-                        colors.rating,
+                        badgeTrackColor("marquee"),
                         badge.earned ? "earned" : "current",
                       )
                     }
@@ -359,6 +368,7 @@ export const BadgesScreen = ({ navigation }) => {
             <Medal
               badge={selected.badge}
               metal={selected.metal}
+              tierIndex={selected.tierIndex}
               state={selected.state}
               size={92}
             />

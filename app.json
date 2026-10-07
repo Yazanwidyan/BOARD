@@ -43,7 +43,8 @@
           "photosPermission": "Reelboard needs access to your photos so you can set a profile picture."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

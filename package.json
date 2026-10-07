@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo-google-fonts/sora": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-navigation/bottom-tabs": "^7.18.18",
     "@react-navigation/native": "^7.3.18",
     "@react-navigation/native-stack": "^7.18.10",
@@ -28,6 +29,8 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-view-shot": "5.1.0",
+    "react-native-webview": "13.16.1",
+    "react-native-youtube-iframe": "^2.4.1",
     "zustand": "^5.0.15"
   },
   "scripts": {

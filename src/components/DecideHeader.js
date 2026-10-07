@@ -120,8 +120,8 @@ const createStyles = (colors) =>
       right: 0,
       zIndex: 100,
       elevation: 16,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
       paddingBottom: spacing.sm,
     },
@@ -135,8 +135,10 @@ const createStyles = (colors) =>
       flex: 1,
     },
     title: {
-      ...typography.title,
-      fontSize: 20,
+      ...typography.display,
+      fontSize: 24,
+      lineHeight: 30,
+      letterSpacing: -0.6,
       color: colors.textPrimary,
     },
     surprise: {

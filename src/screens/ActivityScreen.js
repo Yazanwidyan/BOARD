@@ -318,8 +318,8 @@ const createStyles = (colors) =>
       marginTop: 2,
     },
     eventPoster: {
-      width: 34,
-      height: 51,
+      width: 44,
+      height: 66,
     },
     footnote: {
       ...typography.caption,
