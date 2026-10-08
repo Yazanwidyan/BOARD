@@ -1,3 +1,4 @@
+import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -19,6 +20,7 @@ export const resetAppData = () => {
     unlockedCollections: [],
   });
   useChallengeStore.setState({ activeChallenge: null, history: [] });
+  useBoardStore.getState().clearBoards();
   useSessionStore.getState().endSession();
   useProfileStore.setState({
     displayName: "You",

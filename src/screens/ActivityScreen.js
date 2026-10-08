@@ -1,11 +1,15 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BadgeArt } from "../components/BadgeArt";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
-import { StackHeader } from "../components/ScreenHeader";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { MOCK_FRIENDS, getMockActivity } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
 import { radius, spacing } from "../theme/spacing";
@@ -131,6 +135,7 @@ const EventVisual = ({ event, onOpenMovie, styles }) => {
 // watching, tiering, saving and finishing, newest first, grouped by age.
 // Tap an event for that friend's page, a poster for the movie.
 export const ActivityScreen = ({ navigation }) => {
+  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -144,8 +149,14 @@ export const ActivityScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StackHeader title={t("Activity")} onBack={() => navigation.goBack()} />
-      <ScrollView
+      <StackHeader
+        title={t("Activity")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+      />
+      <Animated.ScrollView
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
@@ -217,7 +228,7 @@ export const ActivityScreen = ({ navigation }) => {
         <Text style={styles.footnote}>
           {t("Activity is a preview: sample friends for now.")}
         </Text>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

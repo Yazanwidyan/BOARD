@@ -134,6 +134,9 @@ export const useMovieStore = create(
           };
         }),
 
+      // Set (not toggle) tonight's pick — e.g. a Movie night match.
+      setPickedMovie: (movieId) => set({ pickedMovie: movieId, pickMood: null }),
+
       clearBucketList: () => set({ bucketList: [] }),
       clearPickedMovie: () => set({ pickedMovie: null, pickMood: null }),
       setMoodPick: (movieId, mood) =>

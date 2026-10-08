@@ -1,13 +1,19 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
+import Animated from "react-native-reanimated";
+import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
-import { StackHeader } from "../components/ScreenHeader";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
 import { getMockActivity, getMockFriend } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
+import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -35,6 +41,11 @@ const TierChip = ({ tier, styles }) => (
 // your taste is, what you both loved, what they loved that you haven't
 // seen (one tap to save it), their top tier, and their recent activity.
 export const FriendProfileScreen = ({ navigation, route }) => {
+  const headerScroll = useStackHeaderScroll();
+  // Where the big name ends in the page: the bar picks the name up as it
+  // scrolls under it, while the avatar and name ease away.
+  const [nameRevealAt, setNameRevealAt] = useState(null);
+  const heroStyle = useHeroFadeStyle(headerScroll.scrollY, nameRevealAt ?? 160);
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -72,15 +83,30 @@ export const FriendProfileScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StackHeader title={friend.name} onBack={() => navigation.goBack()} />
-      <ScrollView
+      <StackHeader
+        title={friend.name}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+        titleRevealAt={nameRevealAt}
+      />
+      <Animated.ScrollView
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
         {/* Who */}
-        <View style={styles.hero}>
+        <Animated.View style={[styles.hero, heroStyle]}>
           <FriendAvatar friend={friend} size={84} />
-          <Text style={styles.name}>{friend.name}</Text>
+          <Text
+            style={styles.name}
+            onLayout={(event) => {
+              const { y, height } = event.nativeEvent.layout;
+              setNameRevealAt(y + height);
+            }}
+          >
+            {friend.name}
+          </Text>
           <Text style={styles.handle}>
             {friend.handle} {t("· Level")} {friend.level} ·{" "}
             {getLevelName(friend.level)}
@@ -103,7 +129,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
               </View>
             ))}
           </View>
-        </View>
+        </Animated.View>
 
         {/* You both loved */}
         <Tag label={t("You both loved")} />
@@ -236,7 +262,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             </View>
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

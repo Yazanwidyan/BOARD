@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import Svg, { Path } from "react-native-svg";
+import { Heart } from "lucide-react-native";
 
 import { MOVIES } from "../data/movies";
 import { spacing } from "../theme/spacing";
@@ -26,6 +27,7 @@ const SHOWCASE_POSTERS = [...MOVIES]
 const AI_POSTERS = SHOWCASE_POSTERS.slice(0, 2);
 const SWIPE_POSTERS = SHOWCASE_POSTERS.slice(2, 5);
 const REEL_POSTERS = SHOWCASE_POSTERS.slice(5, 8);
+const NIGHT_POSTERS = SHOWCASE_POSTERS.slice(0, 2);
 
 const MiniReel = ({ colors, styles }) => {
   const slotTop = (REEL_WINDOW_HEIGHT - REEL_POSTER_HEIGHT) / 2;
@@ -66,8 +68,9 @@ const MiniReel = ({ colors, styles }) => {
 // Decide's Quick Pick as a bento: AI as the full-width hero — a filled
 // tile with real posters bleeding in from the right — and Swipe / Spin as
 // tall tiles that each preview what they do (a fanned poster stack, a
-// wheel). Square, edge to edge, 2px apart.
-export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
+// wheel), then Movie night across the bottom — two posters leaning into a
+// heart where they meet. Square, edge to edge, 2px apart.
+export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
   const colors = useColors();
   const styles = createStyles(colors);
 
@@ -127,6 +130,33 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
           <Text style={styles.halfSubtitle}>{t("Let fate decide")}</Text>
         </Pressable>
       </View>
+
+      {onMovieNight && (
+        <Pressable style={styles.nightTile} onPress={onMovieNight}>
+          <View style={styles.nightText}>
+            <Text style={styles.aiEyebrow}>{t("For two")}</Text>
+            <Text style={styles.halfTitle}>{t("Movie night")}</Text>
+            <Text style={styles.halfSubtitle}>
+              {t("Swipe the same stack, see your matches")}
+            </Text>
+          </View>
+          <View style={styles.nightPreview} pointerEvents="none">
+            {NIGHT_POSTERS.map((uri, index) => (
+              <MoviePoster
+                key={uri}
+                uri={uri}
+                style={[
+                  styles.nightPoster,
+                  index === 0 ? styles.nightPosterLeft : styles.nightPosterRight,
+                ]}
+              />
+            ))}
+            <View style={styles.nightHeart}>
+              <Heart size={14} color="#FFFFFF" fill="#FFFFFF" />
+            </View>
+          </View>
+        </Pressable>
+      )}
     </View>
   );
 };
@@ -260,6 +290,40 @@ const createStyles = (colors) =>
       position: "absolute",
       width: FAN_POSTER_WIDTH,
       aspectRatio: 2 / 3,
+    },
+    nightTile: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      overflow: "hidden",
+    },
+    nightText: {
+      flex: 1,
+    },
+    nightPreview: {
+      width: 104,
+      height: 84,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    nightPoster: {
+      position: "absolute",
+      width: 48,
+      aspectRatio: 2 / 3,
+    },
+    nightPosterLeft: {
+      transform: [{ translateX: -20 }, { rotate: "-10deg" }],
+    },
+    nightPosterRight: {
+      transform: [{ translateX: 20 }, { rotate: "10deg" }],
+    },
+    nightHeart: {
+      width: 28,
+      height: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.success,
     },
     halfTitle: {
       ...typography.subtitle,

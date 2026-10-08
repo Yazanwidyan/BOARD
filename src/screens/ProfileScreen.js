@@ -35,6 +35,7 @@ import { EmptyState } from "../components/EmptyState";
 import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
+  HEADER_BAR_HEIGHT,
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
@@ -54,6 +55,10 @@ import { getBadges } from "../utils/badges";
 import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
 import { FAVORITE_COUNT, getTasteProfile } from "../utils/taste";
+import {
+  useStickyStyle,
+  useStretchyBackdropStyle,
+} from "../utils/scrollEffects";
 import { TIERS, getTier, getTierInfo, isRated } from "../utils/tiers";
 import {
   COLLECTION_XP,
@@ -183,7 +188,25 @@ export const ProfileScreen = ({ navigation, route }) => {
     0,
     Math.ceil(level.requiredXP - level.currentXP),
   );
-  const header = useDockHeader();
+  const header = useDockHeader({ hideOnScroll: true });
+  // The tab row pins under the header once it reaches it (and follows the
+  // header as it slides away), so you can always switch tabs. Its place
+  // in the scroll content is the wrapper's offset plus its own.
+  const [profileWrapY, setProfileWrapY] = useState(null);
+  const [tabTrackY, setTabTrackY] = useState(null);
+  const tabTrackStyle = useStickyStyle({
+    scrollY: header.scrollY,
+    contentY:
+      profileWrapY != null && tabTrackY != null
+        ? profileWrapY + tabTrackY
+        : null,
+    stickTop: insets.top + HEADER_BAR_HEIGHT,
+    headerOffset: header.offset,
+  });
+  const backdropStyle = useStretchyBackdropStyle(
+    header.scrollY,
+    header.contentInset + BACKDROP_HEIGHT,
+  );
 
   const taste = getTasteProfile(watched);
 
@@ -367,11 +390,12 @@ export const ProfileScreen = ({ navigation, route }) => {
       >
         {/* Backdrop — your favorites, blurred, fading into the page. */}
         {backdropPosters.length > 0 && (
-          <View
+          <Animated.View
             pointerEvents="none"
             style={[
               styles.backdrop,
               { height: header.contentInset + BACKDROP_HEIGHT },
+              backdropStyle,
             ]}
           >
             {backdropPosters.map((movie) => (
@@ -387,10 +411,13 @@ export const ProfileScreen = ({ navigation, route }) => {
               locations={[0, 0.95]}
               style={StyleSheet.absoluteFill}
             />
-          </View>
+          </Animated.View>
         )}
 
-        <View style={styles.profileWrap}>
+        <View
+          style={styles.profileWrap}
+          onLayout={(event) => setProfileWrapY(event.nativeEvent.layout.y)}
+        >
           {/* Watcher card — avatar beside the numbers (badges included),
               name and level, bio as a quote. */}
           <WatcherCard
@@ -404,7 +431,10 @@ export const ProfileScreen = ({ navigation, route }) => {
           {/* Profile tabs, Instagram-style: an icon per column over a
               hairline, the open one white with a thin underline. Swipe the
               page below to switch too. */}
-          <View style={styles.tabTrack}>
+          <Animated.View
+            style={[styles.tabTrack, tabTrackStyle]}
+            onLayout={(event) => setTabTrackY(event.nativeEvent.layout.y)}
+          >
             {PROFILE_TABS.map(({ key, label, Icon }, index) => {
               const isActive = profileTab === key;
               return (
@@ -437,7 +467,7 @@ export const ProfileScreen = ({ navigation, route }) => {
               pointerEvents="none"
               style={[styles.tabUnderline, { width: tabWidth }, underlineStyle]}
             />
-          </View>
+          </Animated.View>
 
           <GestureDetector gesture={pageSwipe}>
             <Animated.View style={pageStyle}>
@@ -1066,12 +1096,17 @@ const createStyles = (colors) =>
     },
     // Instagram-style: three equal columns edge to edge, a hairline under
     // the bar, and a thin white underline across the open tab's column.
+    // Solid and above the page below it, since it pins over the content
+    // as you scroll.
     tabTrack: {
       flexDirection: "row",
       marginTop: spacing.md,
       marginHorizontal: -spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
+      backgroundColor: colors.background,
+      zIndex: 10,
+      elevation: 4,
     },
     tabOption: {
       flex: 1,

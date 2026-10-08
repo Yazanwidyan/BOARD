@@ -4,19 +4,22 @@ import {
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
 import { Text } from "../components/AppText";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { AvatarCropper } from "../components/AvatarCropper";
-import { StackHeader } from "../components/ScreenHeader";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
@@ -72,6 +75,7 @@ const confirmAction = (title, message, onConfirm) => {
 };
 
 export const SettingsScreen = ({ navigation }) => {
+  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const clearBucketList = useMovieStore((state) => state.clearBucketList);
@@ -134,9 +138,15 @@ export const SettingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <StackHeader title={t("Settings")} onBack={() => navigation.goBack()} />
+      <StackHeader
+        title={t("Settings")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+      />
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + spacing.xl },
@@ -382,7 +392,7 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.footerText}>
           {t("Version")} {APP_VERSION}
         </Text>
-      </ScrollView>
+      </Animated.ScrollView>
       <ScreenBottomFade />
       {cropImage && (
         <AvatarCropper

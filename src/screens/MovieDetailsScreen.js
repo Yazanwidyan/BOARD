@@ -4,6 +4,7 @@ import {
   BookmarkCheck,
   CheckCircle,
   Clapperboard,
+  LayoutGrid,
   Play,
   RotateCw,
   Share2,
@@ -28,6 +29,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
 import { ScoreRings } from "../components/ScoreRings";
 import { WatchDateSheet } from "../components/WatchDateSheet";
@@ -35,6 +37,7 @@ import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { TierPicker } from "../components/TierPicker";
 import { MOVIES, getMovieById } from "../data/movies";
+import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
@@ -53,6 +56,10 @@ import {
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
 import { getTier, getTierInfo } from "../utils/tiers";
+import {
+  useHeroFadeStyle,
+  useStretchyBackdropStyle,
+} from "../utils/scrollEffects";
 import { formatRuntime, isInBucketList } from "../utils/movieFilters";
 import { t } from "../i18n";
 
@@ -192,6 +199,10 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const isPicked = useMovieStore((state) => state.pickedMovie === movieId);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
+  const isOnABoard = useBoardStore((state) =>
+    state.boards.some((board) => board.movieIds.includes(movieId)),
+  );
+  const [isBoardSheetOpen, setIsBoardSheetOpen] = useState(false);
 
   // All hooks run before the `!movie` early return below, so the hook
   // order never changes between renders.
@@ -199,16 +210,71 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
-  const stickyStart = 280;
-  const stickyEnd = 340;
-  const stickyBarStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
+  // The bar takes over exactly as the big title slides under it: the
+  // title's bottom edge (measured in the page) minus the bar's height is
+  // the scroll offset where it disappears. A close estimate until measured.
+  const [titleBottom, setTitleBottom] = useState(null);
+  const barBottom = insets.top + STICKY_BAR_HEIGHT;
+  const stickyEnd = titleBottom != null ? titleBottom - barBottom : 340;
+  const stickyStart = stickyEnd - 56;
+  // The bar's background drops in from just above as it fades in…
+  const stickyBarStyle = useAnimatedStyle(() => {
+    const progress = interpolate(
       scrollY.value,
       [stickyStart, stickyEnd],
       [0, 1],
       Extrapolation.CLAMP,
-    ),
-  }));
+    );
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * -10 }],
+    };
+  }, [stickyStart, stickyEnd]);
+  // …then the poster thumbnail and the name rise into it, the name a beat
+  // behind — as if the page's own poster and title had moved up into it.
+  const stickyThumbStyle = useAnimatedStyle(() => {
+    const progress = interpolate(
+      scrollY.value,
+      [stickyStart + 16, stickyEnd + 8],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      opacity: progress,
+      transform: [
+        { translateY: (1 - progress) * 14 },
+        { scale: 0.8 + progress * 0.2 },
+      ],
+    };
+  }, [stickyStart, stickyEnd]);
+  const stickyNameStyle = useAnimatedStyle(() => {
+    const progress = interpolate(
+      scrollY.value,
+      [stickyStart + 28, stickyEnd + 16],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * 12 }],
+    };
+  }, [stickyStart, stickyEnd]);
+  // Pull down and the blurred backdrop zooms in with you; scroll up and it
+  // drifts behind the page while the poster eases back under the bar.
+  const backdropStyle = useStretchyBackdropStyle(scrollY, stageHeight);
+  const posterStyle = useHeroFadeStyle(scrollY, stickyEnd);
+  // The floating back / share fade out as the sticky bar takes over.
+  const floatingBarStyle = useAnimatedStyle(
+    () => ({
+      opacity: interpolate(
+        scrollY.value,
+        [stickyStart - 40, stickyStart],
+        [1, 0],
+        Extrapolation.CLAMP,
+      ),
+    }),
+    [stickyStart],
+  );
 
   if (!movie) {
     return null;
@@ -333,9 +399,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             page. Sized from the stage's measured height (not stretched to
             fill it), with a plain Image. */}
         {stageHeight > 0 && (
-          <View
+          <Animated.View
             pointerEvents="none"
-            style={[styles.backdrop, { height: stageHeight }]}
+            style={[styles.backdrop, { height: stageHeight }, backdropStyle]}
           >
             <Image
               source={{ uri: movie.poster }}
@@ -352,7 +418,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               locations={[0, 0.55, 1]}
               style={StyleSheet.absoluteFill}
             />
-          </View>
+          </Animated.View>
         )}
         <View
           onLayout={(event) => setStageHeight(event.nativeEvent.layout.height)}
@@ -361,8 +427,18 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.md },
           ]}
         >
-          <MoviePoster uri={movie.poster} style={styles.poster} shadow />
-          <Text style={styles.title}>{movie.title}</Text>
+          <Animated.View style={posterStyle}>
+            <MoviePoster uri={movie.poster} style={styles.poster} shadow />
+          </Animated.View>
+          <Text
+            style={styles.title}
+            onLayout={(event) => {
+              const { y, height } = event.nativeEvent.layout;
+              setTitleBottom(y + height);
+            }}
+          >
+            {movie.title}
+          </Text>
           <Text style={styles.director} numberOfLines={1}>
             {movie.director} · {movie.year}
           </Text>
@@ -420,6 +496,13 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 icon={<Clapperboard size={20} color={iconColor(isPicked)} />}
               />
             )}
+            <DockButton
+              styles={styles}
+              active={isOnABoard}
+              label={t("Board")}
+              onPress={() => setIsBoardSheetOpen(true)}
+              icon={<LayoutGrid size={20} color={iconColor(isOnABoard)} />}
+            />
             <DockButton
               styles={styles}
               label={t("Trailer")}
@@ -745,8 +828,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         )}
       </Animated.ScrollView>
 
-      <View
-        style={[styles.headerBar, { top: headerTop }]}
+      <Animated.View
+        style={[styles.headerBar, { top: headerTop }, floatingBarStyle]}
         pointerEvents="box-none"
       >
         <BackButton onPress={() => navigation.goBack()} />
@@ -757,7 +840,13 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         >
           <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
-      </View>
+      </Animated.View>
+
+      <AddToBoardSheet
+        visible={isBoardSheetOpen}
+        onClose={() => setIsBoardSheetOpen(false)}
+        movieId={movieId}
+      />
 
       <WatchDateSheet
         visible={isDateSheetOpen}
@@ -780,9 +869,25 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         ]}
       >
         <BackButton onPress={() => navigation.goBack()} size={36} />
-        <Text style={styles.stickyTitle} numberOfLines={1}>
-          {movie.title}
-        </Text>
+        <Animated.View style={stickyThumbStyle}>
+          <MoviePoster uri={movie.poster} style={styles.stickyPoster} />
+        </Animated.View>
+        <Animated.View style={[styles.stickyText, stickyNameStyle]}>
+          <Text style={styles.stickyTitle} numberOfLines={1}>
+            {movie.title}
+          </Text>
+          <Text style={styles.stickyMeta} numberOfLines={1}>
+            {movie.year} · {formatRuntime(movie.runtime)}
+          </Text>
+        </Animated.View>
+        <Pressable
+          style={styles.stickyIconButton}
+          onPress={handleShare}
+          hitSlop={6}
+          accessibilityLabel={t("Share")}
+        >
+          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
+        </Pressable>
       </Animated.View>
     </View>
   );
@@ -1152,11 +1257,33 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    stickyPoster: {
+      width: 28,
+      height: 42,
+    },
+    stickyText: {
+      flex: 1,
     },
     stickyTitle: {
       ...typography.subtitle,
+      fontSize: 15,
+      lineHeight: 19,
       color: colors.textPrimary,
-      flex: 1,
+    },
+    stickyMeta: {
+      ...typography.caption,
+      fontSize: 12,
+      lineHeight: 15,
+      color: colors.textSecondary,
+    },
+    stickyIconButton: {
+      width: 40,
+      height: STICKY_BAR_HEIGHT,
+      alignItems: "flex-end",
+      justifyContent: "center",
     },
   });
 

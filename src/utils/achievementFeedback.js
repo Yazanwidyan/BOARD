@@ -21,6 +21,7 @@ import {
   getCompletedChallengesCount,
   getCompletedXPCollections,
   getLevel,
+  getUserXP,
   getXPBreakdown,
 } from "./xp";
 import { t } from "../i18n";
@@ -108,15 +109,21 @@ const levelUpRow = (xpBefore, xpAfter) => {
     : null;
 };
 
-// `tierMovieId`: a just-watched movie — the dialog then offers its tier
-// picker so it can be tiered on the spot.
+// `tierMovieId`: a just-watched movie — the dialog shows its poster. `xp`: { before, after } totals,
+// so the dialog's level bar can fill from where you were to where you are
+// (left out when the action added no XP — the bar then just shows now).
 const showAchievement = (
   rows,
   kinds,
   shareCollectionId = null,
   tierMovieId = null,
+  xp = null,
 ) => {
   if (rows.length === 0) return;
+  const xpNow = xp ?? {
+    before: getUserXP(useMovieStore.getState().watched),
+    after: getUserXP(useMovieStore.getState().watched),
+  };
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   const total = rows.reduce((sum, row) => sum + (row.xp ?? 0), 0);
 
@@ -149,6 +156,8 @@ const showAchievement = (
     total,
     shareCollectionId,
     tierMovieId,
+    xpBefore: xpNow.before,
+    xpAfter: xpNow.after,
   });
 };
 
@@ -224,7 +233,7 @@ export const giveWatchedFeedback = (
     completedCollections.find((collection) =>
       xpCollectionIds.has(collection.id),
     )?.id ?? null;
-  showAchievement(rows, kinds, shareCollectionId, movieId);
+  showAchievement(rows, kinds, shareCollectionId, movieId, { before, after });
 };
 
 // Call right after setWatchedRating(movieId, rating), passing the watched
@@ -257,7 +266,7 @@ export const giveRatingFeedback = (watchedBefore) => {
     rows.push(...badgeRows(newBadges));
     kinds.push("badge");
   }
-  showAchievement(rows, kinds);
+  showAchievement(rows, kinds, null, null, { before, after });
 };
 
 // A drop-in replacement for calling movieStore's rewatchMovie directly —

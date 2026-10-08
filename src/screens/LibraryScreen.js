@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Circle,
   Disc3,
+  LayoutGrid,
   Layers,
   Plus,
   Search,
@@ -28,6 +29,8 @@ import {
 
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
+import { BoardCover } from "../components/BoardCover";
+import { BoardNameSheet } from "../components/BoardNameSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
@@ -43,6 +46,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { getMovieById } from "../data/movies";
+import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
@@ -208,6 +212,54 @@ const BrowseCollectionRow = ({
   );
 };
 
+// Boards view: your own lists as a two-up grid of square covers, with a
+// "New board" tile always last.
+const BOARD_COLUMNS = 2;
+const BoardsGrid = ({ boards, width, onOpen, onCreate, styles, colors }) => {
+  const size = (width - 2 * (BOARD_COLUMNS - 1)) / BOARD_COLUMNS;
+  return (
+    <View style={styles.boardGrid}>
+      {boards.map((board) => {
+        const movies = board.movieIds.map(getMovieById).filter(Boolean);
+        return (
+          <Pressable
+            key={board.id}
+            style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}
+            onPress={() => onOpen(board.id)}
+          >
+            <BoardCover movies={movies} size={size} />
+            <View style={styles.boardInfo}>
+              <Text style={styles.boardName} numberOfLines={1}>
+                {board.name}
+              </Text>
+              <Text style={styles.boardCount}>
+                {t("{count} movies", { count: movies.length })}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+      <Pressable
+        style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}
+        onPress={onCreate}
+        accessibilityRole="button"
+      >
+        <View style={[styles.newBoardTile, { width: size, height: size }]}>
+          <Plus size={32} color={colors.textSecondary} strokeWidth={1.5} />
+        </View>
+        <View style={styles.boardInfo}>
+          <Text style={styles.boardName}>{t("New board")}</Text>
+          <Text style={styles.boardCount}>
+            {boards.length === 0
+              ? t("Rainy day, date night…")
+              : t("Another mood")}
+          </Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+};
+
 export const LibraryScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -216,6 +268,7 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [tab, setTab] = useState(route?.params?.initialTab ?? "bucketlist");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddWatchedOpen, setIsAddWatchedOpen] = useState(false);
+  const [isNewBoardOpen, setIsNewBoardOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [sortBy, setSortBy] = useState("recent");
@@ -224,7 +277,9 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState({ top: 0, right: spacing.md });
   const sortButtonRef = useRef(null);
-  const header = useDockHeader();
+  // The header slides away as you scroll down; the chip bar under it
+  // follows, so it ends up pinned just under the status bar.
+  const header = useDockHeader({ hideOnScroll: true });
   const [isAllCollectionsOpen, setIsAllCollectionsOpen] = useState(false);
   const [query, setQuery] = useState("");
   // Search lives behind the header's search icon; open while there's text.
@@ -245,6 +300,13 @@ export const LibraryScreen = ({ navigation, route }) => {
     }
   }, [route?.params?.initialTab]);
 
+  // A new section starts with the header showing — a short one might not
+  // scroll at all, and would leave it stuck out of sight.
+  useEffect(() => {
+    header.offset.value = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
   // Profile's taste card links here to show the untiered watched movies.
   useEffect(() => {
     if (route?.params?.showUntiered) {
@@ -263,6 +325,8 @@ export const LibraryScreen = ({ navigation, route }) => {
     (state) => state.toggleUnlockedCollection,
   );
   const startSession = useSessionStore((state) => state.startSession);
+  const boards = useBoardStore((state) => state.boards);
+  const createBoard = useBoardStore((state) => state.createBoard);
 
   const bucketListMovies = bucketListEntries
     .map((entry) => getMovieById(entry.movieId))
@@ -328,6 +392,13 @@ export const LibraryScreen = ({ navigation, route }) => {
       subtitle: t("{count} saved", { count: bucketListMovies.length }),
     },
     {
+      key: "boards",
+      Icon: LayoutGrid,
+      label: "Boards",
+      count: boards.length,
+      subtitle: t("{count} boards", { count: boards.length }),
+    },
+    {
       key: "collections",
       Icon: Layers,
       label: "Collections",
@@ -344,6 +415,12 @@ export const LibraryScreen = ({ navigation, route }) => {
   ];
   const currentTab =
     tabOptions.find((option) => option.key === tab) ?? tabOptions[0];
+
+  // Only Watchlist and Watched have the search / filter chip bar.
+  const hasToolBar = tab === "bucketlist" || tab === "watched";
+
+  const openBoard = (boardId) =>
+    navigation.navigate("BoardDetails", { boardId });
 
   const openCollection = (collectionId) =>
     navigation.navigate("CollectionDetails", { collectionId });
@@ -380,7 +457,9 @@ export const LibraryScreen = ({ navigation, route }) => {
               // (the inset's usual gap is dropped).
               tab === "collections"
                 ? header.contentInset - spacing.md
-                : header.contentInset + toolBarHeight,
+                : hasToolBar
+                  ? header.contentInset + toolBarHeight
+                  : header.contentInset,
           },
         ]}
       >
@@ -392,6 +471,15 @@ export const LibraryScreen = ({ navigation, route }) => {
             onToggleTrack={toggleUnlockedCollection}
             onSeeAll={() => setIsAllCollectionsOpen(true)}
             onOpenMovie={openDetails}
+          />
+        ) : tab === "boards" ? (
+          <BoardsGrid
+            boards={boards}
+            width={width}
+            onOpen={openBoard}
+            onCreate={() => setIsNewBoardOpen(true)}
+            styles={styles}
+            colors={colors}
           />
         ) : tab === "bucketlist" ? (
           <>
@@ -481,9 +569,13 @@ export const LibraryScreen = ({ navigation, route }) => {
       </Animated.ScrollView>
       <ScreenBottomFade />
       <FirstVisitTip id="library" />
-      {tab !== "collections" && (
-        <View
-          style={[styles.toolBar, { top: insets.top + HEADER_BAR_HEIGHT }]}
+      {hasToolBar && (
+        <Animated.View
+          style={[
+            styles.toolBar,
+            { top: insets.top + HEADER_BAR_HEIGHT },
+            header.followStyle,
+          ]}
           onLayout={(event) =>
             setToolBarHeight(event.nativeEvent.layout.height)
           }
@@ -612,7 +704,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               )}
             </ScrollView>
           }
-        </View>
+        </Animated.View>
       )}
       <DockHeader
         {...header.props}
@@ -620,7 +712,15 @@ export const LibraryScreen = ({ navigation, route }) => {
         subtitle={currentTab.subtitle}
         onPressTitle={() => setIsSectionMenuOpen(true)}
         right={
-          tab !== "collections" && (
+          tab === "boards" ? (
+            <HeaderIconButton
+              onPress={() => setIsNewBoardOpen(true)}
+              accessibilityLabel={t("New board")}
+            >
+              <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
+            </HeaderIconButton>
+          ) : (
+            hasToolBar && (
             <>
               <HeaderIconButton
                 onPress={() => {
@@ -648,6 +748,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                 <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
               </HeaderIconButton>
             </>
+            )
           )
         }
       />
@@ -704,6 +805,15 @@ export const LibraryScreen = ({ navigation, route }) => {
       <AddToWatchedSheet
         visible={isAddWatchedOpen}
         onClose={() => setIsAddWatchedOpen(false)}
+      />
+      <BoardNameSheet
+        visible={isNewBoardOpen}
+        onClose={() => setIsNewBoardOpen(false)}
+        onSave={(name) => {
+          const boardId = createBoard(name);
+          setIsNewBoardOpen(false);
+          openBoard(boardId);
+        }}
       />
 
       <BottomSheet
@@ -830,6 +940,33 @@ export const LibraryScreen = ({ navigation, route }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    boardGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 2,
+      rowGap: spacing.md,
+    },
+    boardInfo: {
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.sm,
+      gap: 2,
+    },
+    boardName: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    boardCount: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    newBoardTile: {
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.card,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.background,

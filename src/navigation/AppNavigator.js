@@ -12,19 +12,23 @@ import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { BadgesScreen } from "../screens/BadgesScreen";
+import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
 import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
+import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SpinScreen } from "../screens/SpinScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
+import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { AiPickScreen } from "../screens/AiPickScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
+import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -60,6 +64,7 @@ export const AppNavigator = () => {
   const hasMovieHydrated = useHasHydrated(useMovieStore);
   const hasProfileHydrated = useHasHydrated(useProfileStore);
   const hasChallengeHydrated = useHasHydrated(useChallengeStore);
+  const hasBoardHydrated = useHasHydrated(useBoardStore);
   // Language and theme load first too, so nothing renders in the wrong
   // language (t() reads the store directly) or flashes the wrong theme.
   const hasLanguageHydrated = useHasHydrated(useLanguageStore);
@@ -70,6 +75,7 @@ export const AppNavigator = () => {
     hasMovieHydrated &&
     hasProfileHydrated &&
     hasChallengeHydrated &&
+    hasBoardHydrated &&
     hasLanguageHydrated &&
     hasThemeHydrated &&
     hasTipsHydrated;
@@ -118,6 +124,17 @@ export const AppNavigator = () => {
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="AiPick" component={AiPickScreen} />
+            <Stack.Screen
+              name="MovieNight"
+              component={MovieNightScreen}
+              options={{ gestureEnabled: false }}
+            />
+            <Stack.Screen name="BoardDetails" component={BoardDetailsScreen} />
+            <Stack.Screen
+              name="TierMovie"
+              component={TierMovieScreen}
+              options={{ animation: "slide_from_bottom" }}
+            />
             <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} />
             <Stack.Screen
               name="CollectionDetails"

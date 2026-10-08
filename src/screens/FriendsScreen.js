@@ -2,19 +2,22 @@ import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import {
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
 import { Text } from "../components/AppText";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { StackHeader } from "../components/ScreenHeader";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { MOCK_FRIENDS } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
@@ -41,6 +44,7 @@ const toHandle = (name) =>
 // handle (sends a pretend request), and your friends with how close their
 // taste is to yours and their top-tiered posters. Tap one for their page.
 export const FriendsScreen = ({ navigation }) => {
+  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -80,8 +84,14 @@ export const FriendsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StackHeader title={t("Friends")} onBack={() => navigation.goBack()} />
-      <ScrollView
+      <StackHeader
+        title={t("Friends")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+      />
+      <Animated.ScrollView
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + spacing.xl },
@@ -196,7 +206,7 @@ export const FriendsScreen = ({ navigation }) => {
         <Text style={styles.footnote}>
           {t("Friends is a preview: these are sample profiles for now.")}
         </Text>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

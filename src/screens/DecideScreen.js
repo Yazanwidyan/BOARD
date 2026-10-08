@@ -122,6 +122,7 @@ export const DecideScreen = ({ navigation }) => {
             onAI={() => navigation.navigate("AiPick")}
             onSwipe={() => navigation.navigate("Swipe")}
             onSpin={() => navigation.navigate("Spin")}
+            onMovieNight={() => navigation.navigate("MovieNight")}
           />
         </View>
 

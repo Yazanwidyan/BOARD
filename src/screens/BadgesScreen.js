@@ -2,12 +2,16 @@ import { Check, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { StackHeader } from "../components/ScreenHeader";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { BottomSheet } from "../components/BottomSheet";
 import {
   BADGE_CATEGORIES as CATEGORIES,
@@ -46,6 +50,7 @@ const formatThreshold = (value) =>
   value >= 1000 ? `${value / 1000}k` : String(value);
 
 export const BadgesScreen = ({ navigation }) => {
+  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -141,9 +146,15 @@ export const BadgesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <StackHeader title={t("Badges")} onBack={() => navigation.goBack()} />
+      <StackHeader
+        title={t("Badges")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+      />
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
@@ -362,7 +373,7 @@ export const BadgesScreen = ({ navigation }) => {
             </View>
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <BottomSheet
         visible={isDetailOpen}

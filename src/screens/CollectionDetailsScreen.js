@@ -26,6 +26,10 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
+  useHeroFadeStyle,
+  useStretchyBackdropStyle,
+} from "../utils/scrollEffects";
+import {
   getCollectionById,
   getCollectionCompletedAt,
   getCollectionProgress,
@@ -96,6 +100,25 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
       Extrapolation.CLAMP,
     ),
   }));
+  // The title slides up into the bar as it fades in.
+  const barTitleStyle = useAnimatedStyle(() => {
+    const progress = interpolate(
+      scrollY.value,
+      [heroHeight - 140, heroHeight - 80],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * 10 }],
+    };
+  });
+  // Pull down and the posters zoom in with you; scroll up and they drift
+  // behind the page while the title block eases away.
+  const backdropStyle = useStretchyBackdropStyle(scrollY, heroHeight);
+  const heroContentStyle = useHeroFadeStyle(scrollY, heroHeight - 80, {
+    scale: false,
+  });
 
   if (!collection) {
     return null;
@@ -175,7 +198,10 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
         >
           {/* The set's own posters, blurred, fading into the page. */}
-          <View style={styles.backdrop} pointerEvents="none">
+          <Animated.View
+            style={[styles.backdrop, backdropStyle]}
+            pointerEvents="none"
+          >
             {collection.movies.slice(0, BACKDROP_POSTERS).map((movie) => (
               <MoviePoster
                 key={movie.id}
@@ -189,8 +215,9 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               locations={[0, 0.95]}
               style={StyleSheet.absoluteFill}
             />
-          </View>
+          </Animated.View>
 
+          <Animated.View style={heroContentStyle}>
           <Text style={styles.eyebrow}>
             {TYPE_LABELS[collection.type] ?? t("Collection")}
             {isComplete ? t(" · Completed") : ""}
@@ -207,6 +234,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               </View>
             ))}
           </View>
+          </Animated.View>
         </View>
 
         {/* Progress: a thin line edge to edge — gold once complete. */}
@@ -273,7 +301,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           <BackButton onPress={() => navigation.goBack()} />
         </View>
         <Animated.Text
-          style={[styles.headerTitle, barStyle]}
+          style={[styles.headerTitle, barTitleStyle]}
           numberOfLines={1}
           pointerEvents="none"
         >
@@ -334,10 +362,11 @@ const createStyles = (colors) =>
       alignItems: "flex-end",
       justifyContent: "center",
     },
+    // No overflow clipping: the backdrop has to grow past the hero's top
+    // when you pull down.
     hero: {
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
-      overflow: "hidden",
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
