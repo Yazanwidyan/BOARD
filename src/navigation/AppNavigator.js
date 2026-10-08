@@ -31,6 +31,7 @@ import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useThemeStore } from "../store/themeStore";
+import { useTipsStore } from "../store/tipsStore";
 import { useColors } from "../theme/useColors";
 import { TabNavigator } from "./TabNavigator";
 
@@ -63,13 +64,15 @@ export const AppNavigator = () => {
   // language (t() reads the store directly) or flashes the wrong theme.
   const hasLanguageHydrated = useHasHydrated(useLanguageStore);
   const hasThemeHydrated = useHasHydrated(useThemeStore);
+  const hasTipsHydrated = useHasHydrated(useTipsStore);
   const hasHydrated =
     hasUserHydrated &&
     hasMovieHydrated &&
     hasProfileHydrated &&
     hasChallengeHydrated &&
     hasLanguageHydrated &&
-    hasThemeHydrated;
+    hasThemeHydrated &&
+    hasTipsHydrated;
   const colors = useColors();
 
   const baseTheme = colors.isDark ? DarkTheme : DefaultTheme;

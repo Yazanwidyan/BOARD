@@ -34,6 +34,7 @@ import { formatRuntime } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getLevel, getUserXP } from "../utils/xp";
 import { t } from "../i18n";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const RECENT_COUNT = 10;
 
@@ -418,6 +419,7 @@ export const HomeScreen = ({ navigation }) => {
         <RecentlyWatchedRail watched={watched} navigation={navigation} />
       </Animated.ScrollView>
       <ScreenBottomFade />
+      <FirstVisitTip id="home" />
       <DockHeader
         {...header.props}
         title={t("ReelBoard")}

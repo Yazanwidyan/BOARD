@@ -57,6 +57,7 @@ import { matchesGenres } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
 import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
 import { t } from "../i18n";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const PICK_MAX = 10;
 const PICK_MIN = 2;
@@ -479,6 +480,7 @@ export const LibraryScreen = ({ navigation, route }) => {
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
       <ScreenBottomFade />
+      <FirstVisitTip id="library" />
       {tab !== "collections" && (
         <View
           style={[styles.toolBar, { top: insets.top + HEADER_BAR_HEIGHT }]}

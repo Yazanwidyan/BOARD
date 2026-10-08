@@ -20,6 +20,7 @@ import { useColors } from "../theme/useColors";
 import { MOODS, pickMovieForMood } from "../utils/moods";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { t } from "../i18n";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const MONTHS = [
   "Jan",
@@ -159,6 +160,7 @@ export const DecideScreen = ({ navigation }) => {
         )}
       </ScrollView>
       <DecideHeader onSurprise={handleSurprise} onMeasure={setHeaderHeight} />
+      <FirstVisitTip id="decide" />
     </SafeAreaView>
   );
 };

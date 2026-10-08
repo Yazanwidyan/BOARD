@@ -653,6 +653,21 @@ const ar = {
   "Finished every {set} movie": "أنهى كل أفلام {set}",
   "looked at ·": "اطّلع على ·",
 
+  // ---- First-visit tips ----
+  "Got it": "فهمت",
+  "Tonight's pick, your dare, and what to watch next — all in one place.":
+    "اختيار الليلة، وتحدّيك، وما تشاهده بعد ذلك — كلها في مكان واحد.",
+  "Watch trailer clips in Reels, or browse rails picked for your taste. Tap + to save a movie.":
+    "شاهد مقاطع الإعلانات في المقاطع، أو تصفّح قوائم مختارة لذوقك. اضغط + لحفظ فيلم.",
+  "Can't choose? Swipe, Spin, or let the AI pick — or take a dare for bonus XP.":
+    "محتار؟ اسحب، أو دوّر، أو دع الذكاء الاصطناعي يختار — أو خذ تحدّياً لتكسب XP إضافية.",
+  "Your watchlist, what you've watched, and collections. Tier what you watch from S to F.":
+    "قائمة مشاهدتك، وما شاهدته، والمجموعات. صنّف ما تشاهده من S إلى F.",
+  "Your level, badges and taste. Pick your top ten and share your taste card.":
+    "مستواك وشاراتك وذوقك. اختر أفضل عشرة لديك وشارك بطاقة ذوقك.",
+  "Show tips again": "إظهار النصائح مجدداً",
+  "Tips will show again on each screen": "ستظهر النصائح مجدداً في كل شاشة",
+
   // ---- Settings ----
   "Edit picture": "تعديل الصورة",
   "Change profile photo": "تغيير صورة الملف",

@@ -68,6 +68,7 @@ import {
   getXPBreakdown,
 } from "../utils/xp";
 import { isRTL, t } from "../i18n";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
@@ -868,6 +869,7 @@ export const ProfileScreen = ({ navigation, route }) => {
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
       <ScreenBottomFade />
+      <FirstVisitTip id="profile" />
       <DockHeader
         {...header.props}
         title={t("Profile")}

@@ -23,6 +23,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
+import { useTipsStore } from "../store/tipsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { changeLanguage } from "../i18n";
 import { useUserStore } from "../store/userStore";
@@ -90,6 +91,7 @@ export const SettingsScreen = ({ navigation }) => {
   const themeMode = useThemeStore((state) => state.mode);
   const setThemeMode = useThemeStore((state) => state.setMode);
   const language = useLanguageStore((state) => state.language);
+  const resetTips = useTipsStore((state) => state.resetTips);
 
   const handleNameBlur = () => {
     if (!displayName.trim()) setDisplayName("You");
@@ -325,6 +327,15 @@ export const SettingsScreen = ({ navigation }) => {
           <SettingsRow
             label={t("Replay onboarding")}
             onPress={replayOnboarding}
+          />
+          <SettingsRow
+            label={t("Show tips again")}
+            onPress={() => {
+              resetTips();
+              showToast(t("Tips will show again on each screen"), {
+                tone: "success",
+              });
+            }}
           />
           <SettingsRow
             label={t("About")}

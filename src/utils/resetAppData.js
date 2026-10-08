@@ -3,6 +3,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useRecentSearchStore } from "../store/recentSearchStore";
 import { useSessionStore } from "../store/sessionStore";
+import { useTipsStore } from "../store/tipsStore";
 import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 
 // A genuine blank slate — distinct from what a fresh install actually gets
@@ -24,7 +25,10 @@ export const resetAppData = () => {
     bio: "",
     email: "",
     avatarUri: null,
+    topTen: [],
+    pinnedCollections: [],
   });
+  useTipsStore.getState().resetTips();
   useRecentSearchStore.getState().clearSearches();
   useUserStore.setState({
     hasCompletedOnboarding: false,

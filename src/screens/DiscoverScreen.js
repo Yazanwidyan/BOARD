@@ -34,6 +34,7 @@ import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { isInBucketList } from "../utils/movieFilters";
 import { t } from "../i18n";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 
 // One row: title + "See all" (opens the full list in Browse), then posters
 // with the IMDb rating and a one-tap save-to-watchlist button.
@@ -179,6 +180,7 @@ export const DiscoverScreen = ({ navigation }) => {
           />
         </View>
         <DockHeader title={t("Discover")} right={modeSwitch} />
+        <FirstVisitTip id="discover" />
       </SafeAreaView>
     );
   }
@@ -219,6 +221,7 @@ export const DiscoverScreen = ({ navigation }) => {
         ))}
       </Animated.ScrollView>
       <ScreenBottomFade />
+      <FirstVisitTip id="discover" />
       <DockHeader
         {...header.props}
         title={t("Discover")}
