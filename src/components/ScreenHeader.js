@@ -15,6 +15,11 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BackButton } from "./BackButton";
+import {
+  RefreshFillTitle,
+  SpinningLogo,
+  useRefreshSpin,
+} from "./RefreshFillTitle";
 import { t } from "../i18n";
 
 export const HEADER_BAR_HEIGHT = 52;
@@ -152,7 +157,9 @@ export const HeaderIconButton = ({
 // greeting) on the left, actions on the right — no centered title.
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses both.
-// `scrollY` / `offset` come in through useDockHeader's props.
+// `scrollY` / `offset` come in through useDockHeader's props. Pass
+// `refreshing` (on a page with pull-to-refresh) and the title becomes the
+// refresh indicator — see RefreshFillTitle.
 export const DockHeader = ({
   title,
   logo,
@@ -163,10 +170,13 @@ export const DockHeader = ({
   right,
   scrollY,
   offset,
+  refreshing,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  // The logo turns like a reel while refreshing.
+  const logoRotation = useRefreshSpin(!!refreshing);
 
   const barStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: offset ? -offset.value : 0 }],
@@ -220,6 +230,24 @@ export const DockHeader = ({
                 strokeWidth={2.4}
               />
             </Pressable>
+          ) : refreshing !== undefined ? (
+            <RefreshFillTitle scrollY={scrollY} refreshing={refreshing}>
+              <View style={styles.titleRow}>
+                {logo ? (
+                  <SpinningLogo rotation={logoRotation}>{logo}</SpinningLogo>
+                ) : null}
+                <Text
+                  style={[
+                    eyebrow ? styles.leftTitle : styles.title,
+                    subtitle && styles.titleWithSubtitle,
+                    italicTitle && styles.titleItalic,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+              </View>
+            </RefreshFillTitle>
           ) : (
             <View style={styles.titleRow}>
               {logo}

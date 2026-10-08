@@ -1,9 +1,15 @@
 import * as Haptics from "expo-haptics";
 import { Bell, Search, Shuffle } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text } from "../components/AppText";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -22,6 +28,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
+import { SPIN_STOP_MS } from "../components/RefreshFillTitle";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
@@ -64,10 +71,12 @@ const DecideHeroCard = ({
   styles,
   colors,
   refreshCount,
+  scrollY,
 }) => {
   if (isFreshAccount) {
     return (
       <HomeHero
+        scrollY={scrollY}
         eyebrow={t("Welcome")}
         title={t("Find your first movie")}
         meta={t(
@@ -91,6 +100,7 @@ const DecideHeroCard = ({
       styles={styles}
       colors={colors}
       refreshCount={refreshCount}
+      scrollY={scrollY}
     />
   );
 };
@@ -112,7 +122,14 @@ const timeAgo = (timestamp) => {
 // finally get watched — with a one-tap "make it tonight's pick" and ⇄ to
 // step to the next one. With nothing (unwatched) saved, it suggests
 // well-rated movies they haven't seen instead.
-const WatchlistSuggestion = ({ navigation, styles, colors, refreshCount }) => {
+// `scrollY`: Home's scroll position, so the banner stretches on a pull.
+const WatchlistSuggestion = ({
+  navigation,
+  styles,
+  colors,
+  refreshCount,
+  scrollY,
+}) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
@@ -146,51 +163,56 @@ const WatchlistSuggestion = ({ navigation, styles, colors, refreshCount }) => {
 
   const { movie, addedAt } = candidates[offset % candidates.length];
 
+  // Keyed on the movie, so each new suggestion fades in rather than
+  // popping in place.
   return (
-    <HomeHero
-      posterUri={movie.poster}
-      eyebrow={t("No pick for tonight yet")}
-      title={movie.title}
-      meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}
-      reason={
-        <Text style={styles.suggestReason} numberOfLines={1}>
-          {fromWatchlist
-            ? addedAt
-              ? t("On your watchlist · saved {addedAt}", {
-                  addedAt: timeAgo(addedAt),
-                })
-              : t("On your watchlist")
-            : t("Highly rated, and you haven't seen it")}
-        </Text>
-      }
-      onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-      actions={
-        <>
-          <PrimaryButton
-            label={t("Make it tonight's pick")}
-            onPress={() => {
-              Haptics.selectionAsync();
-              togglePickedMovie(movie.id);
-            }}
-            style={styles.heroMain}
-            contentStyle={styles.heroSquare}
-          />
-          {candidates.length > 1 && (
-            <Pressable
-              style={styles.heroRound}
+    <Animated.View key={movie.id} entering={FadeIn.duration(280)}>
+      <HomeHero
+        scrollY={scrollY}
+        posterUri={movie.poster}
+        eyebrow={t("No pick for tonight yet")}
+        title={movie.title}
+        meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}
+        reason={
+          <Text style={styles.suggestReason} numberOfLines={1}>
+            {fromWatchlist
+              ? addedAt
+                ? t("On your watchlist · saved {addedAt}", {
+                    addedAt: timeAgo(addedAt),
+                  })
+                : t("On your watchlist")
+              : t("Highly rated, and you haven't seen it")}
+          </Text>
+        }
+        onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+        actions={
+          <>
+            <PrimaryButton
+              label={t("Make it tonight's pick")}
               onPress={() => {
                 Haptics.selectionAsync();
-                setOffset((value) => value + 1);
+                togglePickedMovie(movie.id);
               }}
-              hitSlop={4}
-              accessibilityLabel={t("Suggest another")}
-            >
-              <Shuffle size={18} color={colors.textPrimary} />
-            </Pressable>
-          )}
-        </>
-      }
-    />
+              style={styles.heroMain}
+              contentStyle={styles.heroSquare}
+            />
+            {candidates.length > 1 && (
+              <Pressable
+                style={styles.heroRound}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setOffset((value) => value + 1);
+                }}
+                hitSlop={4}
+                accessibilityLabel={t("Suggest another")}
+              >
+                <Shuffle size={18} color={colors.textPrimary} />
+              </Pressable>
+            )}
+          </>
+        }
+      />
+    </Animated.View>
   );
 };
 
@@ -302,11 +324,17 @@ export const HomeScreen = ({ navigation }) => {
   // Pull to refresh: a fresh suggestion (and the latest data on re-render).
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
+  // The logo spins while it refreshes, then eases to a stop; the new
+  // suggestion arrives halfway through that whole spin.
+  const REFRESH_MS = 1100;
   const onRefresh = () => {
     setRefreshing(true);
     Haptics.selectionAsync();
-    setRefreshCount((value) => value + 1);
-    setTimeout(() => setRefreshing(false), 600);
+    setTimeout(() => setRefreshing(false), REFRESH_MS);
+    setTimeout(
+      () => setRefreshCount((value) => value + 1),
+      (REFRESH_MS + SPIN_STOP_MS) / 2,
+    );
   };
 
   const handleCreateChallenge = () => {
@@ -325,7 +353,11 @@ export const HomeScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.textSecondary}
+            // iOS: no spinner — the header title fills instead.
+            // Android can't report the pull, so it keeps its spinner.
+            tintColor={
+              Platform.OS === "ios" ? "transparent" : colors.textSecondary
+            }
             colors={[colors.textPrimary]}
             progressBackgroundColor={colors.card}
           />
@@ -337,7 +369,10 @@ export const HomeScreen = ({ navigation }) => {
       >
         <View style={[styles.section, styles.firstSection]}>
           {pickedMovieId ? (
-            <TonightsPickCard navigation={navigation} />
+            <TonightsPickCard
+              navigation={navigation}
+              scrollY={header.scrollY}
+            />
           ) : (
             <DecideHeroCard
               isFreshAccount={isFreshAccount}
@@ -345,6 +380,7 @@ export const HomeScreen = ({ navigation }) => {
               styles={styles}
               colors={colors}
               refreshCount={refreshCount}
+              scrollY={header.scrollY}
             />
           )}
         </View>
@@ -422,6 +458,7 @@ export const HomeScreen = ({ navigation }) => {
       <FirstVisitTip id="home" />
       <DockHeader
         {...header.props}
+        refreshing={refreshing}
         title={t("ReelBoard")}
         italicTitle
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}

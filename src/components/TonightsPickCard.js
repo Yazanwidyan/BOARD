@@ -29,7 +29,8 @@ const randomFrom = (items) => items[Math.floor(Math.random() * items.length)];
 // blur of itself, a big title, one line of meta and why it's the pick,
 // then Watched it plus Trailer and Swap; ✕ drops the pick. Tapping it
 // opens the movie. Renders nothing when there's no pick.
-export const TonightsPickCard = ({ navigation }) => {
+// `scrollY`: Home's scroll position, so the banner stretches on a pull.
+export const TonightsPickCard = ({ navigation, scrollY }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const pickedMovieId = useMovieStore((state) => state.pickedMovie);
@@ -144,6 +145,7 @@ export const TonightsPickCard = ({ navigation }) => {
       }
       onPress={openDetails}
       onDismiss={clearPickedMovie}
+      scrollY={scrollY}
       actions={
         <>
           <PrimaryButton
