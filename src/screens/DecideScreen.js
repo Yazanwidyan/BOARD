@@ -125,7 +125,7 @@ export const DecideScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.section}>
-          <SectionLabel label={t("Active challenge")} styles={styles} />
+          <SectionLabel label={t("Your dare")} styles={styles} />
           {activeChallenge ? (
             <ChallengeCard
               challenge={activeChallenge}

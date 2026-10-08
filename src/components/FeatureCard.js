@@ -31,7 +31,7 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       padding: spacing.md,
     },
     textBlock: {
@@ -50,7 +50,7 @@ const createStyles = (colors) =>
     iconBadge: {
       width: 44,
       height: 44,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       backgroundColor: colors.surfaceSoft,
       alignItems: "center",
       justifyContent: "center",

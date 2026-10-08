@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
 import { MOVIES } from "../data/movies";
 import { spacing } from "../theme/spacing";
@@ -10,57 +10,57 @@ import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 
-// Same alternating slice colors as the real wheel on SpinScreen, so the
-// mini preview reads as the thing you're about to open.
-const WHEEL_SLICE_COLORS = ["#4A4D53", "#2E3034"];
-const WHEEL_SLICES = 8;
-const WHEEL_SIZE = 108;
+// The Spin tile's mini slot reel (matches the Spin screen): a window with
+// three posters — the middle one framed — and a marker either side.
+const REEL_POSTER_WIDTH = 54;
+const REEL_POSTER_HEIGHT = REEL_POSTER_WIDTH * 1.5;
+const REEL_WINDOW_HEIGHT = 124;
+const REEL_GAP = 2;
 
 // Highest-rated titles make the decorative posters — computed once at
 // module load, the catalog is static.
 const SHOWCASE_POSTERS = [...MOVIES]
   .sort((a, b) => b.rating - a.rating)
-  .slice(0, 5)
+  .slice(0, 8)
   .map((movie) => movie.poster);
 const AI_POSTERS = SHOWCASE_POSTERS.slice(0, 2);
 const SWIPE_POSTERS = SHOWCASE_POSTERS.slice(2, 5);
+const REEL_POSTERS = SHOWCASE_POSTERS.slice(5, 8);
 
-const slicePath = (index, r) => {
-  const angle = (2 * Math.PI) / WHEEL_SLICES;
-  const start = index * angle - Math.PI / 2;
-  const end = start + angle;
-  const x1 = r + r * Math.cos(start);
-  const y1 = r + r * Math.sin(start);
-  const x2 = r + r * Math.cos(end);
-  const y2 = r + r * Math.sin(end);
-  return `M${r} ${r} L${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2} Z`;
-};
-
-const MiniWheel = ({ colors }) => {
-  const r = WHEEL_SIZE / 2;
+const MiniReel = ({ colors, styles }) => {
+  const slotTop = (REEL_WINDOW_HEIGHT - REEL_POSTER_HEIGHT) / 2;
   return (
-    <View>
-      <Svg width={WHEEL_SIZE} height={WHEEL_SIZE}>
-        {Array.from({ length: WHEEL_SLICES }, (_, i) => (
-          <Path
-            key={i}
-            d={slicePath(i, r)}
-            fill={WHEEL_SLICE_COLORS[i % WHEEL_SLICE_COLORS.length]}
-          />
-        ))}
-        <Circle cx={r} cy={r} r={10} fill={colors.card} />
+    <View style={styles.reel}>
+      <Svg width={8} height={12}>
+        <Path d="M0 0 L8 6 L0 12 Z" fill={colors.textPrimary} />
       </Svg>
-      <Svg width={14} height={12} style={miniWheelPointer}>
-        <Path d="M0 0 H14 L7 12 Z" fill={colors.textPrimary} />
+      <View style={styles.reelWindow}>
+        <View
+          style={[
+            styles.reelStrip,
+            { top: slotTop - REEL_POSTER_HEIGHT - REEL_GAP },
+          ]}
+        >
+          {REEL_POSTERS.map((uri) => (
+            <MoviePoster key={uri} uri={uri} style={styles.reelPoster} />
+          ))}
+        </View>
+        {/* Neighbours fade into the tile above and below. */}
+        <LinearGradient
+          colors={[colors.card, `${colors.card}00`]}
+          style={[styles.reelFade, { top: 0 }]}
+        />
+        <LinearGradient
+          colors={[`${colors.card}00`, colors.card]}
+          style={[styles.reelFade, { bottom: 0 }]}
+        />
+        <View style={[styles.reelFrame, { top: slotTop - 2 }]} />
+      </View>
+      <Svg width={8} height={12}>
+        <Path d="M8 0 L0 6 L8 12 Z" fill={colors.textPrimary} />
       </Svg>
     </View>
   );
-};
-
-const miniWheelPointer = {
-  position: "absolute",
-  top: -6,
-  left: WHEEL_SIZE / 2 - 7,
 };
 
 // Decide's Quick Pick as a bento: AI as the full-width hero — a filled
@@ -121,7 +121,7 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
 
         <Pressable style={styles.halfTile} onPress={onSpin}>
           <View style={styles.preview}>
-            <MiniWheel colors={colors} />
+            <MiniReel colors={colors} styles={styles} />
           </View>
           <Text style={styles.halfTitle}>{t("Spin")}</Text>
           <Text style={styles.halfSubtitle}>{t("Let fate decide")}</Text>
@@ -214,6 +214,41 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       padding: spacing.md,
       overflow: "hidden",
+    },
+    // Mini slot reel. Physical left-to-right so the markers point in.
+    reel: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      direction: "ltr",
+    },
+    reelWindow: {
+      width: REEL_POSTER_WIDTH,
+      height: REEL_WINDOW_HEIGHT,
+      overflow: "hidden",
+    },
+    reelStrip: {
+      position: "absolute",
+      left: 0,
+      gap: REEL_GAP,
+    },
+    reelPoster: {
+      width: REEL_POSTER_WIDTH,
+      height: REEL_POSTER_HEIGHT,
+    },
+    reelFade: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: 26,
+    },
+    reelFrame: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: REEL_POSTER_HEIGHT + 4,
+      borderWidth: 2,
+      borderColor: colors.textPrimary,
     },
     preview: {
       height: 128,

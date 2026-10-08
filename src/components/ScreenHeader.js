@@ -37,6 +37,10 @@ export const useDockHeader = () => {
     scrollY,
     onScroll,
     contentInset: insets.top + HEADER_BAR_HEIGHT + spacing.md,
+    // Where the header bar ends. Screens with pull-to-refresh start their
+    // scroll view here (not under the bar), so the refresh spinner shows
+    // just below the header instead of hidden behind it.
+    barBottom: insets.top + HEADER_BAR_HEIGHT,
     props: {},
   };
 };

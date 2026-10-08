@@ -145,7 +145,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
-      marginTop: spacing.sm,
       minHeight: 48,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,

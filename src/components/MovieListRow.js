@@ -25,7 +25,7 @@ export const MovieListRow = ({
     <Pressable style={styles.row} onPress={onPress}>
       <MoviePoster
         uri={movie.poster}
-        radius={radius.sm}
+        radius={0}
         style={styles.poster}
       />
       <View style={styles.info}>
@@ -92,7 +92,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.sm,
       paddingVertical: 6,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       marginStart: spacing.sm,
     },
     queueButtonActive: {

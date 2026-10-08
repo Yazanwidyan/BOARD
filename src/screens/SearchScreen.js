@@ -265,8 +265,8 @@ const createStyles = (colors) =>
     },
     pasteSheet: {
       backgroundColor: colors.background,
-      borderTopStartRadius: radius.sm,
-      borderTopEndRadius: radius.sm,
+      borderTopStartRadius: 0,
+      borderTopEndRadius: 0,
       padding: spacing.md,
     },
     pasteHeaderRow: {

@@ -47,7 +47,13 @@ export const ChallengeCard = ({
               {isReveal ? t("New dare") : t("Your dare")}
             </Text>
             <View style={[styles.dot, { backgroundColor: difficultyColor }]} />
-            <Text style={styles.difficulty}>{challenge.difficultyLabel}</Text>
+            <Text style={styles.difficulty}>
+              {t(challenge.difficultyLabel)}
+            </Text>
+            <View style={styles.spacer} />
+            <Text style={styles.reward}>
+              {t("+{xp} XP", { xp: challenge.xpReward })}
+            </Text>
           </View>
           <Text style={styles.dare} numberOfLines={3}>
             {challenge.description}
@@ -55,6 +61,12 @@ export const ChallengeCard = ({
           {movie && (
             <Text style={styles.movie} numberOfLines={1}>
               {movie.title} · {movie.year}
+            </Text>
+          )}
+          {/* How to finish it, in plain words. */}
+          {!isReveal && (
+            <Text style={styles.howTo} numberOfLines={1}>
+              {t("Watch it, then mark it watched")}
             </Text>
           )}
         </View>
@@ -103,7 +115,7 @@ export const ChallengePrompt = ({ onStart }) => {
           <Text style={styles.eyebrow}>{t("Tonight's dare")}</Text>
           <Text style={styles.dare}>{t("No dare yet")}</Text>
           <Text style={styles.movie}>
-            {t("Three secret challenges are waiting. Pick one.")}
+            {t("Three dares are waiting — pick one, watch it, earn XP.")}
           </Text>
         </View>
       </View>
@@ -157,6 +169,19 @@ const createStyles = (colors) =>
       height: 5,
       borderRadius: 3,
       marginStart: 2,
+    },
+    spacer: {
+      flex: 1,
+    },
+    reward: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      color: colors.rating,
+    },
+    howTo: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 4,
     },
     difficulty: {
       ...typography.caption,

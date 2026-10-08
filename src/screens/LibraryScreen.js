@@ -154,7 +154,7 @@ const CollectionCollage = ({ movies, styles }) => (
       <MoviePoster
         key={movie.id}
         uri={movie.poster}
-        radius={radius.xs}
+        radius={0}
         style={[
           styles.collectionCollagePoster,
           { left: index * 16, zIndex: 3 - index },

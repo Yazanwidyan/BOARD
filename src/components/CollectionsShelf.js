@@ -496,7 +496,7 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm + 2,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
-      borderRadius: radius.xs,
+      borderRadius: 0,
       backgroundColor: colors.cardElevated,
     },
     tagText: {
@@ -612,7 +612,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       padding: spacing.sm,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       backgroundColor: colors.card,
     },
     suggestionMain: {
@@ -627,7 +627,7 @@ const createStyles = (colors) =>
       gap: 4,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 7,
-      borderRadius: radius.pill,
+      borderRadius: 0,
       backgroundColor: colors.accent,
     },
     trackText: {

@@ -34,7 +34,7 @@ import { t } from "../i18n";
 
 const APP_VERSION = "1.0.0";
 const BIO_MAX_LENGTH = 140;
-const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
+const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
 // One-line "not yet" notices go to a toast; real confirmations
 // (destructive actions) stay native Alerts below.

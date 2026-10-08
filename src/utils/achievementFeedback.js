@@ -201,7 +201,7 @@ export const giveWatchedFeedback = (
   });
   if (completedChallenge) {
     rows.push({
-      label: "Challenge complete",
+      label: "Dare complete",
       detail: completedChallenge.title,
       xp: null,
     });

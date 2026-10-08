@@ -47,7 +47,7 @@ const createStyles = (colors) =>
     menu: {
       position: "absolute",
       paddingVertical: 6,
-      borderRadius: radius.md,
+      borderRadius: 0,
       backgroundColor: colors.cardElevated,
       borderWidth: 1,
       borderColor: colors.border,

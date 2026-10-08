@@ -2,7 +2,13 @@ import * as Haptics from "expo-haptics";
 import { Check, Plus, Search } from "lucide-react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text } from "../components/AppText";
 import {
   SafeAreaView,
@@ -118,10 +124,20 @@ export const DiscoverScreen = ({ navigation }) => {
   // Memoized on what the rows actually depend on — "Recommended" is
   // shuffled, so rebuilding on every render (e.g. tapping + on a poster,
   // which changes the watchlist) would reorder it under your thumb.
+  // Pull to refresh rebuilds them (bumping refreshCount) for a fresh shuffle.
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const rails = useMemo(
     () => buildDiscoverRails({ watched, preferences }),
-    [watched, preferences],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [watched, preferences, refreshCount],
   );
+  const onRefresh = () => {
+    setRefreshing(true);
+    Haptics.selectionAsync();
+    setRefreshCount((value) => value + 1);
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const modeSwitch = (
     <View style={styles.modeSwitch}>
@@ -172,10 +188,21 @@ export const DiscoverScreen = ({ navigation }) => {
       <Animated.ScrollView
         onScroll={header.onScroll}
         scrollEventThrottle={16}
+        // Starts under the header bar so the refresh spinner shows below it.
+        style={{ marginTop: header.barBottom }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.textSecondary}
+            colors={[colors.textPrimary]}
+            progressBackgroundColor={colors.card}
+          />
+        }
         contentContainerStyle={{
-          // Every rail brings its own top margin (styles.rail), so take one
-          // back here — the gap under the header matches the other tabs.
-          paddingTop: header.contentInset - spacing.lg,
+          // Every rail brings its own top margin (styles.rail); pull back
+          // the difference so the gap under the header matches other tabs.
+          marginTop: spacing.md - spacing.lg,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
         showsVerticalScrollIndicator={false}

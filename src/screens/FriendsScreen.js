@@ -208,8 +208,9 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     // Bands run edge to edge; text and controls keep the inset.
+    // The handle box sits flush under the header.
     content: {
-      paddingVertical: spacing.md,
+      paddingBottom: spacing.md,
     },
     pressed: {
       opacity: 0.8,

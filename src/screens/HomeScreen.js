@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Bell, Search, Shuffle } from "lucide-react-native";
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
 import {
@@ -57,7 +57,13 @@ const ShelfTag = ({ label, right, styles }) => (
 // so the first thing under it is the way out — straight into Swipe, Spin
 // or AI. A brand-new account (nothing watched or saved yet) gets one
 // "Start Discovering" button instead, since there's no taste to work from.
-const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
+const DecideHeroCard = ({
+  isFreshAccount,
+  navigation,
+  styles,
+  colors,
+  refreshCount,
+}) => {
   if (isFreshAccount) {
     return (
       <HomeHero
@@ -83,6 +89,7 @@ const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
       navigation={navigation}
       styles={styles}
       colors={colors}
+      refreshCount={refreshCount}
     />
   );
 };
@@ -104,11 +111,19 @@ const timeAgo = (timestamp) => {
 // finally get watched — with a one-tap "make it tonight's pick" and ⇄ to
 // step to the next one. With nothing (unwatched) saved, it suggests
 // well-rated movies they haven't seen instead.
-const WatchlistSuggestion = ({ navigation, styles, colors }) => {
+const WatchlistSuggestion = ({ navigation, styles, colors, refreshCount }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const [offset, setOffset] = useState(0);
+  // Pull to refresh on Home steps to the next suggestion.
+  const lastRefresh = useRef(refreshCount);
+  useEffect(() => {
+    if (refreshCount !== lastRefresh.current) {
+      lastRefresh.current = refreshCount;
+      setOffset((value) => value + 1);
+    }
+  }, [refreshCount]);
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const saved = [...bucketList]
@@ -283,6 +298,16 @@ export const HomeScreen = ({ navigation }) => {
 
   const header = useDockHeader();
 
+  // Pull to refresh: a fresh suggestion (and the latest data on re-render).
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const onRefresh = () => {
+    setRefreshing(true);
+    Haptics.selectionAsync();
+    setRefreshCount((value) => value + 1);
+    setTimeout(() => setRefreshing(false), 600);
+  };
+
   const handleCreateChallenge = () => {
     if (activeChallenge) skipChallenge();
     openChallengeGenerator(navigation);
@@ -294,8 +319,18 @@ export const HomeScreen = ({ navigation }) => {
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        style={{ marginTop: header.barBottom }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.textSecondary}
+            colors={[colors.textPrimary]}
+            progressBackgroundColor={colors.card}
+          />
+        }
         contentContainerStyle={{
-          paddingTop: header.contentInset,
+          paddingTop: header.contentInset - header.barBottom,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
@@ -308,6 +343,7 @@ export const HomeScreen = ({ navigation }) => {
               navigation={navigation}
               styles={styles}
               colors={colors}
+              refreshCount={refreshCount}
             />
           )}
         </View>

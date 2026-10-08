@@ -155,7 +155,7 @@ const createStyles = (colors) =>
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       height: 44,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       backgroundColor: colors.card,
     },
     searchInput: {
@@ -186,7 +186,7 @@ const createStyles = (colors) =>
       minWidth: 26,
       height: 26,
       paddingHorizontal: 6,
-      borderRadius: 13,
+      borderRadius: 0,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.textPrimary,

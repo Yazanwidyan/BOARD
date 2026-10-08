@@ -1110,7 +1110,7 @@ const createStyles = (colors) =>
     },
     chipTrack: {
       height: 4,
-      borderRadius: 2,
+      borderRadius: 0,
       marginTop: spacing.sm,
       backgroundColor: colors.cardElevatedLight,
       overflow: "hidden",

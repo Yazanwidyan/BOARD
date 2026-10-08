@@ -75,7 +75,7 @@ const createStyles = (colors) =>
       start: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,
-      borderRadius: 999,
+      borderRadius: 0,
       backgroundColor: colors.rating,
     },
     completeText: {

@@ -1,5 +1,6 @@
 // Resolves what carries into the next elimination round based on how decisive
 // the user was this round, so the game always converges toward one movie.
+// Messages are English keys, translated where they're shown (t()).
 const LOW_KEEP_RATE = 0.2;
 const HIGH_KEEP_RATE = 0.8;
 const PAD_TARGET_RATIO = 0.4;
@@ -16,7 +17,7 @@ export const resolveRoundOutcome = (roundSize, kept, removed) => {
       nextMovies: [...removed]
         .sort(byRatingDesc)
         .slice(0, Math.min(padCount, removed.length)),
-      message: "Let’s bring a few more options.",
+      message: "Let's bring a few more options.",
     };
   }
 
@@ -29,7 +30,7 @@ export const resolveRoundOutcome = (roundSize, kept, removed) => {
     const extra = [...removed].sort(byRatingDesc).slice(0, need);
     return {
       nextMovies: [...kept, ...extra],
-      message: "Let’s bring a few more options.",
+      message: "Let's bring a few more options.",
     };
   }
 
@@ -40,13 +41,13 @@ export const resolveRoundOutcome = (roundSize, kept, removed) => {
     );
     return {
       nextMovies: [...kept].sort(byRatingDesc).slice(0, target),
-      message: "Let’s narrow these down a little.",
+      message: "Let's narrow these down a little.",
     };
   }
 
   return {
     nextMovies: kept,
-    message: "Nice. We’ve narrowed it down.",
+    message: "Nice. We've narrowed it down.",
   };
 };
 

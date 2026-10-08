@@ -298,7 +298,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       paddingHorizontal: spacing.lg,
       paddingVertical: 12,
-      borderRadius: radius.pill,
+      borderRadius: 0,
       backgroundColor: colors.selected,
     },
     useButtonPressed: {

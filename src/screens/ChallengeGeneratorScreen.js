@@ -1,24 +1,24 @@
 import * as Haptics from "expo-haptics";
-import { Check, Shuffle } from "lucide-react-native";
+import { Shuffle } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "../components/AppText";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
+import { Text } from "../components/AppText";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
 import { getMovieById } from "../data/movies";
+import { t } from "../i18n";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
 import { formatRuntime } from "../utils/movieFilters";
-import { t } from "../i18n";
 
 const HAND_SIZE = 3;
 
@@ -28,52 +28,66 @@ const difficultyColor = (difficulty, colors) =>
     MEDIUM: colors.rating,
     HARD: colors.danger,
     EXTREME: colors.danger,
-  })[difficulty] ?? colors.accentLight;
+  })[difficulty] ?? colors.textSecondary;
 
-// One option in the hand: movie poster, difficulty + XP, the movie, and
-// the challenge's own reason. Tapping selects it (accent border + check).
-const OptionCard = ({
-  challenge,
-  selected,
-  onPress,
-  index,
-  styles,
-  colors,
-}) => {
+// How dares work, always on screen — so it's clear before you pick.
+const HowItWorks = ({ styles }) => (
+  <View style={styles.steps}>
+    {[t("Pick a dare"), t("Watch the movie"), t("Earn XP")].map(
+      (label, index) => (
+        <View key={label} style={styles.step}>
+          <Text style={styles.stepNumber}>{index + 1}</Text>
+          <Text style={styles.stepLabel} numberOfLines={2}>
+            {label}
+          </Text>
+        </View>
+      ),
+    )}
+  </View>
+);
+
+// One dare in the hand: its name and reward first, then why it was picked,
+// then the movie it points at with its difficulty. Tap to select.
+const DareCard = ({ challenge, selected, onPress, index, styles, colors }) => {
   const movie = getMovieById(challenge.targetMovieId);
   const tint = difficultyColor(challenge.difficulty, colors);
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 70).duration(220)}>
       <Pressable
-        style={[styles.option, selected && styles.optionSelected]}
+        style={[styles.card, selected && styles.cardSelected]}
         onPress={onPress}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
       >
-        {movie && <MoviePoster uri={movie.poster} style={styles.poster} />}
-        <View style={styles.optionInfo}>
-          <View style={styles.optionTopRow}>
-            <View style={[styles.difficulty, { borderColor: `${tint}66` }]}>
-              <View style={[styles.difficultyDot, { backgroundColor: tint }]} />
-              <Text style={[styles.difficultyText, { color: tint }]}>
-                {challenge.difficultyLabel}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.movieTitle} numberOfLines={1}>
-            {movie ? movie.title : challenge.title}
+        <View style={styles.cardTop}>
+          <Text style={styles.dareName} numberOfLines={1}>
+            {t(challenge.title)}
           </Text>
-          {movie && (
-            <Text style={styles.movieMeta} numberOfLines={1}>
-              {movie.year} · {formatRuntime(movie.runtime)} · {movie.genres[0]}
-            </Text>
-          )}
-          <Text style={styles.description} numberOfLines={2}>
-            {challenge.description}
+          <Text style={styles.reward}>
+            {t("+{xp} XP", { xp: challenge.xpReward })}
           </Text>
         </View>
-        {selected && (
-          <View style={styles.check}>
-            <Check size={14} color={colors.selectedText} strokeWidth={3} />
+        <Text style={styles.why}>{challenge.description}</Text>
+
+        {movie && (
+          <View style={styles.movieRow}>
+            <MoviePoster uri={movie.poster} style={styles.poster} />
+            <View style={styles.movieInfo}>
+              <Text style={styles.movieTitle} numberOfLines={1}>
+                {movie.title}
+              </Text>
+              <Text style={styles.movieMeta} numberOfLines={1}>
+                {movie.year} · {formatRuntime(movie.runtime)} ·{" "}
+                {t(movie.genres[0])}
+              </Text>
+            </View>
+            <View style={styles.difficulty}>
+              <View style={[styles.difficultyDot, { backgroundColor: tint }]} />
+              <Text style={[styles.difficultyText, { color: tint }]}>
+                {t(challenge.difficultyLabel)}
+              </Text>
+            </View>
           </View>
         )}
       </Pressable>
@@ -81,9 +95,8 @@ const OptionCard = ({
   );
 };
 
-// "Draft" a challenge: three real options dealt at once (spanning Easy →
-// Hard when your history allows), pick one, accept. ⇄ deals a new hand
-// instantly — no fake "analyzing…" wait.
+// Pick tonight's dare: three real options dealt at once (spanning Easy →
+// Hard when your history allows). Pick one, take it. ⇄ deals a new hand.
 export const ChallengeGeneratorScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -110,24 +123,32 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
   };
 
   const selected = selectedIndex != null ? hand[selectedIndex] : null;
+  const selectedMovie = selected ? getMovieById(selected.targetMovieId) : null;
 
   const handleAccept = () => {
     if (!selected) return;
     acceptChallenge(selected);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(t("Challenge accepted"), {
-      tone: "success",
-    });
+    showToast(
+      t("Dare on: watch {title} to earn {xp} XP", {
+        title: selectedMovie?.title ?? "",
+        xp: selected.xpReward,
+      }),
+      { tone: "success" },
+    );
     navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <StackHeader
-        title={t("New challenge")}
+        title={t("New dare")}
         onBack={() => navigation.goBack()}
         right={
-          <HeaderIconButton onPress={reshuffle}>
+          <HeaderIconButton
+            onPress={reshuffle}
+            accessibilityLabel={t("Deal three new ones")}
+          >
             <Shuffle size={22} strokeWidth={1.75} color={colors.textPrimary} />
           </HeaderIconButton>
         }
@@ -137,20 +158,16 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.intro}>
-          <Text style={styles.introText}>
-            {t("Pick the one that sounds most fun tonight.")}
-          </Text>
-        </View>
+        <HowItWorks styles={styles} />
 
         {hand.length === 0 ? (
           <Text style={styles.empty}>
-            {t("No challenges right now — you've seen it all. Impressive.")}
+            {t("No dares right now — you've seen it all. Impressive.")}
           </Text>
         ) : (
           <View key={handId} style={styles.hand}>
             {hand.map((challenge, index) => (
-              <OptionCard
+              <DareCard
                 key={challenge.id}
                 challenge={challenge}
                 index={index}
@@ -164,8 +181,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         )}
 
         {hand.length > 0 && (
-          <Pressable style={styles.reshuffleLink} onPress={reshuffle}>
-            <Shuffle size={14} color={colors.textSecondary} />
+          <Pressable style={styles.reshuffle} onPress={reshuffle} hitSlop={8}>
             <Text style={styles.reshuffleText}>{t("Deal three new ones")}</Text>
           </Pressable>
         )}
@@ -173,7 +189,14 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={selected ? t("Accept challenge") : t("Select a challenge")}
+          label={
+            selected
+              ? t('Take "{name}" · +{xp} XP', {
+                  name: t(selected.title),
+                  xp: selected.xpReward,
+                })
+              : t("Pick a dare above")
+          }
           variant={selected ? "primary" : "secondary"}
           disabled={!selected}
           onPress={handleAccept}
@@ -190,45 +213,91 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     content: {
-      padding: spacing.md,
+      paddingBottom: spacing.lg,
     },
-    intro: {
+
+    // How it works: three numbered steps edge to edge, 2px apart.
+    steps: {
+      flexDirection: "row",
+      gap: 2,
+    },
+    step: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.xs + 2,
-      marginBottom: spacing.md,
+      gap: spacing.sm,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.sm + 2,
+      backgroundColor: colors.card,
     },
-    introText: {
-      ...typography.body,
+    stepNumber: {
+      ...typography.title,
+      fontSize: 18,
+      color: colors.textPrimary,
+    },
+    stepLabel: {
+      ...typography.caption,
+      flex: 1,
       color: colors.textSecondary,
     },
+
     hand: {
-      gap: spacing.sm,
+      gap: 2,
+      marginTop: spacing.md,
     },
-    option: {
-      flexDirection: "row",
-      gap: spacing.md,
-      padding: spacing.sm + 2,
+    // A dare: filled, edge to edge; selected gets a white border.
+    card: {
+      padding: spacing.md,
       backgroundColor: colors.card,
       borderWidth: 2,
       borderColor: "transparent",
     },
-    optionSelected: {
+    cardSelected: {
       borderColor: colors.textPrimary,
-      backgroundColor: colors.cardElevatedLight,
     },
-    poster: {
-      width: 64,
-      aspectRatio: 2 / 3,
+    cardTop: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: spacing.sm,
     },
-    optionInfo: {
+    dareName: {
+      ...typography.title,
+      fontSize: 18,
       flex: 1,
-      gap: 3,
+      color: colors.textPrimary,
     },
-    optionTopRow: {
+    reward: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.rating,
+    },
+    why: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    movieRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      gap: spacing.sm + 2,
+      marginTop: spacing.md,
+    },
+    poster: {
+      width: 40,
+      height: 60,
+    },
+    movieInfo: {
+      flex: 1,
+    },
+    movieTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    movieMeta: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: 1,
     },
     difficulty: {
       flexDirection: "row",
@@ -244,36 +313,9 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 12,
     },
-    movieTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-      marginTop: 2,
-    },
-    movieMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    description: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    // On the poster's corner, so it never covers the XP on the right.
-    check: {
-      position: "absolute",
-      top: spacing.sm + 4,
-      start: spacing.sm + 4,
-      width: 22,
-      height: 22,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.selected,
-    },
-    reshuffleLink: {
-      flexDirection: "row",
-      alignItems: "center",
+
+    reshuffle: {
       alignSelf: "center",
-      gap: 6,
       marginTop: spacing.lg,
       padding: spacing.xs,
     },
@@ -287,12 +329,13 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       textAlign: "center",
       marginTop: spacing.xl,
+      paddingHorizontal: spacing.md,
     },
     footer: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
-      backgroundColor: colors.card,
+      backgroundColor: colors.background,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
     },

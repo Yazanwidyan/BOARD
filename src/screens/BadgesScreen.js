@@ -311,7 +311,7 @@ export const BadgesScreen = ({ navigation }) => {
                         <MoviePoster
                           key={movie.id}
                           uri={movie.poster}
-                          radius={radius.xs}
+                          radius={0}
                           style={[
                             styles.marqueePoster,
                             {

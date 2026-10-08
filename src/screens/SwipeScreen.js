@@ -1,30 +1,24 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Check, Dices, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
+  Image,
   Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
 } from "react-native";
-import { Text } from "../components/AppText";
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Text } from "../components/AppText";
 import { BackButton } from "../components/BackButton";
-import { DvdSwipeCard } from "../components/DvdSwipeCard";
-import { MarqueeSign } from "../components/MarqueeSign";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { DieArt, KeepArt, PassArt, VsBadge } from "../components/SwipeArt";
+import { StorySwipeCard } from "../components/StorySwipeCard";
+import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { showToast } from "../store/toastStore";
@@ -32,119 +26,66 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
-import { t } from "../i18n";
 
-// Swipe as a "video store run": each movie is a DVD case pulled off the
-// shelf — Keep drops it in your basket, Pass puts it back. Each round is an
-// aisle; between aisles you see what you're holding; the last two or three
-// face off in head-to-head duels; the winner goes up on the marquee.
+// Swipe in story mode, like Instagram Stories: each movie fills the screen
+// (its poster over a blurred copy of itself), with story bars across the
+// top for the round. Swipe up to keep, down to pass — or use the buttons.
+// Rounds narrow the pile; the last two or three go head to head; the
+// winner gets the whole screen.
 
 const TRANSITION_AUTO_ADVANCE_MS = 2600;
-const CASE_ASPECT = 1.42;
-const BASKET_SHOWN = 7;
-// Space the fixed parts of the swiping screen take, for sizing the case.
-const CHROME_HEIGHT = 56 + 26 + 58 + 104 + 72 + spacing.lg * 2;
+const CARDS_RENDERED = 3; // front card plus a couple waiting behind
+const POSTER_ASPECT = 1.5;
 
-const FadeInView = ({ children, style, delay = 0 }) => {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
-
-  useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 380 }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 380 }));
-  }, [delay, opacity, translateY]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  return (
-    <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>
-  );
-};
-
-// A small static DVD case (poster in a black case with a hinge strip).
-const MiniCase = ({ movie, width, style, styles }) => (
-  <View
-    style={[styles.miniCase, { width, height: width * CASE_ASPECT }, style]}
-  >
-    <View style={styles.miniHinge} />
-    <MoviePoster uri={movie.poster} style={styles.miniCover} />
-  </View>
-);
-
-// Progress for the aisle as a row of spines — kept ones lit green, passed
-// ones dim, the current one white, the rest still dark on the shelf.
-const AisleSpines = ({ count, index, keptIds, movies, styles, colors }) => (
-  <View style={styles.spines}>
-    {Array.from({ length: count }, (_, spineIndex) => {
-      const movie = movies[spineIndex];
-      const backgroundColor =
-        spineIndex === index
-          ? colors.textPrimary
-          : spineIndex < index
-            ? keptIds.has(movie?.id)
-              ? colors.success
-              : colors.cardElevatedLight
-            : colors.surfaceSoft;
-      return (
-        <View key={spineIndex} style={[styles.spine, { backgroundColor }]} />
-      );
-    })}
-  </View>
-);
-
-// KEEP / PASS as price stickers — a rounded tag with a punched hole.
-const PriceSticker = ({ label, color, rotate, style, styles }) => (
-  <Animated.View
-    style={[
-      styles.sticker,
-      { backgroundColor: color, transform: [{ rotate }] },
-      style,
-    ]}
-  >
-    <View style={styles.stickerHole} />
-    <Text style={styles.stickerText}>{label}</Text>
-  </Animated.View>
-);
-
-// The basket tray along the bottom: the cases you've kept this aisle.
-const BasketTray = ({ movies, styles, colors }) => (
-  <View style={styles.basket}>
-    <KeepArt size={28} color={colors.textSecondary} />
-    {movies.length === 0 ? (
-      <Text style={styles.basketEmpty}>{t("Your basket is empty")}</Text>
-    ) : (
-      <>
-        <View style={styles.basketCases}>
-          {movies.slice(-BASKET_SHOWN).map((movie, index) => (
-            <MiniCase
-              key={movie.id}
-              movie={movie}
-              width={24}
-              style={[
-                index > 0 && styles.basketOverlap,
-                { transform: [{ rotate: `${(index % 3) * 4 - 4}deg` }] },
-              ]}
-              styles={styles}
-            />
-          ))}
-        </View>
-        <Text style={styles.basketCount}>{movies.length} kept</Text>
-      </>
+// The movie's poster, blurred, filling the screen and fading into the page.
+const Backdrop = ({ uri, colors }) => (
+  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    {!!uri && (
+      <Animated.View
+        key={uri}
+        entering={FadeIn.duration(300)}
+        style={StyleSheet.absoluteFill}
+      >
+        <Image
+          source={{ uri }}
+          blurRadius={30}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
     )}
+    <LinearGradient
+      colors={[
+        `${colors.background}99`,
+        `${colors.background}CC`,
+        colors.background,
+      ]}
+      locations={[0, 0.55, 1]}
+      style={StyleSheet.absoluteFill}
+    />
   </View>
 );
 
-// The last two or three, decided in 1-vs-1 duels: tap the one you'd rather
-// watch; the winner stays for the next duel until one is left.
-const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
+// Story bars: one per movie in the round — seen ones and the current one
+// lit, the rest dim.
+const StoryBars = ({ count, index, styles }) => (
+  <View style={styles.bars}>
+    {Array.from({ length: count }, (_, barIndex) => (
+      <View
+        key={barIndex}
+        style={[styles.bar, barIndex <= index && styles.barLit]}
+      />
+    ))}
+  </View>
+);
+
+// The last two or three, decided head to head: tap the one you'd rather
+// watch; the winner stays in for the next duel until one is left.
+const Duels = ({ movies, onDecided, onDetails, styles }) => {
   const { width } = useWindowDimensions();
   const [queue, setQueue] = useState(movies);
   const totalDuels = movies.length - 1;
   const duelNumber = movies.length - queue.length + 1;
-  const caseWidth = Math.min(160, (width - spacing.md * 2 - 44) / 2);
+  const posterWidth = Math.floor((width - spacing.md * 2 - spacing.lg) / 2);
   const pair = queue.slice(0, 2);
 
   const pick = (winner) => {
@@ -154,50 +95,64 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
   };
 
   return (
-    <FadeInView
+    <Animated.View
       key={pair.map((movie) => movie.id).join("-")}
+      entering={FadeIn.duration(260)}
       style={styles.duel}
     >
-      <Text style={styles.duelCount}>
-        {t("Duel")} {duelNumber} of {totalDuels}
+      <Text style={styles.caption}>
+        {t("Duel {current} of {total}", {
+          current: duelNumber,
+          total: totalDuels,
+        })}
       </Text>
       <Text style={styles.duelHeading}>
         {t("Which would you rather watch?")}
       </Text>
       <View style={styles.duelRow}>
-        {pair.map((movie) => (
-          <View key={movie.id} style={[styles.duelSide, { width: caseWidth }]}>
+        {pair.map((movie, sideIndex) => (
+          <View
+            key={movie.id}
+            style={[styles.duelSide, { width: posterWidth }]}
+          >
             <Pressable
               onPress={() => pick(movie)}
-              style={({ pressed }) => pressed && styles.duelPressed}
+              style={({ pressed }) => pressed && styles.pressed}
               accessibilityLabel={t("Choose {title}", { title: movie.title })}
             >
-              <MiniCase movie={movie} width={caseWidth} styles={styles} />
+              <MoviePoster
+                uri={movie.poster}
+                style={{
+                  width: posterWidth,
+                  height: posterWidth * POSTER_ASPECT,
+                }}
+              />
             </Pressable>
             <Text style={styles.duelTitle} numberOfLines={2}>
               {movie.title}
             </Text>
-            <Text style={styles.duelMeta}>
-              {movie.year} · {movie.genres[0]}
+            <Text style={styles.meta}>
+              {movie.year} · {t(movie.genres[0])}
             </Text>
             <Pressable onPress={() => onDetails(movie)} hitSlop={8}>
-              <Text style={styles.duelDetails}>{t("Details")}</Text>
+              <Text style={styles.link}>{t("Details")}</Text>
             </Pressable>
+            {sideIndex === 0 && (
+              <View style={styles.orBadge} pointerEvents="none">
+                <Text style={styles.orText}>{t("or")}</Text>
+              </View>
+            )}
           </View>
         ))}
-        <View style={styles.vs} pointerEvents="none">
-          <VsBadge color={colors.rating} textColor="#5A3F0C" />
-        </View>
       </View>
-      <Text style={styles.duelHint}>{t("Tap a case to choose it")}</Text>
-    </FadeInView>
+      <Text style={styles.hint}>{t("Tap the one you'd rather watch")}</Text>
+    </Animated.View>
   );
 };
 
 export const SwipeScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const sessionActive = useSessionStore((state) => state.sessionActive);
   const phase = useSessionStore((state) => state.phase);
@@ -220,75 +175,46 @@ export const SwipeScreen = ({ navigation }) => {
   );
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
 
-  // The case fills what's left after the header, spines, info, buttons and
-  // basket.
-  const cardHeight = Math.max(
-    220,
-    Math.min(
-      height - insets.top - insets.bottom - CHROME_HEIGHT,
-      (width - 96) * CASE_ASPECT,
-    ),
-  );
-  const cardWidth = cardHeight / CASE_ASPECT;
-  // From the case's centre down to the basket.
-  const keepDropY = cardHeight / 2 + 58 + 104 + 36 + spacing.lg;
+  // The card fills the stage, measured — no guessed heights, so it never
+  // crowds the buttons on a small phone.
+  const [stage, setStage] = useState(null);
+  const cardSize = stage
+    ? (() => {
+        const maxWidth = stage.width - spacing.md * 2;
+        const maxHeight = stage.height - spacing.md;
+        const cardWidth = Math.min(maxWidth, maxHeight / POSTER_ASPECT);
+        return {
+          width: Math.floor(cardWidth),
+          height: Math.floor(cardWidth * POSTER_ASPECT),
+        };
+      })()
+    : null;
 
   const activeMovie = roundMovies[roundIndex];
-  const stackMovies = roundMovies.slice(roundIndex);
-  const keptIds = new Set(roundKept.map((movie) => movie.id));
-
-  // Owned here so the KEEP / PASS stickers above the stack can follow the
-  // active case's drag.
-  const swipeX = useSharedValue(0);
-  const swipeThreshold = width * 0.28;
-
-  useEffect(() => {
-    swipeX.value = 0;
-  }, [activeMovie?.id, swipeX]);
-
-  const keepStickerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      swipeX.value,
-      [10, swipeThreshold],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
-  }));
-  const passStickerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      swipeX.value,
-      [-swipeThreshold, -10],
-      [1, 0],
-      Extrapolation.CLAMP,
-    ),
-  }));
+  const waiting = roundMovies.slice(roundIndex, roundIndex + CARDS_RENDERED);
+  const frontCardRef = useRef(null);
 
   const handleKeep = useCallback(() => swipe("right"), [swipe]);
   const handlePass = useCallback(() => swipe("left"), [swipe]);
 
-  // Buttons play the same exit as a drag.
-  const activeCardRef = useRef(null);
-  const handleKeepPress = useCallback(() => {
-    activeCardRef.current?.triggerSwipe("right");
-  }, []);
-  const handlePassPress = useCallback(() => {
-    activeCardRef.current?.triggerSwipe("left");
-  }, []);
-
-  // Let fate pick: a winner straight out of what's left in this aisle.
+  // Let fate pick: a winner straight out of what's left in this round.
   const handleFate = useCallback(() => {
-    if (stackMovies.length === 0) return;
-    chooseFinal(stackMovies[Math.floor(Math.random() * stackMovies.length)]);
-  }, [stackMovies, chooseFinal]);
-
-  const handleBack = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    const left = roundMovies.slice(roundIndex);
+    if (left.length === 0) return;
+    chooseFinal(left[Math.floor(Math.random() * left.length)]);
+  }, [roundMovies, roundIndex, chooseFinal]);
 
   const openDetails = useCallback(
     (movie) => navigation.navigate("MovieDetails", { movieId: movie.id }),
     [navigation],
   );
+
+  // Leaving mid-session keeps it to resume later; leaving the result ends it,
+  // so the next Swipe starts fresh instead of reopening an old winner.
+  const handleBack = useCallback(() => {
+    if (phase === "final") endSession();
+    navigation.goBack();
+  }, [phase, endSession, navigation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -296,9 +222,7 @@ export const SwipeScreen = ({ navigation }) => {
     }, [sessionActive, navigation]),
   );
 
-  // The edge swipe-back is off at the navigator level (an accidental swipe
-  // shouldn't derail a session); Android's hardware back goes through the
-  // same intentional exit as the button.
+  // Android's hardware back goes through the same exit as the button.
   useFocusEffect(
     useCallback(() => {
       const subscription = BackHandler.addEventListener(
@@ -322,78 +246,62 @@ export const SwipeScreen = ({ navigation }) => {
     return <View style={styles.container} />;
   }
 
-  const header = (title, subtitle, onBack = handleBack) => (
-    <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-      <BackButton onPress={onBack} />
-      <View style={styles.headerText} pointerEvents="none">
-        <Text style={styles.headerTitle}>{title}</Text>
-        {!!subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-      </View>
-      <View style={styles.headerSpacer} />
+  const topBar = (title, right) => (
+    <View style={styles.topBar}>
+      <BackButton onPress={handleBack} />
+      <Text style={styles.topTitle} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={styles.topRight} numberOfLines={1}>
+        {right}
+      </Text>
     </View>
   );
 
-  // ---------- Between aisles ----------
+  // ---------- Between rounds ----------
   if (phase === "transition" && transition) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.card, colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
-        {header(t("Aisle {number}", { number: roundNumber }), t("Done"))}
-        <FadeInView style={styles.transitionBody}>
-          <Text style={styles.transitionEyebrow}>
-            {t("Next · Aisle")} {roundNumber + 1}
+      <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+        <Backdrop uri={pendingNextMovies[0]?.poster} colors={colors} />
+        {topBar(t("Round {number}", { number: roundNumber }), "")}
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={styles.centerBody}
+        >
+          <Text style={styles.caption}>
+            {t("Round {number}", { number: roundNumber + 1 })}
           </Text>
-          <Text style={styles.transitionTitle}>
-            {t("You're holding")} {transition.toCount}
+          <Text style={styles.bigTitle}>
+            {t("{count} left", { count: transition.toCount })}
           </Text>
-          <Text style={styles.transitionMessage}>{transition.message}</Text>
-          <View style={styles.transitionCases}>
-            {pendingNextMovies.slice(0, 6).map((movie, index, list) => (
-              <MiniCase
+          <Text style={styles.message}>{t(transition.message)}</Text>
+          <View style={styles.posterStrip}>
+            {pendingNextMovies.slice(0, 6).map((movie) => (
+              <MoviePoster
                 key={movie.id}
-                movie={movie}
-                width={54}
-                style={[
-                  index > 0 && styles.transitionOverlap,
-                  {
-                    zIndex: list.length - index,
-                    transform: [
-                      { rotate: `${(index - (list.length - 1) / 2) * 6}deg` },
-                    ],
-                  },
-                ]}
-                styles={styles}
+                uri={movie.poster}
+                style={styles.stripPoster}
               />
             ))}
           </View>
-          <Text style={styles.transitionCounts}>
-            {transition.fromCount} {t("looked at ·")} {transition.toCount}{" "}
-            {t("in the basket")}
-          </Text>
           <PrimaryButton
-            label={t("Next aisle")}
+            label={t("Next round")}
             onPress={continueToNextRound}
-            style={styles.transitionButton}
+            style={styles.fullButton}
           />
-        </FadeInView>
+        </Animated.View>
       </View>
     );
   }
 
-  // ---------- The final few: duels ----------
+  // ---------- The final few, head to head ----------
   if (phase === "choose") {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.card, colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
-        {header(
+      <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+        <Backdrop uri={roundMovies[0]?.poster} colors={colors} />
+        {topBar(
           roundMovies.length === 2 ? t("Final two") : t("Final three"),
-          t("Aisle {number}", { number: roundNumber }),
+          "",
         )}
         <Duels
           key={roundMovies.map((movie) => movie.id).join("-")}
@@ -401,13 +309,12 @@ export const SwipeScreen = ({ navigation }) => {
           onDecided={chooseFinal}
           onDetails={openDetails}
           styles={styles}
-          colors={colors}
         />
       </View>
     );
   }
 
-  // ---------- The winner, on the marquee ----------
+  // ---------- The winner ----------
   if (phase === "final" && finalMovie) {
     // Stays here (no jump to Home); the toast confirms it and the button
     // flips to a done state.
@@ -419,65 +326,53 @@ export const SwipeScreen = ({ navigation }) => {
     };
 
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.card, colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
-        {header("It's decided", null, () => {
-          endSession();
-          navigation.goBack();
-        })}
-        <FadeInView style={styles.finalBody}>
-          <MarqueeSign
-            label={t("NOW SHOWING · TONIGHT")}
-            backdropUri={finalMovie.poster}
+      <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+        <Backdrop uri={finalMovie.poster} colors={colors} />
+        {topBar(t("It's decided"), "")}
+        <Animated.View
+          entering={FadeIn.duration(360)}
+          style={styles.centerBody}
+        >
+          <Pressable
+            onPress={() => openDetails(finalMovie)}
+            accessibilityLabel={t("Open {title}", { title: finalMovie.title })}
           >
-            <View style={styles.finalInner}>
-              <Pressable
-                onPress={() => openDetails(finalMovie)}
-                accessibilityLabel={t("Open {title}", {
-                  title: finalMovie.title,
-                })}
-              >
-                <MiniCase movie={finalMovie} width={132} styles={styles} />
-              </Pressable>
-              <Text style={styles.finalTitle} numberOfLines={2}>
-                {finalMovie.title}
-              </Text>
-              <Text style={styles.finalMeta}>
-                {finalMovie.year} · {formatRuntime(finalMovie.runtime)}{" "}
-                {t("· IMDb")} {finalMovie.rating.toFixed(1)}
-              </Text>
-              <Text style={styles.finalFrom}>
-                {t("Picked from")} {originalMovies.length} movies
-              </Text>
-            </View>
-          </MarqueeSign>
-        </FadeInView>
-
+            <MoviePoster uri={finalMovie.poster} style={styles.winnerPoster} />
+          </Pressable>
+          <Text style={styles.caption}>{t("Tonight's pick")}</Text>
+          <Text style={styles.bigTitle} numberOfLines={2}>
+            {finalMovie.title}
+          </Text>
+          <Text style={styles.meta}>
+            {finalMovie.year} · {formatRuntime(finalMovie.runtime)} · IMDb{" "}
+            {finalMovie.rating.toFixed(1)}
+          </Text>
+          <Text style={styles.message}>
+            {t("Picked from {count} movies", { count: originalMovies.length })}
+          </Text>
+        </Animated.View>
         <View
           style={[
-            styles.finalActions,
+            styles.actionsStack,
             { paddingBottom: insets.bottom + spacing.md },
           ]}
         >
           <PrimaryButton
             label={
               isFinalMoviePicked
-                ? t("Tonight's pick")
+                ? t("Tonight's pick ✓")
                 : t("Make it tonight's pick")
             }
             variant={isFinalMoviePicked ? "secondary" : "primary"}
             disabled={isFinalMoviePicked}
             onPress={makeTonightsPick}
           />
-          <View style={styles.finalSecondaryRow}>
+          <View style={styles.actionsRow}>
             <PrimaryButton
               label={t("Details")}
               variant="secondary"
               onPress={() => openDetails(finalMovie)}
-              style={styles.finalSecondaryButton}
+              style={styles.flex}
             />
             <PrimaryButton
               label={t("Start over")}
@@ -486,7 +381,7 @@ export const SwipeScreen = ({ navigation }) => {
                 endSession();
                 navigation.replace("Preferences");
               }}
-              style={styles.finalSecondaryButton}
+              style={styles.flex}
             />
           </View>
         </View>
@@ -494,74 +389,44 @@ export const SwipeScreen = ({ navigation }) => {
     );
   }
 
-  // ---------- Swiping an aisle ----------
+  // ---------- Swiping a round ----------
   return (
-    <View style={styles.container}>
-      {header(
-        t("Aisle {number}", { number: roundNumber }),
-        t("{current} of {total}", {
-          current: Math.min(roundIndex + 1, roundMovies.length),
-          total: roundMovies.length,
-        }),
-      )}
-      <AisleSpines
+    <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+      <Backdrop uri={activeMovie?.poster} colors={colors} />
+      <StoryBars
         count={roundMovies.length}
         index={roundIndex}
-        keptIds={keptIds}
-        movies={roundMovies}
         styles={styles}
-        colors={colors}
       />
+      {topBar(
+        t("Round {number}", { number: roundNumber }),
+        t("{count} kept", { count: roundKept.length }),
+      )}
 
-      <View style={[styles.stage, { height: cardHeight + spacing.lg }]}>
-        <View style={[styles.stack, { width: cardWidth, height: cardHeight }]}>
-          {stackMovies
-            .map((movie, stackIndex) => ({ movie, stackIndex }))
-            .filter(({ stackIndex }) => stackIndex > 0 && stackIndex < 6)
-            .reverse()
-            .map(({ movie, stackIndex }) => (
-              <DvdSwipeCard
+      <View
+        style={styles.stage}
+        onLayout={(event) => {
+          const { width, height } = event.nativeEvent.layout;
+          setStage({ width, height });
+        }}
+      >
+        {cardSize &&
+          [...waiting].reverse().map((movie) => {
+            const front = movie.id === activeMovie?.id;
+            return (
+              <StorySwipeCard
                 key={movie.id}
+                ref={front ? frontCardRef : undefined}
                 movie={movie}
-                cardWidth={cardWidth}
-                cardHeight={cardHeight}
-                index={stackIndex}
+                width={cardSize.width}
+                height={cardSize.height}
+                front={front}
+                onKeep={handleKeep}
+                onPass={handlePass}
+                onPress={() => openDetails(movie)}
               />
-            ))}
-          {activeMovie && (
-            <DvdSwipeCard
-              ref={activeCardRef}
-              key={activeMovie.id}
-              movie={activeMovie}
-              cardWidth={cardWidth}
-              cardHeight={cardHeight}
-              index={0}
-              active
-              keepDropY={keepDropY}
-              onSwipeLeft={handlePass}
-              onSwipeRight={handleKeep}
-              onPress={() => openDetails(activeMovie)}
-              swipeX={swipeX}
-            />
-          )}
-        </View>
-
-        <View style={styles.stickers} pointerEvents="none">
-          <PriceSticker
-            label={t("PASS")}
-            color={colors.danger}
-            rotate="-10deg"
-            style={passStickerStyle}
-            styles={styles}
-          />
-          <PriceSticker
-            label={t("KEEP")}
-            color={colors.success}
-            rotate="10deg"
-            style={keepStickerStyle}
-            styles={styles}
-          />
-        </View>
+            );
+          })}
       </View>
 
       {activeMovie && (
@@ -569,62 +434,58 @@ export const SwipeScreen = ({ navigation }) => {
           <Text style={styles.infoTitle} numberOfLines={1}>
             {activeMovie.title}
           </Text>
-          <Text style={styles.infoMeta} numberOfLines={1}>
-            {activeMovie.year} · {activeMovie.genres[0]} ·{" "}
-            {formatRuntime(activeMovie.runtime)} · {activeMovie.director}
+          <Text style={styles.meta} numberOfLines={1}>
+            {activeMovie.year} · {t(activeMovie.genres[0])} ·{" "}
+            {formatRuntime(activeMovie.runtime)}
           </Text>
+          {roundNumber === 1 && roundIndex === 0 && (
+            <Text style={styles.hint}>
+              {t("Swipe up to keep · down to pass")}
+            </Text>
+          )}
         </View>
       )}
 
-      <View style={styles.actions}>
-        <View style={styles.action}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.bigButton,
-              styles.passButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handlePassPress}
-            disabled={!activeMovie}
-            accessibilityLabel={t("Pass")}
-          >
-            <PassArt size={32} color={colors.danger} />
-          </Pressable>
-          <Text style={styles.actionLabel}>{t("Pass")}</Text>
-        </View>
-        <View style={styles.action}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.smallButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleFate}
-            disabled={!activeMovie}
-            accessibilityLabel={t("Let fate pick")}
-          >
-            <DieArt size={24} color={colors.textPrimary} />
-          </Pressable>
-          <Text style={styles.actionLabel}>{t("Fate")}</Text>
-        </View>
-        <View style={styles.action}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.bigButton,
-              styles.keepButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleKeepPress}
-            disabled={!activeMovie}
-            accessibilityLabel={t("Keep")}
-          >
-            <KeepArt size={32} color={colors.success} />
-          </Pressable>
-          <Text style={styles.actionLabel}>{t("Keep")}</Text>
-        </View>
-      </View>
-
-      <View style={{ paddingBottom: insets.bottom + spacing.sm }}>
-        <BasketTray movies={roundKept} styles={styles} colors={colors} />
+      <View
+        style={[styles.controls, { paddingBottom: insets.bottom + spacing.md }]}
+      >
+        {[
+          {
+            key: "pass",
+            label: t("Pass"),
+            Icon: X,
+            onPress: () => frontCardRef.current?.trigger("pass"),
+          },
+          { key: "fate", label: t("Fate"), Icon: Dices, onPress: handleFate },
+          {
+            key: "keep",
+            label: t("Keep"),
+            Icon: Check,
+            onPress: () => frontCardRef.current?.trigger("keep"),
+          },
+        ].map(({ key, label, Icon, onPress }) => (
+          <View key={key} style={styles.control}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.controlButton,
+                key === "keep" && styles.controlKeep,
+                pressed && styles.pressed,
+              ]}
+              onPress={onPress}
+              disabled={!activeMovie}
+              accessibilityLabel={label}
+            >
+              <Icon
+                size={24}
+                strokeWidth={2}
+                color={
+                  key === "keep" ? colors.selectedText : colors.textPrimary
+                }
+              />
+            </Pressable>
+            <Text style={styles.controlLabel}>{label}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -636,255 +497,151 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    pressed: {
+      opacity: 0.7,
+    },
+    flex: {
+      flex: 1,
+    },
 
-    // Header
-    header: {
+    // Story bars + top row
+    bars: {
+      flexDirection: "row",
+      gap: 3,
+      paddingHorizontal: spacing.md,
+    },
+    bar: {
+      flex: 1,
+      height: 3,
+      backgroundColor: colors.surfaceSoft,
+    },
+    barLit: {
+      backgroundColor: colors.textPrimary,
+    },
+    topBar: {
       flexDirection: "row",
       alignItems: "center",
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
+      height: 48,
     },
-    headerText: {
-      flex: 1,
-      alignItems: "center",
-    },
-    headerTitle: {
+    topTitle: {
       ...typography.title,
-      fontSize: 18,
-      letterSpacing: -0.3,
+      fontSize: 17,
+      flex: 1,
       color: colors.textPrimary,
     },
-    headerSubtitle: {
-      ...typography.caption,
+    topRight: {
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.textSecondary,
-      marginTop: 1,
-    },
-    headerSpacer: {
-      width: 40,
     },
 
-    // Aisle progress spines
-    spines: {
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: 4,
-      paddingHorizontal: spacing.lg,
-      height: 18,
-      alignItems: "flex-end",
-    },
-    spine: {
-      flex: 1,
-      maxWidth: 14,
-      height: 16,
-      borderTopStartRadius: 2,
-      borderTopEndRadius: 2,
-    },
-
-    // Swiping stage
+    // Swiping
     stage: {
-      alignItems: "center",
-      justifyContent: "flex-end",
-      marginTop: spacing.lg,
-    },
-    stack: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
     },
-    stickers: {
-      position: "absolute",
-      top: spacing.xs,
-      start: spacing.lg,
-      end: spacing.lg,
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    sticker: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      paddingStart: 10,
-      paddingEnd: 16,
-      paddingVertical: 7,
-      shadowColor: "#000000",
-      shadowOpacity: 0.35,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 6,
-    },
-    stickerHole: {
-      width: 9,
-      height: 9,
-      borderRadius: 5,
-      backgroundColor: colors.background,
-    },
-    stickerText: {
-      ...typography.hero,
-      fontSize: 20,
-      lineHeight: 24,
-      letterSpacing: 3,
-      color: "#FFFFFF",
-    },
-
-    // Active movie
     info: {
       alignItems: "center",
       paddingHorizontal: spacing.lg,
-      marginTop: spacing.md,
-      height: 46,
+      paddingTop: spacing.sm,
+      gap: 2,
     },
     infoTitle: {
       ...typography.title,
       fontSize: 19,
       color: colors.textPrimary,
     },
-    infoMeta: {
+    meta: {
       ...typography.caption,
       color: colors.textSecondary,
-      marginTop: 2,
+      textAlign: "center",
     },
-
-    // Buttons
-    actions: {
+    hint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.xs,
+    },
+    controls: {
       flexDirection: "row",
-      alignItems: "flex-start",
       justifyContent: "center",
       gap: spacing.xl,
-      marginTop: spacing.md,
+      paddingTop: spacing.md,
     },
-    action: {
+    control: {
       alignItems: "center",
       gap: 6,
     },
-    bigButton: {
-      width: 66,
-      height: 66,
+    // Square filled boxes; Keep is the filled (main) one.
+    controlButton: {
+      width: 56,
+      height: 56,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
-      borderWidth: 1.5,
     },
-    passButton: {
-      borderColor: `${colors.danger}88`,
+    controlKeep: {
+      backgroundColor: colors.selected,
     },
-    keepButton: {
-      borderColor: `${colors.success}88`,
-    },
-    smallButton: {
-      width: 48,
-      height: 48,
-      marginTop: 9,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    buttonPressed: {
-      transform: [{ scale: 0.94 }],
-    },
-    actionLabel: {
+    controlLabel: {
       ...typography.caption,
-      fontSize: 12,
       color: colors.textSecondary,
     },
 
-    // Basket
-    basket: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm + 2,
-      marginTop: spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      minHeight: 56,
-      backgroundColor: colors.card,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-    },
-    basketCases: {
-      flexDirection: "row",
-      flex: 1,
-    },
-    basketOverlap: {
-      marginStart: -8,
-    },
-    basketCount: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.success,
-    },
-    basketEmpty: {
-      ...typography.caption,
-      flex: 1,
-      color: colors.textMuted,
-    },
-
-    // Mini DVD case
-    miniCase: {
-      flexDirection: "row",
-      padding: 2,
-      paddingStart: 0,
-      borderRadius: 3,
-      backgroundColor: "#0D0D12",
-      borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.1)",
-      shadowColor: "#000000",
-      shadowOpacity: 0.4,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 3,
-    },
-    miniHinge: {
-      width: "9%",
-      minWidth: 3,
-    },
-    miniCover: {
-      flex: 1,
-      height: "100%",
-    },
-
-    // Between aisles
-    transitionBody: {
+    // Between rounds / winner
+    centerBody: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.xl,
+      gap: spacing.xs,
     },
-    transitionEyebrow: {
+    caption: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: colors.textSecondary,
+      textAlign: "center",
     },
-    transitionTitle: {
-      ...typography.hero,
+    bigTitle: {
+      ...typography.display,
       fontSize: 30,
       lineHeight: 36,
       color: colors.textPrimary,
       textAlign: "center",
-      marginTop: spacing.xs,
     },
-    transitionMessage: {
+    message: {
       ...typography.body,
       color: colors.textSecondary,
       textAlign: "center",
       marginTop: spacing.xs,
     },
-    transitionCases: {
+    posterStrip: {
       flexDirection: "row",
-      justifyContent: "center",
-      marginTop: spacing.xl,
-    },
-    transitionOverlap: {
-      marginStart: -18,
-    },
-    transitionCounts: {
-      ...typography.caption,
-      color: colors.textMuted,
+      gap: 2,
       marginTop: spacing.lg,
     },
-    transitionButton: {
+    stripPoster: {
+      width: 48,
+      height: 72,
+    },
+    fullButton: {
       alignSelf: "stretch",
       marginTop: spacing.xl,
+    },
+    winnerPoster: {
+      width: 176,
+      height: 264,
+      marginBottom: spacing.md,
+    },
+    actionsStack: {
+      paddingHorizontal: spacing.md,
+      gap: 2,
+    },
+    actionsRow: {
+      flexDirection: "row",
+      gap: 2,
     },
 
     // Duels
@@ -894,17 +651,13 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xl,
     },
-    duelCount: {
-      ...typography.caption,
-      color: colors.textMuted,
-      textAlign: "center",
-    },
     duelHeading: {
       ...typography.title,
+      fontSize: 20,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.xs,
-      marginBottom: spacing.xl,
+      marginBottom: spacing.lg,
     },
     duelRow: {
       flexDirection: "row",
@@ -913,78 +666,33 @@ const createStyles = (colors) =>
     duelSide: {
       alignItems: "center",
     },
-    duelPressed: {
-      transform: [{ scale: 0.96 }],
-    },
     duelTitle: {
       ...typography.bodyBold,
       color: colors.textPrimary,
       textAlign: "center",
-      marginTop: spacing.sm + 2,
+      marginTop: spacing.sm,
     },
-    duelMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    duelDetails: {
+    link: {
       ...typography.bodyBold,
       fontSize: 13,
       color: colors.textPrimary,
       marginTop: spacing.sm,
     },
-    vs: {
+    // "or" sits in the gap between the two posters.
+    orBadge: {
       position: "absolute",
-      start: 0,
-      end: 0,
-      top: "28%",
+      top: "30%",
+      end: -(spacing.lg / 2) - 16,
+      width: 32,
+      height: 32,
       alignItems: "center",
-    },
-    duelHint: {
-      ...typography.caption,
-      color: colors.textMuted,
-      textAlign: "center",
-      marginTop: spacing.xl,
-    },
-
-    // Winner
-    finalBody: {
-      flex: 1,
       justifyContent: "center",
-      paddingHorizontal: spacing.md,
+      backgroundColor: colors.background,
     },
-    finalInner: {
-      alignItems: "center",
-      paddingBottom: spacing.xs,
-    },
-    finalTitle: {
-      ...typography.hero,
-      fontSize: 26,
-      lineHeight: 32,
-      color: colors.textPrimary,
-      textAlign: "center",
-      marginTop: spacing.md,
-    },
-    finalMeta: {
-      ...typography.caption,
+    orText: {
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.textSecondary,
-      marginTop: spacing.xs,
-    },
-    finalFrom: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.sm,
-    },
-    finalActions: {
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    finalSecondaryRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    finalSecondaryButton: {
-      flex: 1,
     },
   });
 

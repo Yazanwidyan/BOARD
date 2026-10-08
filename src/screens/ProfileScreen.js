@@ -69,7 +69,7 @@ import {
 } from "../utils/xp";
 import { isRTL, t } from "../i18n";
 
-const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
+const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
 // Favorite ten: a 5 × 2 poster grid.
 const FAVORITE_COLUMNS = 5;

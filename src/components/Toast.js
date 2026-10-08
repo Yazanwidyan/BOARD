@@ -61,7 +61,7 @@ const createStyles = (colors) =>
       maxWidth: "100%",
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-      borderRadius: radius.pill,
+      borderRadius: 0,
       backgroundColor: colors.cardElevatedLight,
       borderWidth: 1,
       borderColor: colors.border,

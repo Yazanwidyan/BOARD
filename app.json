@@ -5,6 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/reelboard-icon.png",
+    "splash": {
+      "image": "./assets/reelboard-splash-expo-go.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#161719"
+    },
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0B0B0F",
     "ios": {

@@ -33,7 +33,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.successSoft,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       gap: 4,
     },
     containerSmall: {

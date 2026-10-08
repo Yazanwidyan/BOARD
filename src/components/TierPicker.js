@@ -124,7 +124,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.md,
       paddingEnd: spacing.md,
-      borderRadius: radius.sm,
+      borderRadius: 0,
       borderWidth: 1.5,
       borderColor: "transparent",
       backgroundColor: colors.cardElevated,
@@ -168,7 +168,7 @@ const createStyles = (colors) =>
       height: 46,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: radius.sm,
+      borderRadius: 0,
       borderWidth: 1.5,
     },
     tierText: {

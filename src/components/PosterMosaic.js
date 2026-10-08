@@ -91,7 +91,7 @@ const createStyles = (colors) =>
       bottom: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,
-      borderRadius: 999,
+      borderRadius: 0,
       backgroundColor: "rgba(2, 0, 2, 0.75)",
     },
     rewatchText: {

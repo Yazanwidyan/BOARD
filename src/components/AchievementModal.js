@@ -411,7 +411,7 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       paddingHorizontal: spacing.lg + 4,
       paddingVertical: spacing.xs,
-      borderRadius: 6,
+      borderRadius: 0,
       borderWidth: 1.5,
       borderStyle: "dashed",
       overflow: "hidden",

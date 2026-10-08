@@ -86,7 +86,8 @@ const ar = {
   "Tonight's dare": "تحدّي الليلة",
   "No dare yet": "لا يوجد تحدٍّ بعد",
   "Start a dare": "ابدأ تحدّياً",
-  "Three secret challenges are waiting. Pick one.": "ثلاثة تحدّيات سرّية بانتظارك. اختر واحداً.",
+  "Three secret challenges are waiting. Pick one.":
+    "ثلاثة تحدّيات سرّية بانتظارك. اختر واحداً.",
   Accept: "قبول",
   Another: "غيره",
   Change: "تغيير",
@@ -141,8 +142,25 @@ const ar = {
     "ابدأ مجموعة جديدة — شاهد {title} لتبدأ {title2}.",
   "{title} is rated {value} and you haven't seen it yet.":
     "تقييم {title} هو {value} ولم تشاهده بعد.",
-  "{title}. That's the roll — no swaps.": "{title}. هذه نتيجة النرد — بلا تبديل.",
-  "ReelBoard picked {title} for you tonight.": "اختار لك ReelBoard فيلم {title} الليلة.",
+  "{title}. That's the roll — no swaps.":
+    "{title}. هذه نتيجة النرد — بلا تبديل.",
+  "ReelBoard picked {title} for you tonight.":
+    "اختار لك ReelBoard فيلم {title} الليلة.",
+
+  "Pick a dare": "اختر تحدّياً",
+  "Watch the movie": "شاهد الفيلم",
+  "Earn XP": "اكسب XP",
+  "+{xp} XP": "+{xp} XP",
+  "No dares right now — you've seen it all. Impressive.":
+    "لا توجد تحدّيات الآن — شاهدت كل شيء. مبهر.",
+  "Dare on: watch {title} to earn {xp} XP":
+    "بدأ التحدّي: شاهد {title} لتكسب {xp} XP",
+  'Take "{name}" · +{xp} XP': 'خذ "{name}" · +{xp} XP',
+  "Pick a dare above": "اختر تحدّياً من الأعلى",
+  "Watch it, then mark it watched": "شاهده، ثم حدّده كمُشاهَد",
+  "Three dares are waiting — pick one, watch it, earn XP.":
+    "ثلاثة تحدّيات بانتظارك — اختر واحداً، شاهده، واكسب XP.",
+  "Dare complete": "اكتمل التحدّي",
 
   // ---- Decide ----
   "Quick pick": "اختيار سريع",
@@ -168,24 +186,29 @@ const ar = {
   "Hide the breakdown": "إخفاء التفاصيل",
   "% your taste": "% من ذوقك",
   "your taste": "ذوقك",
-  "Tier a few movies and my picks get sharper.": "صنّف بعض الأفلام لتصبح اختياراتي أدق.",
+  "Tier a few movies and my picks get sharper.":
+    "صنّف بعض الأفلام لتصبح اختياراتي أدق.",
   "Nothing left in the catalog to pick.": "لم يبقَ شيء في الكتالوج للاختيار.",
   "Reading your {count} tiers…": "أقرأ تصنيفاتك الـ{count}…",
-  "Looking at your {count} watched movies…": "أنظر في أفلامك المشاهدة الـ{count}…",
+  "Looking at your {count} watched movies…":
+    "أنظر في أفلامك المشاهدة الـ{count}…",
   "Weighing how much you love {genre}…": "أقيس مدى حبك لـ{genre}…",
   "Learning your genres…": "أتعرّف على أنواعك المفضّلة…",
   "Matching directors like {director}…": "أطابق مخرجين مثل {director}…",
   "Matching directors…": "أطابق المخرجين…",
   "Checking your {count} saved movies…": "أراجع أفلامك المحفوظة الـ{count}…",
   "Scanning the whole catalog…": "أفحص الكتالوج كاملاً…",
-  "Scoring {count} movies you haven't seen…": "أقيّم {count} فيلماً لم تشاهدها…",
+  "Scoring {count} movies you haven't seen…":
+    "أقيّم {count} فيلماً لم تشاهدها…",
   "Narrowing it down to one…": "أضيّق الاختيار إلى فيلم واحد…",
   "{genre} gets your best tiers.": "{genre} يحصل على أفضل تصنيفاتك.",
   "You watch a lot of {genre}.": "تشاهد الكثير من {genre}.",
   "You tiered {first} and {second} {tier} — this is {director} too.":
     "صنّفت {first} و{second} بـ{tier} — وهذا أيضاً من إخراج {director}.",
-  "You tiered {title} {tier} — same director.": "صنّفت {title} بـ{tier} — المخرج نفسه.",
-  "{actor} is in it — you tiered {title} {tier}.": "يشارك فيه {actor} — صنّفت {title} بـ{tier}.",
+  "You tiered {title} {tier} — same director.":
+    "صنّفت {title} بـ{tier} — المخرج نفسه.",
+  "{actor} is in it — you tiered {title} {tier}.":
+    "يشارك فيه {actor} — صنّفت {title} بـ{tier}.",
   "From the {decade}, an era you love.": "من {decade}، حقبة تحبها.",
   "IMDb {rating} — one of the greats.": "IMDb ‏{rating} — من الأعظم.",
   "Got it — fewer like that": "فهمت — أقل من هذا النوع",
@@ -235,7 +258,26 @@ const ar = {
     "خفّف تفضيلاتك أو احفظ بعض الأفلام أولاً.",
   "You've seen everything.": "شاهدت كل شيء.",
 
+  "Round {number}": "الجولة {number}",
+  "{count} kept": "{count} محتفظ بها",
+  "{count} left": "بقي {count}",
+  "Next round": "الجولة التالية",
+  "Swipe up to keep · down to pass": "اسحب للأعلى للاحتفاظ · للأسفل للتجاوز",
+  "Duel {current} of {total}": "المواجهة {current} من {total}",
+  or: "أو",
+  "Tap the one you'd rather watch": "اضغط على الذي تفضّل مشاهدته",
+  "Picked from {count} movies": "اختير من بين {count} فيلماً",
+  "Let's bring a few more options.": "لنضف بعض الخيارات.",
+  "Let's narrow these down a little.": "لنضيّق الخيارات قليلاً.",
+  "Nice. We've narrowed it down.": "رائع. ضيّقنا الخيارات.",
+
   // ---- Spin ----
+  "New wheel": "عجلة جديدة",
+  "New reel": "بكرة جديدة",
+  "The reel has spoken": "البكرة قالت كلمتها",
+  "{count} picks on the reel": "{count} اختيارات على البكرة",
+  "Tap Spin and let fate pick tonight's movie.":
+    "اضغط دوّر ودع القدر يختار فيلم الليلة.",
   SPIN: "دوّر",
   AGAIN: "مجدداً",
   "Spin again": "دوّر مجدداً",
@@ -243,7 +285,8 @@ const ar = {
   "The wheel has spoken": "العجلة قالت كلمتها",
   "{count} picks on the wheel": "{count} اختيارات على العجلة",
   "Nothing to spin yet.": "لا شيء للدوران بعد.",
-  "Tap SPIN and let fate pick tonight's movie.": "اضغط دوّر ودع القدر يختار فيلم الليلة.",
+  "Tap SPIN and let fate pick tonight's movie.":
+    "اضغط دوّر ودع القدر يختار فيلم الليلة.",
   "Here it goes…": "ها هي تدور…",
 
   // ---- Library ----
@@ -255,7 +298,8 @@ const ar = {
   "All genres": "كل الأنواع",
   "Filter by Genre": "تصفية حسب النوع",
   "Show only movies in any of these genres": "اعرض فقط أفلام هذه الأنواع",
-  "Show results · {selectedGenresCount}": "اعرض النتائج · {selectedGenresCount}",
+  "Show results · {selectedGenresCount}":
+    "اعرض النتائج · {selectedGenresCount}",
   "Search your watchlist": "ابحث في قائمة مشاهدتك",
   "Search what you've watched": "ابحث فيما شاهدته",
   "Close search": "إغلاق البحث",
@@ -266,12 +310,14 @@ const ar = {
     "احفظ الأفلام التي تريد مشاهدتها وستظهر هنا.",
   "Browse movies": "تصفّح الأفلام",
   "Nothing watched yet": "لم تشاهد شيئاً بعد",
-  "Mark a movie as watched and it shows up here.": "حدّد فيلماً كمُشاهَد وسيظهر هنا.",
+  "Mark a movie as watched and it shows up here.":
+    "حدّد فيلماً كمُشاهَد وسيظهر هنا.",
   "Find something to watch": "ابحث عن شيء تشاهده",
   "Everything's tiered": "كل شيء مصنَّف",
   "Your whole collection is ranked.": "مجموعتك كلها مرتّبة.",
   "No matches": "لا توجد نتائج",
-  "Nothing on your watchlist matches that.": "لا شيء في قائمة مشاهدتك يطابق ذلك.",
+  "Nothing on your watchlist matches that.":
+    "لا شيء في قائمة مشاهدتك يطابق ذلك.",
   "Nothing you've watched matches that.": "لا شيء مما شاهدته يطابق ذلك.",
   "Most Watched": "الأكثر مشاهدة",
   "Best tier": "أفضل تصنيف",
@@ -282,7 +328,8 @@ const ar = {
   "Search for titles...": "ابحث عن عناوين...",
   "No movies found.": "لم يتم العثور على أفلام.",
   "All Collections": "كل المجموعات",
-  "Tap one to start or stop tracking it": "اضغط على واحدة لبدء متابعتها أو إيقافها",
+  "Tap one to start or stop tracking it":
+    "اضغط على واحدة لبدء متابعتها أو إيقافها",
   Watchlisted: "في القائمة",
   "+ Watchlist": "+ قائمة المشاهدة",
 
@@ -300,7 +347,8 @@ const ar = {
   "1 movie": "فيلم واحد",
   "{count} movies": "{count} أفلام",
   "to complete it": "لإكمالها",
-  "{watchedCount} of {total} · {minutesLeft} left": "{watchedCount} من {total} · بقي {minutesLeft}",
+  "{watchedCount} of {total} · {minutesLeft} left":
+    "{watchedCount} من {total} · بقي {minutesLeft}",
   "{total} movies · {minutesLeft}": "{total} أفلام · {minutesLeft}",
   Completed: "مكتملة",
   " · Completed": " · مكتملة",
@@ -345,7 +393,8 @@ const ar = {
   "Part of": "جزء من",
   "Also by": "أيضاً من",
   "More like this": "أفلام مشابهة",
-  "{filmCount} films in ReelBoard{value}": "{filmCount} أفلام في ReelBoard{value}",
+  "{filmCount} films in ReelBoard{value}":
+    "{filmCount} أفلام في ReelBoard{value}",
   "1 film in ReelBoard": "فيلم واحد في ReelBoard",
   "Starring {name}": "بطولة {name}",
   "Starring {value}": "بطولة {value}",
@@ -399,7 +448,8 @@ const ar = {
   "You've already seen {title}": "شاهدت {title} من قبل",
   "This clip can't play here": "لا يمكن تشغيل هذا المقطع هنا",
   "Watch on YouTube": "شاهد على YouTube",
-  "You've been through every reel. More coming soon.": "شاهدت كل المقاطع. المزيد قريباً.",
+  "You've been through every reel. More coming soon.":
+    "شاهدت كل المقاطع. المزيد قريباً.",
   "{title} ({year}) — IMDb {value}. Found it on ReelBoard. https://youtu.be/{youtubeId}":
     "{title} ‏({year}) — IMDb ‏{value}. وجدته على ReelBoard. https://youtu.be/{youtubeId}",
   "Browse Movies": "تصفّح الأفلام",
@@ -407,11 +457,13 @@ const ar = {
   "Search the Top 250...": "ابحث في أفضل 250...",
   "Recent Searches": "عمليات البحث الأخيرة",
   "Your recent searches will appear here.": "ستظهر عمليات بحثك الأخيرة هنا.",
-  "Nothing found for \"{query}\"": "لا نتائج لـ\"{query}\"",
+  'Nothing found for "{query}"': 'لا نتائج لـ"{query}"',
   "Paste a List of Titles": "الصق قائمة عناوين",
   "Copy and Paste List of Titles": "انسخ والصق قائمة عناوين",
-  "One title per line (or comma-separated).": "عنوان في كل سطر (أو مفصولة بفواصل).",
-  "The Godfather\nPulp Fiction\nInception": "The Godfather\nPulp Fiction\nInception",
+  "One title per line (or comma-separated).":
+    "عنوان في كل سطر (أو مفصولة بفواصل).",
+  "The Godfather\nPulp Fiction\nInception":
+    "The Godfather\nPulp Fiction\nInception",
   "Find titles": "ابحث عن العناوين",
   ", {unmatchedCount} not found": "، {unmatchedCount} لم يُعثر عليها",
   "Add {matchedCount} to Watchlist": "أضف {matchedCount} إلى قائمة المشاهدة",
@@ -429,15 +481,19 @@ const ar = {
   badge: "شارة",
   "Tier list": "قائمة التصنيف",
   "Your top ten": "أفضل عشرة لديك",
-  " · {topTenMoviesCount} of {FAVORITE_COUNT}": " · {topTenMoviesCount} من {FAVORITE_COUNT}",
+  " · {topTenMoviesCount} of {FAVORITE_COUNT}":
+    " · {topTenMoviesCount} من {FAVORITE_COUNT}",
   "Number {value}, {title}": "رقم {value}، {title}",
-  "Top ten number {value}, empty. Pick a movie": "المركز {value} فارغ. اختر فيلماً",
+  "Top ten number {value}, empty. Pick a movie":
+    "المركز {value} فارغ. اختر فيلماً",
   "{title} taken out of your top ten": "أُزيل {title} من أفضل عشرة",
-  "Your top ten is full — take one out first": "أفضل عشرة ممتلئة — أزل واحداً أولاً",
+  "Your top ten is full — take one out first":
+    "أفضل عشرة ممتلئة — أزل واحداً أولاً",
   "{topTenCount} of {TOP_TEN_SIZE} picked · tap to add or remove":
     "اخترت {topTenCount} من {TOP_TEN_SIZE} · اضغط للإضافة أو الإزالة",
   "Search your watched movies": "ابحث في أفلامك المشاهدة",
-  "Mark movies as watched to pick your top ten.": "حدّد أفلاماً كمُشاهَدة لتختار أفضل عشرة.",
+  "Mark movies as watched to pick your top ten.":
+    "حدّد أفلاماً كمُشاهَدة لتختار أفضل عشرة.",
   "No watched movie matches that.": "لا يوجد فيلم مُشاهَد يطابق ذلك.",
   "Add {title} to your top ten": "أضف {title} إلى أفضل عشرة",
   "{title}, number {rank}. Tap to remove": "{title}، رقم {rank}. اضغط للإزالة",
@@ -451,8 +507,10 @@ const ar = {
   "is what you watch most — and what you tier highest.":
     "هو ما تشاهده أكثر — وما تصنّفه أعلى.",
   "1 watched movie isn't tiered yet": "فيلم مُشاهَد واحد لم يُصنَّف بعد",
-  "{untieredCount} watched movies aren't tiered yet": "{untieredCount} أفلام مُشاهَدة لم تُصنَّف بعد",
-  "You can pin up to {MAX_PINNED} — unpin one first": "يمكنك تثبيت {MAX_PINNED} فقط — ألغِ تثبيت واحدة أولاً",
+  "{untieredCount} watched movies aren't tiered yet":
+    "{untieredCount} أفلام مُشاهَدة لم تُصنَّف بعد",
+  "You can pin up to {MAX_PINNED} — unpin one first":
+    "يمكنك تثبيت {MAX_PINNED} فقط — ألغِ تثبيت واحدة أولاً",
   Unpinned: "أُلغي التثبيت",
   "{title} pinned": "تم تثبيت {title}",
   "My ReelBoard taste card": "بطاقة ذوقي في ReelBoard",
@@ -559,7 +617,8 @@ const ar = {
   "{title} added to your watchlist": "أُضيف {title} إلى قائمة المشاهدة",
   "{title} removed from your watchlist": "أُزيل {title} من قائمة المشاهدة",
   "Saved to your watchlist": "حُفظ في قائمة المشاهدة",
-  "watched, incl. new genres & decades": "تمت مشاهدتها، بما فيها أنواع وعقود جديدة",
+  "watched, incl. new genres & decades":
+    "تمت مشاهدتها، بما فيها أنواع وعقود جديدة",
   "Nice taste.": "ذوق رائع.",
   "Every movie you watch earns XP. Finish collections and challenges for big boosts.":
     "كل فيلم تشاهده يكسبك XP. أنهِ المجموعات والتحدّيات لمكافآت كبيرة.",
@@ -578,7 +637,8 @@ const ar = {
   "Friends ·": "الأصدقاء ·",
   "Friends is a preview: these are sample profiles for now.":
     "الأصدقاء معاينة: هذه ملفات تجريبية حالياً.",
-  "Activity is a preview: sample friends for now.": "النشاط معاينة: أصدقاء تجريبيون حالياً.",
+  "Activity is a preview: sample friends for now.":
+    "النشاط معاينة: أصدقاء تجريبيون حالياً.",
   "Compare tiers · invite more": "قارن التصنيفات · ادعُ المزيد",
   "Join me on ReelBoard — I'm {myHandle}. Let's compare tier lists.":
     "انضم إليّ على ReelBoard — معرّفي {myHandle}. لنقارن قوائم التصنيف.",
@@ -612,24 +672,29 @@ const ar = {
   Preferences: "التفضيلات",
   "Reset recommendations": "إعادة ضبط الاقتراحات",
   "Reset Recommendations": "إعادة ضبط الاقتراحات",
-  "This will end your current pick session.": "سيُنهي هذا جلسة الاختيار الحالية.",
+  "This will end your current pick session.":
+    "سيُنهي هذا جلسة الاختيار الحالية.",
   "Your data": "بياناتك",
   "Clear watchlist": "مسح قائمة المشاهدة",
   "Clear Watchlist": "مسح قائمة المشاهدة",
-  "This will remove all movies from your watchlist.": "سيزيل هذا كل الأفلام من قائمة مشاهدتك.",
+  "This will remove all movies from your watchlist.":
+    "سيزيل هذا كل الأفلام من قائمة مشاهدتك.",
   "Clear current pick": "مسح الاختيار الحالي",
   "Clear Current Pick": "مسح الاختيار الحالي",
-  "This will remove tonight’s pick from your Home screen.": "سيزيل هذا اختيار الليلة من شاشتك الرئيسية.",
+  "This will remove tonight’s pick from your Home screen.":
+    "سيزيل هذا اختيار الليلة من شاشتك الرئيسية.",
   "Clear watched history": "مسح سجل المشاهدة",
   "Clear Watched History": "مسح سجل المشاهدة",
-  "This will remove all movies marked as watched.": "سيزيل هذا كل الأفلام المحدّدة كمُشاهَدة.",
+  "This will remove all movies marked as watched.":
+    "سيزيل هذا كل الأفلام المحدّدة كمُشاهَدة.",
   "Replay onboarding": "إعادة التعريف بالتطبيق",
   "ReelBoard turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.":
     "يحوّل ReelBoard اختيار ما تشاهده إلى لعبة — اكتشف، وتقدّم، وافتح المجموعات، وأكمل التحدّيات.",
   "Friend invites": "دعوات الأصدقاء",
   "Enter referral code": "أدخل رمز الإحالة",
   "Referral Codes": "رموز الإحالة",
-  "ReelBoard doesn't have referral codes yet.": "لا توجد رموز إحالة في ReelBoard بعد.",
+  "ReelBoard doesn't have referral codes yet.":
+    "لا توجد رموز إحالة في ReelBoard بعد.",
   "Delete account": "حذف الحساب",
   "Delete Account": "حذف الحساب",
   "ReelBoard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.":
@@ -638,7 +703,8 @@ const ar = {
   "Allow access to your photos in system settings to set a profile picture.":
     "اسمح بالوصول إلى صورك من إعدادات النظام لتعيين صورة الملف.",
   "Move and scale": "حرّك وكبّر",
-  "Pinch to zoom · double-tap to reset": "قرّب بإصبعين · اضغط مرتين لإعادة الضبط",
+  "Pinch to zoom · double-tap to reset":
+    "قرّب بإصبعين · اضغط مرتين لإعادة الضبط",
   "Use photo": "استخدم الصورة",
 
   // ---- Onboarding ----
@@ -648,7 +714,8 @@ const ar = {
   "It's how ReelBoard greets you, and it builds your handle.":
     "هكذا يحيّيك ReelBoard، ومنه يُبنى معرّفك.",
   "What have you seen?": "ماذا شاهدت؟",
-  "Tap once for seen, twice to save it for later.": "اضغط مرة لـ\"شاهدته\"، ومرتين لحفظه لاحقاً.",
+  "Tap once for seen, twice to save it for later.":
+    'اضغط مرة لـ"شاهدته"، ومرتين لحفظه لاحقاً.',
   seen: "شاهدته",
   saved: "محفوظ",
   "for later": "لاحقاً",
@@ -676,7 +743,7 @@ const ar = {
   Adults: "للكبار",
   "Adults only": "للكبار فقط",
   "Not rated": "غير مصنّف",
-  "The": "",
+  The: "",
   "{title}, switch section": "{title}، تبديل القسم",
   "this week": "هذا الأسبوع",
   "· IMDb": "· IMDb",

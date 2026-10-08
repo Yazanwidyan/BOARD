@@ -235,7 +235,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 2,
-      marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
     },

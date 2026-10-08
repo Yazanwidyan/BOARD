@@ -1,24 +1,26 @@
 import * as Haptics from "expo-haptics";
-import { ArrowUpRight, RotateCw, Shuffle } from "lucide-react-native";
-import { useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Text } from "../components/AppText";
+import { LinearGradient } from "expo-linear-gradient";
+import { RotateCw, Shuffle } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
   runOnJS,
   useAnimatedReaction,
-  useReducedMotion,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
-import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
+import { Text } from "../components/AppText";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
+import { t } from "../i18n";
 import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
@@ -27,35 +29,40 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { bucketListIds, formatRuntime } from "../utils/movieFilters";
-import { t } from "../i18n";
 
-// Eight slices — big enough that each one carries a readable poster
-// instead of a truncated 10px title.
+// Spin as a full-screen slot machine reel: the candidates' posters run in a
+// vertical strip filling the whole screen under the header — the middle
+// slot as big as the screen allows, neighbours peeking from the top and
+// bottom edges. Spin sends it racing (tap again any time for a fresh kick);
+// it slows and clicks onto the winner, a white frame lights around it, and
+// the result and buttons float over the bottom.
+
 const CANDIDATE_COUNT = 8;
-const WHEEL_SIZE = 300;
-const WHEEL_RADIUS = WHEEL_SIZE / 2;
-const RIM_WIDTH = 10;
-const HUB_SIZE = 72;
-const POSTER_WIDTH = 40;
-const POSTER_RING = WHEEL_RADIUS * 0.62;
-const FULL_SPINS = 5;
+const GAP = 2;
+const MIN_PEEK = 64; // at least this much of each neighbour shows
+const BOTTOM_ROOM = 150; // the floating result + buttons
+const REPEATS = 8; // copies of the list in the strip — room to race
+const START_CYCLE = 1; // each spin starts from this copy...
+const SPIN_CYCLES = 5; // ...and runs this many copies further
 const SPIN_DURATION_MS = 4200;
-const SLICE_COLORS = ["#4A4D53", "#2E3034"];
 
-// 0° = straight up (where the pointer is), increasing clockwise.
-const polarToCartesian = (angleDeg, r) => {
-  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+// Reel size from the space it has: the slot as wide as fits (with room for
+// the markers and the neighbours above/below), 2:3 like a poster.
+const geometryFor = (width, height) => {
+  const usable = height - BOTTOM_ROOM;
+  const itemWidth = Math.floor(
+    Math.min(width * 0.74, (usable - MIN_PEEK * 2) / 1.5),
+  );
+  const itemHeight = Math.floor(itemWidth * 1.5);
   return {
-    x: WHEEL_RADIUS + r * Math.cos(angleRad),
-    y: WHEEL_RADIUS + r * Math.sin(angleRad),
+    width,
+    height,
+    itemWidth,
+    itemHeight,
+    step: itemHeight + GAP,
+    // The slot is centred in the space above the floating controls.
+    center: usable / 2,
   };
-};
-
-const describeSlice = (startAngle, endAngle, r) => {
-  const start = polarToCartesian(startAngle, r);
-  const end = polarToCartesian(endAngle, r);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return `M ${WHEEL_RADIUS} ${WHEEL_RADIUS} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
 };
 
 // Watchlist first, never something already watched.
@@ -67,95 +74,17 @@ const pickCandidates = (preferences, bucketList) =>
     useMovieStore.getState().watched.map((entry) => entry.movieId),
   );
 
-// The wheel itself: slices + a poster riding in each one, all inside the
-// rotating view so they turn together. After landing, every poster except
-// the winner dims.
-const Wheel = ({ candidates, winnerId, rotatorStyle, colors }) => {
-  const styles = makeStyles(colors);
-  const sliceAngle = 360 / candidates.length;
-  const innerRadius = WHEEL_RADIUS - RIM_WIDTH;
-
-  return (
-    <Animated.View style={[styles.wheel, rotatorStyle]}>
-      <Svg width={WHEEL_SIZE} height={WHEEL_SIZE}>
-        <Circle
-          cx={WHEEL_RADIUS}
-          cy={WHEEL_RADIUS}
-          r={WHEEL_RADIUS - RIM_WIDTH / 2}
-          fill="none"
-          stroke={colors.card}
-          strokeWidth={RIM_WIDTH}
-        />
-        {candidates.map((movie, index) => (
-          <Path
-            key={movie.id}
-            d={describeSlice(
-              index * sliceAngle,
-              (index + 1) * sliceAngle,
-              innerRadius,
-            )}
-            fill={SLICE_COLORS[index % SLICE_COLORS.length]}
-            stroke={colors.background}
-            strokeWidth={2}
-          />
-        ))}
-        {/* Little rim lights at every slice boundary. */}
-        {candidates.map((movie, index) => {
-          const dot = polarToCartesian(
-            index * sliceAngle,
-            WHEEL_RADIUS - RIM_WIDTH / 2,
-          );
-          return (
-            <Circle
-              key={`dot-${movie.id}`}
-              cx={dot.x}
-              cy={dot.y}
-              r={2.5}
-              fill={colors.rating}
-            />
-          );
-        })}
-      </Svg>
-
-      {candidates.map((movie, index) => {
-        const midAngle = index * sliceAngle + sliceAngle / 2;
-        const point = polarToCartesian(midAngle, POSTER_RING);
-        const posterHeight = POSTER_WIDTH * 1.5;
-        return (
-          <View
-            key={movie.id}
-            pointerEvents="none"
-            style={[
-              styles.wheelPoster,
-              {
-                left: point.x - POSTER_WIDTH / 2,
-                top: point.y - posterHeight / 2,
-                transform: [{ rotate: `${midAngle}deg` }],
-                opacity: winnerId && winnerId !== movie.id ? 0.3 : 1,
-              },
-            ]}
-          >
-            <MoviePoster
-              uri={movie.poster}
-              style={{ width: POSTER_WIDTH, height: posterHeight }}
-            />
-          </View>
-        );
-      })}
-    </Animated.View>
-  );
-};
-
 export const SpinScreen = ({ navigation }) => {
   const colors = useColors();
-  const styles = makeStyles(colors);
+  const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
   const bucketList = useMovieStore((state) => state.bucketList);
   const pickedMovie = useMovieStore((state) => state.pickedMovie);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const preferences = useUserStore((state) => state.preferences);
 
   // Same pool as Swipe: saved preferences, watchlist first. Picked once per
-  // visit (and again on "New wheel"), never on re-render.
+  // visit (and again on "New reel"), never on re-render.
   const initialRef = useRef(null);
   if (!initialRef.current) {
     initialRef.current = pickCandidates(preferences, bucketList);
@@ -163,52 +92,73 @@ export const SpinScreen = ({ navigation }) => {
   const [candidates, setCandidates] = useState(initialRef.current);
   const [phase, setPhase] = useState("idle"); // idle | spinning | landed
   const [winner, setWinner] = useState(null);
-  const rotation = useSharedValue(0);
-  // Reduce Motion: a short, single-turn spin instead of five fast turns.
+  const [geo, setGeo] = useState(null); // measured reel area
+  const count = Math.max(1, candidates.length);
+  const strip = Array.from({ length: REPEATS }, () => candidates).flat();
+  const translateY = useSharedValue(0);
   const reduceMotion = useReducedMotion();
-  const sliceAngle = 360 / Math.max(1, candidates.length);
+  // While racing the reel dims a little; on landing the slot frame lights.
+  const racing = useSharedValue(0);
+  const frameLit = useSharedValue(0);
 
-  // A light tick each time a slice boundary passes the pointer — the
-  // wheel audibly-feels like it's slowing down.
+  // translateY that puts strip item `index` in the slot.
+  const offsetFor = (index) =>
+    geo ? geo.center - (index * geo.step + geo.itemHeight / 2) : 0;
+
+  // Once measured (or re-measured), park the reel on the first copy.
+  useEffect(() => {
+    if (geo) translateY.value = offsetFor(START_CYCLE * count);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo?.step, geo?.center]);
+
+  // A light tick each time a poster passes the slot — it feels like a reel
+  // slowing down.
   const tick = () => Haptics.selectionAsync();
+  const step = geo?.step ?? 1;
+  const slotTop = geo ? geo.center - geo.itemHeight / 2 : 0;
   useAnimatedReaction(
-    () => Math.floor((((-rotation.value % 360) + 360) % 360) / sliceAngle),
+    () => Math.round((slotTop - translateY.value) / step),
     (current, previous) => {
       if (previous !== null && current !== previous) runOnJS(tick)();
     },
-    [sliceAngle],
+    [slotTop, step],
   );
 
   const land = (winnerMovie) => {
+    racing.value = withTiming(0, { duration: 200 });
+    frameLit.value = withTiming(1, { duration: 260 });
     setWinner(winnerMovie);
     setPhase("landed");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
+  // Spin — and spin again any time, even mid-spin: each tap gives the reel
+  // a fresh kick from wherever it is and lands on a new random pick (the
+  // interrupted spin's landing is dropped).
   const spin = () => {
-    if (phase === "spinning" || candidates.length === 0) return;
+    if (!geo || candidates.length === 0) return;
     setPhase("spinning");
     setWinner(null);
+    racing.value = withTiming(1, { duration: 300 });
+    frameLit.value = withTiming(0, { duration: 150 });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const winnerIndex = Math.floor(Math.random() * candidates.length);
-    // Land inside the winning slice (never on a boundary): its center,
-    // nudged up to 35% of a slice either way so it doesn't always stop
-    // dead-center.
-    const center = winnerIndex * sliceAngle + sliceAngle / 2;
-    const jitter = (Math.random() - 0.5) * sliceAngle * 0.7;
-    // Rotating by R brings angle a to a + R; we want center + jitter at 0
-    // (the pointer), at least FULL_SPINS turns past wherever it is now.
-    const current = rotation.value;
-    const base =
-      Math.ceil(current / 360) * 360 + (reduceMotion ? 1 : FULL_SPINS) * 360;
-    const target = base - (center + jitter);
+    // Jump (invisibly — the same poster, at the same spot, whole copies
+    // back) to the first copy, so there's always room to race forward.
+    // Works mid-spin too: it reads where the reel is right now.
+    const at = (slotTop - translateY.value) / geo.step;
+    const extraCycles = Math.floor(at / count) - START_CYCLE;
+    translateY.value = translateY.value + extraCycles * count * geo.step;
 
-    rotation.value = withTiming(
-      target,
+    const winnerIndex = Math.floor(Math.random() * count);
+    const target =
+      (START_CYCLE + (reduceMotion ? 1 : SPIN_CYCLES)) * count + winnerIndex;
+
+    translateY.value = withTiming(
+      offsetFor(target),
       {
         duration: reduceMotion ? 1200 : SPIN_DURATION_MS,
-        // Fast start, long smooth slowdown — no overshoot or bounce.
+        // Fast start, long smooth slowdown — no overshoot.
         easing: Easing.bezier(0.15, 0.6, 0.2, 1),
       },
       (finished) => {
@@ -217,11 +167,13 @@ export const SpinScreen = ({ navigation }) => {
     );
   };
 
-  const newWheel = () => {
+  const newReel = () => {
     if (phase === "spinning") return;
     setCandidates(pickCandidates(preferences, bucketList));
     setWinner(null);
     setPhase("idle");
+    frameLit.value = 0;
+    translateY.value = offsetFor(START_CYCLE * count);
   };
 
   const makeTonightsPick = () => {
@@ -231,25 +183,31 @@ export const SpinScreen = ({ navigation }) => {
     });
   };
 
-  const rotatorStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
+  const stripStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: 1 - racing.value * 0.25,
+  }));
+  const frameStyle = useAnimatedStyle(() => ({
+    opacity: frameLit.value,
   }));
 
-  const eyebrow =
+  const landed = phase === "landed" && winner;
+  const caption =
     phase === "spinning"
       ? t("Spinning…")
-      : phase === "landed"
-        ? t("The wheel has spoken")
-        : t("{count} picks on the wheel", { count: candidates.length });
+      : landed
+        ? t("The reel has spoken")
+        : t("{count} picks on the reel", { count: candidates.length });
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <StackHeader
         title={t("Spin")}
         onBack={() => navigation.goBack()}
         right={
           <HeaderIconButton
-            onPress={newWheel}
+            onPress={newReel}
+            accessibilityLabel={t("New reel")}
             style={phase === "spinning" && styles.disabled}
           >
             <Shuffle size={22} strokeWidth={1.75} color={colors.textPrimary} />
@@ -259,146 +217,242 @@ export const SpinScreen = ({ navigation }) => {
 
       {candidates.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.resultTitle}>{t("Nothing to spin yet.")}</Text>
+          <Text style={styles.title}>{t("Nothing to spin yet.")}</Text>
           <Text style={styles.hint}>
             {t("Loosen your preferences or save a few movies first.")}
           </Text>
         </View>
       ) : (
-        <View style={styles.body}>
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
-
-          <View style={styles.wheelWrap}>
-            <Wheel
-              candidates={candidates}
-              winnerId={phase === "landed" ? winner?.id : null}
-              rotatorStyle={rotatorStyle}
-              colors={colors}
-            />
-            {/* Pointer — fixed at 12 o'clock, pointing down into the wheel. */}
-            <View style={styles.pointer} pointerEvents="none">
-              <Svg width={28} height={30}>
-                <Path
-                  d="M2 2 H26 L14 28 Z"
-                  fill={colors.textPrimary}
-                  stroke={colors.background}
-                  strokeWidth={2}
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </View>
-            {/* Hub doubles as the spin button. */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.hub,
-                pressed && styles.hubPressed,
-                phase === "spinning" && styles.hubSpinning,
-              ]}
-              onPress={spin}
-              disabled={phase === "spinning"}
+        <View
+          style={styles.stage}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            if (!geo || geo.width !== width || geo.height !== height) {
+              setGeo(geometryFor(width, height));
+            }
+          }}
+        >
+          {/* The winner's poster, blurred, behind the reel once it lands. */}
+          {landed && (
+            <Animated.View
+              key={winner.id}
+              entering={FadeIn.duration(400)}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
             >
-              <Text style={styles.hubText}>
-                {phase === "landed" ? t("AGAIN") : t("SPIN")}
-              </Text>
-            </Pressable>
-          </View>
+              <Image
+                source={{ uri: winner.poster }}
+                blurRadius={30}
+                style={StyleSheet.absoluteFill}
+              />
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: `${colors.background}B3` },
+                ]}
+              />
+            </Animated.View>
+          )}
 
-          <View style={styles.resultArea}>
-            {phase === "landed" && winner ? (
+          {geo && (
+            // Physical left-to-right in every language: reel geometry, and
+            // the markers must point in at the slot.
+            <View style={styles.reel}>
               <Animated.View
-                entering={FadeIn.duration(200)}
-                style={styles.result}
+                style={[
+                  styles.strip,
+                  { left: (geo.width - geo.itemWidth) / 2 },
+                  stripStyle,
+                ]}
               >
+                {strip.map((movie, index) => (
+                  <MoviePoster
+                    key={`${movie.id}-${index}`}
+                    uri={movie.poster}
+                    style={{ width: geo.itemWidth, height: geo.itemHeight }}
+                  />
+                ))}
+              </Animated.View>
+
+              {/* Neighbours fade into the page at the top and bottom. */}
+              <LinearGradient
+                pointerEvents="none"
+                colors={[colors.background, `${colors.background}00`]}
+                style={[styles.fade, { top: 0, height: slotTop * 0.85 }]}
+              />
+              <LinearGradient
+                pointerEvents="none"
+                colors={[`${colors.background}00`, colors.background]}
+                style={[
+                  styles.fade,
+                  {
+                    top: slotTop + geo.itemHeight + geo.itemHeight * 0.05,
+                    bottom: 0,
+                  },
+                ]}
+              />
+
+              {/* Lines across the screen framing the slot. */}
+              <View
+                pointerEvents="none"
+                style={[styles.slotLine, { top: slotTop - 2 }]}
+              />
+              <View
+                pointerEvents="none"
+                style={[styles.slotLine, { top: slotTop + geo.itemHeight }]}
+              />
+              {/* Lights up around the winner when the reel stops. */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.slotFrame,
+                  {
+                    top: slotTop - 2,
+                    left: (geo.width - geo.itemWidth) / 2 - 2,
+                    width: geo.itemWidth + 4,
+                    height: geo.itemHeight + 4,
+                  },
+                  frameStyle,
+                ]}
+              />
+
+              {/* Markers at the screen edges, pointing in at the slot. */}
+              <Svg
+                width={12}
+                height={18}
+                style={[
+                  styles.marker,
+                  { left: spacing.md, top: geo.center - 9 },
+                ]}
+              >
+                <Path d="M0 0 L12 9 L0 18 Z" fill={colors.textPrimary} />
+              </Svg>
+              <Svg
+                width={12}
+                height={18}
+                style={[
+                  styles.marker,
+                  { right: spacing.md, top: geo.center - 9 },
+                ]}
+              >
+                <Path d="M12 0 L0 9 L12 18 Z" fill={colors.textPrimary} />
+              </Svg>
+
+              {/* On its own solid label, so it reads over any poster. */}
+              <View style={styles.captionWrap} pointerEvents="none">
+                <Text style={styles.caption}>{caption}</Text>
+              </View>
+
+              {landed && (
                 <Pressable
-                  style={styles.resultRow}
+                  style={{
+                    position: "absolute",
+                    top: slotTop,
+                    left: (geo.width - geo.itemWidth) / 2,
+                    width: geo.itemWidth,
+                    height: geo.itemHeight,
+                  }}
                   onPress={() =>
                     navigation.navigate("MovieDetails", { movieId: winner.id })
                   }
-                >
-                  <MoviePoster
-                    uri={winner.poster}
-                    style={styles.resultPoster}
-                  />
-                  <View style={styles.resultInfo}>
-                    <Text style={styles.resultTitle} numberOfLines={2}>
-                      {winner.title}
-                    </Text>
-                    <Text style={styles.resultMeta}>
-                      {winner.year} · {formatRuntime(winner.runtime)} ·{" "}
-                      {winner.genres[0]}
-                    </Text>
-                  </View>
-                  <ArrowUpRight size={18} color={colors.textSecondary} />
-                </Pressable>
-                <View style={styles.actions}>
-                  <PrimaryButton
-                    label={
-                      pickedMovie === winner.id
-                        ? t("Tonight's pick ✓")
-                        : t("Make it tonight's pick")
-                    }
-                    variant={
-                      pickedMovie === winner.id ? "secondary" : "primary"
-                    }
-                    disabled={pickedMovie === winner.id}
-                    onPress={makeTonightsPick}
-                    style={styles.mainAction}
-                    contentStyle={styles.actionContent}
-                  />
-                  <Pressable
-                    style={styles.roundButton}
-                    onPress={spin}
-                    hitSlop={6}
-                    accessibilityLabel={t("Spin again")}
-                  >
-                    <RotateCw size={18} color={colors.textPrimary} />
-                  </Pressable>
-                </View>
+                  accessibilityLabel={t("Open {title}", {
+                    title: winner.title,
+                  })}
+                />
+              )}
+            </View>
+          )}
+
+          {/* Floating result + buttons over the bottom. */}
+          <View
+            style={[
+              styles.bottom,
+              { paddingBottom: insets.bottom + spacing.md },
+            ]}
+          >
+            {/* A solid fade behind the text and buttons, so they read over
+                the posters underneath. */}
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${colors.background}00`, colors.background]}
+              locations={[0, 0.3]}
+              style={StyleSheet.absoluteFill}
+            />
+            {landed ? (
+              <Animated.View
+                entering={FadeIn.duration(260)}
+                style={styles.result}
+              >
+                <Text style={styles.title} numberOfLines={1}>
+                  {winner.title}
+                </Text>
+                <Text style={styles.meta}>
+                  {winner.year} · {formatRuntime(winner.runtime)} ·{" "}
+                  {t(winner.genres[0])}
+                </Text>
               </Animated.View>
             ) : (
               <Text style={styles.hint}>
                 {phase === "spinning"
                   ? t("Here it goes…")
-                  : t("Tap SPIN and let fate pick tonight's movie.")}
+                  : t("Tap Spin and let fate pick tonight's movie.")}
               </Text>
+            )}
+            {landed ? (
+              <View style={styles.actions}>
+                <PrimaryButton
+                  label={
+                    pickedMovie === winner.id
+                      ? t("Tonight's pick ✓")
+                      : t("Make it tonight's pick")
+                  }
+                  variant={pickedMovie === winner.id ? "secondary" : "primary"}
+                  disabled={pickedMovie === winner.id}
+                  onPress={makeTonightsPick}
+                  style={styles.flex}
+                />
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.squareButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={spin}
+                  accessibilityLabel={t("Spin again")}
+                >
+                  <RotateCw
+                    size={20}
+                    strokeWidth={2}
+                    color={colors.textPrimary}
+                  />
+                </Pressable>
+              </View>
+            ) : (
+              <PrimaryButton
+                label={phase === "spinning" ? t("Spin again") : t("Spin")}
+                onPress={spin}
+              />
             )}
           </View>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
-// The palette is static (useColors just returns it), so these styles are
-// created once at module level and shared with the Wheel component.
-// Built per render from the current palette (light or dark).
-const makeStyles = (styleColors) =>
+const createStyles = (colors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: styleColors.background,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-    },
-    headerButton: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
+      backgroundColor: colors.background,
     },
     disabled: {
       opacity: 0.4,
     },
-    body: {
+    pressed: {
+      opacity: 0.75,
+    },
+    flex: {
       flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: spacing.md,
-      gap: spacing.lg,
     },
     empty: {
       flex: 1,
@@ -407,107 +461,93 @@ const makeStyles = (styleColors) =>
       paddingHorizontal: spacing.xl,
       gap: spacing.sm,
     },
-    eyebrow: {
-      ...typography.caption,
-      color: styleColors.textMuted,
+    stage: {
+      flex: 1,
+      overflow: "hidden",
     },
-    wheelWrap: {
-      width: WHEEL_SIZE,
-      height: WHEEL_SIZE,
-      alignItems: "center",
-      justifyContent: "center",
+    reel: {
+      ...StyleSheet.absoluteFill,
+      direction: "ltr",
     },
-    wheel: {
+    strip: {
       position: "absolute",
-      width: WHEEL_SIZE,
-      height: WHEEL_SIZE,
+      top: 0,
+      gap: GAP,
     },
-    wheelPoster: {
+    fade: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+    },
+    slotLine: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: colors.textPrimary,
+      opacity: 0.25,
+    },
+    slotFrame: {
       position: "absolute",
       borderWidth: 2,
-      borderColor: styleColors.textPrimary,
+      borderColor: colors.textPrimary,
     },
-    pointer: {
+    marker: {
       position: "absolute",
-      top: -14,
-      zIndex: 2,
     },
-    hub: {
-      width: HUB_SIZE,
-      height: HUB_SIZE,
-      borderRadius: HUB_SIZE / 2,
+    captionWrap: {
+      position: "absolute",
+      top: spacing.md,
+      left: 0,
+      right: 0,
       alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: styleColors.textPrimary,
-      borderWidth: 4,
-      borderColor: styleColors.background,
     },
-    hubPressed: {
-      transform: [{ scale: 0.94 }],
-    },
-    hubSpinning: {
-      opacity: 0.6,
-    },
-    hubText: {
-      ...typography.label,
+    caption: {
+      ...typography.bodyBold,
       fontSize: 13,
-      letterSpacing: 1.5,
-      color: styleColors.background,
+      color: colors.textPrimary,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 5,
+      backgroundColor: colors.background,
     },
-    resultArea: {
-      alignSelf: "stretch",
-      minHeight: 150,
-      justifyContent: "center",
+    bottom: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      paddingTop: spacing.xl,
+      paddingHorizontal: spacing.md,
+      gap: spacing.md,
+    },
+    result: {
+      alignItems: "center",
+      gap: 2,
+    },
+    title: {
+      ...typography.title,
+      fontSize: 20,
+      color: colors.textPrimary,
+      textAlign: "center",
+    },
+    meta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      textAlign: "center",
     },
     hint: {
       ...typography.body,
-      color: styleColors.textSecondary,
+      color: colors.textSecondary,
       textAlign: "center",
-    },
-    result: {
-      gap: spacing.md,
-    },
-    resultRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      padding: spacing.sm + 2,
-      backgroundColor: styleColors.card,
-    },
-    resultPoster: {
-      width: 72,
-      aspectRatio: 2 / 3,
-    },
-    resultInfo: {
-      flex: 1,
-      gap: 2,
-    },
-    resultTitle: {
-      ...typography.title,
-      color: styleColors.textPrimary,
-    },
-    resultMeta: {
-      ...typography.caption,
-      color: styleColors.textSecondary,
     },
     actions: {
       flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
+      gap: 2,
     },
-    mainAction: {
-      flex: 1,
-    },
-    actionContent: {
-      paddingVertical: 10,
-    },
-    // Square, like the other filled boxes.
-    roundButton: {
-      width: 44,
-      height: 44,
+    squareButton: {
+      width: 50,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: styleColors.card,
+      backgroundColor: colors.card,
     },
   });
 
