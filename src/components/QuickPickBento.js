@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { MOVIES } from "../data/movies";
@@ -7,10 +8,11 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 // Same alternating slice colors as the real wheel on SpinScreen, so the
 // mini preview reads as the thing you're about to open.
-const WHEEL_SLICE_COLORS = ["#5B8DEF", "#383B40"];
+const WHEEL_SLICE_COLORS = ["#4A4D53", "#2E3034"];
 const WHEEL_SLICES = 8;
 const WHEEL_SIZE = 108;
 
@@ -94,10 +96,10 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
           </View>
 
           <View style={styles.aiText}>
-            <Text style={styles.aiEyebrow}>AI pick</Text>
-            <Text style={styles.aiTitle}>Let Reelboard choose</Text>
-            <Text style={styles.aiSubtitle}>Based on your taste</Text>
-            <Text style={styles.aiCtaText}>Pick for me</Text>
+            <Text style={styles.aiEyebrow}>{t("AI pick")}</Text>
+            <Text style={styles.aiTitle}>{t("Let ReelBoard choose")}</Text>
+            <Text style={styles.aiSubtitle}>{t("Based on your taste")}</Text>
+            <Text style={styles.aiCtaText}>{t("Pick for me")}</Text>
           </View>
         </View>
       </Pressable>
@@ -113,16 +115,16 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin }) => {
               />
             ))}
           </View>
-          <Text style={styles.halfTitle}>Swipe</Text>
-          <Text style={styles.halfSubtitle}>10 at a time</Text>
+          <Text style={styles.halfTitle}>{t("Swipe")}</Text>
+          <Text style={styles.halfSubtitle}>{t("10 at a time")}</Text>
         </Pressable>
 
         <Pressable style={styles.halfTile} onPress={onSpin}>
           <View style={styles.preview}>
             <MiniWheel colors={colors} />
           </View>
-          <Text style={styles.halfTitle}>Spin</Text>
-          <Text style={styles.halfSubtitle}>Let fate decide</Text>
+          <Text style={styles.halfTitle}>{t("Spin")}</Text>
+          <Text style={styles.halfSubtitle}>{t("Let fate decide")}</Text>
         </Pressable>
       </View>
     </View>
@@ -158,7 +160,7 @@ const createStyles = (colors) =>
     aiPosters: {
       position: "absolute",
       top: 0,
-      right: 0,
+      end: 0,
       bottom: 0,
       width: 190,
     },
@@ -169,13 +171,13 @@ const createStyles = (colors) =>
     },
     aiPosterBack: {
       top: 10,
-      right: 70,
+      end: 70,
       transform: [{ rotate: "-8deg" }],
       opacity: 0.8,
     },
     aiPosterFront: {
       top: 26,
-      right: -10,
+      end: -10,
       transform: [{ rotate: "7deg" }],
     },
     aiText: {

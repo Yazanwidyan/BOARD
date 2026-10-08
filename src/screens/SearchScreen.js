@@ -1,13 +1,7 @@
 import { ClipboardPaste, Search, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -24,6 +18,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 const RESULTS_LIMIT = 60;
 
@@ -91,7 +86,7 @@ export const SearchScreen = ({ navigation }) => {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search for titles..."
+            placeholder={t("Search for titles...")}
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
             autoCorrect={false}
@@ -111,7 +106,7 @@ export const SearchScreen = ({ navigation }) => {
             strokeWidth={2.2}
           />
           <Text style={styles.pasteButtonText}>
-            Copy and Paste List of Titles
+            {t("Copy and Paste List of Titles")}
           </Text>
         </Pressable>
       )}
@@ -120,8 +115,8 @@ export const SearchScreen = ({ navigation }) => {
         results.length === 0 ? (
           <EmptyState
             art="noMatches"
-            title="No matches"
-            subtitle={`Nothing found for "${query}"`}
+            title={t("No matches")}
+            subtitle={t('Nothing found for "{query}"', { query: query })}
           />
         ) : (
           <FlatList
@@ -157,7 +152,9 @@ export const SearchScreen = ({ navigation }) => {
             ]}
           >
             <View style={styles.pasteHeaderRow}>
-              <Text style={styles.pasteTitle}>Paste a List of Titles</Text>
+              <Text style={styles.pasteTitle}>
+                {t("Paste a List of Titles")}
+              </Text>
               <Pressable
                 onPress={() => {
                   setPasteMode(false);
@@ -170,7 +167,7 @@ export const SearchScreen = ({ navigation }) => {
               </Pressable>
             </View>
             <Text style={styles.pasteHint}>
-              One title per line (or comma-separated).
+              {t("One title per line (or comma-separated).")}
             </Text>
             <TextInput
               value={pasteText}
@@ -178,7 +175,7 @@ export const SearchScreen = ({ navigation }) => {
                 setPasteText(text);
                 setPasteResult(null);
               }}
-              placeholder={"The Godfather\nPulp Fiction\nInception"}
+              placeholder={t("The Godfather\nPulp Fiction\nInception")}
               placeholderTextColor={colors.textMuted}
               style={styles.pasteInput}
               multiline
@@ -189,21 +186,25 @@ export const SearchScreen = ({ navigation }) => {
               <Text style={styles.pasteSummary}>
                 {pasteResult.matched.length} matched
                 {pasteResult.unmatched.length > 0
-                  ? `, ${pasteResult.unmatched.length} not found`
+                  ? t(", {unmatchedCount} not found", {
+                      unmatchedCount: pasteResult.unmatched.length,
+                    })
                   : ""}
               </Text>
             )}
 
             {pasteResult ? (
               <PrimaryButton
-                label={`Add ${pasteResult.matched.length} to Watchlist`}
+                label={t("Add {matchedCount} to Watchlist", {
+                  matchedCount: pasteResult.matched.length,
+                })}
                 onPress={handleAddMatched}
                 disabled={pasteResult.matched.length === 0}
                 style={styles.pasteAction}
               />
             ) : (
               <PrimaryButton
-                label="Find titles"
+                label={t("Find titles")}
                 onPress={handlePasteSubmit}
                 disabled={!pasteText.trim()}
                 style={styles.pasteAction}
@@ -264,8 +265,8 @@ const createStyles = (colors) =>
     },
     pasteSheet: {
       backgroundColor: colors.background,
-      borderTopLeftRadius: radius.sm,
-      borderTopRightRadius: radius.sm,
+      borderTopStartRadius: radius.sm,
+      borderTopEndRadius: radius.sm,
       padding: spacing.md,
     },
     pasteHeaderRow: {

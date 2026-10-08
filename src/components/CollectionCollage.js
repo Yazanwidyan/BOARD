@@ -1,8 +1,10 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 // A collection as a square poster collage (its first four posters, 2 × 2)
 // with a slim progress bar along the bottom edge. Finished sets get a gold
@@ -38,7 +40,7 @@ export const CollectionCollage = ({ collection, watchedIds, size }) => {
       </View>
       {isComplete && (
         <View style={styles.completeTag}>
-          <Text style={styles.completeText}>Complete</Text>
+          <Text style={styles.completeText}>{t("Complete")}</Text>
         </View>
       )}
     </View>
@@ -58,8 +60,8 @@ const createStyles = (colors) =>
     },
     track: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       bottom: 0,
       height: 4,
       backgroundColor: "rgba(2, 0, 2, 0.6)",
@@ -70,7 +72,7 @@ const createStyles = (colors) =>
     completeTag: {
       position: "absolute",
       top: 6,
-      left: 6,
+      start: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 999,

@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -20,6 +21,7 @@ import {
   applyPreferenceFilters,
   bucketListIds,
 } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 const GENRES = [
   "Action",
@@ -118,7 +120,7 @@ export const PreferencesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <StackHeader
-        title="Swipe setup"
+        title={t("Swipe setup")}
         close
         onBack={() => navigation.goBack()}
         right={
@@ -128,7 +130,7 @@ export const PreferencesScreen = ({ navigation }) => {
             hitSlop={8}
           >
             <Text style={[styles.resetText, isDefault && styles.resetDisabled]}>
-              Reset
+              {t("Reset")}
             </Text>
           </Pressable>
         }
@@ -138,17 +140,17 @@ export const PreferencesScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>What are you in the mood for?</Text>
+        <Text style={styles.title}>{t("What are you in the mood for?")}</Text>
         <Text style={styles.subtitle}>
-          All optional. Your watchlist always gets a spot first.
+          {t("All optional. Your watchlist always gets a spot first.")}
         </Text>
 
         <Section
-          title="Genres"
+          title={t("Genres")}
           hint={
             preferences.genres.length > 0
-              ? `${preferences.genres.length} selected`
-              : "Any"
+              ? t("{count} selected", { count: preferences.genres.length })
+              : t("Any")
           }
           styles={styles}
         >
@@ -163,7 +165,7 @@ export const PreferencesScreen = ({ navigation }) => {
           ))}
         </Section>
 
-        <Section title="Rating" styles={styles}>
+        <Section title={t("Rating")} styles={styles}>
           {RATINGS.map(({ label, value }) => (
             <Chip
               key={label}
@@ -175,7 +177,7 @@ export const PreferencesScreen = ({ navigation }) => {
           ))}
         </Section>
 
-        <Section title="Decade" styles={styles}>
+        <Section title={t("Decade")} styles={styles}>
           {DECADES.map((decade) => (
             <Chip
               key={decade}
@@ -187,7 +189,7 @@ export const PreferencesScreen = ({ navigation }) => {
           ))}
         </Section>
 
-        <Section title="Runtime" styles={styles}>
+        <Section title={t("Runtime")} styles={styles}>
           {RUNTIMES.map((runtime) => (
             <Chip
               key={runtime}
@@ -205,12 +207,16 @@ export const PreferencesScreen = ({ navigation }) => {
       >
         <Text style={styles.matchText}>
           {matchCount === 0
-            ? "Nothing matches exactly — we'll loosen things up a little."
+            ? t("Nothing matches exactly — we'll loosen things up a little.")
             : matchCount < SWIPE_SIZE
-              ? `${matchCount} movies match — we'll add a few close ones.`
-              : `${matchCount} unwatched movies match`}
+              ? t("{matchCount} movies match — we'll add a few close ones.", {
+                  matchCount: matchCount,
+                })
+              : t("{matchCount} unwatched movies match", {
+                  matchCount: matchCount,
+                })}
         </Text>
-        <PrimaryButton label="Start swiping" onPress={handleStart} />
+        <PrimaryButton label={t("Start swiping")} onPress={handleStart} />
       </View>
     </SafeAreaView>
   );

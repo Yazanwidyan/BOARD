@@ -1,10 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { getMovieById } from "../data/movies";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 // The challenge as a smooth, simple card: dotted lines top and bottom, the
 // dare and the movie it points at, and quiet text actions — no big button.
@@ -42,7 +44,7 @@ export const ChallengeCard = ({
         <View style={styles.text}>
           <View style={styles.labelRow}>
             <Text style={styles.eyebrow}>
-              {isReveal ? "New dare" : "Your dare"}
+              {isReveal ? t("New dare") : t("Your dare")}
             </Text>
             <View style={[styles.dot, { backgroundColor: difficultyColor }]} />
             <Text style={styles.difficulty}>{challenge.difficultyLabel}</Text>
@@ -61,7 +63,7 @@ export const ChallengeCard = ({
       <View style={styles.actions}>
         <Pressable style={styles.link} onPress={primary} hitSlop={8}>
           <Text style={styles.linkText}>
-            {isReveal ? "Accept" : "View details"}
+            {isReveal ? t("Accept") : t("View details")}
           </Text>
         </Pressable>
         {secondary && (
@@ -69,10 +71,12 @@ export const ChallengeCard = ({
             style={styles.link}
             onPress={secondary}
             hitSlop={8}
-            accessibilityLabel={isReveal ? "Give me another" : "Change dare"}
+            accessibilityLabel={
+              isReveal ? t("Give me another") : t("Change dare")
+            }
           >
             <Text style={styles.secondaryText}>
-              {isReveal ? "Another" : "Change"}
+              {isReveal ? t("Another") : t("Change")}
             </Text>
           </Pressable>
         )}
@@ -96,16 +100,16 @@ export const ChallengePrompt = ({ onStart }) => {
           <Text style={styles.placeholderMark}>?</Text>
         </View>
         <View style={styles.text}>
-          <Text style={styles.eyebrow}>Tonight&apos;s dare</Text>
-          <Text style={styles.dare}>No dare yet</Text>
+          <Text style={styles.eyebrow}>{t("Tonight's dare")}</Text>
+          <Text style={styles.dare}>{t("No dare yet")}</Text>
           <Text style={styles.movie}>
-            Three secret challenges are waiting. Pick one.
+            {t("Three secret challenges are waiting. Pick one.")}
           </Text>
         </View>
       </View>
       <View style={styles.actions}>
         <Pressable style={styles.link} onPress={onStart} hitSlop={8}>
-          <Text style={styles.linkText}>Start a dare</Text>
+          <Text style={styles.linkText}>{t("Start a dare")}</Text>
         </Pressable>
       </View>
     </Pressable>
@@ -152,7 +156,7 @@ const createStyles = (colors) =>
       width: 5,
       height: 5,
       borderRadius: 3,
-      marginLeft: 2,
+      marginStart: 2,
     },
     difficulty: {
       ...typography.caption,

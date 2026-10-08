@@ -1,7 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { Bell, Search, Shuffle } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
@@ -11,6 +12,7 @@ import {
 import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
+import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -31,6 +33,7 @@ import { getInProgressCollections } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getLevel, getUserXP } from "../utils/xp";
+import { t } from "../i18n";
 
 const RECENT_COUNT = 10;
 
@@ -58,12 +61,14 @@ const DecideHeroCard = ({ isFreshAccount, navigation, styles, colors }) => {
   if (isFreshAccount) {
     return (
       <HomeHero
-        eyebrow="Welcome"
-        title="Find your first movie"
-        meta="Save what you want to see and tier what you've watched — Reelboard learns from both."
+        eyebrow={t("Welcome")}
+        title={t("Find your first movie")}
+        meta={t(
+          "Save what you want to see and tier what you've watched — ReelBoard learns from both.",
+        )}
         actions={
           <PrimaryButton
-            label="Start discovering"
+            label={t("Start discovering")}
             onPress={() => navigation.navigate("Discover")}
             style={styles.heroMain}
             contentStyle={styles.heroSquare}
@@ -89,9 +94,9 @@ const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
   if (days < 1) return "today";
   if (days === 1) return "yesterday";
-  if (days < 14) return `${days} days ago`;
-  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
-  return `${Math.round(days / 30)} months ago`;
+  if (days < 14) return t("{count} days ago", { count: days });
+  if (days < 60) return t("{count} weeks ago", { count: Math.round(days / 7) });
+  return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
 // Home's slot when there's no Tonight's Pick: one concrete suggestion from
@@ -128,23 +133,25 @@ const WatchlistSuggestion = ({ navigation, styles, colors }) => {
   return (
     <HomeHero
       posterUri={movie.poster}
-      eyebrow="No pick for tonight yet"
+      eyebrow={t("No pick for tonight yet")}
       title={movie.title}
       meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}
       reason={
         <Text style={styles.suggestReason} numberOfLines={1}>
           {fromWatchlist
             ? addedAt
-              ? `On your watchlist · saved ${timeAgo(addedAt)}`
-              : "On your watchlist"
-            : "Highly rated, and you haven't seen it"}
+              ? t("On your watchlist · saved {addedAt}", {
+                  addedAt: timeAgo(addedAt),
+                })
+              : t("On your watchlist")
+            : t("Highly rated, and you haven't seen it")}
         </Text>
       }
       onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
       actions={
         <>
           <PrimaryButton
-            label="Make it tonight's pick"
+            label={t("Make it tonight's pick")}
             onPress={() => {
               Haptics.selectionAsync();
               togglePickedMovie(movie.id);
@@ -160,7 +167,7 @@ const WatchlistSuggestion = ({ navigation, styles, colors }) => {
                 setOffset((value) => value + 1);
               }}
               hitSlop={4}
-              accessibilityLabel="Suggest another"
+              accessibilityLabel={t("Suggest another")}
             >
               <Shuffle size={18} color={colors.textPrimary} />
             </Pressable>
@@ -187,7 +194,7 @@ const WatchlistRail = ({ bucketList, navigation }) => {
   return (
     <View style={styles.railSection}>
       <ShelfTag
-        label="From your watchlist"
+        label={t("From your watchlist")}
         styles={styles}
         right={
           <Pressable
@@ -196,7 +203,7 @@ const WatchlistRail = ({ bucketList, navigation }) => {
               navigation.navigate("Library", { initialTab: "bucketlist" })
             }
           >
-            <Text style={styles.seeAllText}>See all</Text>
+            <Text style={styles.seeAllText}>{t("See all")}</Text>
           </Pressable>
         }
       />
@@ -224,7 +231,7 @@ const RecentlyWatchedRail = ({ watched, navigation }) => {
 
   return (
     <View style={styles.railSection}>
-      <ShelfTag label="Recently watched" styles={styles} />
+      <ShelfTag label={t("Recently watched")} styles={styles} />
       <ShelfRail
         itemWidth={POSTER_ITEM}
         items={[...watched]
@@ -327,7 +334,7 @@ export const HomeScreen = ({ navigation }) => {
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
             <ShelfTag
-              label="Continue a collection"
+              label={t("Continue a collection")}
               styles={styles}
               right={
                 <Pressable
@@ -338,7 +345,7 @@ export const HomeScreen = ({ navigation }) => {
                     })
                   }
                 >
-                  <Text style={styles.seeAllText}>See all</Text>
+                  <Text style={styles.seeAllText}>{t("See all")}</Text>
                 </Pressable>
               }
             />
@@ -362,7 +369,10 @@ export const HomeScreen = ({ navigation }) => {
                     />
                   ),
                   title: collection.title,
-                  meta: `${seen} of ${collection.movies.length} watched`,
+                  meta: t("{seen} of {moviesCount} watched", {
+                    seen: seen,
+                    moviesCount: collection.movies.length,
+                  }),
                 };
               })}
             />
@@ -374,18 +384,20 @@ export const HomeScreen = ({ navigation }) => {
       <ScreenBottomFade />
       <DockHeader
         {...header.props}
-        title="Reelboard"
+        title={t("ReelBoard")}
+        italicTitle
+        logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
           <>
             <HeaderIconButton
               onPress={() => navigation.navigate("Activity")}
-              accessibilityLabel="Activity"
+              accessibilityLabel={t("Activity")}
             >
               <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />
             </HeaderIconButton>
             <HeaderIconButton
               onPress={() => navigation.navigate("Search")}
-              accessibilityLabel="Search"
+              accessibilityLabel={t("Search")}
             >
               <Search size={22} strokeWidth={1.75} color={colors.textPrimary} />
             </HeaderIconButton>

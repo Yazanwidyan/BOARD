@@ -5,10 +5,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
+import { Text } from "./AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MOVIES } from "../data/movies";
@@ -20,6 +20,7 @@ import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 const RESULTS_LIMIT = 40;
 
@@ -65,14 +66,18 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose} title="Add to Watched">
+    <BottomSheet
+      visible={visible}
+      onClose={handleClose}
+      title={t("Add to Watched")}
+    >
       <View style={styles.searchBar}>
         <Search size={16} color={colors.textSecondary} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => query.trim() && addSearch(query)}
-          placeholder="Search the Top 250..."
+          placeholder={t("Search the Top 250...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
@@ -124,23 +129,23 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
             );
           })}
           {results.length === 0 && (
-            <Text style={styles.empty}>No movies found.</Text>
+            <Text style={styles.empty}>{t("No movies found.")}</Text>
           )}
         </ScrollView>
       ) : (
         <View style={styles.list}>
           <View style={styles.recentHeaderRow}>
-            <Text style={styles.recentTitle}>Recent Searches</Text>
+            <Text style={styles.recentTitle}>{t("Recent Searches")}</Text>
             {recentSearches.length > 0 && (
               <Pressable onPress={clearSearches} hitSlop={8}>
-                <Text style={styles.recentClear}>Clear</Text>
+                <Text style={styles.recentClear}>{t("Clear")}</Text>
               </Pressable>
             )}
           </View>
 
           {recentSearches.length === 0 ? (
             <Text style={styles.empty}>
-              Your recent searches will appear here.
+              {t("Your recent searches will appear here.")}
             </Text>
           ) : (
             recentSearches.map((term) => (
@@ -192,7 +197,7 @@ const createStyles = (colors) =>
     },
     rowInfo: {
       flex: 1,
-      marginLeft: spacing.md,
+      marginStart: spacing.md,
     },
     rowTitle: {
       ...typography.bodyBold,

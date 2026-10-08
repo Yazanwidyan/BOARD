@@ -1,11 +1,13 @@
 import { Plus } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { AvatarLevelRing } from "./AvatarLevelRing";
 import { Medal, getBadgeLook } from "./BadgeMedal";
+import { t } from "../i18n";
 
 // Top badges shown under the bio.
 const TOP_BADGES = 6;
@@ -60,7 +62,7 @@ export const WatcherCard = ({
       <View style={styles.topRow}>
         <Touch
           onPress={onPressAvatar}
-          accessibilityLabel="Your watcher profile"
+          accessibilityLabel={t("Your watcher profile")}
         >
           <AvatarLevelRing
             source={avatarSource}
@@ -121,7 +123,7 @@ export const WatcherCard = ({
           onPress={onPressBio}
           hitSlop={6}
           style={styles.quote}
-          accessibilityLabel={bio ? "Edit bio" : "Add a bio"}
+          accessibilityLabel={bio ? t("Edit bio") : t("Add a bio")}
         >
           {bio ? (
             <Text style={styles.quoteText} numberOfLines={3}>
@@ -130,7 +132,9 @@ export const WatcherCard = ({
           ) : (
             <View style={styles.addBio}>
               <Plus size={12} color={colors.textMuted} strokeWidth={2.4} />
-              <Text style={styles.addBioText}>Add your take — a short bio</Text>
+              <Text style={styles.addBioText}>
+                {t("Add your take — a short bio")}
+              </Text>
             </View>
           )}
         </Pressable>
@@ -141,7 +145,7 @@ export const WatcherCard = ({
         <Touch
           style={styles.topBadges}
           onPress={onPressBadges}
-          accessibilityLabel="Your badges"
+          accessibilityLabel={t("Your badges")}
         >
           {showcase.slice(0, TOP_BADGES).map((badge) => {
             const { metal, tierIndex } = getBadgeLook(badge, allBadges);
@@ -182,7 +186,7 @@ const createStyles = (colors) =>
     stats: {
       flexDirection: "row",
       marginTop: spacing.sm + 2,
-      paddingRight: spacing.xs,
+      paddingEnd: spacing.xs,
       justifyContent: "space-between",
     },
     stat: {
@@ -238,7 +242,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 13,
       color: colors.textSecondary,
-      marginLeft: 2,
+      marginStart: 2,
     },
     quote: {
       marginTop: spacing.md,

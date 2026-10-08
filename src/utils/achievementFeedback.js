@@ -23,6 +23,7 @@ import {
   getLevel,
   getXPBreakdown,
 } from "./xp";
+import { t } from "../i18n";
 
 // The one place that turns "something in the XP economy just changed" into
 // a real in-app achievement popup (see AchievementModal, mounted once at
@@ -74,14 +75,14 @@ const xpRowsBetween = (watchedBefore, watchedAfter) => {
   added(after.decades, before.decades).forEach((decade) =>
     rows.push({
       label: "New decade",
-      detail: `The ${decade}`,
+      detail: t("The {decade}", { decade: decade }),
       xp: NEW_DECADE_XP,
     }),
   );
   added(after.deepDirectors, before.deepDirectors).forEach((director) =>
     rows.push({
       label: "Director depth",
-      detail: `3 films by ${director}`,
+      detail: t("3 films by {director}", { director: director }),
       xp: DIRECTOR_DEPTH_XP,
     }),
   );
@@ -98,7 +99,10 @@ const levelUpRow = (xpBefore, xpAfter) => {
   return next.level > levelBefore
     ? {
         label: "Level up",
-        detail: `Level ${next.level} · ${next.name}`,
+        detail: t("Level {level} · {name}", {
+          level: next.level,
+          name: next.name,
+        }),
         xp: null,
       }
     : null;
@@ -138,16 +142,14 @@ const showAchievement = (
       ? "multi"
       : (kinds[0] ?? "watched");
 
-  useAchievementStore
-    .getState()
-    .showAchievement({
-      title,
-      kind,
-      rows,
-      total,
-      shareCollectionId,
-      tierMovieId,
-    });
+  useAchievementStore.getState().showAchievement({
+    title,
+    kind,
+    rows,
+    total,
+    shareCollectionId,
+    tierMovieId,
+  });
 };
 
 // Call right after toggleWatched(movieId), passing the watched/bucketList
@@ -285,7 +287,9 @@ export const rewatchMovieWithFeedback = (movieId) => {
     showAchievement(badgeRows(newBadges), ["badge"]);
   } else {
     const title = getMovieById(movieId)?.title ?? "Movie";
-    showToast(`Rewatch of ${title} logged`, { tone: "success" });
+    showToast(t("Rewatch of {title} logged", { title: title }), {
+      tone: "success",
+    });
   }
 };
 
@@ -320,8 +324,8 @@ export const toggleBucketListWithFeedback = (movieId) => {
   } else {
     showToast(
       added
-        ? `${title} added to your watchlist`
-        : `${title} removed from your watchlist`,
+        ? t("{title} added to your watchlist", { title: title })
+        : t("{title} removed from your watchlist", { title: title }),
       { tone: added ? "success" : "info" },
     );
   }

@@ -278,7 +278,7 @@ const createStyles = (colors) =>
     },
     corner: {
       position: "absolute",
-      right: -2,
+      end: -2,
       bottom: -2,
       alignItems: "center",
       justifyContent: "center",

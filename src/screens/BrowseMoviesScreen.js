@@ -1,13 +1,7 @@
 import { Bookmark, BookmarkCheck, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -22,6 +16,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
   const colors = useColors();
@@ -86,7 +81,7 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <StackHeader
-        title={rowTitle ?? "Browse Movies"}
+        title={rowTitle ?? t("Browse Movies")}
         onBack={() => navigation.goBack()}
       />
 
@@ -97,8 +92,10 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
           onChangeText={setQuery}
           placeholder={
             rowIds
-              ? `Search ${rowIds.length} movies...`
-              : "Search the Top 250..."
+              ? t("Search {rowIdsCount} movies...", {
+                  rowIdsCount: rowIds.length,
+                })
+              : t("Search the Top 250...")
           }
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
@@ -178,7 +175,7 @@ const createStyles = (colors) =>
     },
     rowInfo: {
       flex: 1,
-      marginLeft: spacing.md,
+      marginStart: spacing.md,
     },
     rowTitle: {
       ...typography.bodyBold,

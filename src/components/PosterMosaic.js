@@ -1,10 +1,5 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -59,7 +54,10 @@ export const MosaicSections = ({ groups, onPressMovie }) => {
           {group.label && (
             <View style={styles.header}>
               <Text
-                style={[styles.headerText, group.color && { color: group.color }]}
+                style={[
+                  styles.headerText,
+                  group.color && { color: group.color },
+                ]}
               >
                 {group.label}
               </Text>
@@ -89,7 +87,7 @@ const createStyles = (colors) =>
     },
     rewatch: {
       position: "absolute",
-      right: 6,
+      end: 6,
       bottom: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,

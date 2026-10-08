@@ -1,10 +1,12 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Svg, { Circle } from "react-native-svg";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTierInfo } from "../utils/tiers";
+import { t } from "../i18n";
 
 const SIZE = 64;
 const STROKE = 5;
@@ -51,7 +53,7 @@ const Ring = ({ fraction, color, value, styles, trackColor }) => {
 };
 
 // Movie Details' scores as rings: IMDb (out of 10), Rotten Tomatoes and
-// Metacritic (out of 100), each filling to its score, then your Reelboard
+// Metacritic (out of 100), each filling to its score, then your ReelBoard
 // tier as a square tile in its colour (a plain grey square until you tier
 // it). Sits in a square filled box, edge to edge.
 //
@@ -83,7 +85,7 @@ export const ScoreRings = ({ scores }) => {
                 </Text>
               </View>
               <Text style={styles.label} numberOfLines={1}>
-                Your tier
+                {t("Your tier")}
               </Text>
             </View>
           );

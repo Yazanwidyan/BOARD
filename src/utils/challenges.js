@@ -8,6 +8,7 @@ import {
 } from "./collections";
 import { bucketListIds } from "./movieFilters";
 import { shuffle } from "./shuffle";
+import { t } from "../i18n";
 
 // Every generator below takes the same real-state bundle and returns a
 // candidate challenge object or `null` if it doesn't apply right now — the
@@ -53,7 +54,10 @@ const forgottenOne = ({ bucketList }) => {
     id: "forgotten-one",
     type: "watchlist",
     title: "The Forgotten One",
-    description: `${movie.title} has been sitting on your watchlist a while. Time to finally watch it.`,
+    description: t(
+      "{title} has been sitting on your watchlist a while. Time to finally watch it.",
+      { title: movie.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });
@@ -68,7 +72,10 @@ const clearTheQueue = ({ bucketList }) => {
     id: "clear-the-queue",
     type: "watchlist",
     title: "Clear the Queue",
-    description: `Your watchlist has ${bucketList.length} movies waiting. Start by watching ${movie.title}.`,
+    description: t(
+      "Your watchlist has {bucketListCount} movies waiting. Start by watching {title}.",
+      { bucketListCount: bucketList.length, title: movie.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });
@@ -83,7 +90,9 @@ const randomPick = ({ bucketList }) => {
     id: "random-pick",
     type: "watchlist",
     title: "Random Pick",
-    description: `No overthinking it — watch ${movie.title} from your watchlist.`,
+    description: t("No overthinking it — watch {title} from your watchlist.", {
+      title: movie.title,
+    }),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });
@@ -137,7 +146,10 @@ const breakThePattern = ({ watched, bucketList }) => {
     id: "break-the-pattern",
     type: "genre",
     title: "Break the Pattern",
-    description: `Your last 5 movies lean heavily ${dominantGenre}. Change things up with ${movie.title}.`,
+    description: t(
+      "Your last 5 movies lean heavily {dominantGenre}. Change things up with {title}.",
+      { dominantGenre: dominantGenre, title: movie.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "MEDIUM",
   });
@@ -164,7 +176,10 @@ const genreExplorer = ({ watched, bucketList }) => {
     id: "genre-explorer",
     type: "genre",
     title: "Genre Explorer",
-    description: `You haven't watched any ${genre} yet. ${movie.title} is a great place to start.`,
+    description: t(
+      "You haven't watched any {genre} yet. {title} is a great place to start.",
+      { genre: genre, title: movie.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "MEDIUM",
   });
@@ -187,7 +202,10 @@ const outsideComfortZone = ({ watched, bucketList }) => {
     id: "outside-comfort-zone",
     type: "genre",
     title: "Outside Your Comfort Zone",
-    description: `${leastGenre} barely shows up in your history. Give ${movie.title} a shot.`,
+    description: t(
+      "{leastGenre} barely shows up in your history. Give {title} a shot.",
+      { leastGenre: leastGenre, title: movie.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "MEDIUM",
   });
@@ -222,7 +240,10 @@ const directorChallenge = ({ watched }) => {
       id: "complete-the-director",
       type: "director",
       title: "Complete the Director",
-      description: `One movie left to complete your ${collection.title} collection: ${nextMovie.title}.`,
+      description: t(
+        "One movie left to complete your {title} collection: {title2}.",
+        { title: collection.title, title2: nextMovie.title },
+      ),
       targetMovieId: nextMovie.id,
       difficulty: "HARD",
     });
@@ -232,7 +253,15 @@ const directorChallenge = ({ watched }) => {
     id: "director-dive",
     type: "director",
     title: "Director Dive",
-    description: `You're ${watchedCount}/${total} through ${collection.title}. Keep going with ${nextMovie.title}.`,
+    description: t(
+      "You're {watchedCount}/{total} through {title}. Keep going with {title2}.",
+      {
+        watchedCount: watchedCount,
+        total: total,
+        title: collection.title,
+        title2: nextMovie.title,
+      },
+    ),
     targetMovieId: nextMovie.id,
     difficulty: "MEDIUM",
   });
@@ -253,7 +282,10 @@ const completeTheCollection = ({ watched }) => {
     id: "complete-the-collection",
     type: "collection",
     title: "Complete the Collection",
-    description: `${nextMovie.title} is the last movie standing between you and finishing ${current.title}.`,
+    description: t(
+      "{title} is the last movie standing between you and finishing {title2}.",
+      { title: nextMovie.title, title2: current.title },
+    ),
     targetMovieId: nextMovie.id,
     difficulty: "HARD",
   });
@@ -275,7 +307,10 @@ const startSomethingNew = ({ watched }) => {
     id: "start-something-new",
     type: "collection",
     title: "Start Something New",
-    description: `Kick off a new collection — watch ${movie.title} to begin ${collection.title}.`,
+    description: t(
+      "Kick off a new collection — watch {title} to begin {title2}.",
+      { title: movie.title, title2: collection.title },
+    ),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });
@@ -295,7 +330,10 @@ const hiddenGem = ({ watched }) => {
     id: "hidden-gem",
     type: "rating",
     title: "Hidden Gem",
-    description: `${movie.title} is rated ${movie.rating.toFixed(1)} and you haven't seen it yet.`,
+    description: t("{title} is rated {value} and you haven't seen it yet.", {
+      title: movie.title,
+      value: movie.rating.toFixed(1),
+    }),
     targetMovieId: movie.id,
     difficulty: "MEDIUM",
   });
@@ -316,7 +354,9 @@ const rollTheDice = ({ watched, bucketList }) => {
     id: "roll-the-dice",
     type: "random",
     title: "Roll the Dice",
-    description: `${movie.title}. That's the roll — no swaps.`,
+    description: t("{title}. That's the roll — no swaps.", {
+      title: movie.title,
+    }),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });
@@ -332,7 +372,9 @@ const surpriseMe = ({ watched }) => {
     id: "surprise-me",
     type: "random",
     title: "Surprise Me",
-    description: `Reelboard picked ${movie.title} for you tonight.`,
+    description: t("ReelBoard picked {title} for you tonight.", {
+      title: movie.title,
+    }),
     targetMovieId: movie.id,
     difficulty: "EASY",
   });

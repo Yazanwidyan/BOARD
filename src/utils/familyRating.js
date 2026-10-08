@@ -20,7 +20,7 @@ const LEVELS = {
   Approved: {
     level: "family",
     label: "Likely family friendly",
-    note: "An older classic (pre-1968 \"Approved\" rating), made under strict content rules.",
+    note: 'An older classic (pre-1968 "Approved" rating), made under strict content rules.',
   },
   "PG-13": {
     level: "teen",

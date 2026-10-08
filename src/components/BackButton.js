@@ -1,7 +1,8 @@
 import { ChevronLeft } from "lucide-react-native";
 import { Pressable, StyleSheet } from "react-native";
 
-import colors from "../theme/palettes";
+import { useColors } from "../theme/useColors";
+import { t, useIsRTL } from "../i18n";
 
 // The app's back control: a flat chevron, no circle or border, so it sits
 // quietly in the header like the other header icons.
@@ -14,6 +15,8 @@ import colors from "../theme/palettes";
 const CHEVRON_INSET = 8 / 24;
 
 export const BackButton = ({ onPress, size = 40, floating = false }) => {
+  const colors = useColors();
+  const isRTL = useIsRTL();
   const iconSize = floating ? size * 0.55 : size * 0.72;
   return (
     <Pressable
@@ -22,7 +25,7 @@ export const BackButton = ({ onPress, size = 40, floating = false }) => {
       // area to keep it easy to hit.
       hitSlop={floating ? 8 : { top: 8, bottom: 8, left: 12, right: 16 }}
       accessibilityRole="button"
-      accessibilityLabel="Back"
+      accessibilityLabel={t("Back")}
       style={({ pressed }) => [
         styles.button,
         floating
@@ -30,7 +33,7 @@ export const BackButton = ({ onPress, size = 40, floating = false }) => {
           : {
               height: size,
               width: iconSize * (1 - CHEVRON_INSET),
-              marginLeft: -iconSize * CHEVRON_INSET,
+              marginStart: -iconSize * CHEVRON_INSET,
               alignItems: "flex-start",
             },
         floating && {
@@ -42,9 +45,11 @@ export const BackButton = ({ onPress, size = 40, floating = false }) => {
         pressed && styles.pressed,
       ]}
     >
+      {/* Points the reading way back: left, or right in Arabic. */}
       <ChevronLeft
+        style={isRTL && styles.flipped}
         size={iconSize}
-        color="#FFFFFF"
+        color={colors.textPrimary}
         strokeWidth={floating ? 2.4 : 1.75}
       />
     </Pressable>
@@ -55,6 +60,9 @@ const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  flipped: {
+    transform: [{ scaleX: -1 }],
   },
   pressed: {
     opacity: 0.6,

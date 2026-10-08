@@ -2,13 +2,15 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
 import { PrimaryButton } from "./PrimaryButton";
+import { t } from "../i18n";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_DATE = new Date(1900, 0, 1);
@@ -81,9 +83,9 @@ export const WatchDateSheet = ({ visible, timestamp, onSave, onClose }) => {
       visible={visible}
       onClose={onClose}
       size="auto"
-      title="When did you watch it?"
+      title={t("When did you watch it?")}
       subtitle={formatLong(date)}
-      footer={<PrimaryButton label="Save date" onPress={save} />}
+      footer={<PrimaryButton label={t("Save date")} onPress={save} />}
     >
       <View style={styles.quickRow}>
         {QUICK.map(({ label, daysAgo }) => {
@@ -121,7 +123,7 @@ export const WatchDateSheet = ({ visible, timestamp, onSave, onClose }) => {
         />
       ) : (
         <Pressable style={styles.pickButton} onPress={openAndroidPicker}>
-          <Text style={styles.pickLabel}>Pick a date</Text>
+          <Text style={styles.pickLabel}>{t("Pick a date")}</Text>
           <Text style={styles.pickValue}>{formatLong(date)}</Text>
         </Pressable>
       )}

@@ -1,4 +1,8 @@
-import { DarkTheme, NavigationContainer } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -25,6 +29,8 @@ import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
+import { useLanguageStore } from "../store/languageStore";
+import { useThemeStore } from "../store/themeStore";
 import { useColors } from "../theme/useColors";
 import { TabNavigator } from "./TabNavigator";
 
@@ -53,17 +59,24 @@ export const AppNavigator = () => {
   const hasMovieHydrated = useHasHydrated(useMovieStore);
   const hasProfileHydrated = useHasHydrated(useProfileStore);
   const hasChallengeHydrated = useHasHydrated(useChallengeStore);
+  // Language and theme load first too, so nothing renders in the wrong
+  // language (t() reads the store directly) or flashes the wrong theme.
+  const hasLanguageHydrated = useHasHydrated(useLanguageStore);
+  const hasThemeHydrated = useHasHydrated(useThemeStore);
   const hasHydrated =
     hasUserHydrated &&
     hasMovieHydrated &&
     hasProfileHydrated &&
-    hasChallengeHydrated;
+    hasChallengeHydrated &&
+    hasLanguageHydrated &&
+    hasThemeHydrated;
   const colors = useColors();
 
+  const baseTheme = colors.isDark ? DarkTheme : DefaultTheme;
   const navigationTheme = {
-    ...DarkTheme,
+    ...baseTheme,
     colors: {
-      ...DarkTheme.colors,
+      ...baseTheme.colors,
       background: colors.background,
       card: colors.card,
       border: colors.border,

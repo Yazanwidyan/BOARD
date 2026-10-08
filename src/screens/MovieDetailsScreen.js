@@ -16,9 +16,9 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -54,6 +54,7 @@ import {
 import { getFamilyRating } from "../utils/familyRating";
 import { getTier, getTierInfo } from "../utils/tiers";
 import { formatRuntime, isInBucketList } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
@@ -85,9 +86,9 @@ const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
   if (days < 1) return "today";
   if (days === 1) return "yesterday";
-  if (days < 14) return `${days} days ago`;
-  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
-  return `${Math.round(days / 30)} months ago`;
+  if (days < 14) return t("{count} days ago", { count: days });
+  if (days < 60) return t("{count} weeks ago", { count: Math.round(days / 7) });
+  return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
 const slugify = (value) =>
@@ -234,7 +235,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       navigation.push("CollectionDetails", { collectionId: collection.id });
     } else {
       openList(
-        `Starring ${actor}`,
+        t("Starring {name}", { name: actor }),
         MOVIES.filter((item) => item.cast?.includes(actor)),
       );
     }
@@ -266,7 +267,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     },
     {
       key: "reelboard",
-      label: "Reelboard",
+      label: "ReelBoard",
       value: getTier(watchedEntry) ?? "–",
       suffix: "",
       color: getTierInfo(getTier(watchedEntry))?.color ?? colors.textMuted,
@@ -308,7 +309,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
   const handleShare = () => {
     Share.share({
-      message: `Check out ${movie.title} (${movie.year}) on Reelboard — rated ${movie.rating.toFixed(1)}.`,
+      message: t("Check out {title} ({year}) on ReelBoard — rated {value}.", {
+        title: movie.title,
+        year: movie.year,
+        value: movie.rating.toFixed(1),
+      }),
     });
   };
 
@@ -375,7 +380,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
         <View style={styles.content}>
           <PrimaryButton
-            label={isWatched ? "Watched" : "Mark as watched"}
+            label={isWatched ? t("Watched") : t("Mark as watched")}
             variant={isWatched ? "secondary" : "primary"}
             icon={
               isWatched ? (
@@ -386,7 +391,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           />
           {!isWatched && isPicked && (
             <Text style={styles.noteText}>
-              Marking as watched will clear it as tonight&apos;s pick.
+              {t("Marking as watched will clear it as tonight's pick.")}
             </Text>
           )}
 
@@ -395,7 +400,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <DockButton
                 styles={styles}
                 active={inBucketList}
-                label={inBucketList ? "Saved" : "Watchlist"}
+                label={inBucketList ? t("Saved") : t("Watchlist")}
                 onPress={() => toggleBucketListWithFeedback(movie.id)}
                 icon={
                   inBucketList ? (
@@ -410,21 +415,21 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <DockButton
                 styles={styles}
                 active={isPicked}
-                label="Tonight"
+                label={t("Tonight")}
                 onPress={() => togglePickedMovie(movie.id)}
                 icon={<Clapperboard size={20} color={iconColor(isPicked)} />}
               />
             )}
             <DockButton
               styles={styles}
-              label="Trailer"
+              label={t("Trailer")}
               onPress={handleWatchTrailer}
               icon={<Play size={20} color={colors.textPrimary} />}
             />
             {isWatched && (
               <DockButton
                 styles={styles}
-                label="Rewatch"
+                label={t("Rewatch")}
                 onPress={() => rewatchMovieWithFeedback(movieId)}
                 icon={<RotateCw size={20} color={colors.textPrimary} />}
               />
@@ -435,7 +440,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             <View style={styles.challengeBanner}>
               <View style={styles.bannerText}>
                 <Text style={styles.challengeEyebrow}>
-                  Your dare · {activeChallenge.difficultyLabel}
+                  {t("Your dare ·")} {activeChallenge.difficultyLabel}
                 </Text>
                 <Text style={styles.challengeDescription} numberOfLines={2}>
                   {activeChallenge.description}
@@ -447,41 +452,45 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           {isWatched ? (
             <View style={styles.ratingCard}>
               <View style={styles.ratingHeader}>
-                <Text style={styles.sectionLabelInline}>Your history</Text>
+                <Text style={styles.sectionLabelInline}>
+                  {t("Your history")}
+                </Text>
                 {/* Tap the date to change when you watched it. */}
                 <Pressable
                   onPress={() => setIsDateSheetOpen(true)}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="Change when you watched it"
+                  accessibilityLabel={t("Change when you watched it")}
                 >
                   <Text style={styles.watchCount}>
                     <Text style={styles.watchDate}>
                       {watchedEntry.timestamp
                         ? formatDate(watchedEntry.timestamp)
-                        : "Add date"}
+                        : t("Add date")}
                     </Text>{" "}
                     · {watchedEntry.watchCount ?? 1}×
                   </Text>
                 </Pressable>
               </View>
-              <Text style={styles.tierPrompt}>Your Reelboard tier</Text>
+              <Text style={styles.tierPrompt}>{t("Your ReelBoard tier")}</Text>
               <TierPicker tier={getTier(watchedEntry)} onChange={handleTier} />
             </View>
           ) : (
             bucketEntry && (
               <View style={styles.savedRow}>
                 <Text style={styles.savedText}>
-                  On your watchlist
+                  {t("On your watchlist")}
                   {bucketEntry.addedAt
-                    ? ` · saved ${timeAgo(bucketEntry.addedAt)}`
+                    ? t(" · saved {addedAt}", {
+                        addedAt: timeAgo(bucketEntry.addedAt),
+                      })
                     : ""}
                 </Text>
               </View>
             )
           )}
 
-          <Text style={styles.sectionLabel}>Overview</Text>
+          <Text style={styles.sectionLabel}>{t("Overview")}</Text>
           <Text
             style={styles.description}
             numberOfLines={expanded ? undefined : DESCRIPTION_LINES}
@@ -502,12 +511,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               hitSlop={6}
             >
               <Text style={styles.moreText}>
-                {expanded ? "Show less" : "Read more"}
+                {expanded ? t("Show less") : t("Read more")}
               </Text>
             </Pressable>
           )}
 
-          <Text style={styles.sectionLabel}>Scores</Text>
+          <Text style={styles.sectionLabel}>{t("Scores")}</Text>
           <ScoreRings scores={scores} />
 
           {details?.awards && (
@@ -527,14 +536,16 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               style={styles.factChip}
               onPress={() =>
                 openList(
-                  `The ${decade}`,
+                  t("The {decade}", { decade }),
                   MOVIES.filter(
                     (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
                   ).sort((a, b) => b.rating - a.rating),
                 )
               }
             >
-              <Text style={styles.factChipText}>The {decade}</Text>
+              <Text style={styles.factChipText}>
+                {t("The")} {decade}
+              </Text>
             </Pressable>
             {movie.genres.map((genre) => (
               <Pressable
@@ -556,7 +567,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
           {movie.cast?.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>Cast</Text>
+              <Text style={styles.sectionLabel}>{t("Cast")}</Text>
               <View style={styles.castList}>
                 {movie.cast.map((actor) => {
                   const hasCollection = !!getCollectionById(
@@ -582,8 +593,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                         </Text>
                         <Text style={styles.castMeta}>
                           {filmCount > 1
-                            ? `${filmCount} films in Reelboard${hasCollection ? " · collection" : ""}`
-                            : "1 film in Reelboard"}
+                            ? t("{filmCount} films in ReelBoard{value}", {
+                                filmCount: filmCount,
+                                value: hasCollection ? " · collection" : "",
+                              })
+                            : t("1 film in ReelBoard")}
                         </Text>
                       </View>
                     </Pressable>
@@ -593,7 +607,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             </>
           )}
 
-          <Text style={styles.sectionLabel}>Details</Text>
+          <Text style={styles.sectionLabel}>{t("Details")}</Text>
           <View style={styles.factsCard}>
             {facts.map((fact, index) => (
               <View
@@ -612,7 +626,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
         {collections.length > 0 && (
           <>
-            <Text style={[styles.sectionLabel, styles.railLabel]}>Part of</Text>
+            <Text style={[styles.sectionLabel, styles.railLabel]}>
+              {t("Part of")}
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -662,7 +678,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         {directorMovies.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, styles.railLabel]}>
-              Also by {movie.director}
+              {t("Also by")} {movie.director}
             </Text>
             <ScrollView
               horizontal
@@ -699,7 +715,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         {similarMovies.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, styles.railLabel]}>
-              More like this
+              {t("More like this")}
             </Text>
             <ScrollView
               horizontal
@@ -906,7 +922,7 @@ const createStyles = (colors) =>
     watchedTick: {
       position: "absolute",
       top: 6,
-      right: 6,
+      end: 6,
       borderRadius: 8,
       backgroundColor: colors.background,
     },
@@ -916,8 +932,8 @@ const createStyles = (colors) =>
     },
     headerBar: {
       position: "absolute",
-      left: spacing.md,
-      right: spacing.md,
+      start: spacing.md,
+      end: spacing.md,
       height: HEADER_BAR_HEIGHT,
       flexDirection: "row",
       alignItems: "center",
@@ -938,8 +954,8 @@ const createStyles = (colors) =>
     backdrop: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       overflow: "hidden",
     },
     poster: {
@@ -1129,8 +1145,8 @@ const createStyles = (colors) =>
     stickyBar: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,

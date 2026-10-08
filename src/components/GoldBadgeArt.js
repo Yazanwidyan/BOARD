@@ -19,7 +19,7 @@ import Svg, {
 
 const EARNED = {
   frame: ["#FAE8AB", "#F4D055"],
-  band: ["#7FA8F5", "#5B8DEF"],
+  band: ["#D9DADD", "#9A9DA4"],
   shadow: "#A5820B",
   edge: "#D5A80E",
   star: "#F7DB7A",

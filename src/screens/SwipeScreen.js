@@ -5,10 +5,10 @@ import {
   BackHandler,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -32,6 +32,7 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 // Swipe as a "video store run": each movie is a DVD case pulled off the
 // shelf — Keep drops it in your basket, Pass puts it back. Each round is an
@@ -85,8 +86,8 @@ const AisleSpines = ({ count, index, keptIds, movies, styles, colors }) => (
           : spineIndex < index
             ? keptIds.has(movie?.id)
               ? colors.success
-              : "rgba(255, 255, 255, 0.16)"
-            : "#2E3034";
+              : colors.cardElevatedLight
+            : colors.surfaceSoft;
       return (
         <View key={spineIndex} style={[styles.spine, { backgroundColor }]} />
       );
@@ -113,7 +114,7 @@ const BasketTray = ({ movies, styles, colors }) => (
   <View style={styles.basket}>
     <KeepArt size={28} color={colors.textSecondary} />
     {movies.length === 0 ? (
-      <Text style={styles.basketEmpty}>Your basket is empty</Text>
+      <Text style={styles.basketEmpty}>{t("Your basket is empty")}</Text>
     ) : (
       <>
         <View style={styles.basketCases}>
@@ -158,16 +159,18 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
       style={styles.duel}
     >
       <Text style={styles.duelCount}>
-        Duel {duelNumber} of {totalDuels}
+        {t("Duel")} {duelNumber} of {totalDuels}
       </Text>
-      <Text style={styles.duelHeading}>Which would you rather watch?</Text>
+      <Text style={styles.duelHeading}>
+        {t("Which would you rather watch?")}
+      </Text>
       <View style={styles.duelRow}>
         {pair.map((movie) => (
           <View key={movie.id} style={[styles.duelSide, { width: caseWidth }]}>
             <Pressable
               onPress={() => pick(movie)}
               style={({ pressed }) => pressed && styles.duelPressed}
-              accessibilityLabel={`Choose ${movie.title}`}
+              accessibilityLabel={t("Choose {title}", { title: movie.title })}
             >
               <MiniCase movie={movie} width={caseWidth} styles={styles} />
             </Pressable>
@@ -178,7 +181,7 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
               {movie.year} · {movie.genres[0]}
             </Text>
             <Pressable onPress={() => onDetails(movie)} hitSlop={8}>
-              <Text style={styles.duelDetails}>Details</Text>
+              <Text style={styles.duelDetails}>{t("Details")}</Text>
             </Pressable>
           </View>
         ))}
@@ -186,7 +189,7 @@ const Duels = ({ movies, onDecided, onDetails, styles, colors }) => {
           <VsBadge color={colors.rating} textColor="#5A3F0C" />
         </View>
       </View>
-      <Text style={styles.duelHint}>Tap a case to choose it</Text>
+      <Text style={styles.duelHint}>{t("Tap a case to choose it")}</Text>
     </FadeInView>
   );
 };
@@ -338,13 +341,13 @@ export const SwipeScreen = ({ navigation }) => {
           colors={[colors.card, colors.background]}
           style={StyleSheet.absoluteFill}
         />
-        {header(`Aisle ${roundNumber}`, "Done")}
+        {header(t("Aisle {number}", { number: roundNumber }), t("Done"))}
         <FadeInView style={styles.transitionBody}>
           <Text style={styles.transitionEyebrow}>
-            Next · Aisle {roundNumber + 1}
+            {t("Next · Aisle")} {roundNumber + 1}
           </Text>
           <Text style={styles.transitionTitle}>
-            You&apos;re holding {transition.toCount}
+            {t("You're holding")} {transition.toCount}
           </Text>
           <Text style={styles.transitionMessage}>{transition.message}</Text>
           <View style={styles.transitionCases}>
@@ -367,11 +370,11 @@ export const SwipeScreen = ({ navigation }) => {
             ))}
           </View>
           <Text style={styles.transitionCounts}>
-            {transition.fromCount} looked at · {transition.toCount} in the
-            basket
+            {transition.fromCount} {t("looked at ·")} {transition.toCount}{" "}
+            {t("in the basket")}
           </Text>
           <PrimaryButton
-            label="Next aisle"
+            label={t("Next aisle")}
             onPress={continueToNextRound}
             style={styles.transitionButton}
           />
@@ -389,8 +392,8 @@ export const SwipeScreen = ({ navigation }) => {
           style={StyleSheet.absoluteFill}
         />
         {header(
-          roundMovies.length === 2 ? "Final two" : "Final three",
-          `Aisle ${roundNumber}`,
+          roundMovies.length === 2 ? t("Final two") : t("Final three"),
+          t("Aisle {number}", { number: roundNumber }),
         )}
         <Duels
           key={roundMovies.map((movie) => movie.id).join("-")}
@@ -410,7 +413,9 @@ export const SwipeScreen = ({ navigation }) => {
     // flips to a done state.
     const makeTonightsPick = () => {
       if (!isFinalMoviePicked) togglePickedMovie(finalMovie.id);
-      showToast(`${finalMovie.title} is tonight's pick`, { tone: "success" });
+      showToast(t("{title} is tonight's pick", { title: finalMovie.title }), {
+        tone: "success",
+      });
     };
 
     return (
@@ -425,13 +430,15 @@ export const SwipeScreen = ({ navigation }) => {
         })}
         <FadeInView style={styles.finalBody}>
           <MarqueeSign
-            label="NOW SHOWING · TONIGHT"
+            label={t("NOW SHOWING · TONIGHT")}
             backdropUri={finalMovie.poster}
           >
             <View style={styles.finalInner}>
               <Pressable
                 onPress={() => openDetails(finalMovie)}
-                accessibilityLabel={`Open ${finalMovie.title}`}
+                accessibilityLabel={t("Open {title}", {
+                  title: finalMovie.title,
+                })}
               >
                 <MiniCase movie={finalMovie} width={132} styles={styles} />
               </Pressable>
@@ -439,11 +446,11 @@ export const SwipeScreen = ({ navigation }) => {
                 {finalMovie.title}
               </Text>
               <Text style={styles.finalMeta}>
-                {finalMovie.year} · {formatRuntime(finalMovie.runtime)} · IMDb{" "}
-                {finalMovie.rating.toFixed(1)}
+                {finalMovie.year} · {formatRuntime(finalMovie.runtime)}{" "}
+                {t("· IMDb")} {finalMovie.rating.toFixed(1)}
               </Text>
               <Text style={styles.finalFrom}>
-                Picked from {originalMovies.length} movies
+                {t("Picked from")} {originalMovies.length} movies
               </Text>
             </View>
           </MarqueeSign>
@@ -457,7 +464,9 @@ export const SwipeScreen = ({ navigation }) => {
         >
           <PrimaryButton
             label={
-              isFinalMoviePicked ? "Tonight's pick" : "Make it tonight's pick"
+              isFinalMoviePicked
+                ? t("Tonight's pick")
+                : t("Make it tonight's pick")
             }
             variant={isFinalMoviePicked ? "secondary" : "primary"}
             disabled={isFinalMoviePicked}
@@ -465,13 +474,13 @@ export const SwipeScreen = ({ navigation }) => {
           />
           <View style={styles.finalSecondaryRow}>
             <PrimaryButton
-              label="Details"
+              label={t("Details")}
               variant="secondary"
               onPress={() => openDetails(finalMovie)}
               style={styles.finalSecondaryButton}
             />
             <PrimaryButton
-              label="Start over"
+              label={t("Start over")}
               variant="secondary"
               onPress={() => {
                 endSession();
@@ -489,8 +498,11 @@ export const SwipeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {header(
-        `Aisle ${roundNumber}`,
-        `${Math.min(roundIndex + 1, roundMovies.length)} of ${roundMovies.length}`,
+        t("Aisle {number}", { number: roundNumber }),
+        t("{current} of {total}", {
+          current: Math.min(roundIndex + 1, roundMovies.length),
+          total: roundMovies.length,
+        }),
       )}
       <AisleSpines
         count={roundMovies.length}
@@ -536,14 +548,14 @@ export const SwipeScreen = ({ navigation }) => {
 
         <View style={styles.stickers} pointerEvents="none">
           <PriceSticker
-            label="PASS"
+            label={t("PASS")}
             color={colors.danger}
             rotate="-10deg"
             style={passStickerStyle}
             styles={styles}
           />
           <PriceSticker
-            label="KEEP"
+            label={t("KEEP")}
             color={colors.success}
             rotate="10deg"
             style={keepStickerStyle}
@@ -574,11 +586,11 @@ export const SwipeScreen = ({ navigation }) => {
             ]}
             onPress={handlePassPress}
             disabled={!activeMovie}
-            accessibilityLabel="Pass"
+            accessibilityLabel={t("Pass")}
           >
             <PassArt size={32} color={colors.danger} />
           </Pressable>
-          <Text style={styles.actionLabel}>Pass</Text>
+          <Text style={styles.actionLabel}>{t("Pass")}</Text>
         </View>
         <View style={styles.action}>
           <Pressable
@@ -588,11 +600,11 @@ export const SwipeScreen = ({ navigation }) => {
             ]}
             onPress={handleFate}
             disabled={!activeMovie}
-            accessibilityLabel="Let fate pick"
+            accessibilityLabel={t("Let fate pick")}
           >
             <DieArt size={24} color={colors.textPrimary} />
           </Pressable>
-          <Text style={styles.actionLabel}>Fate</Text>
+          <Text style={styles.actionLabel}>{t("Fate")}</Text>
         </View>
         <View style={styles.action}>
           <Pressable
@@ -603,11 +615,11 @@ export const SwipeScreen = ({ navigation }) => {
             ]}
             onPress={handleKeepPress}
             disabled={!activeMovie}
-            accessibilityLabel="Keep"
+            accessibilityLabel={t("Keep")}
           >
             <KeepArt size={32} color={colors.success} />
           </Pressable>
-          <Text style={styles.actionLabel}>Keep</Text>
+          <Text style={styles.actionLabel}>{t("Keep")}</Text>
         </View>
       </View>
 
@@ -664,8 +676,8 @@ const createStyles = (colors) =>
       flex: 1,
       maxWidth: 14,
       height: 16,
-      borderTopLeftRadius: 2,
-      borderTopRightRadius: 2,
+      borderTopStartRadius: 2,
+      borderTopEndRadius: 2,
     },
 
     // Swiping stage
@@ -681,8 +693,8 @@ const createStyles = (colors) =>
     stickers: {
       position: "absolute",
       top: spacing.xs,
-      left: spacing.lg,
-      right: spacing.lg,
+      start: spacing.lg,
+      end: spacing.lg,
       flexDirection: "row",
       justifyContent: "space-between",
     },
@@ -690,8 +702,8 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      paddingLeft: 10,
-      paddingRight: 16,
+      paddingStart: 10,
+      paddingEnd: 16,
       paddingVertical: 7,
       shadowColor: "#000000",
       shadowOpacity: 0.35,
@@ -794,7 +806,7 @@ const createStyles = (colors) =>
       flex: 1,
     },
     basketOverlap: {
-      marginLeft: -8,
+      marginStart: -8,
     },
     basketCount: {
       ...typography.bodyBold,
@@ -811,7 +823,7 @@ const createStyles = (colors) =>
     miniCase: {
       flexDirection: "row",
       padding: 2,
-      paddingLeft: 0,
+      paddingStart: 0,
       borderRadius: 3,
       backgroundColor: "#0D0D12",
       borderWidth: 1,
@@ -863,7 +875,7 @@ const createStyles = (colors) =>
       marginTop: spacing.xl,
     },
     transitionOverlap: {
-      marginLeft: -18,
+      marginStart: -18,
     },
     transitionCounts: {
       ...typography.caption,
@@ -923,8 +935,8 @@ const createStyles = (colors) =>
     },
     vs: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       top: "28%",
       alignItems: "center",
     },

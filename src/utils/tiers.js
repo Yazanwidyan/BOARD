@@ -1,6 +1,6 @@
-// Reelboard's own rating: a tier, not a number. Each watched movie can be
+// ReelBoard's own rating: a tier, not a number. Each watched movie can be
 // placed in S / A / B / C / D / F — shown next to IMDb, Rotten Tomatoes
-// and Metacritic on the movie page as "Reelboard: S".
+// and Metacritic on the movie page as "ReelBoard: S".
 //
 // Stored as `tier` on the watched entry. Entries rated before tiers
 // existed have a 0.5–5 star `rating` instead; getTier() reads those

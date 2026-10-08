@@ -5,10 +5,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 import {
   Gesture,
   GestureDetector,
@@ -25,6 +25,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { t } from "../i18n";
 
 const MAX_ZOOM = 5;
 const OUTPUT_SIZE = 512;
@@ -174,8 +175,10 @@ export const AvatarCropper = ({ image, onCancel, onDone }) => {
     >
       <GestureHandlerRootView style={styles.root}>
         <View style={[styles.top, { paddingTop: insets.top + spacing.sm }]}>
-          <Text style={styles.title}>Move and scale</Text>
-          <Text style={styles.hint}>Pinch to zoom · double-tap to reset</Text>
+          <Text style={styles.title}>{t("Move and scale")}</Text>
+          <Text style={styles.hint}>
+            {t("Pinch to zoom · double-tap to reset")}
+          </Text>
         </View>
 
         <GestureDetector gesture={gesture}>
@@ -231,7 +234,7 @@ export const AvatarCropper = ({ image, onCancel, onDone }) => {
           style={[styles.bottom, { paddingBottom: insets.bottom + spacing.md }]}
         >
           <Pressable onPress={onCancel} hitSlop={8} disabled={isSaving}>
-            <Text style={styles.cancel}>Cancel</Text>
+            <Text style={styles.cancel}>{t("Cancel")}</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [
@@ -244,7 +247,7 @@ export const AvatarCropper = ({ image, onCancel, onDone }) => {
             {isSaving ? (
               <ActivityIndicator color={colors.selectedText} />
             ) : (
-              <Text style={styles.useText}>Use photo</Text>
+              <Text style={styles.useText}>{t("Use photo")}</Text>
             )}
           </Pressable>
         </View>

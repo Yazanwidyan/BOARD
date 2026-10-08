@@ -9,6 +9,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { fonts } from "../theme/typography";
+import { t } from "../i18n";
 
 // Hand-drawn marks for the Swipe "video store run" — no icon set.
 
@@ -143,7 +144,7 @@ export const VsBadge = ({ size = 52, color, textColor }) => (
       fontFamily={fonts.extraBold}
       fill={textColor}
     >
-      VS
+      {t("VS")}
     </SvgText>
   </Svg>
 );

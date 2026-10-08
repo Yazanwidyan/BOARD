@@ -2,7 +2,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { Share2, Trophy } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { Share, StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
 import { useMovieStore } from "../store/movieStore";
@@ -18,6 +19,7 @@ import { getLevel, getUserXP } from "../utils/xp";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
+import { t } from "../i18n";
 
 const CARD_WIDTH = 320;
 const GRID_COLUMNS = 5;
@@ -48,12 +50,21 @@ const formatDate = (timestamp) => {
 export const bragHeadline = (collection) => {
   const count = collection.movies.length;
   if (collection.type === "director") {
-    return `I've seen all ${count} ${collection.title} films`;
+    return t("I've seen all {count} {title} films", {
+      count,
+      title: collection.title,
+    });
   }
   if (collection.type === "actor") {
-    return `I've seen all ${count} ${collection.title} movies`;
+    return t("I've seen all {count} {title} movies", {
+      count,
+      title: collection.title,
+    });
   }
-  return `I've seen all ${count} ${collection.title} movies`;
+  return t("I've seen all {count} {title} movies", {
+    count,
+    title: collection.title,
+  });
 };
 
 // The brag card: the collection's posters in a grid, the headline, when it
@@ -103,7 +114,9 @@ export const CompletionShareSheet = () => {
       // Capture/share can fail on some devices — fall back to text so the
       // brag still goes out.
       await Share.share({
-        message: `${bragHeadline(collection)} 🏆 — on Reelboard`,
+        message: t("{collection} 🏆 — on ReelBoard", {
+          collection: bragHeadline(collection),
+        }),
       });
     } finally {
       setIsSharing(false);
@@ -115,12 +128,12 @@ export const CompletionShareSheet = () => {
       visible={!!collectionId}
       onClose={closeShareCard}
       size="auto"
-      title="Share your completion"
-      subtitle="This is the image that gets shared"
+      title={t("Share your completion")}
+      subtitle={t("This is the image that gets shared")}
       footer={
         <PrimaryButton
-          label={isSharing ? "Preparing…" : "Share image"}
-          icon={<Share2 size={16} color="#FFFFFF" />}
+          label={isSharing ? t("Preparing…") : t("Share image")}
+          icon={<Share2 size={16} color={colors.accentContrast} />}
           disabled={isSharing}
           onPress={shareImage}
         />
@@ -132,7 +145,7 @@ export const CompletionShareSheet = () => {
               react-native-view-shot to capture. */}
           <View ref={cardRef} collapsable={false} style={styles.card}>
             <LinearGradient
-              colors={[colors.accent, colors.background]}
+              colors={[colors.cardElevatedLight, colors.background]}
               locations={[0, 0.75]}
               style={StyleSheet.absoluteFill}
             />
@@ -147,16 +160,19 @@ export const CompletionShareSheet = () => {
             </View>
             <View style={styles.trophyRow}>
               <Trophy size={18} color={colors.rating} />
-              <Text style={styles.completed}>Completed</Text>
+              <Text style={styles.completed}>{t("Completed")}</Text>
             </View>
             <Text style={styles.headline}>{bragHeadline(collection)}</Text>
             <Text style={styles.meta}>
               {completedAt
-                ? `Finished ${formatDate(completedAt)}`
-                : "Every one, start to finish"}
-              {"  ·  "}Level {level.level} · {level.name}
+                ? t("Finished {completedAt}", {
+                    completedAt: formatDate(completedAt),
+                  })
+                : t("Every one, start to finish")}
+              {"  ·  "}
+              {t("Level")} {level.level} · {level.name}
             </Text>
-            <Text style={styles.brand}>on Reelboard</Text>
+            <Text style={styles.brand}>{t("on ReelBoard")}</Text>
           </View>
         </View>
       )}

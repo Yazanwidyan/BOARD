@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Play, Shuffle } from "lucide-react-native";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
@@ -18,6 +19,7 @@ import { getMood, pickMovieForMood } from "../utils/moods";
 import { formatRuntime } from "../utils/movieFilters";
 import { HomeHero } from "./HomeHero";
 import { PrimaryButton } from "./PrimaryButton";
+import { t } from "../i18n";
 
 const SIMILAR_POOL = 20;
 
@@ -63,7 +65,7 @@ export const TonightsPickCard = ({ navigation }) => {
         }
       : inProgressCollection
         ? {
-            text: `Next in ${inProgressCollection.title}`,
+            text: t("Next in {title}", { title: inProgressCollection.title }),
             color: colors.success,
           }
         : bucketList.some((entry) => entry.movieId === pickedMovie.id)
@@ -120,14 +122,14 @@ export const TonightsPickCard = ({ navigation }) => {
     if (similar.length > 0) {
       togglePickedMovie(randomFrom(similar).id);
     } else {
-      showToast("Nothing else to swap to right now");
+      showToast(t("Nothing else to swap to right now"));
     }
   };
 
   return (
     <HomeHero
       posterUri={pickedMovie.poster}
-      eyebrow="Tonight's pick"
+      eyebrow={t("Tonight's pick")}
       title={pickedMovie.title}
       meta={`${pickedMovie.year} · ${pickedMovie.genres[0]} · ${formatRuntime(pickedMovie.runtime)}`}
       reason={
@@ -145,7 +147,7 @@ export const TonightsPickCard = ({ navigation }) => {
       actions={
         <>
           <PrimaryButton
-            label="Watched it"
+            label={t("Watched it")}
             onPress={markWatched}
             style={styles.mainButton}
             contentStyle={styles.square}
@@ -154,7 +156,7 @@ export const TonightsPickCard = ({ navigation }) => {
             style={styles.roundButton}
             onPress={openTrailer}
             hitSlop={4}
-            accessibilityLabel="Watch the trailer"
+            accessibilityLabel={t("Watch the trailer")}
           >
             <Play size={18} color={colors.textPrimary} />
           </Pressable>
@@ -162,7 +164,7 @@ export const TonightsPickCard = ({ navigation }) => {
             style={styles.roundButton}
             onPress={swap}
             hitSlop={4}
-            accessibilityLabel="Swap for another movie"
+            accessibilityLabel={t("Swap for another movie")}
           >
             <Shuffle size={18} color={colors.textPrimary} />
           </Pressable>

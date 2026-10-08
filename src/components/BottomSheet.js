@@ -5,10 +5,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { useLayoutDirection } from "../i18n";
 
 // Plain eased timing, no springs — the sheet glides into place without
 // overshooting.
@@ -58,6 +59,7 @@ export const BottomSheet = ({
   size = "full",
 }) => {
   const colors = useColors();
+  const direction = useLayoutDirection();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -159,70 +161,73 @@ export const BottomSheet = ({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      {/* Padding on both platforms: with Android's edge-to-edge window
+      {/* Modals are their own layer: carry the language's direction. */}
+      <View style={{ flex: 1, direction }}>
+        {/* Padding on both platforms: with Android's edge-to-edge window
           (Expo's default) the keyboard no longer resizes the app, so the
           sheet has to make room itself there too. */}
-      <KeyboardAvoidingView
-        style={[styles.overlay, { paddingTop: insets.top + spacing.sm }]}
-        behavior="padding"
-      >
-        <Animated.View
-          style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+        <KeyboardAvoidingView
+          style={[styles.overlay, { paddingTop: insets.top + spacing.sm }]}
+          behavior="padding"
         >
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </Animated.View>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+          >
+            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          </Animated.View>
 
-        <Animated.View
-          onLayout={(event) => {
-            sheetHeight.value = event.nativeEvent.layout.height;
-          }}
-          style={[styles.sheet, sizeStyle, sheetStyle]}
-        >
-          <GestureDetector gesture={pan}>
-            <View style={styles.header}>
-              <View style={styles.grabber} />
-              {title ? (
-                <View style={styles.titleRow}>
-                  <View style={styles.titleText}>
-                    <Text style={styles.title} numberOfLines={1}>
-                      {title}
-                    </Text>
-                    {!!subtitle && (
-                      <Text style={styles.subtitle} numberOfLines={2}>
-                        {subtitle}
+          <Animated.View
+            onLayout={(event) => {
+              sheetHeight.value = event.nativeEvent.layout.height;
+            }}
+            style={[styles.sheet, sizeStyle, sheetStyle]}
+          >
+            <GestureDetector gesture={pan}>
+              <View style={styles.header}>
+                <View style={styles.grabber} />
+                {title ? (
+                  <View style={styles.titleRow}>
+                    <View style={styles.titleText}>
+                      <Text style={styles.title} numberOfLines={1}>
+                        {title}
                       </Text>
-                    )}
+                      {!!subtitle && (
+                        <Text style={styles.subtitle} numberOfLines={2}>
+                          {subtitle}
+                        </Text>
+                      )}
+                    </View>
+                    <Pressable
+                      style={styles.closeButton}
+                      onPress={onClose}
+                      hitSlop={8}
+                    >
+                      <X size={18} color={colors.textSecondary} />
+                    </Pressable>
                   </View>
-                  <Pressable
-                    style={styles.closeButton}
-                    onPress={onClose}
-                    hitSlop={8}
-                  >
-                    <X size={18} color={colors.textSecondary} />
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          </GestureDetector>
+                ) : null}
+              </View>
+            </GestureDetector>
 
-          <View style={[styles.content, isFixed && styles.contentFill]}>
-            {children}
-          </View>
-
-          {footer ? (
-            <View
-              style={[
-                styles.footer,
-                { paddingBottom: insets.bottom + spacing.sm },
-              ]}
-            >
-              {footer}
+            <View style={[styles.content, isFixed && styles.contentFill]}>
+              {children}
             </View>
-          ) : (
-            !isFixed && <View style={{ height: insets.bottom }} />
-          )}
-        </Animated.View>
-      </KeyboardAvoidingView>
+
+            {footer ? (
+              <View
+                style={[
+                  styles.footer,
+                  { paddingBottom: insets.bottom + spacing.sm },
+                ]}
+              >
+                {footer}
+              </View>
+            ) : (
+              !isFixed && <View style={{ height: insets.bottom }} />
+            )}
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
@@ -244,12 +249,12 @@ const createStyles = (colors) =>
       flexShrink: 1,
       minHeight: 0,
       backgroundColor: colors.cardElevated,
-      borderTopLeftRadius: radius.lg,
-      borderTopRightRadius: radius.lg,
+      borderTopStartRadius: radius.lg,
+      borderTopEndRadius: radius.lg,
       borderTopWidth: 1,
-      borderLeftWidth: 1,
-      borderRightWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.08)",
+      borderStartWidth: 1,
+      borderEndWidth: 1,
+      borderColor: colors.border,
       overflow: "hidden",
     },
     header: {
@@ -262,7 +267,7 @@ const createStyles = (colors) =>
       width: 40,
       height: 5,
       borderRadius: 3,
-      backgroundColor: "rgba(255, 255, 255, 0.18)",
+      backgroundColor: colors.cardElevatedLight,
     },
     titleRow: {
       flexDirection: "row",

@@ -4,10 +4,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Easing,
   FadeIn,
@@ -44,6 +44,7 @@ import {
   isColdStart,
 } from "../utils/tasteEngine";
 import { tierRank } from "../utils/tiers";
+import { t } from "../i18n";
 
 // Each thinking line types itself out, then "works" for a moment (a
 // little longer for each later line, with some variation) before it's
@@ -85,12 +86,16 @@ const Projector = ({ posters, colors, styles }) => {
       <Svg width={220} height={150} style={styles.beam}>
         <Defs>
           <SvgGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.35} />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            <Stop
+              offset="0"
+              stopColor={colors.textPrimary}
+              stopOpacity={0.35}
+            />
+            <Stop offset="1" stopColor={colors.textPrimary} stopOpacity={0} />
           </SvgGradient>
         </Defs>
         <Path d="M96 0 H124 L220 150 H0 Z" fill="url(#beam)" />
-        <Circle cx={110} cy={4} r={6} fill="#FFFFFF" />
+        <Circle cx={110} cy={4} r={6} fill={colors.textPrimary} />
       </Svg>
       <View style={styles.reelFrame}>
         {posters[frame] && (
@@ -120,7 +125,7 @@ const MatchRing = ({ match, colors, styles }) => {
           cx={RING / 2}
           cy={RING / 2}
           r={r}
-          stroke="rgba(255, 255, 255, 0.12)"
+          stroke={colors.border}
           strokeWidth={stroke}
           fill="none"
         />
@@ -139,7 +144,7 @@ const MatchRing = ({ match, colors, styles }) => {
       </Svg>
       <View style={styles.ringText} pointerEvents="none">
         <Text style={styles.ringValue}>{match}%</Text>
-        <Text style={styles.ringLabel}>your taste</Text>
+        <Text style={styles.ringLabel}>{t("your taste")}</Text>
       </View>
     </View>
   );
@@ -161,6 +166,7 @@ const FrameBullet = ({ color }) => (
 
 // A small spinning arc — the line that's currently working.
 const Spinner = ({ color }) => {
+  const colors = useColors();
   const reduceMotion = useReducedMotion();
   const turn = useSharedValue(0);
   useEffect(() => {
@@ -183,7 +189,7 @@ const Spinner = ({ color }) => {
           cy={8}
           r={6}
           fill="none"
-          stroke="rgba(255, 255, 255, 0.15)"
+          stroke={colors.border}
           strokeWidth={2}
         />
         <Path
@@ -232,7 +238,7 @@ const ThinkingLine = ({ text, active, dwell, onDone, colors, styles }) => {
   );
 };
 
-// Reelboard's AI pick: the local taste engine (utils/tasteEngine) thinks
+// ReelBoard's AI pick: the local taste engine (utils/tasteEngine) thinks
 // for a moment — showing what it's actually reading — then shows one pick
 // with how well it matches, why, and the full signal breakdown on demand.
 export const AiPickScreen = ({ navigation }) => {
@@ -308,7 +314,9 @@ export const AiPickScreen = ({ navigation }) => {
   const handleMakePick = () => {
     if (!pick) return;
     if (!isPicked) togglePickedMovie(pick.movie.id);
-    showToast(`${pick.movie.title} is tonight's pick`, { tone: "success" });
+    showToast(t("{title} is tonight's pick", { title: pick.movie.title }), {
+      tone: "success",
+    });
   };
 
   const handleNotThis = () => {
@@ -331,8 +339,10 @@ export const AiPickScreen = ({ navigation }) => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <View style={styles.headerText} pointerEvents="none">
-          <Text style={styles.headerTitle}>Reelboard picks</Text>
-          <Text style={styles.headerSubtitle}>From your tiers & taste</Text>
+          <Text style={styles.headerTitle}>{t("ReelBoard picks")}</Text>
+          <Text style={styles.headerSubtitle}>
+            {t("From your tiers & taste")}
+          </Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
@@ -371,7 +381,9 @@ export const AiPickScreen = ({ navigation }) => {
               onPress={() =>
                 navigation.navigate("MovieDetails", { movieId: pick.movie.id })
               }
-              accessibilityLabel={`Open ${pick.movie.title}`}
+              accessibilityLabel={t("Open {title}", {
+                title: pick.movie.title,
+              })}
             >
               <MoviePoster
                 uri={pick.movie.poster}
@@ -392,7 +404,7 @@ export const AiPickScreen = ({ navigation }) => {
 
           {coldStart && (
             <Text style={styles.coldStart}>
-              Tier a few movies and my picks get sharper.
+              {t("Tier a few movies and my picks get sharper.")}
             </Text>
           )}
 
@@ -400,7 +412,7 @@ export const AiPickScreen = ({ navigation }) => {
             entering={FadeInDown.delay(160).duration(260)}
             style={styles.reasons}
           >
-            <Text style={styles.reasonsLabel}>Why this one</Text>
+            <Text style={styles.reasonsLabel}>{t("Why this one")}</Text>
             {pick.reasons.map((reason) => (
               <View key={reason} style={styles.reasonRow}>
                 <FrameBullet color={colors.textPrimary} />
@@ -414,7 +426,9 @@ export const AiPickScreen = ({ navigation }) => {
               style={styles.whyToggle}
             >
               <Text style={styles.whyToggleText}>
-                {showWhy ? "Hide the breakdown" : "See the full breakdown"}
+                {showWhy
+                  ? t("Hide the breakdown")
+                  : t("See the full breakdown")}
               </Text>
             </Pressable>
             {showWhy && (
@@ -458,20 +472,22 @@ export const AiPickScreen = ({ navigation }) => {
 
           <View style={styles.actions}>
             <PrimaryButton
-              label={isPicked ? "Tonight's pick" : "Make it tonight's pick"}
+              label={
+                isPicked ? t("Tonight's pick") : t("Make it tonight's pick")
+              }
               variant={isPicked ? "secondary" : "primary"}
               disabled={isPicked}
               onPress={handleMakePick}
             />
             <View style={styles.actionRow}>
               <PrimaryButton
-                label="Not this one"
+                label={t("Not this one")}
                 variant="secondary"
                 onPress={handleNotThis}
                 style={styles.actionHalf}
               />
               <PrimaryButton
-                label="Details"
+                label={t("Details")}
                 variant="secondary"
                 onPress={() =>
                   navigation.navigate("MovieDetails", {
@@ -485,8 +501,10 @@ export const AiPickScreen = ({ navigation }) => {
         </ScrollView>
       ) : (
         <View style={styles.thinking}>
-          <Text style={styles.title}>You&apos;ve seen everything.</Text>
-          <Text style={styles.meta}>Nothing left in the catalog to pick.</Text>
+          <Text style={styles.title}>{t("You've seen everything.")}</Text>
+          <Text style={styles.meta}>
+            {t("Nothing left in the catalog to pick.")}
+          </Text>
         </View>
       )}
     </View>
@@ -553,8 +571,8 @@ const createStyles = (colors) =>
     },
     reelScanline: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       top: "45%",
       height: 2,
       backgroundColor: "#FFFFFF",
@@ -643,7 +661,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderTopWidth: 1,
       borderBottomWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.08)",
+      borderColor: colors.border,
       gap: spacing.sm + 2,
     },
     reasonsLabel: {

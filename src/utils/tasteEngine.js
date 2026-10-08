@@ -1,7 +1,8 @@
 import { MOVIES, getMovieById } from "../data/movies";
 import { getTier } from "./tiers";
+import { t } from "../i18n";
 
-// Reelboard's "AI pick" — a small, local taste engine (no network, no
+// ReelBoard's "AI pick" — a small, local taste engine (no network, no
 // model). Every unwatched movie gets a score from what you've actually
 // watched and how you tiered it, and every signal that moved the score
 // leaves a plain-English reason, so a pick always explains itself.
@@ -108,8 +109,8 @@ const scoreMovie = (movie, model, context) => {
       value,
       best.score > 0.8
         ? lovedCount >= 2
-          ? `${best.genre} gets your best tiers.`
-          : `You watch a lot of ${best.genre}.`
+          ? t("{genre} gets your best tiers.", { genre: t(best.genre) })
+          : t("You watch a lot of {genre}.", { genre: t(best.genre) })
         : null,
     );
   }
@@ -120,9 +121,20 @@ const scoreMovie = (movie, model, context) => {
     const loved = model.directors.get(movie.director)?.loved ?? [];
     let reason = null;
     if (loved.length >= 2) {
-      reason = `You tiered ${loved[0].title} and ${loved[1].title} ${tierOf.get(loved[0].id)} — this is ${movie.director} too.`;
+      reason = t(
+        "You tiered {first} and {second} {tier} — this is {director} too.",
+        {
+          first: loved[0].title,
+          second: loved[1].title,
+          tier: tierOf.get(loved[0].id),
+          director: movie.director,
+        },
+      );
     } else if (loved.length === 1) {
-      reason = `You tiered ${loved[0].title} ${tierOf.get(loved[0].id)} — same director.`;
+      reason = t("You tiered {title} {tier} — same director.", {
+        title: loved[0].title,
+        tier: tierOf.get(loved[0].id),
+      });
     }
     push("director", WEIGHTS.director * directorScore, reason);
   }
@@ -138,7 +150,11 @@ const scoreMovie = (movie, model, context) => {
       "cast",
       WEIGHTS.cast * score,
       loved.length
-        ? `${cleanName(actor)} is in it — you tiered ${loved[0].title} ${tierOf.get(loved[0].id)}.`
+        ? t("{actor} is in it — you tiered {title} {tier}.", {
+            actor: cleanName(actor),
+            title: loved[0].title,
+            tier: tierOf.get(loved[0].id),
+          })
         : null,
     );
   }
@@ -150,7 +166,9 @@ const scoreMovie = (movie, model, context) => {
     push(
       "decade",
       WEIGHTS.decade * decadeScore,
-      decadeScore > 1.2 ? `From the ${decade}, an era you love.` : null,
+      decadeScore > 1.2
+        ? t("From the {decade}, an era you love.", { decade })
+        : null,
     );
   }
 
@@ -159,7 +177,9 @@ const scoreMovie = (movie, model, context) => {
     "quality",
     WEIGHTS.quality * (movie.rating - 7.5),
     movie.rating >= 8.3
-      ? `IMDb ${movie.rating.toFixed(1)} — one of the greats.`
+      ? t("IMDb {rating} — one of the greats.", {
+          rating: movie.rating.toFixed(1),
+        })
       : null,
   );
 
@@ -241,19 +261,23 @@ export const getThinkingSteps = (watched, watchlist) => {
   )[0]?.[0];
   return [
     model.tieredCount > 0
-      ? `Reading your ${model.tieredCount} tiers…`
-      : `Looking at your ${model.watchedCount} watched movies…`,
+      ? t("Reading your {count} tiers…", { count: model.tieredCount })
+      : t("Looking at your {count} watched movies…", {
+          count: model.watchedCount,
+        }),
     topGenre
-      ? `Weighing how much you love ${topGenre}…`
-      : "Learning your genres…",
+      ? t("Weighing how much you love {genre}…", { genre: t(topGenre) })
+      : t("Learning your genres…"),
     topDirector
-      ? `Matching directors like ${topDirector}…`
-      : "Matching directors…",
+      ? t("Matching directors like {director}…", { director: topDirector })
+      : t("Matching directors…"),
     watchlist.length > 0
-      ? `Checking your ${watchlist.length} saved movies…`
-      : "Scanning the whole catalog…",
-    `Scoring ${MOVIES.length - model.watchedCount} movies you haven't seen…`,
-    "Narrowing it down to one…",
+      ? t("Checking your {count} saved movies…", { count: watchlist.length })
+      : t("Scanning the whole catalog…"),
+    t("Scoring {count} movies you haven't seen…", {
+      count: MOVIES.length - model.watchedCount,
+    }),
+    t("Narrowing it down to one…"),
   ];
 };
 

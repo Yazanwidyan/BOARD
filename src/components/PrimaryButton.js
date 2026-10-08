@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,7 +16,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const getVariantStyles = (colors) => ({
   primary: {
     container: { backgroundColor: colors.accent },
-    text: { color: "#FFFFFF" },
+    text: { color: colors.accentContrast },
     shadow: shadows.glow,
   },
   secondary: {
@@ -40,7 +41,7 @@ const getVariantStyles = (colors) => ({
   // White pill for use on top of a solid accent-colored surface (e.g. a
   // filled promo-style card) — inverse of `primary`.
   light: {
-    container: { backgroundColor: colors.accentContrast },
+    container: { backgroundColor: "#FFFFFF" },
     text: { color: colors.background },
     shadow: null,
   },
@@ -144,7 +145,7 @@ const createStyles = (colors) =>
       ...typography.subtitle,
     },
     textWithIcon: {
-      marginLeft: spacing.sm,
+      marginStart: spacing.sm,
     },
   });
 

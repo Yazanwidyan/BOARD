@@ -4,10 +4,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -22,6 +22,7 @@ import { formatRuntime } from "../utils/movieFilters";
 import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 const TYPE_FILTERS = [
   { key: "all", label: "All" },
@@ -219,15 +220,17 @@ export const CollectionsShelf = ({
       {tracked.length === 0 && (
         <EmptyState
           art="noCollections"
-          title="No collections yet"
-          subtitle="Watch a movie that belongs to one, or pick some to track below."
+          title={t("No collections yet")}
+          subtitle={t(
+            "Watch a movie that belongs to one, or pick some to track below.",
+          )}
         />
       )}
 
       {inProgress.length > 0 && (
         <View style={styles.section}>
           <SectionTitle
-            title="In progress"
+            title={t("In progress")}
             count={inProgress.length}
             styles={styles}
           />
@@ -242,7 +245,11 @@ export const CollectionsShelf = ({
                 key={item.collection.id}
                 item={item}
                 width={CAROUSEL_CARD}
-                meta={`${item.watchedCount} of ${item.total} · ${formatRuntime(item.minutesLeft)} left`}
+                meta={t("{watchedCount} of {total} · {minutesLeft} left", {
+                  watchedCount: item.watchedCount,
+                  total: item.total,
+                  minutesLeft: formatRuntime(item.minutesLeft),
+                })}
                 watchedIds={watchedIds}
                 onPress={() => onOpen(item.collection.id)}
                 styles={styles}
@@ -254,7 +261,7 @@ export const CollectionsShelf = ({
 
       {almostThere.length > 0 && (
         <View style={styles.section}>
-          <SectionTitle title="Almost there" styles={styles} />
+          <SectionTitle title={t("Almost there")} styles={styles} />
           <View style={styles.list}>
             {/* Missing pieces: the collection's collage, and the posters of
                 the movies that would complete it — tap one to open it, or
@@ -283,9 +290,11 @@ export const CollectionsShelf = ({
                     </Text>
                     <Text style={styles.missingMeta}>
                       <Text style={styles.missingCount}>
-                        {item.left === 1 ? "1 movie" : `${item.left} movies`}
+                        {item.left === 1
+                          ? t("1 movie")
+                          : t("{count} movies", { count: item.left })}
                       </Text>{" "}
-                      to complete it
+                      {t("to complete it")}
                     </Text>
                     <View style={styles.missingSlots}>
                       {missing.map((movie) => (
@@ -298,7 +307,9 @@ export const CollectionsShelf = ({
                               : onOpen(item.collection.id)
                           }
                           hitSlop={4}
-                          accessibilityLabel={`Open ${movie.title}`}
+                          accessibilityLabel={t("Open {title}", {
+                            title: movie.title,
+                          })}
                         >
                           <MoviePoster
                             uri={movie.poster}
@@ -318,7 +329,7 @@ export const CollectionsShelf = ({
       {notStarted.length > 0 && (
         <View style={styles.section}>
           <SectionTitle
-            title="Not started"
+            title={t("Not started")}
             count={notStarted.length}
             styles={styles}
           />
@@ -328,7 +339,10 @@ export const CollectionsShelf = ({
                 key={item.collection.id}
                 item={item}
                 width={gridCell}
-                meta={`${item.total} movies · ${formatRuntime(item.minutesLeft)}`}
+                meta={t("{total} movies · {minutesLeft}", {
+                  total: item.total,
+                  minutesLeft: formatRuntime(item.minutesLeft),
+                })}
                 watchedIds={watchedIds}
                 onPress={() => onOpen(item.collection.id)}
                 styles={styles}
@@ -340,7 +354,7 @@ export const CollectionsShelf = ({
       {completed.length > 0 && (
         <View style={styles.section}>
           <SectionTitle
-            title="Trophy shelf"
+            title={t("Trophy shelf")}
             count={completed.length}
             icon={<Trophy size={12} color={colors.rating} />}
             color={colors.rating}
@@ -359,8 +373,10 @@ export const CollectionsShelf = ({
                 width={CAROUSEL_CARD}
                 meta={
                   item.completedAt
-                    ? `Completed ${formatDate(item.completedAt)}`
-                    : "Completed"
+                    ? t("Completed {completedAt}", {
+                        completedAt: formatDate(item.completedAt),
+                      })
+                    : t("Completed")
                 }
                 metaColor={colors.rating}
                 watchedIds={watchedIds}
@@ -374,7 +390,7 @@ export const CollectionsShelf = ({
 
       {suggestions.length > 0 && (
         <View style={styles.section}>
-          <SectionTitle title="You might like" styles={styles} />
+          <SectionTitle title={t("You might like")} styles={styles} />
           <View style={styles.suggestionList}>
             {suggestions.map(({ collection, genre }) => (
               <View key={collection.id} style={styles.suggestionRow}>
@@ -388,8 +404,8 @@ export const CollectionsShelf = ({
                       {collection.title}
                     </Text>
                     <Text style={styles.almostMeta} numberOfLines={1}>
-                      {collection.movies.length} movies · you watch a lot of{" "}
-                      {genre}
+                      {collection.movies.length}{" "}
+                      {t("movies · you watch a lot of")} {genre}
                     </Text>
                   </View>
                 </Pressable>
@@ -403,7 +419,7 @@ export const CollectionsShelf = ({
                     color={colors.accentContrast}
                     strokeWidth={3}
                   />
-                  <Text style={styles.trackText}>Track</Text>
+                  <Text style={styles.trackText}>{t("Track")}</Text>
                 </Pressable>
               </View>
             ))}
@@ -413,7 +429,7 @@ export const CollectionsShelf = ({
 
       <Pressable style={styles.seeAll} onPress={onSeeAll}>
         <ListPlus size={16} color={colors.textSecondary} strokeWidth={2.2} />
-        <Text style={styles.seeAllText}>Browse all collections</Text>
+        <Text style={styles.seeAllText}>{t("Browse all collections")}</Text>
       </Pressable>
     </View>
   );
@@ -476,7 +492,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       alignSelf: "flex-start",
       gap: spacing.xs + 2,
-      marginLeft: spacing.md,
+      marginStart: spacing.md,
       marginBottom: spacing.sm + 2,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
@@ -510,7 +526,7 @@ const createStyles = (colors) =>
     },
     shelfCardText: {
       paddingHorizontal: 1,
-      paddingRight: spacing.sm,
+      paddingEnd: spacing.sm,
       marginTop: spacing.sm,
     },
     pressed: {

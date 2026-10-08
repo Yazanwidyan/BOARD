@@ -1,9 +1,11 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Svg, { Circle } from "react-native-svg";
 
 import { radius } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { t } from "../i18n";
 
 const RING_STROKE = 5;
 const RING_GAP = 4;
@@ -46,7 +48,9 @@ export const AvatarLevelRing = ({ source, level, avatarSize = 88 }) => {
         <Image source={source} style={styles.avatarImage} />
       </View>
       <View style={styles.levelPill}>
-        <Text style={styles.levelPillText}>Lv {level.level}</Text>
+        <Text style={styles.levelPillText}>
+          {t("Lv")} {level.level}
+        </Text>
       </View>
     </View>
   );

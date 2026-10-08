@@ -1,9 +1,9 @@
-import { useChallengeStore } from '../store/challengeStore';
-import { useMovieStore } from '../store/movieStore';
-import { useProfileStore } from '../store/profileStore';
-import { useRecentSearchStore } from '../store/recentSearchStore';
-import { useSessionStore } from '../store/sessionStore';
-import { DEFAULT_PREFERENCES, useUserStore } from '../store/userStore';
+import { useChallengeStore } from "../store/challengeStore";
+import { useMovieStore } from "../store/movieStore";
+import { useProfileStore } from "../store/profileStore";
+import { useRecentSearchStore } from "../store/recentSearchStore";
+import { useSessionStore } from "../store/sessionStore";
+import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 
 // A genuine blank slate — distinct from what a fresh install actually gets
 // (the seeded demo profile). Wipes every real piece of local state and
@@ -20,9 +20,9 @@ export const resetAppData = () => {
   useChallengeStore.setState({ activeChallenge: null, history: [] });
   useSessionStore.getState().endSession();
   useProfileStore.setState({
-    displayName: 'You',
-    bio: '',
-    email: '',
+    displayName: "You",
+    bio: "",
+    email: "",
     avatarUri: null,
   });
   useRecentSearchStore.getState().clearSearches();

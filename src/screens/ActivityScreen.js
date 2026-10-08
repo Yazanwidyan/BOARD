@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BadgeArt } from "../components/BadgeArt";
@@ -12,6 +13,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { timeAgo } from "../utils/friends";
 import { getTierInfo } from "../utils/tiers";
+import { t } from "../i18n";
 
 const DAY = 24 * 60 * 60 * 1000;
 const AVATARS_SHOWN = 5;
@@ -68,7 +70,7 @@ const EventText = ({ event, styles }) => {
     case "watchlist":
       return (
         <Text style={styles.eventText}>
-          {name} saved {title} for later
+          {name} saved {title} {t("for later")}
         </Text>
       );
     case "badge":
@@ -80,9 +82,12 @@ const EventText = ({ event, styles }) => {
     case "set":
       return (
         <Text style={styles.eventText}>
-          {name} finished every <Text style={styles.strong}>{event.set}</Text>{" "}
-          movie
-          <Text style={styles.muted}> · all {event.count}</Text>
+          {name} {t("finished every")}{" "}
+          <Text style={styles.strong}>{event.set}</Text> movie
+          <Text style={styles.muted}>
+            {" "}
+            {t("· all")} {event.count}
+          </Text>
         </Text>
       );
     default:
@@ -139,7 +144,7 @@ export const ActivityScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StackHeader title="Activity" onBack={() => navigation.goBack()} />
+      <StackHeader title={t("Activity")} onBack={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
@@ -167,10 +172,10 @@ export const ActivityScreen = ({ navigation }) => {
               {MOCK_FRIENDS.length} friends
             </Text>
             <Text style={styles.friendsSubtitle}>
-              Compare tiers · invite more
+              {t("Compare tiers · invite more")}
             </Text>
           </View>
-          <Text style={styles.friendsLink}>See all</Text>
+          <Text style={styles.friendsLink}>{t("See all")}</Text>
         </Pressable>
 
         {groups.map((group) => (
@@ -210,7 +215,7 @@ export const ActivityScreen = ({ navigation }) => {
         ))}
 
         <Text style={styles.footnote}>
-          Activity is a preview: sample friends for now.
+          {t("Activity is a preview: sample friends for now.")}
         </Text>
       </ScrollView>
     </View>
@@ -238,7 +243,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
     },
     avatarOverlap: {
-      marginLeft: -10,
+      marginStart: -10,
     },
     friendsText: {
       flex: 1,

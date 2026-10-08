@@ -6,7 +6,8 @@ import {
   Layers,
   Search,
 } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";

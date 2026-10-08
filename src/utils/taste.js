@@ -21,8 +21,7 @@ const tierSpread = (entries) => {
   const tiered = Object.values(tierCounts).reduce((sum, n) => sum + n, 0);
   const typicalTier = tiered
     ? TIERS.reduce(
-        (best, { key }) =>
-          tierCounts[key] > tierCounts[best] ? key : best,
+        (best, { key }) => (tierCounts[key] > tierCounts[best] ? key : best),
         TIERS[0].key,
       )
     : null;
@@ -82,7 +81,9 @@ export const getTasteProfile = (watched) => {
   const genreTiers = genreCounts.slice(0, TOP_GENRES).map(([genre, count]) => ({
     genre,
     count,
-    ...tierSpread(entries.filter((entry) => entry.movie.genres.includes(genre))),
+    ...tierSpread(
+      entries.filter((entry) => entry.movie.genres.includes(genre)),
+    ),
   }));
 
   // The genre you love most: best average tier among genres with enough

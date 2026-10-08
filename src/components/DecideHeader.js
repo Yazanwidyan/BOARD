@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -17,6 +18,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { shuffle } from "../utils/shuffle";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 const POSTER_WIDTH = 28;
 const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
@@ -86,7 +88,7 @@ export const DecideHeader = ({ onSurprise, onMeasure }) => {
     >
       <View style={styles.topRow}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Decide</Text>
+          <Text style={styles.title}>{t("Decide")}</Text>
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -100,7 +102,7 @@ export const DecideHeader = ({ onSurprise, onMeasure }) => {
             onSurprise();
           }}
         >
-          <Text style={styles.surpriseText}>Surprise me</Text>
+          <Text style={styles.surpriseText}>{t("Surprise me")}</Text>
         </Pressable>
       </View>
       <Marquee movies={movies} styles={styles} />
@@ -115,8 +117,8 @@ const createStyles = (colors) =>
     header: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       zIndex: 100,
       elevation: 16,
       backgroundColor: colors.background,
@@ -160,7 +162,7 @@ const createStyles = (colors) =>
     marqueeRow: {
       flexDirection: "row",
       gap: POSTER_GAP,
-      paddingLeft: POSTER_GAP,
+      paddingStart: POSTER_GAP,
     },
     marqueePoster: {
       width: POSTER_WIDTH,

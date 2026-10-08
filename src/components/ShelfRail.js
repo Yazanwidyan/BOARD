@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -70,7 +71,7 @@ const createStyles = (colors) =>
     },
     caption: {
       paddingHorizontal: 1,
-      paddingRight: spacing.sm,
+      paddingEnd: spacing.sm,
       marginTop: spacing.sm,
     },
     title: {

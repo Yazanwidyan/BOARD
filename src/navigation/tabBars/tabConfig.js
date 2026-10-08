@@ -1,5 +1,5 @@
 import {
-  BoardBIcon,
+  ReelBoardIcon,
   CircleUserFilledIcon,
   CircleUserOutlineIcon,
   CompassIcon,
@@ -11,11 +11,11 @@ import {
 } from "../../components/icons/TabIcons";
 
 // Tab icons and labels, used by GlassTabBar.
-// Home's "B" logomark is a single brand mark, always solid — no
+// Home's ReelBoard logo is a single brand mark, always solid — no
 // outline/active split. The other tabs' icons are a thin outline when
 // inactive and switch to a solid fill when active.
 export const ICONS = {
-  Home: BoardBIcon,
+  Home: ReelBoardIcon,
 };
 export const OUTLINE_ICONS = {
   Discover: CompassOutlineIcon,
@@ -37,6 +37,9 @@ export const LABELS = {
   Profile: "Profile",
 };
 export const ICON_SIZES = {
+  // The ReelBoard logo is a full ring, so it reads bigger than the others
+  // at the same size.
+  Home: 22.5,
   Discover: 23.5,
   Library: 25,
 };

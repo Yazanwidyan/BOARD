@@ -1,11 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 // Home's top banner, streaming-app style: full width, the movie's poster
 // blurred behind and fading into the page, the poster on the left, a
@@ -53,7 +55,7 @@ export const HomeHero = ({
           style={styles.dismiss}
           onPress={onDismiss}
           hitSlop={10}
-          accessibilityLabel="Remove"
+          accessibilityLabel={t("Remove")}
         >
           <X size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
@@ -95,7 +97,7 @@ const createStyles = (colors) =>
     dismiss: {
       position: "absolute",
       top: spacing.md,
-      right: spacing.md,
+      end: spacing.md,
       zIndex: 2,
       width: 32,
       height: 32,
@@ -113,7 +115,7 @@ const createStyles = (colors) =>
     },
     text: {
       flex: 1,
-      paddingRight: spacing.lg,
+      paddingEnd: spacing.lg,
     },
     eyebrow: {
       ...typography.caption,

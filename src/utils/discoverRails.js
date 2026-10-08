@@ -1,6 +1,7 @@
 import { MOVIES, getMovieById } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
 import { getTasteProfile } from "./taste";
+import { t } from "../i18n";
 
 // Rows show the first RAIL_PREVIEW; "All ›" opens the full list.
 export const RAIL_PREVIEW = 10;
@@ -28,7 +29,7 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
   if (recent) {
     rails.push({
       key: "because",
-      title: `Because you watched ${recent.title}`,
+      title: t("Because you watched {title}", { title: recent.title }),
       movies: unwatched
         .filter((movie) => movie.genres.includes(recent.genres[0]))
         .sort(byRating),
@@ -40,7 +41,7 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
   if (director && director.count >= 2) {
     rails.push({
       key: "director",
-      title: `Because you love ${director.name}`,
+      title: t("Because you love {name}", { name: director.name }),
       movies: unwatched
         .filter((movie) => movie.director === director.name)
         .sort((a, b) => a.year - b.year),
@@ -62,7 +63,7 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
   if (topActor) {
     rails.push({
       key: "actor",
-      title: `Starring ${topActor[0]}`,
+      title: t("Starring {value}", { value: topActor[0] }),
       movies: unwatched
         .filter((movie) => movie.cast?.includes(topActor[0]))
         .sort(byRating),
@@ -92,7 +93,7 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
 
   rails.push({
     key: "short",
-    title: `Under ${SHORT_RUNTIME} minutes`,
+    title: t("Under {SHORT_RUNTIME} minutes", { SHORT_RUNTIME: SHORT_RUNTIME }),
     movies: unwatched
       .filter((movie) => movie.runtime <= SHORT_RUNTIME)
       .sort(byRating),

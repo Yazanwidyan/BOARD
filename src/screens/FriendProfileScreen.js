@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
@@ -20,6 +21,7 @@ import {
 } from "../utils/friends";
 import { getTierInfo } from "../utils/tiers";
 import { getLevelName } from "../utils/xp";
+import { t } from "../i18n";
 
 const POSTER_ITEM = 122;
 
@@ -43,7 +45,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   if (!friend) {
     return (
       <View style={styles.container}>
-        <StackHeader title="Friend" onBack={() => navigation.goBack()} />
+        <StackHeader title={t("Friend")} onBack={() => navigation.goBack()} />
       </View>
     );
   }
@@ -80,7 +82,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           <FriendAvatar friend={friend} size={84} />
           <Text style={styles.name}>{friend.name}</Text>
           <Text style={styles.handle}>
-            {friend.handle} · Level {friend.level} ·{" "}
+            {friend.handle} {t("· Level")} {friend.level} ·{" "}
             {getLevelName(friend.level)}
           </Text>
           <View style={styles.stats}>
@@ -104,7 +106,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         </View>
 
         {/* You both loved */}
-        <Tag label="You both loved" />
+        <Tag label={t("You both loved")} />
         {bothLoved.length > 0 ? (
           <ShelfRail
             itemWidth={POSTER_ITEM}
@@ -122,14 +124,18 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           />
         ) : (
           <Text style={styles.none}>
-            Nothing in common yet. Tier more movies and it&apos;ll fill in.
+            {t("Nothing in common yet. Tier more movies and it'll fill in.")}
           </Text>
         )}
 
         {/* They loved, you haven't seen */}
         {recommendations.length > 0 && (
           <>
-            <Tag label={`${friend.name.split(" ")[0]} says watch these`} />
+            <Tag
+              label={t("{value} says watch these", {
+                value: friend.name.split(" ")[0],
+              })}
+            />
             <View style={styles.list}>
               {recommendations.map(({ movie, tier }) => {
                 const saved = savedIds.has(movie.id);
@@ -145,7 +151,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
                         {movie.title}
                       </Text>
                       <View style={styles.recMetaRow}>
-                        <Text style={styles.recMeta}>They tiered it</Text>
+                        <Text style={styles.recMeta}>
+                          {t("They tiered it")}
+                        </Text>
                         <TierChip tier={tier} styles={styles} />
                       </View>
                     </View>
@@ -163,7 +171,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
                           saved && styles.saveButtonTextSaved,
                         ]}
                       >
-                        {saved ? "Saved" : "+ Watchlist"}
+                        {saved ? t("Saved") : t("+ Watchlist")}
                       </Text>
                     </Pressable>
                   </Pressable>
@@ -176,7 +184,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         {/* Their top tier */}
         {topTier.length > 0 && (
           <>
-            <Tag label="Their S tier" />
+            <Tag label={t("Their S tier")} />
             <ShelfRail
               itemWidth={POSTER_ITEM}
               items={topTier.map((movie) => ({
@@ -197,21 +205,28 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         {/* Recent */}
         {activity.length > 0 && (
           <>
-            <Tag label="Recently" />
+            <Tag label={t("Recently")} />
             <View style={styles.list}>
               {activity.map((event) => (
                 <View key={event.id} style={styles.activityRow}>
                   <Text style={styles.activityText}>
                     {event.type === "tier" &&
-                      `Tiered ${getMovieById(event.movieId)?.title} ${event.tier}`}
+                      t("Tiered {title} {tier}", {
+                        title: getMovieById(event.movieId)?.title,
+                        tier: event.tier,
+                      })}
                     {event.type === "watched" &&
-                      `Watched ${getMovieById(event.movieId)?.title}`}
+                      t("Watched {title}", {
+                        title: getMovieById(event.movieId)?.title,
+                      })}
                     {event.type === "watchlist" &&
-                      `Saved ${getMovieById(event.movieId)?.title}`}
+                      t("Saved {title}", {
+                        title: getMovieById(event.movieId)?.title,
+                      })}
                     {event.type === "badge" &&
-                      `Earned the ${event.badge} badge`}
+                      t("Earned the {badge} badge", { badge: event.badge })}
                     {event.type === "set" &&
-                      `Finished every ${event.set} movie`}
+                      t("Finished every {set} movie", { set: event.set })}
                   </Text>
                   <Text style={styles.activityTime}>
                     {timeAgo(event.timestamp)}
@@ -345,7 +360,7 @@ const createStyles = (colors) =>
     // A plain text action, not a pill.
     saveButton: {
       paddingVertical: spacing.xs,
-      paddingLeft: spacing.sm,
+      paddingStart: spacing.sm,
     },
     saveButtonSaved: {},
     saveButtonText: {

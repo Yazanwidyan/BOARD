@@ -1,46 +1,47 @@
 {
   "expo": {
-    "name": "Reelboard",
+    "name": "ReelBoard",
     "slug": "BOARD",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "icon": "./assets/reelboard-icon.png",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#0B0B0F",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yazanwidyan.reelboard"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0B0B0F",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/reelboard-android-foreground.png",
+        "backgroundImage": "./assets/reelboard-android-background.png",
+        "monochromeImage": "./assets/reelboard-android-monochrome.png"
       },
       "package": "com.anonymous.board"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/reelboard-favicon.png"
     },
     "plugins": [
       "expo-font",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 24,
+          "image": "./assets/reelboard-splash.png",
+          "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#161719",
           "dark": {
-            "image": "./assets/splash-icon.png",
-            "backgroundColor": "#FFFFFF"
+            "image": "./assets/reelboard-splash.png",
+            "backgroundColor": "#161719"
           }
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Reelboard needs access to your photos so you can set a profile picture."
+          "photosPermission": "ReelBoard needs access to your photos so you can set a profile picture."
         }
       ],
       "expo-sharing",

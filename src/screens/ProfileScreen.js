@@ -14,10 +14,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -67,6 +67,7 @@ import {
   getCompletedXPCollections,
   getXPBreakdown,
 } from "../utils/xp";
+import { isRTL, t } from "../i18n";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-placholder.png");
 
@@ -224,13 +225,22 @@ export const ProfileScreen = ({ navigation, route }) => {
   const togglePin = (collection) => {
     const isPinned = pinnedCollections.includes(collection.id);
     if (!isPinned && pinnedCollections.length >= MAX_PINNED) {
-      showToast(`You can pin up to ${MAX_PINNED} — unpin one first`);
+      showToast(
+        t("You can pin up to {MAX_PINNED} — unpin one first", {
+          MAX_PINNED: MAX_PINNED,
+        }),
+      );
       return;
     }
     togglePinnedCollection(collection.id);
-    showToast(isPinned ? "Unpinned" : `${collection.title} pinned`, {
-      tone: "success",
-    });
+    showToast(
+      isPinned
+        ? t("Unpinned")
+        : t("{title} pinned", { title: collection.title }),
+      {
+        tone: "success",
+      },
+    );
   };
 
   const getShareText = () => {
@@ -240,16 +250,21 @@ export const ProfileScreen = ({ navigation, route }) => {
       .map((movie) => movie.title)
       .join(", ");
     const lines = [
-      `My Reelboard taste card 🎬`,
-      genres && `Into: ${genres}`,
-      favorites && `Favorites: ${favorites}`,
+      t("My ReelBoard taste card"),
+      genres && t("Into: {genres}", { genres }),
+      favorites && t("Favorites: {favorites}", { favorites }),
       completedSets.length > 0 &&
-        `Collections: ${completedSets
-          .slice(0, 3)
-          .map((collection) => collection.title)
-          .join(" · ")}`,
-      `${watchedCount} movies · ${Math.round(taste.minutesWatched / 60)} hours`,
-      `Level ${level.level} · ${level.name}`,
+        t("Collections: {list}", {
+          list: completedSets
+            .slice(0, 3)
+            .map((collection) => collection.title)
+            .join(" · "),
+        }),
+      t("{count} movies · {hours} hours", {
+        count: watchedCount,
+        hours: Math.round(taste.minutesWatched / 60),
+      }),
+      t("Level {level} · {name}", { level: level.level, name: t(level.name) }),
     ].filter(Boolean);
     return lines.join("\n");
   };
@@ -280,12 +295,16 @@ export const ProfileScreen = ({ navigation, route }) => {
   const tabWidth = windowWidth / PROFILE_TABS.length;
   const tabPosition = useSharedValue(tabIndex);
   const pageShift = useSharedValue(0);
+  // In Arabic (RTL) the tabs run right to left, so "next" is a swipe to
+  // the right and the underline slides the other way. Movement is worked
+  // out in reading direction, then flipped back for the screen.
+  const flow = isRTL() ? -1 : 1;
 
-  // direction: 1 = the new page comes in from the right, -1 from the left.
+  // direction: 1 = the next page (it comes in from the reading-end side).
   const showTab = (nextIndex, direction) => {
     setProfileTab(PROFILE_TABS[nextIndex].key);
     tabPosition.value = withTiming(nextIndex, { duration: 220 });
-    pageShift.value = direction * windowWidth * 0.35;
+    pageShift.value = direction * flow * windowWidth * 0.35;
     pageShift.value = withTiming(0, { duration: 220 });
   };
 
@@ -293,26 +312,27 @@ export const ProfileScreen = ({ navigation, route }) => {
     .activeOffsetX([-16, 16])
     .failOffsetY([-12, 12])
     .onUpdate((event) => {
+      const along = event.translationX * flow;
       const pastEdge =
-        (tabIndex === 0 && event.translationX > 0) ||
-        (tabIndex === lastTabIndex && event.translationX < 0);
+        (tabIndex === 0 && along > 0) ||
+        (tabIndex === lastTabIndex && along < 0);
       // Rubber-band at the first and last page.
-      const shift = pastEdge ? event.translationX * 0.2 : event.translationX;
-      pageShift.value = shift;
+      const shift = pastEdge ? along * 0.2 : along;
+      pageShift.value = shift * flow;
       tabPosition.value = Math.min(
         lastTabIndex,
         Math.max(0, tabIndex - shift / windowWidth),
       );
     })
     .onEnd((event) => {
-      const direction = event.translationX < 0 ? 1 : -1;
+      const direction = event.translationX * flow < 0 ? 1 : -1;
       const nextIndex = tabIndex + direction;
       const committed =
         Math.abs(event.translationX) > windowWidth * 0.22 ||
         Math.abs(event.velocityX) > 700;
       if (committed && nextIndex >= 0 && nextIndex <= lastTabIndex) {
         pageShift.value = withTiming(
-          -direction * windowWidth * 0.5,
+          -direction * flow * windowWidth * 0.5,
           { duration: 120 },
           (finished) => {
             if (finished) runOnJS(showTab)(nextIndex, direction);
@@ -329,7 +349,7 @@ export const ProfileScreen = ({ navigation, route }) => {
     opacity: 1 - Math.min(Math.abs(pageShift.value) / windowWidth, 1) * 0.7,
   }));
   const underlineStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tabPosition.value * tabWidth }],
+    transform: [{ translateX: tabPosition.value * tabWidth * flow }],
   }));
 
   const goToLibrary = (initialTab) => {
@@ -440,10 +460,15 @@ export const ProfileScreen = ({ navigation, route }) => {
                           onLongPress={() => {
                             toggleTopTen(movie.id);
                             showToast(
-                              `${movie.title} taken out of your top ten`,
+                              t("{title} taken out of your top ten", {
+                                title: movie.title,
+                              }),
                             );
                           }}
-                          accessibilityLabel={`Number ${index + 1}, ${movie.title}`}
+                          accessibilityLabel={t("Number {value}, {title}", {
+                            value: index + 1,
+                            title: movie.title,
+                          })}
                         >
                           <MoviePoster
                             uri={movie.poster}
@@ -464,7 +489,10 @@ export const ProfileScreen = ({ navigation, route }) => {
                             favoriteSize,
                           ]}
                           onPress={() => setIsTopTenOpen(true)}
-                          accessibilityLabel={`Top ten number ${index + 1}, empty. Pick a movie`}
+                          accessibilityLabel={t(
+                            "Top ten number {value}, empty. Pick a movie",
+                            { value: index + 1 },
+                          )}
                         >
                           <Text style={styles.favoriteEmptyRank}>
                             {index + 1}
@@ -475,17 +503,20 @@ export const ProfileScreen = ({ navigation, route }) => {
                   </View>
                   <View style={styles.topTenBar}>
                     <Text style={styles.topTenLabel}>
-                      Your top ten
+                      {t("Your top ten")}
                       {topTenMovies.length > 0 &&
                         topTenMovies.length < FAVORITE_COUNT &&
-                        ` · ${topTenMovies.length} of ${FAVORITE_COUNT}`}
+                        t(" · {topTenMoviesCount} of {FAVORITE_COUNT}", {
+                          topTenMoviesCount: topTenMovies.length,
+                          FAVORITE_COUNT: FAVORITE_COUNT,
+                        })}
                     </Text>
                     <Pressable
                       onPress={() => setIsTopTenOpen(true)}
                       hitSlop={8}
                     >
                       <Text style={styles.topTenEdit}>
-                        {topTenMovies.length > 0 ? "Edit" : "Pick"}
+                        {topTenMovies.length > 0 ? t("Edit") : t("Pick")}
                       </Text>
                     </Pressable>
                   </View>
@@ -493,14 +524,15 @@ export const ProfileScreen = ({ navigation, route }) => {
                   {/* Taste */}
                   {taste.topGenres.length > 0 && (
                     <>
-                      <Text style={styles.sectionLabel}>Taste</Text>
+                      <Text style={styles.sectionLabel}>{t("Taste")}</Text>
                       <View style={styles.tasteCard}>
                         {/* Watch most vs love most */}
                         <Text style={styles.tasteInsight}>
                           {!taste.tasteInsight ? (
                             <>
-                              Tier a few movies to see which genres you really
-                              love.{" "}
+                              {t(
+                                "Tier a few movies to see which genres you really love.",
+                              )}{" "}
                               <Text
                                 style={styles.tasteInsightLink}
                                 onPress={() =>
@@ -509,7 +541,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                   })
                                 }
                               >
-                                See untiered
+                                {t("See untiered")}
                               </Text>
                             </>
                           ) : taste.tasteInsight.mostWatched ===
@@ -518,20 +550,21 @@ export const ProfileScreen = ({ navigation, route }) => {
                               <Text style={styles.tasteInsightStrong}>
                                 {taste.tasteInsight.mostWatched}
                               </Text>{" "}
-                              is what you watch most — and what you tier
-                              highest.
+                              {t(
+                                "is what you watch most — and what you tier highest.",
+                              )}
                             </>
                           ) : (
                             <>
-                              You watch{" "}
+                              {t("You watch")}{" "}
                               <Text style={styles.tasteInsightStrong}>
                                 {taste.tasteInsight.mostWatched}
                               </Text>{" "}
-                              most, but{" "}
+                              {t("most, but")}{" "}
                               <Text style={styles.tasteInsightStrong}>
                                 {taste.tasteInsight.mostLoved}
                               </Text>{" "}
-                              gets your best tiers.
+                              {t("gets your best tiers.")}
                             </>
                           )}
                         </Text>
@@ -581,7 +614,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                     hitSlop={8}
                                   >
                                     <Text style={styles.genreUntiered}>
-                                      not tiered yet
+                                      {t("not tiered yet")}
                                     </Text>
                                   </Pressable>
                                 )}
@@ -624,7 +657,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                             >
                               <View style={styles.tasteFactText}>
                                 <Text style={styles.tasteFactLabel}>
-                                  Most-watched director
+                                  {t("Most-watched director")}
                                 </Text>
                                 <Text
                                   style={styles.tasteFactValue}
@@ -647,10 +680,10 @@ export const ProfileScreen = ({ navigation, route }) => {
                             >
                               <View style={styles.tasteFactText}>
                                 <Text style={styles.tasteFactLabel}>
-                                  Favorite decade
+                                  {t("Favorite decade")}
                                 </Text>
                                 <Text style={styles.tasteFactValue}>
-                                  The {taste.decade.label}
+                                  {t("The")} {taste.decade.label}
                                 </Text>
                               </View>
                             </Pressable>
@@ -715,8 +748,11 @@ export const ProfileScreen = ({ navigation, route }) => {
                     >
                       <Text style={styles.untieredLinkText}>
                         {untieredCount === 1
-                          ? "1 watched movie isn't tiered yet"
-                          : `${untieredCount} watched movies aren't tiered yet`}
+                          ? t("1 watched movie isn't tiered yet")
+                          : t(
+                              "{untieredCount} watched movies aren't tiered yet",
+                              { untieredCount: untieredCount },
+                            )}
                       </Text>
                     </Pressable>
                   )}
@@ -727,8 +763,9 @@ export const ProfileScreen = ({ navigation, route }) => {
               watched. Tap to open, long-press to pin to the front. */}
               {profileTab === "completed" && completedSets.length > 0 && (
                 <Text style={styles.completedIntro}>
-                  Actors, directors and franchises you&apos;ve seen every movie
-                  of.
+                  {t(
+                    "Actors, directors and franchises you've seen every movie of.",
+                  )}
                 </Text>
               )}
               {profileTab === "completed" &&
@@ -791,7 +828,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                     <View style={styles.showcasePin}>
                                       <Pin
                                         size={10}
-                                        color={colors.textPrimary}
+                                        color={colors.background}
                                       />
                                     </View>
                                   )}
@@ -803,7 +840,8 @@ export const ProfileScreen = ({ navigation, route }) => {
                                   {collection.title}
                                 </Text>
                                 <Text style={styles.showcaseMeta}>
-                                  Seen all {collection.movies.length} {unit}
+                                  {t("Seen all")} {collection.movies.length}{" "}
+                                  {unit}
                                 </Text>
                               </Pressable>
                             );
@@ -815,9 +853,11 @@ export const ProfileScreen = ({ navigation, route }) => {
                 ) : (
                   <EmptyState
                     art="noCollections"
-                    title="No collections yet"
-                    subtitle="Watch every film from a director, actor or franchise and it shows up here."
-                    actionLabel="Continue a collection"
+                    title={t("No collections yet")}
+                    subtitle={t(
+                      "Watch every film from a director, actor or franchise and it shows up here.",
+                    )}
+                    actionLabel={t("Continue a collection")}
                     onAction={() => goToLibrary("collections")}
                   />
                 ))}
@@ -830,7 +870,7 @@ export const ProfileScreen = ({ navigation, route }) => {
       <ScreenBottomFade />
       <DockHeader
         {...header.props}
-        title="Profile"
+        title={t("Profile")}
         right={
           <>
             <HeaderIconButton onPress={() => setIsShareOpen(true)}>
@@ -873,8 +913,11 @@ export const ProfileScreen = ({ navigation, route }) => {
       <BottomSheet
         visible={isLeagueSheetOpen}
         onClose={() => setIsLeagueSheetOpen(false)}
-        title="Your watcher profile"
-        subtitle={`Level ${level.level} · ${level.name}`}
+        title={t("Your watcher profile")}
+        subtitle={t("Level {level} · {name}", {
+          level: level.level,
+          name: level.name,
+        })}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.leagueSummary}>
@@ -889,13 +932,13 @@ export const ProfileScreen = ({ navigation, route }) => {
               />
             </View>
             <Text style={styles.leagueSummaryNext}>
-              {xp.toLocaleString()} XP · {xpToNextLevel.toLocaleString()} to
-              Level {level.level + 1}
+              {xp.toLocaleString()} {t("XP ·")} {xpToNextLevel.toLocaleString()}{" "}
+              {t("to Level")} {level.level + 1}
             </Text>
           </View>
 
           <Text style={[styles.badgeSectionTitle, styles.sheetSectionGap]}>
-            How XP is earned
+            {t("How XP is earned")}
           </Text>
           <View style={styles.leagueFormulaCard}>
             {[
@@ -913,8 +956,9 @@ export const ProfileScreen = ({ navigation, route }) => {
             ))}
           </View>
           <Text style={styles.formulaNote}>
-            XP only grows from what you watch — it never decays, and there are
-            no streaks or deadlines.
+            {t(
+              "XP only grows from what you watch — it never decays, and there are no streaks or deadlines.",
+            )}
           </Text>
 
           <View style={{ height: insets.bottom + spacing.md }} />
@@ -985,7 +1029,7 @@ const createStyles = (colors) =>
     },
     showcasePin: {
       position: "absolute",
-      left: 4,
+      start: 4,
       top: 4,
       width: 20,
       height: 20,
@@ -1008,8 +1052,8 @@ const createStyles = (colors) =>
     backdrop: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       flexDirection: "row",
       overflow: "hidden",
     },
@@ -1050,7 +1094,7 @@ const createStyles = (colors) =>
     // a swipe).
     tabUnderline: {
       position: "absolute",
-      left: 0,
+      start: 0,
       bottom: -StyleSheet.hairlineWidth,
       height: 1.5,
       backgroundColor: colors.textPrimary,
@@ -1157,7 +1201,7 @@ const createStyles = (colors) =>
     favoriteRank: {
       position: "absolute",
       top: 4,
-      left: 4,
+      start: 4,
       minWidth: 18,
       height: 18,
       paddingHorizontal: 4,

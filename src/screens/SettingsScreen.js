@@ -6,10 +6,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -22,11 +22,15 @@ import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
+import { useThemeStore } from "../store/themeStore";
+import { useLanguageStore } from "../store/languageStore";
+import { changeLanguage } from "../i18n";
 import { useUserStore } from "../store/userStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { resetAppData } from "../utils/resetAppData";
+import { t } from "../i18n";
 
 const APP_VERSION = "1.0.0";
 const BIO_MAX_LENGTH = 140;
@@ -83,6 +87,9 @@ export const SettingsScreen = ({ navigation }) => {
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const insets = useSafeAreaInsets();
+  const themeMode = useThemeStore((state) => state.mode);
+  const setThemeMode = useThemeStore((state) => state.setMode);
+  const language = useLanguageStore((state) => state.language);
 
   const handleNameBlur = () => {
     if (!displayName.trim()) setDisplayName("You");
@@ -99,8 +106,10 @@ export const SettingsScreen = ({ navigation }) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       showStub(
-        "Photo Access Needed",
-        "Allow access to your photos in system settings to set a profile picture.",
+        t("Photo Access Needed"),
+        t(
+          "Allow access to your photos in system settings to set a profile picture.",
+        ),
       );
       return;
     }
@@ -123,7 +132,7 @@ export const SettingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <StackHeader title="Settings" onBack={() => navigation.goBack()} />
+      <StackHeader title={t("Settings")} onBack={() => navigation.goBack()} />
 
       <ScrollView
         contentContainerStyle={[
@@ -135,7 +144,7 @@ export const SettingsScreen = ({ navigation }) => {
         <View style={styles.avatarWrap}>
           <Pressable
             onPress={handlePickAvatar}
-            accessibilityLabel="Change profile photo"
+            accessibilityLabel={t("Change profile photo")}
           >
             <View style={styles.avatar}>
               <Image
@@ -145,24 +154,26 @@ export const SettingsScreen = ({ navigation }) => {
             </View>
           </Pressable>
           <Pressable onPress={handlePickAvatar} hitSlop={8}>
-            <Text style={styles.avatarEdit}>Edit picture</Text>
+            <Text style={styles.avatarEdit}>{t("Edit picture")}</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.fieldLabel}>Name</Text>
+        <Text style={styles.fieldLabel}>{t("Name")}</Text>
         <View style={styles.fieldBox}>
           <TextInput
             value={displayName}
             onChangeText={setDisplayName}
             onBlur={handleNameBlur}
-            placeholder="Your name"
+            placeholder={t("Your name")}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}
           />
         </View>
 
         <View style={styles.fieldLabelRow}>
-          <Text style={[styles.fieldLabel, styles.fieldLabelInRow]}>Bio</Text>
+          <Text style={[styles.fieldLabel, styles.fieldLabelInRow]}>
+            {t("Bio")}
+          </Text>
           <Text style={styles.fieldCount}>
             {bio.length}/{BIO_MAX_LENGTH}
           </Text>
@@ -172,19 +183,19 @@ export const SettingsScreen = ({ navigation }) => {
             value={bio}
             onChangeText={setBio}
             onBlur={handleBioBlur}
-            placeholder="Tell people what you love to watch..."
+            placeholder={t("Tell people what you love to watch...")}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}
             maxLength={BIO_MAX_LENGTH}
           />
         </View>
 
-        <Text style={styles.fieldLabel}>Email</Text>
+        <Text style={styles.fieldLabel}>{t("Email")}</Text>
         <View style={styles.fieldBox}>
           <TextInput
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder={t("you@example.com")}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}
             autoCapitalize="none"
@@ -192,83 +203,150 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Discovery</Text>
+        <Text style={styles.sectionLabel}>{t("Discovery")}</Text>
         <View style={styles.section}>
           <SettingsRow
-            label="Preferences"
+            label={t("Preferences")}
             onPress={() => navigation.navigate("Preferences")}
           />
           <SettingsRow
-            label="Reset recommendations"
+            label={t("Reset recommendations")}
             onPress={() =>
               confirmAction(
-                "Reset Recommendations",
-                "This will end your current pick session.",
+                t("Reset Recommendations"),
+                t("This will end your current pick session."),
                 endSession,
               )
             }
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Your data</Text>
+        <Text style={styles.sectionLabel}>{t("Your data")}</Text>
         <View style={styles.section}>
           <SettingsRow
-            label="Clear watchlist"
+            label={t("Clear watchlist")}
             destructive
             onPress={() =>
               confirmAction(
-                "Clear Watchlist",
-                "This will remove all movies from your watchlist.",
+                t("Clear Watchlist"),
+                t("This will remove all movies from your watchlist."),
                 clearBucketList,
               )
             }
           />
           <SettingsRow
-            label="Clear current pick"
+            label={t("Clear current pick")}
             destructive
             onPress={() =>
               confirmAction(
-                "Clear Current Pick",
-                "This will remove tonight’s pick from your Home screen.",
+                t("Clear Current Pick"),
+                t("This will remove tonight’s pick from your Home screen."),
                 clearPickedMovie,
               )
             }
           />
           <SettingsRow
-            label="Clear watched history"
+            label={t("Clear watched history")}
             destructive
             onPress={() =>
               confirmAction(
-                "Clear Watched History",
-                "This will remove all movies marked as watched.",
+                t("Clear Watched History"),
+                t("This will remove all movies marked as watched."),
                 clearWatched,
               )
             }
           />
         </View>
 
-        <Text style={styles.sectionLabel}>App</Text>
+        {/* Language: each shown in its own script. Switching is instant —
+            Arabic also mirrors the layout right-to-left. */}
+        <Text style={styles.sectionLabel}>{t("Language")}</Text>
+        <View style={styles.themeRow}>
+          {[
+            ["en", "English"],
+            ["ar", "العربية"],
+          ].map(([code, name]) => {
+            const selected = language === code;
+            return (
+              <Pressable
+                key={code}
+                style={[
+                  styles.themeOption,
+                  selected && styles.themeOptionActive,
+                ]}
+                onPress={() => {
+                  if (!selected) changeLanguage(code);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+              >
+                <Text
+                  style={[styles.themeText, selected && styles.themeTextActive]}
+                >
+                  {name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Appearance: follow the phone, or always light / dark. */}
+        <Text style={styles.sectionLabel}>{t("Appearance")}</Text>
+        <View style={styles.themeRow}>
+          {[
+            ["system", "System"],
+            ["light", "Light"],
+            ["dark", "Dark"],
+          ].map(([key, label]) => {
+            const selected = themeMode === key;
+            return (
+              <Pressable
+                key={key}
+                style={[
+                  styles.themeOption,
+                  selected && styles.themeOptionActive,
+                ]}
+                onPress={() => setThemeMode(key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+              >
+                <Text
+                  style={[styles.themeText, selected && styles.themeTextActive]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.sectionLabel}>{t("App")}</Text>
         <View style={styles.section}>
-          <SettingsRow label="Replay onboarding" onPress={replayOnboarding} />
           <SettingsRow
-            label="About"
+            label={t("Replay onboarding")}
+            onPress={replayOnboarding}
+          />
+          <SettingsRow
+            label={t("About")}
             onPress={() =>
               Alert.alert(
-                "Reelboard",
-                "Reelboard turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.",
+                t("ReelBoard"),
+                t(
+                  "ReelBoard turns deciding what to watch into a game — discover, build progress, unlock collections, and complete challenges as you go.",
+                ),
               )
             }
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Friend invites</Text>
+        <Text style={styles.sectionLabel}>{t("Friend invites")}</Text>
         <View style={styles.section}>
           <SettingsRow
-            label="Enter referral code"
+            label={t("Enter referral code")}
             onPress={() =>
               showStub(
-                "Referral Codes",
-                "Reelboard doesn't have referral codes yet.",
+                t("Referral Codes"),
+                t("ReelBoard doesn't have referral codes yet."),
               )
             }
           />
@@ -276,19 +354,23 @@ export const SettingsScreen = ({ navigation }) => {
 
         <View style={[styles.section, styles.dangerSection]}>
           <SettingsRow
-            label="Delete account"
+            label={t("Delete account")}
             destructive
             onPress={() =>
               confirmAction(
-                "Delete Account",
-                "Reelboard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
+                t("Delete Account"),
+                t(
+                  "ReelBoard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
+                ),
                 resetAppData,
               )
             }
           />
         </View>
 
-        <Text style={styles.footerText}>Version {APP_VERSION}</Text>
+        <Text style={styles.footerText}>
+          {t("Version")} {APP_VERSION}
+        </Text>
       </ScrollView>
       <ScreenBottomFade />
       {cropImage && (
@@ -327,6 +409,28 @@ const createStyles = (colors) =>
     },
     section: {
       backgroundColor: colors.card,
+    },
+    // Three square boxes edge to edge, 2px apart; the chosen one filled.
+    themeRow: {
+      flexDirection: "row",
+      gap: 2,
+    },
+    themeOption: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      backgroundColor: colors.card,
+    },
+    themeOptionActive: {
+      backgroundColor: colors.selected,
+    },
+    themeText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    themeTextActive: {
+      color: colors.selectedText,
     },
     dangerSection: {
       marginTop: spacing.lg,

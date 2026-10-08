@@ -1,9 +1,4 @@
-import {
-  Pressable,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Check } from "lucide-react-native";
 
 import { useMovieStore } from "../store/movieStore";
@@ -75,7 +70,7 @@ const createStyles = (colors) =>
     watchedBadge: {
       position: "absolute",
       top: 6,
-      left: 6,
+      start: 6,
       width: 20,
       height: 20,
       borderRadius: 10,

@@ -82,7 +82,7 @@ export const useMovieStore = create(
           };
         }),
 
-      // Reelboard's rating: a tier (S–F), or null to clear it. Drops any old
+      // ReelBoard's rating: a tier (S–F), or null to clear it. Drops any old
       // star rating so the tier is the only source of truth from now on.
       setWatchedTier: (movieId, tier) =>
         set((state) => ({

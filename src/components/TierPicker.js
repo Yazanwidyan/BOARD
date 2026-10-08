@@ -1,13 +1,15 @@
 import * as Haptics from "expo-haptics";
 import { Check } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { TIERS, getTierInfo } from "../utils/tiers";
+import { t } from "../i18n";
 
-// Reelboard's rating input. Tapping the current tier again clears it.
+// ReelBoard's rating input. Tapping the current tier again clears it.
 //
 // Default: a tier ladder — six full-width rows, S at the top to F at the
 // bottom, each with its coloured letter and what it means. The chosen row
@@ -40,7 +42,7 @@ export const TierPicker = ({ tier, onChange, compact = false }) => {
                   selected && { backgroundColor: color },
                 ]}
                 onPress={() => choose(key)}
-                accessibilityLabel={`${key} tier`}
+                accessibilityLabel={t("{key} tier", { key })}
                 accessibilityState={{ selected }}
               >
                 <Text
@@ -57,8 +59,11 @@ export const TierPicker = ({ tier, onChange, compact = false }) => {
         </View>
         <Text style={styles.meaning}>
           {info
-            ? `${info.key} tier · ${info.meaning}`
-            : "Pick a tier for this movie"}
+            ? t("{key} tier · {meaning}", {
+                key: info.key,
+                meaning: info.meaning,
+              })
+            : t("Pick a tier for this movie")}
         </Text>
       </View>
     );
@@ -83,7 +88,10 @@ export const TierPicker = ({ tier, onChange, compact = false }) => {
             ]}
             onPress={() => choose(key)}
             accessibilityRole="button"
-            accessibilityLabel={`${key} tier, ${meaning}`}
+            accessibilityLabel={t("{key} tier, {meaning}", {
+              key: key,
+              meaning: meaning,
+            })}
             accessibilityState={{ selected }}
           >
             <View style={[styles.letterBox, { backgroundColor: color }]}>
@@ -115,7 +123,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
-      paddingRight: spacing.md,
+      paddingEnd: spacing.md,
       borderRadius: radius.sm,
       borderWidth: 1.5,
       borderColor: "transparent",

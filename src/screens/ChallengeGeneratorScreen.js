@@ -1,7 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { Check, Shuffle } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,6 +18,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
 import { formatRuntime } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 const HAND_SIZE = 3;
 
@@ -113,7 +115,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
     if (!selected) return;
     acceptChallenge(selected);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast("Challenge accepted", {
+    showToast(t("Challenge accepted"), {
       tone: "success",
     });
     navigation.goBack();
@@ -122,7 +124,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <StackHeader
-        title="New challenge"
+        title={t("New challenge")}
         onBack={() => navigation.goBack()}
         right={
           <HeaderIconButton onPress={reshuffle}>
@@ -137,13 +139,13 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
       >
         <View style={styles.intro}>
           <Text style={styles.introText}>
-            Pick the one that sounds most fun tonight.
+            {t("Pick the one that sounds most fun tonight.")}
           </Text>
         </View>
 
         {hand.length === 0 ? (
           <Text style={styles.empty}>
-            No challenges right now — you&apos;ve seen it all. Impressive.
+            {t("No challenges right now — you've seen it all. Impressive.")}
           </Text>
         ) : (
           <View key={handId} style={styles.hand}>
@@ -164,14 +166,14 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         {hand.length > 0 && (
           <Pressable style={styles.reshuffleLink} onPress={reshuffle}>
             <Shuffle size={14} color={colors.textSecondary} />
-            <Text style={styles.reshuffleText}>Deal three new ones</Text>
+            <Text style={styles.reshuffleText}>{t("Deal three new ones")}</Text>
           </Pressable>
         )}
       </ScrollView>
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={selected ? "Accept challenge" : "Select a challenge"}
+          label={selected ? t("Accept challenge") : t("Select a challenge")}
           variant={selected ? "primary" : "secondary"}
           disabled={!selected}
           onPress={handleAccept}
@@ -260,7 +262,7 @@ const createStyles = (colors) =>
     check: {
       position: "absolute",
       top: spacing.sm + 4,
-      left: spacing.sm + 4,
+      start: spacing.sm + 4,
       width: 22,
       height: 22,
       alignItems: "center",

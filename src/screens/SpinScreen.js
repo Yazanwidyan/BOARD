@@ -1,7 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { ArrowUpRight, RotateCw, Shuffle } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Easing,
   FadeIn,
@@ -22,11 +23,11 @@ import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
 import { useUserStore } from "../store/userStore";
-import { colors as styleColors } from "../theme/palettes";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { bucketListIds, formatRuntime } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 // Eight slices — big enough that each one carries a readable poster
 // instead of a truncated 10px title.
@@ -39,7 +40,7 @@ const POSTER_WIDTH = 40;
 const POSTER_RING = WHEEL_RADIUS * 0.62;
 const FULL_SPINS = 5;
 const SPIN_DURATION_MS = 4200;
-const SLICE_COLORS = ["#5B8DEF", "#383B40"];
+const SLICE_COLORS = ["#4A4D53", "#2E3034"];
 
 // 0° = straight up (where the pointer is), increasing clockwise.
 const polarToCartesian = (angleDeg, r) => {
@@ -70,6 +71,7 @@ const pickCandidates = (preferences, bucketList) =>
 // rotating view so they turn together. After landing, every poster except
 // the winner dims.
 const Wheel = ({ candidates, winnerId, rotatorStyle, colors }) => {
+  const styles = makeStyles(colors);
   const sliceAngle = 360 / candidates.length;
   const innerRadius = WHEEL_RADIUS - RIM_WIDTH;
 
@@ -146,6 +148,7 @@ const Wheel = ({ candidates, winnerId, rotatorStyle, colors }) => {
 
 export const SpinScreen = ({ navigation }) => {
   const colors = useColors();
+  const styles = makeStyles(colors);
   const bucketList = useMovieStore((state) => state.bucketList);
   const pickedMovie = useMovieStore((state) => state.pickedMovie);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
@@ -223,7 +226,9 @@ export const SpinScreen = ({ navigation }) => {
 
   const makeTonightsPick = () => {
     if (pickedMovie !== winner.id) togglePickedMovie(winner.id);
-    showToast(`${winner.title} is tonight's pick`, { tone: "success" });
+    showToast(t("{title} is tonight's pick", { title: winner.title }), {
+      tone: "success",
+    });
   };
 
   const rotatorStyle = useAnimatedStyle(() => ({
@@ -232,15 +237,15 @@ export const SpinScreen = ({ navigation }) => {
 
   const eyebrow =
     phase === "spinning"
-      ? "SPINNING…"
+      ? t("Spinning…")
       : phase === "landed"
-        ? "THE WHEEL HAS SPOKEN"
-        : `${candidates.length} PICKS ON THE WHEEL`;
+        ? t("The wheel has spoken")
+        : t("{count} picks on the wheel", { count: candidates.length });
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <StackHeader
-        title="Spin"
+        title={t("Spin")}
         onBack={() => navigation.goBack()}
         right={
           <HeaderIconButton
@@ -254,9 +259,9 @@ export const SpinScreen = ({ navigation }) => {
 
       {candidates.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.resultTitle}>Nothing to spin yet.</Text>
+          <Text style={styles.resultTitle}>{t("Nothing to spin yet.")}</Text>
           <Text style={styles.hint}>
-            Loosen your preferences or save a few movies first.
+            {t("Loosen your preferences or save a few movies first.")}
           </Text>
         </View>
       ) : (
@@ -293,7 +298,7 @@ export const SpinScreen = ({ navigation }) => {
               disabled={phase === "spinning"}
             >
               <Text style={styles.hubText}>
-                {phase === "landed" ? "AGAIN" : "SPIN"}
+                {phase === "landed" ? t("AGAIN") : t("SPIN")}
               </Text>
             </Pressable>
           </View>
@@ -329,8 +334,8 @@ export const SpinScreen = ({ navigation }) => {
                   <PrimaryButton
                     label={
                       pickedMovie === winner.id
-                        ? "Tonight's pick ✓"
-                        : "Make it tonight's pick"
+                        ? t("Tonight's pick ✓")
+                        : t("Make it tonight's pick")
                     }
                     variant={
                       pickedMovie === winner.id ? "secondary" : "primary"
@@ -344,7 +349,7 @@ export const SpinScreen = ({ navigation }) => {
                     style={styles.roundButton}
                     onPress={spin}
                     hitSlop={6}
-                    accessibilityLabel="Spin again"
+                    accessibilityLabel={t("Spin again")}
                   >
                     <RotateCw size={18} color={colors.textPrimary} />
                   </Pressable>
@@ -353,8 +358,8 @@ export const SpinScreen = ({ navigation }) => {
             ) : (
               <Text style={styles.hint}>
                 {phase === "spinning"
-                  ? "Here it goes…"
-                  : "Tap SPIN and let fate pick tonight's movie."}
+                  ? t("Here it goes…")
+                  : t("Tap SPIN and let fate pick tonight's movie.")}
               </Text>
             )}
           </View>
@@ -366,142 +371,144 @@ export const SpinScreen = ({ navigation }) => {
 
 // The palette is static (useColors just returns it), so these styles are
 // created once at module level and shared with the Wheel component.
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: styleColors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabled: {
-    opacity: 0.4,
-  },
-  body: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-    gap: spacing.lg,
-  },
-  empty: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.xl,
-    gap: spacing.sm,
-  },
-  eyebrow: {
-    ...typography.caption,
-    color: styleColors.textMuted,
-  },
-  wheelWrap: {
-    width: WHEEL_SIZE,
-    height: WHEEL_SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wheel: {
-    position: "absolute",
-    width: WHEEL_SIZE,
-    height: WHEEL_SIZE,
-  },
-  wheelPoster: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.85)",
-  },
-  pointer: {
-    position: "absolute",
-    top: -14,
-    zIndex: 2,
-  },
-  hub: {
-    width: HUB_SIZE,
-    height: HUB_SIZE,
-    borderRadius: HUB_SIZE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: styleColors.textPrimary,
-    borderWidth: 4,
-    borderColor: styleColors.background,
-  },
-  hubPressed: {
-    transform: [{ scale: 0.94 }],
-  },
-  hubSpinning: {
-    opacity: 0.6,
-  },
-  hubText: {
-    ...typography.label,
-    fontSize: 13,
-    letterSpacing: 1.5,
-    color: styleColors.background,
-  },
-  resultArea: {
-    alignSelf: "stretch",
-    minHeight: 150,
-    justifyContent: "center",
-  },
-  hint: {
-    ...typography.body,
-    color: styleColors.textSecondary,
-    textAlign: "center",
-  },
-  result: {
-    gap: spacing.md,
-  },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.sm + 2,
-    backgroundColor: styleColors.card,
-  },
-  resultPoster: {
-    width: 72,
-    aspectRatio: 2 / 3,
-  },
-  resultInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  resultTitle: {
-    ...typography.title,
-    color: styleColors.textPrimary,
-  },
-  resultMeta: {
-    ...typography.caption,
-    color: styleColors.textSecondary,
-  },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  mainAction: {
-    flex: 1,
-  },
-  actionContent: {
-    paddingVertical: 10,
-  },
-  // Square, like the other filled boxes.
-  roundButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: styleColors.card,
-  },
-});
+// Built per render from the current palette (light or dark).
+const makeStyles = (styleColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: styleColors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    disabled: {
+      opacity: 0.4,
+    },
+    body: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.md,
+      gap: spacing.lg,
+    },
+    empty: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.xl,
+      gap: spacing.sm,
+    },
+    eyebrow: {
+      ...typography.caption,
+      color: styleColors.textMuted,
+    },
+    wheelWrap: {
+      width: WHEEL_SIZE,
+      height: WHEEL_SIZE,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    wheel: {
+      position: "absolute",
+      width: WHEEL_SIZE,
+      height: WHEEL_SIZE,
+    },
+    wheelPoster: {
+      position: "absolute",
+      borderWidth: 2,
+      borderColor: styleColors.textPrimary,
+    },
+    pointer: {
+      position: "absolute",
+      top: -14,
+      zIndex: 2,
+    },
+    hub: {
+      width: HUB_SIZE,
+      height: HUB_SIZE,
+      borderRadius: HUB_SIZE / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: styleColors.textPrimary,
+      borderWidth: 4,
+      borderColor: styleColors.background,
+    },
+    hubPressed: {
+      transform: [{ scale: 0.94 }],
+    },
+    hubSpinning: {
+      opacity: 0.6,
+    },
+    hubText: {
+      ...typography.label,
+      fontSize: 13,
+      letterSpacing: 1.5,
+      color: styleColors.background,
+    },
+    resultArea: {
+      alignSelf: "stretch",
+      minHeight: 150,
+      justifyContent: "center",
+    },
+    hint: {
+      ...typography.body,
+      color: styleColors.textSecondary,
+      textAlign: "center",
+    },
+    result: {
+      gap: spacing.md,
+    },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.sm + 2,
+      backgroundColor: styleColors.card,
+    },
+    resultPoster: {
+      width: 72,
+      aspectRatio: 2 / 3,
+    },
+    resultInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    resultTitle: {
+      ...typography.title,
+      color: styleColors.textPrimary,
+    },
+    resultMeta: {
+      ...typography.caption,
+      color: styleColors.textSecondary,
+    },
+    actions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    mainAction: {
+      flex: 1,
+    },
+    actionContent: {
+      paddingVertical: 10,
+    },
+    // Square, like the other filled boxes.
+    roundButton: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: styleColors.card,
+    },
+  });
 
 export default SpinScreen;

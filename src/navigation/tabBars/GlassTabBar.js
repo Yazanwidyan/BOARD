@@ -23,7 +23,8 @@ export const GLASS_TAB_BAR_HEIGHT = 64;
 const SIDE_INSET = 16;
 // Inactive icons + labels: a soft near-white, light enough to read clearly
 // over the glass without competing with the active tab's accent color.
-const INACTIVE_COLOR = "rgba(255, 255, 255, 0.82)";
+const inactiveColor = (colors) =>
+  colors.isDark ? "rgba(255, 255, 255, 0.82)" : "rgba(0, 0, 0, 0.72)";
 const BOTTOM_GAP = 8;
 // The Profile tab shows your photo (once you've set one) instead of the
 // person icon — like Instagram.
@@ -78,7 +79,9 @@ export const GlassTabBar = ({ state, navigation }) => {
         <BlurView
           key={blurKey}
           intensity={60}
-          tint="systemThinMaterialDark"
+          tint={
+            colors.isDark ? "systemThinMaterialDark" : "systemThinMaterialLight"
+          }
           style={StyleSheet.absoluteFill}
         />
       )}
@@ -87,7 +90,7 @@ export const GlassTabBar = ({ state, navigation }) => {
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const Icon = getTabIcon(route.name, isFocused);
-        const color = isFocused ? colors.textPrimary : INACTIVE_COLOR;
+        const color = isFocused ? colors.textPrimary : inactiveColor(colors);
         return (
           <Pressable
             key={route.key}
@@ -126,8 +129,8 @@ const createStyles = (colors) =>
   StyleSheet.create({
     bar: {
       position: "absolute",
-      left: SIDE_INSET,
-      right: SIDE_INSET,
+      start: SIDE_INSET,
+      end: SIDE_INSET,
       height: GLASS_TAB_BAR_HEIGHT,
       flexDirection: "row",
       alignItems: "center",
@@ -135,7 +138,9 @@ const createStyles = (colors) =>
       borderRadius: GLASS_TAB_BAR_HEIGHT / 2,
       overflow: "hidden",
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: "rgba(255, 255, 255, 0.18)",
+      borderColor: colors.isDark
+        ? "rgba(255, 255, 255, 0.18)"
+        : "rgba(0, 0, 0, 0.08)",
       // Above elevated cards on Android; ignored on iOS.
       elevation: 10,
     },
@@ -143,7 +148,13 @@ const createStyles = (colors) =>
       ...StyleSheet.absoluteFill,
       // Near-black over the blur, for a darker, smoky glass.
       backgroundColor:
-        Platform.OS === "ios" ? "rgba(0, 0, 0, 0.4)" : "rgba(8, 8, 14, 0.94)",
+        Platform.OS === "ios"
+          ? colors.isDark
+            ? "rgba(0, 0, 0, 0.4)"
+            : "rgba(255, 255, 255, 0.55)"
+          : colors.isDark
+            ? "rgba(8, 8, 14, 0.94)"
+            : "rgba(250, 250, 251, 0.96)",
     },
     item: {
       flex: 1,
@@ -158,7 +169,7 @@ const createStyles = (colors) =>
       borderRadius: (GLASS_TAB_BAR_HEIGHT - 12) / 2,
     },
     pillActive: {
-      backgroundColor: "rgba(255, 255, 255, 0.14)",
+      backgroundColor: colors.surfaceSoft,
     },
     // A thin ring around the photo marks it as the open tab.
     avatarRing: {

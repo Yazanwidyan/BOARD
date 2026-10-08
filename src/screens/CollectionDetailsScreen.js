@@ -1,7 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Share2 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -31,6 +32,7 @@ import {
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
+import { t } from "../i18n";
 
 const TYPE_LABELS = {
   franchise: "Franchise",
@@ -190,8 +192,8 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           </View>
 
           <Text style={styles.eyebrow}>
-            {TYPE_LABELS[collection.type] ?? "Collection"}
-            {isComplete ? " · Completed" : ""}
+            {TYPE_LABELS[collection.type] ?? t("Collection")}
+            {isComplete ? t(" · Completed") : ""}
           </Text>
           <Text style={styles.title} numberOfLines={2}>
             {collection.title}
@@ -222,13 +224,13 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           {isComplete ? (
             <>
               <PrimaryButton
-                label="Rewatch marathon"
+                label={t("Rewatch marathon")}
                 onPress={startMarathon}
                 style={styles.action}
                 contentStyle={styles.actionContent}
               />
               <PrimaryButton
-                label="Share"
+                label={t("Share")}
                 variant="secondary"
                 onPress={shareCollection}
                 style={styles.action}
@@ -237,7 +239,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             </>
           ) : (
             <PrimaryButton
-              label="Pick from this collection"
+              label={t("Pick from this collection")}
               onPress={pickRandomUnwatched}
               style={styles.action}
               contentStyle={styles.actionContent}
@@ -282,7 +284,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           onPress={shareCollection}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="Share this collection"
+          accessibilityLabel={t("Share this collection")}
         >
           <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
@@ -300,8 +302,8 @@ const createStyles = (colors) =>
     headerBar: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       paddingHorizontal: spacing.md,
       flexDirection: "row",
       alignItems: "center",

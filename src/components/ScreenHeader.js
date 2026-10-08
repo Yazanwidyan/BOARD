@@ -1,5 +1,6 @@
 import { ChevronDown, X } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -10,6 +11,7 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BackButton } from "./BackButton";
+import { t } from "../i18n";
 
 export const HEADER_BAR_HEIGHT = 52;
 
@@ -67,6 +69,8 @@ export const HeaderIconButton = ({
 // `subtitle` adds a small line under it — Library uses both.
 export const DockHeader = ({
   title,
+  logo,
+  italicTitle = false,
   eyebrow,
   subtitle,
   onPressTitle,
@@ -95,7 +99,7 @@ export const DockHeader = ({
             hitSlop={8}
             style={styles.titleButton}
             accessibilityRole="button"
-            accessibilityLabel={`${title}, switch section`}
+            accessibilityLabel={t("{title}, switch section", { title: title })}
           >
             <Text
               style={[styles.title, subtitle && styles.titleWithSubtitle]}
@@ -110,15 +114,20 @@ export const DockHeader = ({
             />
           </Pressable>
         ) : (
-          <Text
-            style={[
-              eyebrow ? styles.leftTitle : styles.title,
-              subtitle && styles.titleWithSubtitle,
-            ]}
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
+          <View style={styles.titleRow}>
+            {logo}
+            <Text
+              style={[
+                eyebrow ? styles.leftTitle : styles.title,
+                subtitle && styles.titleWithSubtitle,
+                styles.titleShrink,
+                italicTitle && styles.titleItalic,
+              ]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+          </View>
         )}
         {!!subtitle && (
           <Text style={styles.subtitle} numberOfLines={1}>
@@ -190,8 +199,8 @@ const createStyles = (colors) =>
     bar: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       zIndex: 100,
       elevation: 16,
       flexDirection: "row",
@@ -256,9 +265,23 @@ const createStyles = (colors) =>
       lineHeight: 15,
       color: colors.textMuted,
     },
+    // Title with an optional logo in front (Home's ReelBoard mark).
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    titleShrink: {
+      flexShrink: 1,
+    },
+    // Sora has no italic face, so the slant is a skew — same on iOS and
+    // Android.
+    titleItalic: {
+      transform: [{ skewX: "-6deg" }],
+    },
     leftTitleBlock: {
       flex: 1,
-      marginRight: spacing.sm,
+      marginEnd: spacing.sm,
     },
     leftEyebrow: {
       ...typography.caption,

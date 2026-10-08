@@ -4,10 +4,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 import Animated, {
   Easing,
   FadeIn,
@@ -36,6 +36,7 @@ import { getBadgeLook } from "./BadgeMedal";
 import { DialogArt, StampCheck } from "./DialogArt";
 import { PrimaryButton } from "./PrimaryButton";
 import { TierPicker } from "./TierPicker";
+import { t, useLayoutDirection } from "../i18n";
 
 const HERO_SIZE = 132;
 const COUNT_UP_MS = 700;
@@ -72,10 +73,10 @@ const useCountUp = (value) => {
     let frame;
     const start = Date.now();
     const tick = () => {
-      const t = Math.min(1, (Date.now() - start) / COUNT_UP_MS);
-      const eased = 1 - (1 - t) ** 3;
+      const progress = Math.min(1, (Date.now() - start) / COUNT_UP_MS);
+      const eased = 1 - (1 - progress) ** 3;
       setDisplay(Math.round(value * eased));
-      if (t < 1) frame = requestAnimationFrame(tick);
+      if (progress < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -148,7 +149,7 @@ const confettiStyles = StyleSheet.create({
   piece: {
     position: "absolute",
     top: 0,
-    left: 0,
+    start: 0,
     borderRadius: 2,
   },
   square: {
@@ -174,6 +175,7 @@ export const AchievementModal = () => {
 
 const AchievementDialog = ({ achievement }) => {
   const colors = useColors();
+  const direction = useLayoutDirection();
   const styles = createStyles(colors);
   const navigation = useNavigation();
   const hideAchievement = useAchievementStore((state) => state.hideAchievement);
@@ -234,130 +236,136 @@ const AchievementDialog = ({ achievement }) => {
       statusBarTranslucent
       onRequestClose={hideAchievement}
     >
-      <Animated.View
-        entering={FadeIn.duration(180)}
-        exiting={FadeOut.duration(150)}
-        style={styles.overlay}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={hideAchievement} />
-
-        {theme.confetti && (
-          <Confetti
-            palette={[
-              colors.accent,
-              colors.accentLight,
-              colors.rating,
-              colors.success,
-              colors.danger,
-            ]}
-          />
-        )}
-
+      {/* Modals are their own layer: carry the language's direction. */}
+      <View style={{ flex: 1, direction }}>
         <Animated.View
-          entering={FadeIn.duration(200)}
+          entering={FadeIn.duration(180)}
           exiting={FadeOut.duration(150)}
-          style={styles.card}
+          style={styles.overlay}
         >
-          {/* Hero art — custom, per kind of moment */}
-          <Animated.View entering={ZoomIn.duration(280)} style={styles.hero}>
-            {badgeLook ? (
-              <BadgeArt
-                emblem={badgeRow.badge.category}
-                tier={badgeLook.tierIndex}
-                metal={badgeLook.metal}
-                size={HERO_SIZE - 16}
-              />
-            ) : (
-              <DialogArt
-                kind={kind}
-                color={theme.color}
-                level={Number.isFinite(levelNumber) ? levelNumber : null}
-                size={HERO_SIZE}
-              />
-            )}
-          </Animated.View>
-
-          <Text style={styles.title}>{title}</Text>
-          {movie && (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {movie.title}
-            </Text>
-          )}
-
-          {/* XP as an admit-one ticket */}
-          {total > 0 && (
-            <View
-              style={[
-                styles.xpTicket,
-                { borderColor: withAlpha(theme.color, "88") },
-              ]}
-            >
-              <View style={[styles.xpNotch, styles.xpNotchLeft]} />
-              <View style={[styles.xpNotch, styles.xpNotchRight]} />
-              <Text style={[styles.xpValue, { color: theme.color }]}>
-                +{countedTotal}
-              </Text>
-              <Text style={styles.xpUnit}>XP</Text>
-            </View>
-          )}
-
-          {/* What it was for, as a box-office receipt */}
-          <View style={styles.receipt}>
-            {rows.map((row, index) => (
-              <View key={`${index}-${row.label}`} style={styles.receiptRow}>
-                <Text style={styles.receiptLabel} numberOfLines={1}>
-                  {row.label}
-                  {row.detail ? (
-                    <Text style={styles.receiptDetail}>
-                      {"  "}
-                      {row.detail}
-                    </Text>
-                  ) : null}
-                </Text>
-                <View style={styles.receiptLeader} />
-                {row.xp != null ? (
-                  <Text style={styles.receiptXP}>+{row.xp}</Text>
-                ) : (
-                  <StampCheck color={colors.success} />
-                )}
-              </View>
-            ))}
-          </View>
-
-          {tierEntry && (
-            <View style={styles.tierBlock}>
-              <Text style={styles.tierPrompt}>How was it?</Text>
-              <TierPicker
-                tier={getTier(tierEntry)}
-                onChange={handleTier}
-                compact
-              />
-            </View>
-          )}
-
-          {/* Finishing a director / actor / franchise set makes sharing
-              the main action — that's the brag moment. */}
-          {shareCollectionId ? (
-            <PrimaryButton
-              label="Share it"
-              onPress={handleShare}
-              style={styles.primaryButton}
-            />
-          ) : (
-            <PrimaryButton
-              label="View details"
-              onPress={handleViewDetails}
-              style={styles.primaryButton}
-            />
-          )}
-          <PrimaryButton
-            label="Nice"
-            variant="ghost"
-            dense
+          <Pressable
+            style={StyleSheet.absoluteFill}
             onPress={hideAchievement}
           />
+
+          {theme.confetti && (
+            <Confetti
+              palette={[
+                colors.accent,
+                colors.accentLight,
+                colors.rating,
+                colors.success,
+                colors.danger,
+              ]}
+            />
+          )}
+
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
+            style={styles.card}
+          >
+            {/* Hero art — custom, per kind of moment */}
+            <Animated.View entering={ZoomIn.duration(280)} style={styles.hero}>
+              {badgeLook ? (
+                <BadgeArt
+                  emblem={badgeRow.badge.category}
+                  tier={badgeLook.tierIndex}
+                  metal={badgeLook.metal}
+                  size={HERO_SIZE - 16}
+                />
+              ) : (
+                <DialogArt
+                  kind={kind}
+                  color={theme.color}
+                  level={Number.isFinite(levelNumber) ? levelNumber : null}
+                  size={HERO_SIZE}
+                />
+              )}
+            </Animated.View>
+
+            <Text style={styles.title}>{title}</Text>
+            {movie && (
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {movie.title}
+              </Text>
+            )}
+
+            {/* XP as an admit-one ticket */}
+            {total > 0 && (
+              <View
+                style={[
+                  styles.xpTicket,
+                  { borderColor: withAlpha(theme.color, "88") },
+                ]}
+              >
+                <View style={[styles.xpNotch, styles.xpNotchLeft]} />
+                <View style={[styles.xpNotch, styles.xpNotchRight]} />
+                <Text style={[styles.xpValue, { color: theme.color }]}>
+                  +{countedTotal}
+                </Text>
+                <Text style={styles.xpUnit}>{t("XP")}</Text>
+              </View>
+            )}
+
+            {/* What it was for, as a box-office receipt */}
+            <View style={styles.receipt}>
+              {rows.map((row, index) => (
+                <View key={`${index}-${row.label}`} style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel} numberOfLines={1}>
+                    {row.label}
+                    {row.detail ? (
+                      <Text style={styles.receiptDetail}>
+                        {"  "}
+                        {row.detail}
+                      </Text>
+                    ) : null}
+                  </Text>
+                  <View style={styles.receiptLeader} />
+                  {row.xp != null ? (
+                    <Text style={styles.receiptXP}>+{row.xp}</Text>
+                  ) : (
+                    <StampCheck color={colors.success} />
+                  )}
+                </View>
+              ))}
+            </View>
+
+            {tierEntry && (
+              <View style={styles.tierBlock}>
+                <Text style={styles.tierPrompt}>{t("How was it?")}</Text>
+                <TierPicker
+                  tier={getTier(tierEntry)}
+                  onChange={handleTier}
+                  compact
+                />
+              </View>
+            )}
+
+            {/* Finishing a director / actor / franchise set makes sharing
+              the main action — that's the brag moment. */}
+            {shareCollectionId ? (
+              <PrimaryButton
+                label={t("Share it")}
+                onPress={handleShare}
+                style={styles.primaryButton}
+              />
+            ) : (
+              <PrimaryButton
+                label={t("View details")}
+                onPress={handleViewDetails}
+                style={styles.primaryButton}
+              />
+            )}
+            <PrimaryButton
+              label={t("Nice")}
+              variant="ghost"
+              dense
+              onPress={hideAchievement}
+            />
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -418,10 +426,10 @@ const createStyles = (colors) =>
       backgroundColor: colors.cardElevated,
     },
     xpNotchLeft: {
-      left: -8,
+      start: -8,
     },
     xpNotchRight: {
-      right: -8,
+      end: -8,
     },
     xpValue: {
       ...typography.display,
@@ -450,7 +458,7 @@ const createStyles = (colors) =>
       borderTopWidth: 1.5,
       borderBottomWidth: 1.5,
       borderStyle: "dashed",
-      borderColor: "rgba(255, 255, 255, 0.18)",
+      borderColor: colors.border,
     },
     receiptRow: {
       flexDirection: "row",
@@ -473,7 +481,7 @@ const createStyles = (colors) =>
       height: 1,
       borderBottomWidth: 1.5,
       borderStyle: "dotted",
-      borderColor: "rgba(255, 255, 255, 0.22)",
+      borderColor: colors.border,
     },
     receiptXP: {
       ...typography.bodyBold,

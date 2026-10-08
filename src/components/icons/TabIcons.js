@@ -8,12 +8,7 @@ const COMPASS_PATH =
 
 export const CompassIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d={COMPASS_PATH}
-      fill={color}
-    />
+    <Path fillRule="evenodd" clipRule="evenodd" d={COMPASS_PATH} fill={color} />
   </Svg>
 );
 
@@ -111,18 +106,31 @@ export const LibraryOutlineIcon = ({ size = 24, color = "#000000" }) => (
 // solid-glyph style as the rest: a fanned stack of cards.
 export const LayersIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect x="3" y="7" width="14" height="14" rx="3" fill={color} opacity={0.35} />
-    <Rect x="6" y="4" width="14" height="14" rx="3" fill={color} opacity={0.65} />
+    <Rect
+      x="3"
+      y="7"
+      width="14"
+      height="14"
+      rx="3"
+      fill={color}
+      opacity={0.35}
+    />
+    <Rect
+      x="6"
+      y="4"
+      width="14"
+      height="14"
+      rx="3"
+      fill={color}
+      opacity={0.65}
+    />
     <Rect x="9" y="1" width="14" height="14" rx="3" fill={color} />
   </Svg>
 );
 
 export const HomeIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M10 20V14H14V20H19V12H22L12 3L2 12H5V20H10Z"
-      fill={color}
-    />
+    <Path d="M10 20V14H14V20H19V12H22L12 3L2 12H5V20H10Z" fill={color} />
   </Svg>
 );
 
@@ -130,9 +138,25 @@ export const HomeIcon = ({ size = 24, color = "#000000" }) => (
 // logomark (zigzag stem + rounded bowl) instead of a plain letterform or a
 // house glyph. Solid-only (no outline twin): it's a single brand mark, not
 // a glyph meant to read differently active vs. inactive.
+// ReelBoard's logo: a film strip curled into a ring — frames around the
+// middle, sprocket holes along both edges. One colour: the frames and
+// holes are cut out (evenodd), so it works on any background. Same shape
+// as the app icon, in a square box cropped to the ring.
+const LOGO_FILM_RING =
+  "M92 50 A42 42 0 1 0 8 50 A42 42 0 1 0 92 50 Z M73 50 A23 23 0 1 0 27 50 A23 23 0 1 0 73 50 Z M51.02 13.51 A36.5 36.5 0 0 1 67.36 17.89 L63.56 24.93 A28.5 28.5 0 0 0 50.8 21.51 Z M69.13 18.91 A36.5 36.5 0 0 1 81.09 30.87 L74.27 35.07 A28.5 28.5 0 0 0 64.93 25.73 Z M82.11 32.64 A36.5 36.5 0 0 1 86.49 48.98 L78.49 49.2 A28.5 28.5 0 0 0 75.07 36.44 Z M86.49 51.02 A36.5 36.5 0 0 1 82.11 67.36 L75.07 63.56 A28.5 28.5 0 0 0 78.49 50.8 Z M81.09 69.13 A36.5 36.5 0 0 1 69.13 81.09 L64.93 74.27 A28.5 28.5 0 0 0 74.27 64.93 Z M67.36 82.11 A36.5 36.5 0 0 1 51.02 86.49 L50.8 78.49 A28.5 28.5 0 0 0 63.56 75.07 Z M48.98 86.49 A36.5 36.5 0 0 1 32.64 82.11 L36.44 75.07 A28.5 28.5 0 0 0 49.2 78.49 Z M30.87 81.09 A36.5 36.5 0 0 1 18.91 69.13 L25.73 64.93 A28.5 28.5 0 0 0 35.07 74.27 Z M17.89 67.36 A36.5 36.5 0 0 1 13.51 51.02 L21.51 50.8 A28.5 28.5 0 0 0 24.93 63.56 Z M13.51 48.98 A36.5 36.5 0 0 1 17.89 32.64 L24.93 36.44 A28.5 28.5 0 0 0 21.51 49.2 Z M18.91 30.87 A36.5 36.5 0 0 1 30.87 18.91 L35.07 25.73 A28.5 28.5 0 0 0 25.73 35.07 Z M32.64 17.89 A36.5 36.5 0 0 1 48.98 13.51 L49.2 21.51 A28.5 28.5 0 0 0 36.44 24.93 Z M48.44 9.43 A40.6 40.6 0 0 1 51.56 9.43 L51.47 11.63 A38.4 38.4 0 0 0 48.53 11.63 Z M56.39 9.91 A40.6 40.6 0 0 1 59.44 10.51 L58.93 12.65 A38.4 38.4 0 0 0 56.04 12.08 Z M64.09 11.92 A40.6 40.6 0 0 1 66.97 13.11 L66.05 15.11 A38.4 38.4 0 0 0 63.32 13.99 Z M71.24 15.4 A40.6 40.6 0 0 1 73.84 17.13 L72.54 18.91 A38.4 38.4 0 0 0 70.09 17.28 Z M77.59 20.21 A40.6 40.6 0 0 1 79.79 22.41 L78.18 23.91 A38.4 38.4 0 0 0 76.09 21.82 Z M82.87 26.16 A40.6 40.6 0 0 1 84.6 28.76 L82.72 29.91 A38.4 38.4 0 0 0 81.09 27.46 Z M86.89 33.03 A40.6 40.6 0 0 1 88.08 35.91 L86.01 36.68 A38.4 38.4 0 0 0 84.89 33.95 Z M89.49 40.56 A40.6 40.6 0 0 1 90.09 43.61 L87.92 43.96 A38.4 38.4 0 0 0 87.35 41.07 Z M90.57 48.44 A40.6 40.6 0 0 1 90.57 51.56 L88.37 51.47 A38.4 38.4 0 0 0 88.37 48.53 Z M90.09 56.39 A40.6 40.6 0 0 1 89.49 59.44 L87.35 58.93 A38.4 38.4 0 0 0 87.92 56.04 Z M88.08 64.09 A40.6 40.6 0 0 1 86.89 66.97 L84.89 66.05 A38.4 38.4 0 0 0 86.01 63.32 Z M84.6 71.24 A40.6 40.6 0 0 1 82.87 73.84 L81.09 72.54 A38.4 38.4 0 0 0 82.72 70.09 Z M79.79 77.59 A40.6 40.6 0 0 1 77.59 79.79 L76.09 78.18 A38.4 38.4 0 0 0 78.18 76.09 Z M73.84 82.87 A40.6 40.6 0 0 1 71.24 84.6 L70.09 82.72 A38.4 38.4 0 0 0 72.54 81.09 Z M66.97 86.89 A40.6 40.6 0 0 1 64.09 88.08 L63.32 86.01 A38.4 38.4 0 0 0 66.05 84.89 Z M59.44 89.49 A40.6 40.6 0 0 1 56.39 90.09 L56.04 87.92 A38.4 38.4 0 0 0 58.93 87.35 Z M51.56 90.57 A40.6 40.6 0 0 1 48.44 90.57 L48.53 88.37 A38.4 38.4 0 0 0 51.47 88.37 Z M43.61 90.09 A40.6 40.6 0 0 1 40.56 89.49 L41.07 87.35 A38.4 38.4 0 0 0 43.96 87.92 Z M35.91 88.08 A40.6 40.6 0 0 1 33.03 86.89 L33.95 84.89 A38.4 38.4 0 0 0 36.68 86.01 Z M28.76 84.6 A40.6 40.6 0 0 1 26.16 82.87 L27.46 81.09 A38.4 38.4 0 0 0 29.91 82.72 Z M22.41 79.79 A40.6 40.6 0 0 1 20.21 77.59 L21.82 76.09 A38.4 38.4 0 0 0 23.91 78.18 Z M17.13 73.84 A40.6 40.6 0 0 1 15.4 71.24 L17.28 70.09 A38.4 38.4 0 0 0 18.91 72.54 Z M13.11 66.97 A40.6 40.6 0 0 1 11.92 64.09 L13.99 63.32 A38.4 38.4 0 0 0 15.11 66.05 Z M10.51 59.44 A40.6 40.6 0 0 1 9.91 56.39 L12.08 56.04 A38.4 38.4 0 0 0 12.65 58.93 Z M9.43 51.56 A40.6 40.6 0 0 1 9.43 48.44 L11.63 48.53 A38.4 38.4 0 0 0 11.63 51.47 Z M9.91 43.61 A40.6 40.6 0 0 1 10.51 40.56 L12.65 41.07 A38.4 38.4 0 0 0 12.08 43.96 Z M11.92 35.91 A40.6 40.6 0 0 1 13.11 33.03 L15.11 33.95 A38.4 38.4 0 0 0 13.99 36.68 Z M15.4 28.76 A40.6 40.6 0 0 1 17.13 26.16 L18.91 27.46 A38.4 38.4 0 0 0 17.28 29.91 Z M20.21 22.41 A40.6 40.6 0 0 1 22.41 20.21 L23.91 21.82 A38.4 38.4 0 0 0 21.82 23.91 Z M26.16 17.13 A40.6 40.6 0 0 1 28.76 15.4 L29.91 17.28 A38.4 38.4 0 0 0 27.46 18.91 Z M33.03 13.11 A40.6 40.6 0 0 1 35.91 11.92 L36.68 13.99 A38.4 38.4 0 0 0 33.95 15.11 Z M40.56 10.51 A40.6 40.6 0 0 1 43.61 9.91 L43.96 12.08 A38.4 38.4 0 0 0 41.07 12.65 Z M48.52 23.44 A26.6 26.6 0 0 1 51.48 23.44 L51.36 25.64 A24.4 24.4 0 0 0 48.64 25.64 Z M56.79 24.28 A26.6 26.6 0 0 1 59.62 25.2 L58.82 27.25 A24.4 24.4 0 0 0 56.23 26.41 Z M64.41 27.64 A26.6 26.6 0 0 1 66.81 29.39 L65.42 31.09 A24.4 24.4 0 0 0 63.22 29.49 Z M70.61 33.19 A26.6 26.6 0 0 1 72.36 35.59 L70.51 36.78 A24.4 24.4 0 0 0 68.91 34.58 Z M74.8 40.38 A26.6 26.6 0 0 1 75.72 43.21 L73.59 43.77 A24.4 24.4 0 0 0 72.75 41.18 Z M76.56 48.52 A26.6 26.6 0 0 1 76.56 51.48 L74.36 51.36 A24.4 24.4 0 0 0 74.36 48.64 Z M75.72 56.79 A26.6 26.6 0 0 1 74.8 59.62 L72.75 58.82 A24.4 24.4 0 0 0 73.59 56.23 Z M72.36 64.41 A26.6 26.6 0 0 1 70.61 66.81 L68.91 65.42 A24.4 24.4 0 0 0 70.51 63.22 Z M66.81 70.61 A26.6 26.6 0 0 1 64.41 72.36 L63.22 70.51 A24.4 24.4 0 0 0 65.42 68.91 Z M59.62 74.8 A26.6 26.6 0 0 1 56.79 75.72 L56.23 73.59 A24.4 24.4 0 0 0 58.82 72.75 Z M51.48 76.56 A26.6 26.6 0 0 1 48.52 76.56 L48.64 74.36 A24.4 24.4 0 0 0 51.36 74.36 Z M43.21 75.72 A26.6 26.6 0 0 1 40.38 74.8 L41.18 72.75 A24.4 24.4 0 0 0 43.77 73.59 Z M35.59 72.36 A26.6 26.6 0 0 1 33.19 70.61 L34.58 68.91 A24.4 24.4 0 0 0 36.78 70.51 Z M29.39 66.81 A26.6 26.6 0 0 1 27.64 64.41 L29.49 63.22 A24.4 24.4 0 0 0 31.09 65.42 Z M25.2 59.62 A26.6 26.6 0 0 1 24.28 56.79 L26.41 56.23 A24.4 24.4 0 0 0 27.25 58.82 Z M23.44 51.48 A26.6 26.6 0 0 1 23.44 48.52 L25.64 48.64 A24.4 24.4 0 0 0 25.64 51.36 Z M24.28 43.21 A26.6 26.6 0 0 1 25.2 40.38 L27.25 41.18 A24.4 24.4 0 0 0 26.41 43.77 Z M27.64 35.59 A26.6 26.6 0 0 1 29.39 33.19 L31.09 34.58 A24.4 24.4 0 0 0 29.49 36.78 Z M33.19 29.39 A26.6 26.6 0 0 1 35.59 27.64 L36.78 29.49 A24.4 24.4 0 0 0 34.58 31.09 Z M40.38 25.2 A26.6 26.6 0 0 1 43.21 24.28 L43.77 26.41 A24.4 24.4 0 0 0 41.18 27.25 Z";
+
+export const ReelBoardIcon = ({ size = 24, color = "#000000" }) => (
+  <Svg width={size} height={size} viewBox="7 7 86 86" fill="none">
+    <Path fillRule="evenodd" fill={color} d={LOGO_FILM_RING} />
+  </Svg>
+);
+
 export const BoardBIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M14 3 L18 3 L11 13 L15 13 L8 21 L4 21 L11 11 L7 11 Z" fill={color} />
+    <Path
+      d="M14 3 L18 3 L11 13 L15 13 L8 21 L4 21 L11 11 L7 11 Z"
+      fill={color}
+    />
     <Path d="M12 9 H14.5 A5.5 5.5 0 0 1 14.5 20 H12 Z" fill={color} />
   </Svg>
 );
@@ -157,7 +181,12 @@ const SCREEN_PLAY_PATH =
 
 export const PlayScreenIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path fillRule="evenodd" clipRule="evenodd" d={SCREEN_PLAY_PATH} fill={color} />
+    <Path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d={SCREEN_PLAY_PATH}
+      fill={color}
+    />
     <Path d="M9 21H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
   </Svg>
 );
@@ -202,7 +231,14 @@ const PROFILE_BODY_PATH_SOLID = `${PROFILE_BODY_PATH} Z`;
 // the solid-fill "active" version below.
 export const CircleUserOutlineIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={1.5} fill="none" />
+    <Circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke={color}
+      strokeWidth={1.5}
+      fill="none"
+    />
     <Circle {...PROFILE_HEAD} stroke={color} strokeWidth={1.5} fill="none" />
     <Path d={PROFILE_BODY_PATH} stroke={color} strokeWidth={1.5} fill="none" />
   </Svg>
@@ -212,7 +248,14 @@ export const CircleUserOutlineIcon = ({ size = 24, color = "#000000" }) => (
 // shoulders solid-filled — the "active" treatment for the Profile tab.
 export const CircleUserFilledIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={1.5} fill="none" />
+    <Circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke={color}
+      strokeWidth={1.5}
+      fill="none"
+    />
     <Circle {...PROFILE_HEAD} fill={color} />
     <Path d={PROFILE_BODY_PATH_SOLID} fill={color} />
   </Svg>
@@ -226,6 +269,11 @@ export const SearchAltIcon = ({ size = 24, color = "#000000" }) => (
       d="M11 18C14.866 18 18 14.866 18 11C18 7.13401 14.866 4 11 4C7.13401 4 4 7.13401 4 11C4 14.866 7.13401 18 11 18ZM11 6C10.3434 6 9.69321 6.12933 9.08658 6.3806C8.47995 6.63188 7.92876 7.00017 7.46447 7.46447C7.00017 7.92876 6.63188 8.47996 6.3806 9.08658C6.12933 9.69321 6 10.3434 6 11C6 11.5523 6.44772 12 7 12C7.55228 12 8 11.5523 8 11C8 10.606 8.0776 10.2159 8.22836 9.85195C8.37913 9.48797 8.6001 9.15726 8.87868 8.87868C9.15726 8.6001 9.48797 8.37913 9.85195 8.22836C10.2159 8.0776 10.606 8 11 8C11.5523 8 12 7.55228 12 7C12 6.44772 11.5523 6 11 6Z"
       fill={color}
     />
-    <Path d="M20 20L18 18" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    <Path
+      d="M20 20L18 18"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
   </Svg>
 );

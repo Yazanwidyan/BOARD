@@ -2,7 +2,8 @@ import * as Haptics from "expo-haptics";
 import { Check, Plus, Search } from "lucide-react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -26,6 +27,7 @@ import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { isInBucketList } from "../utils/movieFilters";
+import { t } from "../i18n";
 
 // One row: title + "See all" (opens the full list in Browse), then posters
 // with the IMDb rating and a one-tap save-to-watchlist button.
@@ -44,7 +46,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
         </Text>
         {rail.movies.length > RAIL_PREVIEW && (
           <Pressable style={styles.allLink} onPress={openAll} hitSlop={8}>
-            <Text style={styles.allText}>See all</Text>
+            <Text style={styles.allText}>{t("See all")}</Text>
           </Pressable>
         )}
       </View>
@@ -73,7 +75,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
                   }}
                   hitSlop={8}
                   accessibilityLabel={
-                    saved ? "Remove from watchlist" : "Add to watchlist"
+                    saved ? t("Remove from watchlist") : t("Add to watchlist")
                   }
                 >
                   {saved ? (
@@ -83,11 +85,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
                       strokeWidth={3}
                     />
                   ) : (
-                    <Plus
-                      size={15}
-                      color={colors.accentContrast}
-                      strokeWidth={2.6}
-                    />
+                    <Plus size={15} color="#FFFFFF" strokeWidth={2.6} />
                   )}
                 </Pressable>
               </View>
@@ -164,7 +162,7 @@ export const DiscoverScreen = ({ navigation }) => {
             bottomInset={insets.bottom + TAB_BAR_CLEARANCE}
           />
         </View>
-        <DockHeader title="Discover" right={modeSwitch} />
+        <DockHeader title={t("Discover")} right={modeSwitch} />
       </SafeAreaView>
     );
   }
@@ -196,7 +194,7 @@ export const DiscoverScreen = ({ navigation }) => {
       <ScreenBottomFade />
       <DockHeader
         {...header.props}
-        title="Discover"
+        title={t("Discover")}
         right={
           <>
             {modeSwitch}
@@ -298,7 +296,7 @@ const createStyles = (colors) =>
     // Bottom-right of the poster: + to save, ✓ once it's on the watchlist.
     saveButton: {
       position: "absolute",
-      right: 6,
+      end: 6,
       bottom: 6,
       width: 34,
       height: 34,

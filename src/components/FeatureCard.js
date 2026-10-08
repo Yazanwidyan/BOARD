@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -50,7 +51,7 @@ const createStyles = (colors) =>
       width: 44,
       height: 44,
       borderRadius: radius.sm,
-      backgroundColor: "rgba(91, 141, 239, 0.16)",
+      backgroundColor: colors.surfaceSoft,
       alignItems: "center",
       justifyContent: "center",
     },

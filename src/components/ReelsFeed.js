@@ -8,10 +8,10 @@ import {
   Pressable,
   Share,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 import YoutubePlayer from "react-native-youtube-iframe";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
@@ -29,6 +29,7 @@ import {
 import { formatRuntime } from "../utils/movieFilters";
 import { getTastePicks } from "../utils/tasteEngine";
 import { getTier, getTierInfo } from "../utils/tiers";
+import { t } from "../i18n";
 
 const CLIPS_BY_MOVIE = new Map(REEL_CLIPS.map((clip) => [clip.movieId, clip]));
 const VIDEO_RATIO = 9 / 16;
@@ -263,7 +264,7 @@ const Reel = ({
 
   const handleSeen = () => {
     if (watchedEntry) {
-      showToast(`You've already seen ${movie.title}`);
+      showToast(t("You've already seen {title}", { title: movie.title }));
       return;
     }
     const { watched: watchedBefore, bucketList: bucketListBefore } =
@@ -331,7 +332,7 @@ const Reel = ({
         {failed && (
           <View style={[StyleSheet.absoluteFill, styles.unavailable]}>
             <Text style={styles.unavailableText}>
-              This clip can&apos;t play here
+              {t("This clip can't play here")}
             </Text>
             <Pressable
               style={styles.youtubeButton}
@@ -341,7 +342,9 @@ const Reel = ({
                 )
               }
             >
-              <Text style={styles.youtubeButtonText}>Watch on YouTube</Text>
+              <Text style={styles.youtubeButtonText}>
+                {t("Watch on YouTube")}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -358,20 +361,20 @@ const Reel = ({
           onPress={handleVideoTap}
           accessibilityLabel={
             !isPlaying
-              ? "Play clip"
+              ? t("Play clip")
               : muted
-                ? "Turn sound on"
-                : "Turn sound off"
+                ? t("Turn sound on")
+                : t("Turn sound off")
           }
         />
         <View style={styles.soundPill} pointerEvents="none">
           <SoundMark color="#FFFFFF" muted={muted} />
           <Text style={styles.soundText}>
             {!isPlaying
-              ? "Tap the video to play"
+              ? t("Tap the video to play")
               : muted
-                ? "Tap for sound"
-                : "Sound on"}
+                ? t("Tap for sound")
+                : t("Sound on")}
           </Text>
         </View>
       </View>
@@ -402,12 +405,14 @@ const Reel = ({
         <View style={styles.chips}>
           <View style={styles.chip}>
             <Text style={styles.chipStrong}>
-              IMDb {movie.rating.toFixed(1)}
+              {t("IMDb")} {movie.rating.toFixed(1)}
             </Text>
           </View>
           {details.rottenTomatoes != null && (
             <View style={styles.chip}>
-              <Text style={styles.chipText}>RT {details.rottenTomatoes}%</Text>
+              <Text style={styles.chipText}>
+                {t("RT")} {details.rottenTomatoes}%
+              </Text>
             </View>
           )}
           {tier ? (
@@ -418,12 +423,15 @@ const Reel = ({
               ]}
             >
               <Text style={[styles.chipStrong, styles.chipTierText]}>
-                Your tier {tier}
+                {t("Your tier")} {tier}
               </Text>
             </View>
           ) : match != null ? (
             <View style={[styles.chip, styles.chipMatch]}>
-              <Text style={styles.chipStrong}>{match}% your taste</Text>
+              <Text style={styles.chipStrong}>
+                {match}
+                {t("% your taste")}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -432,7 +440,7 @@ const Reel = ({
       {/* Action rail */}
       <View style={[styles.rail, { bottom: bottomInset + spacing.md }]}>
         <RailButton
-          label={isSaved ? "Saved" : "Save"}
+          label={isSaved ? t("Saved") : t("Save")}
           onPress={() => {
             Haptics.selectionAsync();
             toggleBucketListWithFeedback(movie.id);
@@ -442,7 +450,7 @@ const Reel = ({
           <SaveMark color="#FFFFFF" filled={isSaved} />
         </RailButton>
         <RailButton
-          label={watchedEntry ? "Seen" : "Seen it"}
+          label={watchedEntry ? t("Seen") : t("Seen it")}
           onPress={handleSeen}
           styles={styles}
         >
@@ -451,21 +459,33 @@ const Reel = ({
             filled={!!watchedEntry}
           />
         </RailButton>
-        <RailButton label="Details" onPress={openDetails} styles={styles}>
+        <RailButton label={t("Details")} onPress={openDetails} styles={styles}>
           <InfoMark color="#FFFFFF" />
         </RailButton>
         <RailButton
-          label="Share"
+          label={t("Share")}
           onPress={() =>
             Share.share({
-              message: `${movie.title} (${movie.year}) — IMDb ${movie.rating.toFixed(1)}. Found it on Reelboard. https://youtu.be/${clip.youtubeId}`,
+              message: t(
+                "{title} ({year}) — IMDb {value}. Found it on ReelBoard. https://youtu.be/{youtubeId}",
+                {
+                  title: movie.title,
+                  year: movie.year,
+                  value: movie.rating.toFixed(1),
+                  youtubeId: clip.youtubeId,
+                },
+              ),
             })
           }
           styles={styles}
         >
           <ShareMark color="#FFFFFF" />
         </RailButton>
-        <RailButton label="Not for me" onPress={onNotForMe} styles={styles}>
+        <RailButton
+          label={t("Not for me")}
+          onPress={onNotForMe}
+          styles={styles}
+        >
           <NotForMeMark color="#FFFFFF" />
         </RailButton>
       </View>
@@ -519,7 +539,7 @@ export const ReelsFeed = ({
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 }).current;
 
   const handleNotForMe = useCallback((movieId) => {
-    showToast("Got it — fewer like that", { tone: "success" });
+    showToast(t("Got it — fewer like that"), { tone: "success" });
     setFeed((current) => current.filter((item) => item.movie.id !== movieId));
   }, []);
 
@@ -566,7 +586,7 @@ export const ReelsFeed = ({
           ListEmptyComponent={
             <View style={[styles.empty, { height, width }]}>
               <Text style={styles.emptyText}>
-                You&apos;ve been through every reel. More coming soon.
+                {t("You've been through every reel. More coming soon.")}
               </Text>
             </View>
           }
@@ -587,8 +607,8 @@ const createStyles = (colors) =>
     },
     videoBox: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       top: "30%",
       backgroundColor: "#000000",
       overflow: "hidden",
@@ -618,7 +638,7 @@ const createStyles = (colors) =>
     },
     soundPill: {
       position: "absolute",
-      right: spacing.sm,
+      end: spacing.sm,
       top: spacing.sm,
       flexDirection: "row",
       alignItems: "center",
@@ -634,15 +654,15 @@ const createStyles = (colors) =>
     },
     bottomFade: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       bottom: 0,
       height: "45%",
     },
     info: {
       position: "absolute",
-      left: spacing.md,
-      right: 84,
+      start: spacing.md,
+      end: 84,
     },
     reason: {
       ...typography.caption,
@@ -689,7 +709,7 @@ const createStyles = (colors) =>
     },
     rail: {
       position: "absolute",
-      right: spacing.sm,
+      end: spacing.sm,
       alignItems: "center",
       gap: spacing.md,
       width: 68,

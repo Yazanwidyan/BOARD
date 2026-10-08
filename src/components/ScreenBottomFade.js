@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const FADE_HEIGHT = 90;
 const FADE_OPACITY = 0.12;
@@ -8,18 +8,18 @@ const FADE_OPACITY = 0.12;
 // under the floating tab bar so content doesn't just end abruptly. Kept
 // short and low-opacity on purpose — barely noticeable, not a visible band.
 export const ScreenBottomFade = () => (
-    <LinearGradient
-      pointerEvents="none"
-      colors={['transparent', `rgba(0, 0, 0, ${FADE_OPACITY})`]}
-      style={styles.fade}
-    />
+  <LinearGradient
+    pointerEvents="none"
+    colors={["transparent", `rgba(0, 0, 0, ${FADE_OPACITY})`]}
+    style={styles.fade}
+  />
 );
 
 const styles = StyleSheet.create({
   fade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    position: "absolute",
+    start: 0,
+    end: 0,
     bottom: 0,
     height: FADE_HEIGHT,
   },

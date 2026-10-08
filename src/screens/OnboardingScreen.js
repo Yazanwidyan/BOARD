@@ -6,11 +6,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "../components/AppText";
 import Animated, {
   Easing,
   FadeIn,
@@ -24,7 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Confetti } from "../components/AchievementModal";
 import { BackButton } from "../components/BackButton";
-import { BoardBIcon } from "../components/icons/TabIcons";
+import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MOVIES } from "../data/movies";
@@ -40,6 +40,7 @@ import {
   getCollectionsForMovie,
 } from "../utils/collections";
 import { getUserXP } from "../utils/xp";
+import { t } from "../i18n";
 
 // "Play, don't tell": instead of slides explaining XP and collections,
 // onboarding runs the app's core loop once — mark what you've seen, earn
@@ -175,11 +176,12 @@ const WelcomeStep = ({ colors, styles }) => {
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.welcomeText}>
-        <BoardBIcon size={56} color={colors.textPrimary} />
-        <Text style={styles.welcomeTitle}>Bored? Let&apos;s fix that.</Text>
+        <ReelBoardIcon size={56} color={colors.textPrimary} />
+        <Text style={styles.welcomeTitle}>{t("Bored? Let's fix that.")}</Text>
         <Text style={styles.subtitle}>
-          Mark what you&apos;ve seen, earn XP, and let Reelboard pick
-          what&apos;s next. Takes a minute.
+          {t(
+            "Mark what you've seen, earn XP, and let ReelBoard pick what's next. Takes a minute.",
+          )}
         </Text>
       </View>
     </View>
@@ -188,15 +190,15 @@ const WelcomeStep = ({ colors, styles }) => {
 
 const NameStep = ({ name, onChangeName, onSubmit, colors, styles }) => (
   <View style={styles.step}>
-    <Text style={styles.title}>What should we call you?</Text>
+    <Text style={styles.title}>{t("What should we call you?")}</Text>
     <Text style={styles.subtitle}>
-      It&apos;s how Reelboard greets you, and it builds your handle.
+      {t("It's how ReelBoard greets you, and it builds your handle.")}
     </Text>
     <TextInput
       value={name}
       onChangeText={onChangeName}
       onSubmitEditing={onSubmit}
-      placeholder="Your name"
+      placeholder={t("Your name")}
       placeholderTextColor={colors.textMuted}
       style={styles.nameInput}
       autoFocus
@@ -221,9 +223,9 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
 
   return (
     <View style={styles.step}>
-      <Text style={styles.title}>What have you seen?</Text>
+      <Text style={styles.title}>{t("What have you seen?")}</Text>
       <Text style={styles.subtitle}>
-        Tap once for seen, twice to save it for later.
+        {t("Tap once for seen, twice to save it for later.")}
       </Text>
       <Text style={styles.tasteCounter}>
         <Text style={{ color: colors.success }}>{seenCount} seen</Text>
@@ -277,21 +279,25 @@ const TasteStep = ({ movies, marks, onTap, styles, colors }) => {
 
 const RewardStep = ({ summary, colors, styles }) => (
   <View style={[styles.step, styles.centered]}>
-    <Text style={[styles.title, styles.rewardTitle]}>Nice taste.</Text>
-    {summary.xp > 0 && <Text style={styles.rewardXP}>+{summary.xp} XP</Text>}
+    <Text style={[styles.title, styles.rewardTitle]}>{t("Nice taste.")}</Text>
+    {summary.xp > 0 && (
+      <Text style={styles.rewardXP}>
+        +{summary.xp} {t("XP")}
+      </Text>
+    )}
     <View style={styles.rewardRows}>
       {summary.seenCount > 0 && (
         <View style={styles.rewardRow}>
           <Text style={styles.rewardLabel}>
             {summary.seenCount} movie{summary.seenCount === 1 ? "" : "s"}{" "}
-            watched, incl. new genres & decades
+            {t("watched, incl. new genres & decades")}
           </Text>
           <Text style={styles.rewardValue}>+{summary.xp}</Text>
         </View>
       )}
       {summary.wantCount > 0 && (
         <View style={styles.rewardRow}>
-          <Text style={styles.rewardLabel}>Saved to your watchlist</Text>
+          <Text style={styles.rewardLabel}>{t("Saved to your watchlist")}</Text>
           <Text style={styles.rewardMuted}>{summary.wantCount}</Text>
         </View>
       )}
@@ -307,8 +313,9 @@ const RewardStep = ({ summary, colors, styles }) => (
       ))}
     </View>
     <Text style={styles.rewardHint}>
-      Every movie you watch earns XP. Finish collections and challenges for big
-      boosts.
+      {t(
+        "Every movie you watch earns XP. Finish collections and challenges for big boosts.",
+      )}
     </Text>
   </View>
 );
@@ -321,9 +328,9 @@ const PickStep = ({ movies, selectedId, onSelect, styles, colors }) => {
 
   return (
     <View style={styles.step}>
-      <Text style={styles.title}>Pick one for tonight.</Text>
+      <Text style={styles.title}>{t("Pick one for tonight.")}</Text>
       <Text style={styles.subtitle}>
-        Based on what you just told us. It&apos;ll be waiting on Home.
+        {t("Based on what you just told us. It'll be waiting on Home.")}
       </Text>
       <View style={styles.pickRow}>
         {movies.map((movie) => {
@@ -532,7 +539,7 @@ export const OnboardingScreen = () => {
             <View style={[styles.topBarSlot, styles.topBarSlotRight]}>
               {step !== STEP.pick && (
                 <Pressable onPress={finish} hitSlop={8}>
-                  <Text style={styles.skipText}>Skip</Text>
+                  <Text style={styles.skipText}>{t("Skip")}</Text>
                 </Pressable>
               )}
             </View>

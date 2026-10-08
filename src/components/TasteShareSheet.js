@@ -2,7 +2,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { Share2 } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Share, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
 import { radius, spacing } from "../theme/spacing";
@@ -13,6 +14,7 @@ import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
 import { WatcherCard } from "./WatcherCard";
+import { t } from "../i18n";
 
 const CARD_WIDTH = 340;
 const FAVORITE_POSTERS = 5;
@@ -23,8 +25,13 @@ const BACKDROP_HEIGHT = 260;
 const insightText = (insight) => {
   if (!insight) return null;
   return insight.mostWatched === insight.mostLoved
-    ? `${insight.mostWatched} is what I watch most — and what I tier highest.`
-    : `I watch ${insight.mostWatched} most, but ${insight.mostLoved} gets my best tiers.`;
+    ? t("{genre} is what I watch most — and what I tier highest.", {
+        genre: t(insight.mostWatched),
+      })
+    : t("I watch {watched} most, but {loved} gets my best tiers.", {
+        watched: t(insight.mostWatched),
+        loved: t(insight.mostLoved),
+      });
 };
 
 // The shareable taste image: the Watcher card on top (level, badges,
@@ -60,7 +67,7 @@ export const TasteShareSheet = ({
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: "image/png",
-          dialogTitle: "My Reelboard taste card",
+          dialogTitle: "My ReelBoard taste card",
           UTI: "public.png",
         });
       } else {
@@ -79,12 +86,12 @@ export const TasteShareSheet = ({
       visible={visible}
       onClose={onClose}
       size="full"
-      title="Share your taste card"
-      subtitle="This is the image that gets shared"
+      title={t("Share your taste card")}
+      subtitle={t("This is the image that gets shared")}
       footer={
         <PrimaryButton
-          label={isSharing ? "Preparing…" : "Share image"}
-          icon={<Share2 size={16} color="#FFFFFF" />}
+          label={isSharing ? t("Preparing…") : t("Share image")}
+          icon={<Share2 size={16} color={colors.accentContrast} />}
           disabled={isSharing}
           onPress={shareImage}
         />
@@ -127,7 +134,7 @@ export const TasteShareSheet = ({
 
           {(insight || taste.genreTiers.length > 0 || favorites.length > 0) && (
             <View style={styles.tastePanel}>
-              <Text style={styles.sectionLabel}>Taste</Text>
+              <Text style={styles.sectionLabel}>{t("Taste")}</Text>
               {insight && <Text style={styles.insight}>{insight}</Text>}
               {taste.genreTiers.length > 0 && (
                 <View style={styles.genreRow}>
@@ -151,7 +158,7 @@ export const TasteShareSheet = ({
               {favorites.length > 0 && (
                 <>
                   <Text style={[styles.sectionLabel, styles.favoritesLabel]}>
-                    FAVORITES
+                    {t("FAVORITES")}
                   </Text>
                   <View style={styles.posterRow}>
                     {favorites.map(({ movie }) => (
@@ -171,7 +178,7 @@ export const TasteShareSheet = ({
             </View>
           )}
 
-          <Text style={styles.brand}>on Reelboard</Text>
+          <Text style={styles.brand}>{t("on ReelBoard")}</Text>
         </View>
       </ScrollView>
     </BottomSheet>
@@ -193,8 +200,8 @@ const createStyles = (colors) =>
     backdrop: {
       position: "absolute",
       top: 0,
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       height: BACKDROP_HEIGHT,
       flexDirection: "row",
       overflow: "hidden",

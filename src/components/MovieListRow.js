@@ -1,11 +1,13 @@
 import { Bookmark, BookmarkCheck } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 import { MoviePoster } from "./MoviePoster";
+import { t } from "../i18n";
 
 // Shared list-row (poster + title/meta/rating + a "+ Watchlist" pill) used
 // anywhere movies are browsed as a vertical list — Explore's list sub-tabs
@@ -46,7 +48,7 @@ export const MovieListRow = ({
             <Bookmark size={14} color={colors.textPrimary} />
           )}
           <Text style={styles.queueButtonText}>
-            {inQueue ? "Watchlisted" : "Watchlist"}
+            {inQueue ? t("Watchlisted") : t("Watchlist")}
           </Text>
         </Pressable>
       )}
@@ -72,7 +74,7 @@ const createStyles = (colors) =>
     },
     info: {
       flex: 1,
-      marginLeft: spacing.md,
+      marginStart: spacing.md,
       gap: 4,
     },
     title: {
@@ -91,7 +93,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 6,
       borderRadius: radius.sm,
-      marginLeft: spacing.sm,
+      marginStart: spacing.sm,
     },
     queueButtonActive: {
       backgroundColor: colors.surfaceSoft,

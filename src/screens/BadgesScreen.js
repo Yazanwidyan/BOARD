@@ -1,6 +1,7 @@
 import { Check, Sparkles } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -29,6 +30,7 @@ import {
   getCompletedCollectionsCount,
 } from "../utils/collections";
 import { getCompletedChallengesCount } from "../utils/xp";
+import { t } from "../i18n";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -114,7 +116,9 @@ export const BadgesScreen = ({ navigation }) => {
   const describe = (badge) => {
     if (badge.category === "marquee") {
       const collection = getCollectionById(badge.collectionId);
-      return `Watch every movie in ${collection?.title ?? "this collection"}`;
+      return t("Watch every movie in {title}", {
+        title: collection?.title ?? t("this collection"),
+      });
     }
     const category = CATEGORY_BY_KEY[badge.category];
     return `${category.verb} ${badge.threshold.toLocaleString()} ${category.unit}`;
@@ -137,7 +141,7 @@ export const BadgesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <StackHeader title="Badges" onBack={() => navigation.goBack()} />
+      <StackHeader title={t("Badges")} onBack={() => navigation.goBack()} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -169,7 +173,7 @@ export const BadgesScreen = ({ navigation }) => {
                 )
               }
             >
-              <Text style={styles.nextUpEyebrow}>Next up</Text>
+              <Text style={styles.nextUpEyebrow}>{t("Next up")}</Text>
               <Text style={styles.nextUpTitle} numberOfLines={1}>
                 {nextUp.label}
               </Text>
@@ -185,13 +189,13 @@ export const BadgesScreen = ({ navigation }) => {
               </View>
               <Text style={styles.nextUpMeta} numberOfLines={1}>
                 {(nextUp.threshold - nextUp.progress).toLocaleString()} more
-                {nextUpCategory ? ` ${nextUpCategory.unit}` : " to go"}
+                {nextUpCategory ? ` ${nextUpCategory.unit}` : t(" to go")}
               </Text>
             </Pressable>
           ) : (
             <View style={styles.nextUp}>
-              <Text style={styles.nextUpTitle}>Every badge earned.</Text>
-              <Text style={styles.nextUpMeta}>Legend behaviour.</Text>
+              <Text style={styles.nextUpTitle}>{t("Every badge earned.")}</Text>
+              <Text style={styles.nextUpMeta}>{t("Legend behaviour.")}</Text>
             </View>
           )}
         </View>
@@ -278,7 +282,7 @@ export const BadgesScreen = ({ navigation }) => {
           <View style={styles.track}>
             <View style={styles.trackHeader}>
               <Sparkles size={16} color={colors.rating} />
-              <Text style={styles.trackTitle}>Marquee</Text>
+              <Text style={styles.trackTitle}>{t("Marquee")}</Text>
               <Text style={styles.trackCount}>
                 {marquee.filter((badge) => badge.earned).length} /{" "}
                 {marquee.length}
@@ -311,7 +315,7 @@ export const BadgesScreen = ({ navigation }) => {
                           style={[
                             styles.marqueePoster,
                             {
-                              left: index * 22,
+                              start: index * 22,
                               zIndex: 3 - index,
                               transform: [{ rotate: `${(index - 1) * 6}deg` }],
                             },
@@ -330,7 +334,9 @@ export const BadgesScreen = ({ navigation }) => {
                           color={colors.rating}
                           strokeWidth={3}
                         />
-                        <Text style={styles.marqueeEarnedText}>Earned</Text>
+                        <Text style={styles.marqueeEarnedText}>
+                          {t("Earned")}
+                        </Text>
                       </View>
                     ) : (
                       <>
@@ -396,14 +402,14 @@ export const BadgesScreen = ({ navigation }) => {
                 / {selected.badge.threshold.toLocaleString()}
               </Text>
               {selected.badge.earned && (
-                <Text style={styles.earnedText}>Earned</Text>
+                <Text style={styles.earnedText}>{t("Earned")}</Text>
               )}
             </View>
             {!selected.badge.earned && (
               <PrimaryButton
                 label={
                   selected.badge.category === "marquee"
-                    ? "Open collection"
+                    ? t("Open collection")
                     : selectedCategory.cta.label
                 }
                 onPress={() => goToEarn(selected.badge)}
@@ -536,7 +542,7 @@ const createStyles = (colors) =>
     connector: {
       position: "absolute",
       top: MEDAL_SIZE / 2 - 1,
-      right: NODE_WIDTH / 2 + MEDAL_SIZE / 2,
+      end: NODE_WIDTH / 2 + MEDAL_SIZE / 2,
       width: NODE_WIDTH - MEDAL_SIZE,
       height: 2,
       backgroundColor: colors.border,

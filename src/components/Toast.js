@@ -1,5 +1,6 @@
 import { CheckCircle, Info } from "lucide-react-native";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text } from "./AppText";
 import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -47,8 +48,8 @@ const createStyles = (colors) =>
   StyleSheet.create({
     wrap: {
       position: "absolute",
-      left: spacing.md,
-      right: spacing.md,
+      start: spacing.md,
+      end: spacing.md,
       alignItems: "center",
       zIndex: 1000,
       elevation: 1000,
@@ -63,7 +64,7 @@ const createStyles = (colors) =>
       borderRadius: radius.pill,
       backgroundColor: colors.cardElevatedLight,
       borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.1)",
+      borderColor: colors.border,
       shadowColor: "#000000",
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.3,

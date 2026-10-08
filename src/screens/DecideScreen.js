@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -18,6 +19,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MOODS, pickMovieForMood } from "../utils/moods";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
+import { t } from "../i18n";
 
 const MONTHS = [
   "Jan",
@@ -64,7 +66,7 @@ const HistoryRow = ({ entry, isLast, styles }) => {
           isCompleted ? styles.statusTextDone : styles.statusTextSkipped,
         ]}
       >
-        {isCompleted ? "Done" : "Skipped"}
+        {isCompleted ? t("Done") : t("Skipped")}
       </Text>
     </View>
   );
@@ -94,7 +96,7 @@ export const DecideScreen = ({ navigation }) => {
     const movie = pickMovieForMood(mood.key);
     if (!movie) return;
     useMovieStore.getState().setMoodPick(movie.id, mood.key);
-    showToast(`${movie.title} is tonight's pick`, {
+    showToast(t("{title} is tonight's pick", { title: movie.title }), {
       tone: "success",
     });
   };
@@ -114,7 +116,7 @@ export const DecideScreen = ({ navigation }) => {
         }}
       >
         <View style={[styles.section, styles.firstSection]}>
-          <SectionLabel label="Quick pick" styles={styles} />
+          <SectionLabel label={t("Quick pick")} styles={styles} />
           <QuickPickBento
             onAI={() => navigation.navigate("AiPick")}
             onSwipe={() => navigation.navigate("Swipe")}
@@ -123,7 +125,7 @@ export const DecideScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.section}>
-          <SectionLabel label="Active challenge" styles={styles} />
+          <SectionLabel label={t("Active challenge")} styles={styles} />
           {activeChallenge ? (
             <ChallengeCard
               challenge={activeChallenge}
@@ -142,7 +144,7 @@ export const DecideScreen = ({ navigation }) => {
 
         {history.length > 0 && (
           <View style={styles.section}>
-            <SectionLabel label="History" styles={styles} />
+            <SectionLabel label={t("History")} styles={styles} />
             <View style={styles.historyList}>
               {history.map((entry, index) => (
                 <HistoryRow

@@ -4,11 +4,11 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "./AppText";
 
 import { getMovieById } from "../data/movies";
 import { TOP_TEN_SIZE, useProfileStore } from "../store/profileStore";
@@ -19,6 +19,7 @@ import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
+import { t } from "../i18n";
 
 const COLUMNS = 3;
 
@@ -50,7 +51,7 @@ export const TopTenPicker = ({ visible, onClose, watched }) => {
   const toggle = (movie) => {
     const isPicked = topTen.includes(movie.id);
     if (!isPicked && topTen.length >= TOP_TEN_SIZE) {
-      showToast("Your top ten is full — take one out first");
+      showToast(t("Your top ten is full — take one out first"));
       return;
     }
     toggleTopTen(movie.id);
@@ -60,16 +61,19 @@ export const TopTenPicker = ({ visible, onClose, watched }) => {
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Your top ten"
-      subtitle={`${topTen.length} of ${TOP_TEN_SIZE} picked · tap to add or remove`}
-      footer={<PrimaryButton label="Done" onPress={onClose} />}
+      title={t("Your top ten")}
+      subtitle={t(
+        "{topTenCount} of {TOP_TEN_SIZE} picked · tap to add or remove",
+        { topTenCount: topTen.length, TOP_TEN_SIZE: TOP_TEN_SIZE },
+      )}
+      footer={<PrimaryButton label={t("Done")} onPress={onClose} />}
     >
       <View style={styles.search}>
         <Search size={16} color={colors.textMuted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search your watched movies"
+          placeholder={t("Search your watched movies")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           returnKeyType="search"
@@ -92,8 +96,8 @@ export const TopTenPicker = ({ visible, onClose, watched }) => {
         ListEmptyComponent={
           <Text style={styles.empty}>
             {watched.length === 0
-              ? "Mark movies as watched to pick your top ten."
-              : "No watched movie matches that."}
+              ? t("Mark movies as watched to pick your top ten.")
+              : t("No watched movie matches that.")}
           </Text>
         }
         renderItem={({ item: movie }) => {
@@ -105,8 +109,11 @@ export const TopTenPicker = ({ visible, onClose, watched }) => {
               onPress={() => toggle(movie)}
               accessibilityLabel={
                 isPicked
-                  ? `${movie.title}, number ${rank}. Tap to remove`
-                  : `Add ${movie.title} to your top ten`
+                  ? t("{title}, number {rank}. Tap to remove", {
+                      title: movie.title,
+                      rank: rank,
+                    })
+                  : t("Add {title} to your top ten", { title: movie.title })
               }
             >
               <View>
@@ -175,7 +182,7 @@ const createStyles = (colors) =>
     rankBadge: {
       position: "absolute",
       top: 6,
-      left: 6,
+      start: 6,
       minWidth: 26,
       height: 26,
       paddingHorizontal: 6,

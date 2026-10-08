@@ -15,11 +15,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
@@ -56,6 +56,7 @@ import {
 import { matchesGenres } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
 import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
+import { t } from "../i18n";
 
 const PICK_MAX = 10;
 const PICK_MIN = 2;
@@ -102,7 +103,7 @@ const groupByMonth = (items) => {
         key,
         label: date
           ? `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
-          : "Earlier",
+          : t("Earlier"),
         items: [],
       };
       groups.push(group);
@@ -127,7 +128,7 @@ const groupByTier = (items) => {
       const info = getTierInfo(key);
       group = {
         key,
-        label: info ? `${info.key} · ${info.meaning}` : "Not tiered yet",
+        label: info ? `${info.key} · ${info.meaning}` : t("Not tiered yet"),
         color: info?.color,
         items: [],
       };
@@ -323,14 +324,14 @@ export const LibraryScreen = ({ navigation, route }) => {
       Icon: Bookmark,
       label: "Watchlist",
       count: bucketListMovies.length,
-      subtitle: `${bucketListMovies.length} saved`,
+      subtitle: t("{count} saved", { count: bucketListMovies.length }),
     },
     {
       key: "collections",
       Icon: Layers,
       label: "Collections",
       count: unlockedCount,
-      subtitle: `${unlockedCount} tracked`,
+      subtitle: t("{count} tracked", { count: unlockedCount }),
     },
     {
       key: "watched",
@@ -398,16 +399,16 @@ export const LibraryScreen = ({ navigation, route }) => {
                 art={query || hasActiveFilter ? "noMatches" : "emptyShelf"}
                 title={
                   query || hasActiveFilter
-                    ? "No matches"
-                    : "Your watchlist is empty"
+                    ? t("No matches")
+                    : t("Your watchlist is empty")
                 }
                 subtitle={
                   query || hasActiveFilter
-                    ? "Nothing on your watchlist matches that."
-                    : "Save movies you want to see and they'll show up here."
+                    ? t("Nothing on your watchlist matches that.")
+                    : t("Save movies you want to see and they'll show up here.")
                 }
                 actionLabel={
-                  query || hasActiveFilter ? undefined : "Browse movies"
+                  query || hasActiveFilter ? undefined : t("Browse movies")
                 }
                 onAction={
                   query || hasActiveFilter
@@ -435,22 +436,22 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }
                 title={
                   untieredOnly && !query && !hasActiveFilter
-                    ? "Everything's tiered"
+                    ? t("Everything's tiered")
                     : query || hasActiveFilter
-                      ? "No matches"
-                      : "Nothing watched yet"
+                      ? t("No matches")
+                      : t("Nothing watched yet")
                 }
                 subtitle={
                   untieredOnly && !query && !hasActiveFilter
-                    ? "Your whole collection is ranked."
+                    ? t("Your whole collection is ranked.")
                     : query || hasActiveFilter
-                      ? "Nothing you've watched matches that."
-                      : "Mark a movie as watched and it shows up here."
+                      ? t("Nothing you've watched matches that.")
+                      : t("Mark a movie as watched and it shows up here.")
                 }
                 actionLabel={
                   untieredOnly || query || hasActiveFilter
                     ? undefined
-                    : "Find something to watch"
+                    : t("Find something to watch")
                 }
                 onAction={
                   untieredOnly || query || hasActiveFilter
@@ -493,8 +494,8 @@ export const LibraryScreen = ({ navigation, route }) => {
                 onChangeText={setQuery}
                 placeholder={
                   tab === "bucketlist"
-                    ? "Search your watchlist"
-                    : "Search what you've watched"
+                    ? t("Search your watchlist")
+                    : t("Search what you've watched")
                 }
                 placeholderTextColor={colors.textMuted}
                 style={styles.searchInput}
@@ -508,7 +509,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                   setIsSearchOpen(false);
                 }}
                 hitSlop={8}
-                accessibilityLabel="Close search"
+                accessibilityLabel={t("Close search")}
               >
                 <X size={16} color={colors.textMuted} />
               </Pressable>
@@ -565,7 +566,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                   ]}
                 >
                   {selectedGenres.length === 0
-                    ? "All genres"
+                    ? t("All genres")
                     : selectedGenres.length === 1
                       ? selectedGenres[0]
                       : `${selectedGenres[0]} +${selectedGenres.length - 1}`}
@@ -579,7 +580,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               </Pressable>
               {tab === "bucketlist" && canPick && (
                 <Pressable style={styles.toolChip} onPress={handlePickFromList}>
-                  <Text style={styles.toolChipText}>Pick for me</Text>
+                  <Text style={styles.toolChipText}>{t("Pick for me")}</Text>
                 </Pressable>
               )}
               {tab === "watched" && (untieredCount > 0 || untieredOnly) && (
@@ -707,12 +708,12 @@ export const LibraryScreen = ({ navigation, route }) => {
         visible={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         size="auto"
-        title="Filter by Genre"
-        subtitle="Show only movies in any of these genres"
+        title={t("Filter by Genre")}
+        subtitle={t("Show only movies in any of these genres")}
         footer={
           <View style={styles.sheetFooter}>
             <PrimaryButton
-              label="Clear"
+              label={t("Clear")}
               variant="secondary"
               disabled={!hasActiveFilter}
               onPress={() => setSelectedGenres([])}
@@ -722,8 +723,10 @@ export const LibraryScreen = ({ navigation, route }) => {
             <PrimaryButton
               label={
                 hasActiveFilter
-                  ? `Show results · ${selectedGenres.length}`
-                  : "Done"
+                  ? t("Show results · {selectedGenresCount}", {
+                      selectedGenresCount: selectedGenres.length,
+                    })
+                  : t("Done")
               }
               onPress={() => setIsFilterOpen(false)}
               style={styles.sheetFooterPrimary}
@@ -789,8 +792,8 @@ export const LibraryScreen = ({ navigation, route }) => {
       <BottomSheet
         visible={isAllCollectionsOpen}
         onClose={() => setIsAllCollectionsOpen(false)}
-        title="All Collections"
-        subtitle="Tap one to start or stop tracking it"
+        title={t("All Collections")}
+        subtitle={t("Tap one to start or stop tracking it")}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -845,8 +848,8 @@ const createStyles = (colors) =>
     // one hairline under it.
     toolBar: {
       position: "absolute",
-      left: 0,
-      right: 0,
+      start: 0,
+      end: 0,
       zIndex: 99,
       elevation: 16,
       paddingHorizontal: spacing.md,
@@ -865,7 +868,7 @@ const createStyles = (colors) =>
     sectionMenuCount: {
       ...typography.caption,
       color: colors.textMuted,
-      marginRight: spacing.xs,
+      marginEnd: spacing.xs,
     },
     toolRow: {
       flexGrow: 0,

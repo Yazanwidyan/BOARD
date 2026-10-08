@@ -1,4 +1,10 @@
-export const colors = {
+// Two neutral, Instagram-style palettes. Main actions use `accent` (white in
+// dark mode, near-black in light mode) with `accentContrast` text; there's
+// no coloured brand accent. `isDark` lets the few theme-specific bits (status
+// bar, blur tint, glass tab bar) pick their side.
+export const darkColors = {
+  isDark: true,
+
   background: "#161719",
 
   card: "#202124",
@@ -13,10 +19,10 @@ export const colors = {
 
   textMuted: "#92949A",
 
-  accent: "#5B8DEF",
-  accentLight: "#A9C4FF",
+  accent: "#FFFFFF",
+  accentLight: "#C8C9CC",
 
-  accentContrast: "#FFFFFF",
+  accentContrast: "#161719",
 
   success: "#8BD39A",
 
@@ -34,5 +40,48 @@ export const colors = {
 
   surfaceSoft: "rgba(255, 255, 255, 0.08)",
 };
+
+export const lightColors = {
+  isDark: false,
+
+  background: "#FFFFFF",
+
+  card: "#F2F2F3",
+
+  // Sheets and popovers: white, lifted by their border.
+  cardElevated: "#FFFFFF",
+
+  cardElevatedLight: "#E6E7E9",
+
+  textPrimary: "#111214",
+
+  textSecondary: "#4A4C52",
+
+  textMuted: "#8A8C92",
+
+  accent: "#111214",
+  accentLight: "#4A4C52",
+
+  accentContrast: "#FFFFFF",
+
+  success: "#2E9E57",
+
+  rating: "#D49A0E",
+
+  danger: "#E0414F",
+
+  border: "#DCDDE0",
+
+  selected: "#111214",
+
+  selectedText: "#FFFFFF",
+
+  successSoft: "rgba(46, 158, 87, 0.12)",
+
+  surfaceSoft: "rgba(0, 0, 0, 0.05)",
+};
+
+// Static default for code that can't call `useColors()`.
+export const colors = darkColors;
 
 export default colors;

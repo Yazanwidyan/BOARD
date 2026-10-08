@@ -1,19 +1,19 @@
 export const DECADE_RANGES = {
   Any: null,
-  '2020s': [2020, 2029],
-  '2010s': [2010, 2019],
-  '2000s': [2000, 2009],
-  '1990s': [1990, 1999],
-  '1980s': [1980, 1989],
-  '1970s': [1970, 1979],
+  "2020s": [2020, 2029],
+  "2010s": [2010, 2019],
+  "2000s": [2000, 2009],
+  "1990s": [1990, 1999],
+  "1980s": [1980, 1989],
+  "1970s": [1970, 1979],
   Older: [0, 1969],
 };
 
 export const RUNTIME_RANGES = {
   Any: null,
-  'Under 2 hours': [0, 119],
-  '2–3 hours': [120, 180],
-  '3+ hours': [181, 9999],
+  "Under 2 hours": [0, 119],
+  "2–3 hours": [120, 180],
+  "3+ hours": [181, 9999],
 };
 
 export const matchesGenres = (movie, genres) => {
@@ -38,12 +38,14 @@ export const matchesRuntime = (movie, runtime) => {
   return movie.runtime >= range[0] && movie.runtime <= range[1];
 };
 
-export const applyPreferenceFilters = (movies, preferences) => movies.filter((movie) => (
-  matchesGenres(movie, preferences?.genres)
-  && matchesRating(movie, preferences?.minRating)
-  && matchesDecade(movie, preferences?.decade)
-  && matchesRuntime(movie, preferences?.runtime)
-));
+export const applyPreferenceFilters = (movies, preferences) =>
+  movies.filter(
+    (movie) =>
+      matchesGenres(movie, preferences?.genres) &&
+      matchesRating(movie, preferences?.minRating) &&
+      matchesDecade(movie, preferences?.decade) &&
+      matchesRuntime(movie, preferences?.runtime),
+  );
 
 export const formatRuntime = (minutes) => {
   const hours = Math.floor(minutes / 60);
@@ -51,13 +53,13 @@ export const formatRuntime = (minutes) => {
   return `${hours}h ${mins}m`;
 };
 
-export const formatGenres = (genres) => genres.join(' · ');
+export const formatGenres = (genres) => genres.join(" · ");
 
 // `bucketList` entries are `{ movieId, addedAt }` — this is the one place
 // that knows that shape, so screens just ask "is this id in there" without
 // re-deriving the id list themselves.
-export const isInBucketList = (bucketList, movieId) => (
-  bucketList.some((entry) => entry.movieId === movieId)
-);
+export const isInBucketList = (bucketList, movieId) =>
+  bucketList.some((entry) => entry.movieId === movieId);
 
-export const bucketListIds = (bucketList) => bucketList.map((entry) => entry.movieId);
+export const bucketListIds = (bucketList) =>
+  bucketList.map((entry) => entry.movieId);

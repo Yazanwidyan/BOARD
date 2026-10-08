@@ -5,10 +5,10 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
+import { Text } from "../components/AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
@@ -25,6 +25,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
 import { getLevelName } from "../utils/xp";
+import { t } from "../i18n";
 
 const POSTERS_SHOWN = 5;
 
@@ -62,22 +63,24 @@ export const FriendsScreen = ({ navigation }) => {
   const sendRequest = () => {
     const raw = handleInput.trim().replace(/^@/, "").toLowerCase();
     if (!/^[a-z0-9_.]{2,24}$/.test(raw)) {
-      showToast("Enter a handle like @sam");
+      showToast(t("Enter a handle like @sam"));
       return;
     }
     const handle = `@${raw}`;
     if (pending.includes(handle)) {
-      showToast(`Already sent to ${handle}`);
+      showToast(t("Already sent to {handle}", { handle: handle }));
       return;
     }
     setPending((current) => [handle, ...current]);
     setHandleInput("");
-    showToast(`Request sent to ${handle}`, { tone: "success" });
+    showToast(t("Request sent to {handle}", { handle: handle }), {
+      tone: "success",
+    });
   };
 
   return (
     <View style={styles.container}>
-      <StackHeader title="Friends" onBack={() => navigation.goBack()} />
+      <StackHeader title={t("Friends")} onBack={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -88,24 +91,27 @@ export const FriendsScreen = ({ navigation }) => {
       >
         {/* Invite */}
         <View style={styles.inviteCard}>
-          <Text style={styles.inviteLabel}>Your handle</Text>
+          <Text style={styles.inviteLabel}>{t("Your handle")}</Text>
           <Pressable
             onPress={async () => {
               await Clipboard.setStringAsync(myHandle);
-              showToast("Handle copied", { tone: "success" });
+              showToast(t("Handle copied"), { tone: "success" });
             }}
             hitSlop={6}
           >
             <Text style={styles.inviteHandle}>{myHandle}</Text>
           </Pressable>
           <Text style={styles.inviteHint}>
-            Friends add you by this — tap it to copy.
+            {t("Friends add you by this — tap it to copy.")}
           </Text>
           <PrimaryButton
-            label="Invite a friend"
+            label={t("Invite a friend")}
             onPress={() =>
               Share.share({
-                message: `Join me on Reelboard — I'm ${myHandle}. Let's compare tier lists.`,
+                message: t(
+                  "Join me on ReelBoard — I'm {myHandle}. Let's compare tier lists.",
+                  { myHandle: myHandle },
+                ),
               })
             }
             style={styles.inviteButton}
@@ -117,7 +123,7 @@ export const FriendsScreen = ({ navigation }) => {
           <TextInput
             value={handleInput}
             onChangeText={setHandleInput}
-            placeholder="Add by handle, e.g. @sam"
+            placeholder={t("Add by handle, e.g. @sam")}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -132,18 +138,20 @@ export const FriendsScreen = ({ navigation }) => {
             ]}
             onPress={sendRequest}
           >
-            <Text style={styles.addButtonText}>Add</Text>
+            <Text style={styles.addButtonText}>{t("Add")}</Text>
           </Pressable>
         </View>
         {pending.map((handle) => (
           <View key={handle} style={styles.pendingRow}>
             <Text style={styles.pendingHandle}>{handle}</Text>
-            <Text style={styles.pendingState}>Request sent</Text>
+            <Text style={styles.pendingState}>{t("Request sent")}</Text>
           </View>
         ))}
 
         {/* Friends */}
-        <Text style={styles.tagText}>Friends · {friends.length}</Text>
+        <Text style={styles.tagText}>
+          {t("Friends ·")} {friends.length}
+        </Text>
         {friends.map((friend) => (
           <Pressable
             key={friend.id}
@@ -162,7 +170,7 @@ export const FriendsScreen = ({ navigation }) => {
                   {friend.name}
                 </Text>
                 <Text style={styles.friendMeta} numberOfLines={1}>
-                  {friend.handle} · Lv {friend.level}{" "}
+                  {friend.handle} {t("· Lv")} {friend.level}{" "}
                   {getLevelName(friend.level)}
                 </Text>
               </View>
@@ -170,7 +178,7 @@ export const FriendsScreen = ({ navigation }) => {
                 <Text style={styles.matchValue}>
                   {friend.match != null ? `${friend.match}%` : "—"}
                 </Text>
-                <Text style={styles.matchLabel}>taste match</Text>
+                <Text style={styles.matchLabel}>{t("taste match")}</Text>
               </View>
             </View>
             <View style={styles.posterRow}>
@@ -186,7 +194,7 @@ export const FriendsScreen = ({ navigation }) => {
         ))}
 
         <Text style={styles.footnote}>
-          Friends is a preview: these are sample profiles for now.
+          {t("Friends is a preview: these are sample profiles for now.")}
         </Text>
       </ScrollView>
     </View>
@@ -248,7 +256,7 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     addButton: {
-      paddingLeft: spacing.md,
+      paddingStart: spacing.md,
       paddingVertical: spacing.sm,
     },
     addButtonText: {
