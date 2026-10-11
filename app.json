@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "ReelBoard",
-    "slug": "BOARD",
+    "slug": "reelboard",
+    "scheme": "reelboard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/reelboard-icon.png",
@@ -23,7 +24,7 @@
         "backgroundImage": "./assets/reelboard-android-background.png",
         "monochromeImage": "./assets/reelboard-android-monochrome.png"
       },
-      "package": "com.anonymous.board"
+      "package": "com.yazanwidyan.reelboard"
     },
     "web": {
       "favicon": "./assets/reelboard-favicon.png"
