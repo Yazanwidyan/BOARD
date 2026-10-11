@@ -1,6 +1,6 @@
 import { I18nManager } from "react-native";
 
-// Manrope for English; IBM Plex Sans Arabic when the app runs in Arabic (the
+// Inter for English; IBM Plex Sans Arabic when the app runs in Arabic (the
 // app restarts when the language changes direction, so checking RTL once
 // at load is enough). Each `fontFamily` points at a specific weight file
 // (loaded in App.js), so `fontWeight` is intentionally omitted — pairing a
@@ -18,11 +18,11 @@ export const fonts = isArabicLayout
       extraBold: "IBMPlexSansArabic_700Bold",
     }
   : {
-      regular: "Manrope_400Regular",
-      medium: "Manrope_500Medium",
-      semiBold: "Manrope_600SemiBold",
-      bold: "Manrope_700Bold",
-      extraBold: "Manrope_800ExtraBold",
+      regular: "Inter_400Regular",
+      medium: "Inter_500Medium",
+      semiBold: "Inter_600SemiBold",
+      bold: "Inter_700Bold",
+      extraBold: "Inter_800ExtraBold",
     };
 
 export const typography = {

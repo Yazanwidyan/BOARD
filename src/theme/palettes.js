@@ -1,8 +1,8 @@
 // Two Instagram-style palettes — dark is a cool blue-black (#0C1014) with
 // greys tinted to match, light is neutral. Main actions are white / black;
-// the one colour is a cool blue brand accent, shared by `rating` (XP,
-// levels, scores) and `success` (done, saved, matched). `danger` is a muted
-// red kept for destructive actions only. Main actions use `accent` (white in
+// colour carries meaning: `rating` gold for XP, levels and scores,
+// `success` green for done / saved / matched, `danger` red for hard dares,
+// poor scores and destructive actions. Main actions use `accent` (white in
 // dark mode, near-black in light mode) with `accentContrast` text; there's
 // no coloured brand accent. `isDark` lets the few theme-specific bits (status
 // bar, blur tint, glass tab bar) pick their side.
@@ -28,11 +28,11 @@ export const darkColors = {
 
   accentContrast: "#0C1014",
 
-  success: "#6C9BFF",
+  success: "#5BD08A",
 
-  rating: "#6C9BFF",
+  rating: "#F2C14E",
 
-  danger: "#E06C75",
+  danger: "#F26D6D",
 
   border: "#262D35",
 
@@ -40,7 +40,7 @@ export const darkColors = {
 
   selectedText: "#0C1014",
 
-  successSoft: "rgba(108, 155, 255, 0.14)",
+  successSoft: "rgba(91, 208, 138, 0.14)",
 
   surfaceSoft: "rgba(255, 255, 255, 0.08)",
 };
@@ -68,11 +68,11 @@ export const lightColors = {
 
   accentContrast: "#FFFFFF",
 
-  success: "#2F6BFF",
+  success: "#1F9D55",
 
-  rating: "#2F6BFF",
+  rating: "#C99400",
 
-  danger: "#C9545E",
+  danger: "#D64545",
 
   border: "#DCDDE0",
 
@@ -80,7 +80,7 @@ export const lightColors = {
 
   selectedText: "#FFFFFF",
 
-  successSoft: "rgba(47, 107, 255, 0.12)",
+  successSoft: "rgba(31, 157, 85, 0.12)",
 
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 };

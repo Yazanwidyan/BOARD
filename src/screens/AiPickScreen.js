@@ -459,8 +459,8 @@ export const AiPickScreen = ({ navigation }) => {
                                 width: `${(Math.abs(signal.value) / max) * 100}%`,
                                 backgroundColor:
                                   signal.value >= 0
-                                    ? colors.rating
-                                    : colors.textMuted,
+                                    ? colors.success
+                                    : colors.danger,
                               },
                             ]}
                           />

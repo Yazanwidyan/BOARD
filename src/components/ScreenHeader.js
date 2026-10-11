@@ -449,7 +449,7 @@ const createStyles = (colors) =>
     titleShrink: {
       flexShrink: 1,
     },
-    // Manrope has no italic face, so the slant is a skew — same on iOS and
+    // Inter has no italic face, so the slant is a skew — same on iOS and
     // Android.
     titleItalic: {
       transform: [{ skewX: "-6deg" }],

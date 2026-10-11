@@ -63,29 +63,29 @@ const SECTION_IN = (index) =>
     .easing(Easing.out(Easing.cubic))
     .delay(80 + index * 70);
 
-// One shade of the brand accent per XP source.
+// One colour per XP source — the tier palette, so it sits with the app.
 const SOURCES = [
-  { key: "watched", label: "Movies watched", Icon: Film, color: "#6C9BFF" },
-  { key: "genres", label: "Genres explored", Icon: Sparkles, color: "#93B6FF" },
+  { key: "watched", label: "Movies watched", Icon: Film, color: "#8FD3F5" },
+  { key: "genres", label: "Genres explored", Icon: Sparkles, color: "#A4E59B" },
   {
     key: "decades",
     label: "Decades explored",
     Icon: CalendarDays,
-    color: "#B7CDFF",
+    color: "#F8E08E",
   },
   {
     key: "directors",
     label: "Directors known",
     Icon: Clapperboard,
-    color: "#4F7FE6",
+    color: "#F5B98F",
   },
   {
     key: "collections",
     label: "Collections finished",
     Icon: Layers,
-    color: "#3A66C4",
+    color: "#F6A0AC",
   },
-  { key: "rated", label: "Movies tiered", Icon: Star, color: "#8A93A6" },
+  { key: "rated", label: "Movies tiered", Icon: Star, color: "#C8C9CC" },
 ];
 
 const RULES = [
@@ -121,7 +121,7 @@ const getEasyWins = (watched, breakdown) => {
     wins.push({
       key: "genre",
       Icon: Sparkles,
-      color: "#93B6FF",
+      color: "#A4E59B",
       title: t("{count} genres you haven't tried", {
         count: untriedGenres.length,
       }),
@@ -136,7 +136,7 @@ const getEasyWins = (watched, breakdown) => {
     wins.push({
       key: "decade",
       Icon: CalendarDays,
-      color: "#B7CDFF",
+      color: "#F8E08E",
       title: t("{count} decades to visit", { count: untriedDecades.length }),
       detail: listNames(untriedDecades.map((decade) => t("The {decade}", { decade }))),
       xp: NEW_DECADE_XP,
@@ -155,7 +155,7 @@ const getEasyWins = (watched, breakdown) => {
     wins.push({
       key: "director",
       Icon: Clapperboard,
-      color: "#4F7FE6",
+      color: "#F5B98F",
       title:
         close.length === 1
           ? t("1 film from knowing {director}", { director: close[0] })
@@ -169,7 +169,7 @@ const getEasyWins = (watched, breakdown) => {
     wins.push({
       key: "tier",
       Icon: Star,
-      color: "#8A93A6",
+      color: "#C8C9CC",
       title: t("{count} watched movies to tier", { count: untiered }),
       detail: null,
       xp: RATE_XP,

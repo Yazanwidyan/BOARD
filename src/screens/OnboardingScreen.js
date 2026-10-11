@@ -800,7 +800,7 @@ export const OnboardingScreen = () => {
                 colors.accentLight,
                 colors.rating,
                 colors.success,
-                colors.textSecondary,
+                colors.danger,
               ]}
             />
           )}
