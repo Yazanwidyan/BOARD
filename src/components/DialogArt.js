@@ -25,7 +25,8 @@ import { fonts } from "../theme/typography";
 //   multi      a popcorn bucket ("Big Night!")
 // (A badge moment shows the real badge medal instead — see BadgeArt.)
 
-const GOLD = ["#FFF1BF", "#F2C75C", "#B98A2E"];
+// Highlight → base → shade of the brand accent (was gold).
+const GOLD = ["#DCE6FF", "#6C9BFF", "#3A66C4"];
 const INK = "#0C1014";
 
 const toRgb = (hex) => {

@@ -24,10 +24,11 @@ const HAND_SIZE = 3;
 
 const difficultyColor = (difficulty, colors) =>
   ({
-    EASY: colors.success,
-    MEDIUM: colors.rating,
-    HARD: colors.danger,
-    EXTREME: colors.danger,
+    // Harder reads stronger: greys, then the accent.
+    EASY: colors.textMuted,
+    MEDIUM: colors.textSecondary,
+    HARD: colors.rating,
+    EXTREME: colors.rating,
   })[difficulty] ?? colors.textSecondary;
 
 // How dares work, always on screen — so it's clear before you pick.

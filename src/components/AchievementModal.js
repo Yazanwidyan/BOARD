@@ -112,7 +112,7 @@ const getKindTheme = (kind, colors) =>
       confetti: true,
       eyebrow: "Collection",
     },
-    challenge: { color: colors.danger, confetti: true, eyebrow: "Dare" },
+    challenge: { color: colors.rating, confetti: true, eyebrow: "Dare" },
     multi: { color: colors.rating, confetti: true, eyebrow: "Big night" },
     level: { color: colors.rating, confetti: true, eyebrow: "Level up" },
   })[kind] ?? {
@@ -635,7 +635,7 @@ const AchievementDialog = ({ achievement }) => {
               colors.accent,
               colors.rating,
               colors.success,
-              colors.danger,
+              colors.textSecondary,
             ]}
           />
         )}

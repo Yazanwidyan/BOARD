@@ -12,17 +12,17 @@ import { useLanguageStore } from "../store/languageStore";
 //    level names — without wrapping every use. Strings already passed
 //    through t() (or with no translation, like movie titles) show as they
 //    are.
-// 2. In Arabic, Sora is swapped for IBM Plex Sans Arabic at the matching
+// 2. In Arabic, Manrope is swapped for IBM Plex Sans Arabic at the matching
 //    weight, and letter spacing / uppercase are dropped (they break joined
 //    Arabic letters). This follows the language itself, so it works even
 //    where the layout can't flip right-to-left (Expo Go).
 const ARABIC_FONT = {
-  Sora_400Regular: "IBMPlexSansArabic_400Regular",
-  Sora_500Medium: "IBMPlexSansArabic_500Medium",
-  Sora_600SemiBold: "IBMPlexSansArabic_600SemiBold",
-  Sora_700Bold: "IBMPlexSansArabic_700Bold",
+  Manrope_400Regular: "IBMPlexSansArabic_400Regular",
+  Manrope_500Medium: "IBMPlexSansArabic_500Medium",
+  Manrope_600SemiBold: "IBMPlexSansArabic_600SemiBold",
+  Manrope_700Bold: "IBMPlexSansArabic_700Bold",
   // Plex Arabic tops out at bold.
-  Sora_800ExtraBold: "IBMPlexSansArabic_700Bold",
+  Manrope_800ExtraBold: "IBMPlexSansArabic_700Bold",
 };
 
 // Only overrides what the style actually sets, so nested text without its

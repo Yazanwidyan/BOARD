@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
-  Sora_400Regular,
-  Sora_500Medium,
-  Sora_600SemiBold,
-  Sora_700Bold,
-  Sora_800ExtraBold,
-} from "@expo-google-fonts/sora";
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from "@expo-google-fonts/manrope";
 import {
   IBMPlexSansArabic_400Regular,
   IBMPlexSansArabic_500Medium,
@@ -34,13 +34,13 @@ export default function App() {
     if (useLanguageStore.persist.hasHydrated()) syncLayoutDirection();
     return useLanguageStore.persist.onFinishHydration(syncLayoutDirection);
   }, []);
-  // Sora everywhere — see src/theme/typography.js.
+  // Manrope everywhere — see src/theme/typography.js.
   const [fontsLoaded] = useFonts({
-    Sora_400Regular,
-    Sora_500Medium,
-    Sora_600SemiBold,
-    Sora_700Bold,
-    Sora_800ExtraBold,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
     // Arabic (see src/theme/typography.js).
     IBMPlexSansArabic_400Regular,
     IBMPlexSansArabic_500Medium,

@@ -25,9 +25,10 @@ export const ChallengeCard = ({
   const movie = getMovieById(challenge.targetMovieId);
   const difficultyColor =
     {
-      EASY: colors.success,
-      MEDIUM: colors.rating,
-      HARD: colors.danger,
+      // Harder reads stronger: greys, then the accent.
+      EASY: colors.textMuted,
+      MEDIUM: colors.textSecondary,
+      HARD: colors.rating,
     }[challenge.difficulty] ?? colors.accentLight;
 
   const isReveal = mode === "reveal";

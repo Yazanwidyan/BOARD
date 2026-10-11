@@ -139,16 +139,12 @@ const getDirectorMovies = (movie) =>
     (other) => other.id !== movie.id && other.director === movie.director,
   ).sort((a, b) => a.year - b.year);
 
-// Good / mixed / poor by each site's own thresholds: Rotten Tomatoes ≥ 60
-// is "fresh"; Metacritic ≥ 61 is "generally favorable", 40–60 "mixed".
+// Good scores by each site's own thresholds (Rotten Tomatoes ≥ 60 is
+// "fresh", Metacritic ≥ 61 "generally favorable") get the accent; mixed
+// and poor ones stay grey.
 const scoreColor = (source, value, colors) => {
-  if (source === "rt") return value >= 60 ? colors.success : colors.danger;
-  if (source === "mc")
-    return value >= 61
-      ? colors.success
-      : value >= 40
-        ? colors.rating
-        : colors.danger;
+  if (source === "rt") return value >= 60 ? colors.rating : colors.textMuted;
+  if (source === "mc") return value >= 61 ? colors.rating : colors.textMuted;
   return colors.rating;
 };
 
