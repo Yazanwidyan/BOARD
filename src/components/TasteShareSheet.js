@@ -9,10 +9,10 @@ import { captureRef } from "react-native-view-shot";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getTierInfo } from "../utils/tiers";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
+import { TasteDnaBars } from "./TasteDnaBars";
 import { WatcherCard } from "./WatcherCard";
 import { t } from "../i18n";
 
@@ -22,27 +22,16 @@ const POSTER_GAP = 6;
 const BACKDROP_POSTERS = 4;
 const BACKDROP_HEIGHT = 260;
 
-const insightText = (insight) => {
-  if (!insight) return null;
-  return insight.mostWatched === insight.mostLoved
-    ? t("{genre} is what I watch most — and what I tier highest.", {
-        genre: t(insight.mostWatched),
-      })
-    : t("I watch {watched} most, but {loved} gets my best tiers.", {
-        watched: t(insight.mostWatched),
-        loved: t(insight.mostLoved),
-      });
-};
-
 // The shareable taste image: the Watcher card on top (level, badges,
-// numbers), then taste — the watch-most-vs-love-most line, top genres with
-// their usual tier, and the first five favorites. Rendered as a real view
+// numbers), then your Taste DNA — watcher type, the six sliders, the
+// themes you love — and the first five favorites. Rendered as a real view
 // so it can be captured to a PNG and shared (Instagram, WhatsApp…).
 export const TasteShareSheet = ({
   visible,
   onClose,
   cardProps,
   taste,
+  dna,
   fallbackMessage,
 }) => {
   const colors = useColors();
@@ -52,7 +41,6 @@ export const TasteShareSheet = ({
   const posterWidth =
     (CARD_WIDTH - spacing.md * 4 - POSTER_GAP * (FAVORITE_POSTERS - 1)) /
     FAVORITE_POSTERS;
-  const insight = insightText(taste.tasteInsight);
   const favorites = taste.favorites.slice(0, FAVORITE_POSTERS);
 
   const shareImage = async () => {
@@ -132,32 +120,36 @@ export const TasteShareSheet = ({
           )}
           <WatcherCard mode="share" {...cardProps} />
 
-          {(insight || taste.genreTiers.length > 0 || favorites.length > 0) && (
+          {(dna?.hasDna || favorites.length > 0) && (
             <View style={styles.tastePanel}>
-              <Text style={styles.sectionLabel}>{t("Taste")}</Text>
-              {insight && <Text style={styles.insight}>{insight}</Text>}
-              {taste.genreTiers.length > 0 && (
-                <View style={styles.genreRow}>
-                  {taste.genreTiers.map(({ genre, typicalTier }) => (
-                    <View key={genre} style={styles.genreChip}>
-                      <Text style={styles.genreText}>{genre}</Text>
-                      {typicalTier && (
-                        <Text
-                          style={[
-                            styles.genreTier,
-                            { color: getTierInfo(typicalTier).color },
-                          ]}
-                        >
-                          {typicalTier}
-                        </Text>
-                      )}
+              {dna?.hasDna && (
+                <>
+                  <Text style={styles.sectionLabel}>{t("Taste DNA")}</Text>
+                  <Text style={styles.archetype}>{t(dna.archetype.name)}</Text>
+                  <Text style={styles.insight}>{t(dna.archetype.line)}</Text>
+                  {/* Still, not animated — this is captured as an image. */}
+                  <View style={styles.bars}>
+                    <TasteDnaBars fingerprint={dna.fingerprint} animate={false} />
+                  </View>
+                  {dna.themes.length > 0 && (
+                    <View style={styles.genreRow}>
+                      {dna.themes.map((theme) => (
+                        <View key={theme.key} style={styles.genreChip}>
+                          <Text style={styles.genreText}>{t(theme.label)}</Text>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
+                  )}
+                </>
               )}
               {favorites.length > 0 && (
                 <>
-                  <Text style={[styles.sectionLabel, styles.favoritesLabel]}>
+                  <Text
+                    style={[
+                      styles.sectionLabel,
+                      dna?.hasDna && styles.favoritesLabel,
+                    ]}
+                  >
                     {t("FAVORITES")}
                   </Text>
                   <View style={styles.posterRow}>
@@ -243,9 +235,14 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textPrimary,
     },
-    genreTier: {
-      ...typography.bodyBold,
-      fontSize: 13,
+    archetype: {
+      ...typography.title,
+      fontSize: 22,
+      color: colors.rating,
+      marginTop: spacing.xs,
+    },
+    bars: {
+      marginTop: spacing.md,
     },
     favoritesLabel: {
       marginTop: spacing.md,

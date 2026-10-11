@@ -1,6 +1,7 @@
 import { MOVIES, getMovieById } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
 import { getTasteProfile } from "./taste";
+import { vibeSimilarity } from "./tasteEngine";
 import { t } from "../i18n";
 
 // Rows show the first RAIL_PREVIEW; "All ›" opens the full list.
@@ -13,6 +14,9 @@ const MIN_ACTOR_FILMS = 2;
 const GEM_MIN_RANK = 120;
 const GEM_MIN_RATING = 7.9;
 const SHORT_RUNTIME = 100;
+// "Because you watched": how alike two movies must feel (Taste DNA, 0–1)
+// to make the row.
+const BECAUSE_MIN_SIMILARITY = 0.72;
 
 const byRating = (a, b) => b.rating - a.rating;
 
@@ -24,15 +28,19 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
   const unwatched = MOVIES.filter((movie) => !watchedIds.has(movie.id));
   const rails = [];
 
-  // Because you watched — the latest watch's main genre.
+  // Because you watched — movies that *feel* like the latest watch
+  // (Taste DNA: tone, pace, complexity, weight, scale, themes), closest
+  // first, rather than ones that merely share its genre.
   const recent = watched[0] ? getMovieById(watched[0].movieId) : null;
   if (recent) {
     rails.push({
       key: "because",
       title: t("Because you watched {title}", { title: recent.title }),
       movies: unwatched
-        .filter((movie) => movie.genres.includes(recent.genres[0]))
-        .sort(byRating),
+        .map((movie) => ({ movie, similarity: vibeSimilarity(recent, movie) }))
+        .filter(({ similarity }) => similarity >= BECAUSE_MIN_SIMILARITY)
+        .sort((a, b) => b.similarity - a.similarity)
+        .map(({ movie }) => movie),
     });
   }
 

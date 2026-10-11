@@ -33,6 +33,7 @@ import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MOVIES, getMovieById } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
+import { recordPass } from "../store/tasteStore";
 import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
@@ -57,6 +58,10 @@ const REEL_MS = 320;
 const RING = 92;
 
 const SIGNAL_LABELS = {
+  vibe: "Your taste DNA",
+  dislikedVibe: "Feels like ones you didn't enjoy",
+  theme: "Themes you love",
+  runtime: "Runtime",
   genre: "Genre love",
   director: "Director",
   cast: "Cast",
@@ -326,6 +331,7 @@ export const AiPickScreen = ({ navigation }) => {
     setActiveLine(0);
     setShowWhy(false);
     setRejected((current) => [...current, pick.movie.id]);
+    recordPass(pick.movie.id);
     setRun((value) => value + 1);
   };
 

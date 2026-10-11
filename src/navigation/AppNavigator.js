@@ -34,6 +34,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
 import { useLanguageStore } from "../store/languageStore";
+import { useTasteStore } from "../store/tasteStore";
 import { useThemeStore } from "../store/themeStore";
 import { useTipsStore } from "../store/tipsStore";
 import { useColors } from "../theme/useColors";
@@ -70,6 +71,7 @@ export const AppNavigator = () => {
   const hasLanguageHydrated = useHasHydrated(useLanguageStore);
   const hasThemeHydrated = useHasHydrated(useThemeStore);
   const hasTipsHydrated = useHasHydrated(useTipsStore);
+  const hasTasteHydrated = useHasHydrated(useTasteStore);
   const hasHydrated =
     hasUserHydrated &&
     hasMovieHydrated &&
@@ -78,7 +80,8 @@ export const AppNavigator = () => {
     hasBoardHydrated &&
     hasLanguageHydrated &&
     hasThemeHydrated &&
-    hasTipsHydrated;
+    hasTipsHydrated &&
+    hasTasteHydrated;
   const colors = useColors();
 
   const baseTheme = colors.isDark ? DarkTheme : DefaultTheme;

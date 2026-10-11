@@ -40,6 +40,7 @@ import {
 } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { TasteDnaCard } from "../components/TasteDnaCard";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
 import { WatcherProfileSheet } from "../components/WatcherProfileSheet";
@@ -55,11 +56,12 @@ import { getBadges } from "../utils/badges";
 import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
 import { FAVORITE_COUNT, getTasteProfile } from "../utils/taste";
+import { getTasteDna } from "../utils/tasteDna";
 import {
   useStickyStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
-import { TIERS, getTier, getTierInfo, isRated } from "../utils/tiers";
+import { TIERS, getTier, isRated } from "../utils/tiers";
 import {
   getCompletedChallengesCount,
   getLevel,
@@ -203,6 +205,7 @@ export const ProfileScreen = ({ navigation, route }) => {
   );
 
   const taste = getTasteProfile(watched);
+  const tasteDna = getTasteDna(watched);
 
   // The Watcher card: same data on Profile and in the shared image.
 
@@ -546,175 +549,29 @@ export const ProfileScreen = ({ navigation, route }) => {
                     </Pressable>
                   </View>
 
-                  {/* Taste */}
-                  {taste.topGenres.length > 0 && (
+                  {/* Taste — your Taste DNA */}
+                  {watched.length > 0 && (
                     <>
                       <Text style={styles.sectionLabel}>{t("Taste")}</Text>
-                      <View style={styles.tasteCard}>
-                        {/* Watch most vs love most */}
-                        <Text style={styles.tasteInsight}>
-                          {!taste.tasteInsight ? (
-                            <>
-                              {t(
-                                "Tier a few movies to see which genres you really love.",
-                              )}{" "}
-                              <Text
-                                style={styles.tasteInsightLink}
-                                onPress={() =>
-                                  navigation.navigate("Library", {
-                                    showUntiered: true,
-                                  })
-                                }
-                              >
-                                {t("See untiered")}
-                              </Text>
-                            </>
-                          ) : taste.tasteInsight.mostWatched ===
-                            taste.tasteInsight.mostLoved ? (
-                            <>
-                              <Text style={styles.tasteInsightStrong}>
-                                {taste.tasteInsight.mostWatched}
-                              </Text>{" "}
-                              {t(
-                                "is what you watch most — and what you tier highest.",
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {t("You watch")}{" "}
-                              <Text style={styles.tasteInsightStrong}>
-                                {taste.tasteInsight.mostWatched}
-                              </Text>{" "}
-                              {t("most, but")}{" "}
-                              <Text style={styles.tasteInsightStrong}>
-                                {taste.tasteInsight.mostLoved}
-                              </Text>{" "}
-                              {t("gets your best tiers.")}
-                            </>
-                          )}
-                        </Text>
-
-                        {/* Each top genre: how much you watch it, how you tier it */}
-                        {taste.genreTiers.map(
-                          ({
-                            genre,
-                            count,
-                            tierCounts,
-                            tiered,
-                            typicalTier,
-                          }) => (
-                            <View key={genre} style={styles.genreRow}>
-                              <View style={styles.genreRowHead}>
-                                <Text
-                                  style={styles.genreName}
-                                  numberOfLines={1}
-                                >
-                                  {genre}
-                                </Text>
-                                <Text style={styles.genreCount}>
-                                  {count} watched
-                                </Text>
-                                <View style={styles.genreSpacer} />
-                                {typicalTier ? (
-                                  <Text style={styles.genreTypical}>
-                                    mostly{" "}
-                                    <Text
-                                      style={[
-                                        styles.genreTypicalTier,
-                                        {
-                                          color: getTierInfo(typicalTier).color,
-                                        },
-                                      ]}
-                                    >
-                                      {typicalTier}
-                                    </Text>
-                                  </Text>
-                                ) : (
-                                  <Pressable
-                                    onPress={() =>
-                                      navigation.navigate("Library", {
-                                        showUntiered: true,
-                                      })
-                                    }
-                                    hitSlop={8}
-                                  >
-                                    <Text style={styles.genreUntiered}>
-                                      {t("not tiered yet")}
-                                    </Text>
-                                  </Pressable>
-                                )}
-                              </View>
-                              <View style={styles.tierStrip}>
-                                {TIERS.filter(
-                                  ({ key }) => tierCounts[key] > 0,
-                                ).map(({ key, color }) => (
-                                  <View
-                                    key={key}
-                                    style={{
-                                      flex: tierCounts[key],
-                                      backgroundColor: color,
-                                    }}
-                                  />
-                                ))}
-                                {count - tiered > 0 && (
-                                  <View
-                                    style={{
-                                      flex: count - tiered,
-                                      backgroundColor: colors.surfaceSoft,
-                                    }}
-                                  />
-                                )}
-                              </View>
-                            </View>
-                          ),
-                        )}
-
-                        <View style={styles.tasteFacts}>
-                          {taste.director && (
-                            <Pressable
-                              style={styles.tasteFact}
-                              disabled={!taste.director.collectionId}
-                              onPress={() =>
-                                navigation.navigate("CollectionDetails", {
-                                  collectionId: taste.director.collectionId,
-                                })
-                              }
-                            >
-                              <View style={styles.tasteFactText}>
-                                <Text style={styles.tasteFactLabel}>
-                                  {t("Most-watched director")}
-                                </Text>
-                                <Text
-                                  style={styles.tasteFactValue}
-                                  numberOfLines={1}
-                                >
-                                  {taste.director.name} · {taste.director.count}
-                                </Text>
-                              </View>
-                            </Pressable>
-                          )}
-                          {taste.decade && (
-                            <Pressable
-                              style={styles.tasteFact}
-                              disabled={!taste.decade.collectionId}
-                              onPress={() =>
-                                navigation.navigate("CollectionDetails", {
-                                  collectionId: taste.decade.collectionId,
-                                })
-                              }
-                            >
-                              <View style={styles.tasteFactText}>
-                                <Text style={styles.tasteFactLabel}>
-                                  {t("Favorite decade")}
-                                </Text>
-                                <Text style={styles.tasteFactValue}>
-                                  {t("The")} {taste.decade.label}
-                                </Text>
-                              </View>
-                            </Pressable>
-                          )}
-                        </View>
-                      </View>
+                      <TasteDnaCard
+                        dna={tasteDna}
+                        director={taste.director}
+                        decade={taste.decade}
+                        topGenres={taste.topGenres}
+                        onOpenMovie={(movieId) =>
+                          navigation.navigate("MovieDetails", { movieId })
+                        }
+                        onOpenCollection={(collectionId) =>
+                          navigation.navigate("CollectionDetails", {
+                            collectionId,
+                          })
+                        }
+                        onSeeUntiered={() =>
+                          navigation.navigate("Library", {
+                            showUntiered: true,
+                          })
+                        }
+                      />
                     </>
                   )}
                 </>
@@ -933,6 +790,7 @@ export const ProfileScreen = ({ navigation, route }) => {
           ...taste,
           favorites: topTenMovies.map((movie) => ({ movie })),
         }}
+        dna={tasteDna}
         fallbackMessage={getShareText()}
       />
 
@@ -1195,90 +1053,6 @@ const createStyles = (colors) =>
       fontSize: 24,
       lineHeight: 28,
       color: colors.cardElevatedLight,
-    },
-    tasteCard: {
-      marginHorizontal: -spacing.md,
-      padding: spacing.md,
-      backgroundColor: colors.card,
-    },
-    tasteInsight: {
-      ...typography.body,
-      color: colors.textSecondary,
-      marginBottom: spacing.sm,
-    },
-    tasteInsightLink: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    tasteInsightStrong: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    genreRow: {
-      marginTop: spacing.sm + 2,
-    },
-    genreRowHead: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: spacing.sm,
-      marginBottom: 6,
-    },
-    genreName: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      color: colors.textPrimary,
-      flexShrink: 1,
-    },
-    genreCount: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    genreSpacer: {
-      flex: 1,
-    },
-    genreTypical: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    genreTypicalTier: {
-      ...typography.bodyBold,
-      fontSize: 14,
-    },
-    genreUntiered: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    tierStrip: {
-      flexDirection: "row",
-      height: 8,
-      gap: 2,
-      overflow: "hidden",
-    },
-    tasteFacts: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
-    tasteFact: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.sm,
-      backgroundColor: colors.surfaceSoft,
-    },
-    tasteFactText: {
-      flex: 1,
-    },
-    tasteFactLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-    tasteFactValue: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
     },
   });
 

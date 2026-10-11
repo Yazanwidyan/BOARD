@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -25,6 +25,8 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { giveRatingFeedback } from "../utils/achievementFeedback";
+import { useTasteStore } from "../store/tasteStore";
+import { aspectsForTier } from "../utils/aspects";
 import { TIERS, getTier } from "../utils/tiers";
 
 const POSTER_WIDTH = 104;
@@ -58,6 +60,9 @@ const THUMB_CENTER_FROM_EDGE =
 // else and it goes back to where it was.
 //
 // Nothing is saved by dropping — "Save" at the bottom confirms the tier.
+// Once it's in a tier, a row of one-tap reasons asks why ("the twist",
+// "too slow"…), saved with it as a taste signal (see utils/aspects). Their
+// space is always reserved, so the rows never move under the poster.
 //
 // The poster is laid out at the top and moved with transforms: its resting
 // place (`base…`) is either home (0, 0, full size) or a row's slot.
@@ -148,6 +153,24 @@ export const TierMovieScreen = ({ navigation, route }) => {
   const current = getTier(entry);
   // The tier the poster sits in right now — not saved until "Save".
   const [chosen, setChosen] = useState(current);
+  // Why — the aspects saved for this movie, editable before saving.
+  const savedAspects = useTasteStore((state) => state.aspects[movieId]);
+  const [aspects, setAspects] = useState(savedAspects ?? []);
+  const aspectOptions = chosen ? aspectsForTier(chosen) : [];
+  // Only the ones that fit the current tier (loved vs. didn't work).
+  const keptAspects = aspects.filter((key) =>
+    aspectOptions.some((option) => option.key === key),
+  );
+  const aspectsChanged =
+    [...keptAspects].sort().join() !== [...(savedAspects ?? [])].sort().join();
+  const toggleAspect = (key) => {
+    Haptics.selectionAsync();
+    setAspects((current) =>
+      current.includes(key)
+        ? current.filter((item) => item !== key)
+        : [...current, key],
+    );
+  };
   // Once saved the screen is on its way out: no more drags.
   const [locked, setLocked] = useState(false);
 
@@ -240,14 +263,18 @@ export const TierMovieScreen = ({ navigation, route }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canSave = !!entry && !!chosen && chosen !== current && !locked;
+  const tierChanged = !!chosen && chosen !== current;
+  const canSave = !!entry && !!chosen && (tierChanged || aspectsChanged) && !locked;
   const handleSave = () => {
     if (!canSave) return;
     setLocked(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const watchedBefore = useMovieStore.getState().watched;
-    useMovieStore.getState().setWatchedTier(movieId, chosen);
-    giveRatingFeedback(watchedBefore);
+    useTasteStore.getState().setAspects(movieId, keptAspects);
+    if (tierChanged) {
+      const watchedBefore = useMovieStore.getState().watched;
+      useMovieStore.getState().setWatchedTier(movieId, chosen);
+      giveRatingFeedback(watchedBefore);
+    }
     navigation.goBack();
   };
 
@@ -441,12 +468,56 @@ export const TierMovieScreen = ({ navigation, route }) => {
         </View>
       </View>
 
+      {/* Why — always this tall, so nothing above it ever moves. */}
+      <View style={styles.why}>
+        {chosen ? (
+          <>
+            <Text style={styles.whyLabel}>
+              {aspectOptions === aspectsForTier("S")
+                ? t("What did you love? (optional)")
+                : t("What didn't work? (optional)")}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.whyChips}
+            >
+              {aspectOptions.map((option) => {
+                const selected = keptAspects.includes(option.key);
+                return (
+                  <Pressable
+                    key={option.key}
+                    onPress={() => toggleAspect(option.key)}
+                    style={[styles.whyChip, selected && styles.whyChipOn]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                  >
+                    <Text
+                      style={[
+                        styles.whyChipText,
+                        selected && styles.whyChipTextOn,
+                      ]}
+                    >
+                      {t(option.label)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </>
+        ) : (
+          <Text style={styles.whyHint}>
+            {t("Then tell us why — it sharpens your picks.")}
+          </Text>
+        )}
+      </View>
+
       <View
         style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
       >
         <PrimaryButton
           label={
-            chosen && chosen !== current
+            tierChanged
               ? t("Save as {tier} tier", { tier: chosen })
               : t("Save")
           }
@@ -580,6 +651,43 @@ const createStyles = (colors) =>
     },
     outline: {
       borderWidth: 2,
+    },
+    why: {
+      height: 72,
+      justifyContent: "center",
+      paddingTop: spacing.md,
+    },
+    whyLabel: {
+      ...typography.caption,
+      color: colors.textMuted,
+      paddingHorizontal: GUTTER,
+      marginBottom: spacing.sm,
+    },
+    whyChips: {
+      gap: spacing.sm,
+      paddingHorizontal: GUTTER,
+    },
+    whyChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
+    },
+    whyChipOn: {
+      backgroundColor: colors.selected,
+    },
+    whyChipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    whyChipTextOn: {
+      color: colors.selectedText,
+    },
+    whyHint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textAlign: "center",
+      paddingHorizontal: GUTTER,
     },
     footer: {
       paddingHorizontal: GUTTER,

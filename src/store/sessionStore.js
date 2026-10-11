@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { shuffle } from '../utils/shuffle';
 import { resolveRoundOutcome } from '../utils/elimination';
+import { recordPass } from './tasteStore';
 
 // Once a round is down to this many movies or fewer, swap the one-at-a-time
 // swipe stack for a head-to-head "choose" screen instead.
@@ -74,6 +75,8 @@ export const useSessionStore = create(
         } = get();
         const movie = roundMovies[roundIndex];
         if (!movie) return;
+        // A pass is a (weak, fading) taste signal — see tasteStore.
+        if (direction === 'left') recordPass(movie.id);
 
         const nextKept = direction === 'right' ? [...roundKept, movie] : roundKept;
         const nextRemoved = direction === 'left' ? [...roundRemoved, movie] : roundRemoved;

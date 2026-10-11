@@ -4,6 +4,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useRecentSearchStore } from "../store/recentSearchStore";
 import { useSessionStore } from "../store/sessionStore";
+import { useTasteStore } from "../store/tasteStore";
 import { useTipsStore } from "../store/tipsStore";
 import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 
@@ -21,6 +22,7 @@ export const resetAppData = () => {
   });
   useChallengeStore.setState({ activeChallenge: null, history: [] });
   useBoardStore.getState().clearBoards();
+  useTasteStore.getState().clearTaste();
   useSessionStore.getState().endSession();
   useProfileStore.setState({
     displayName: "You",
