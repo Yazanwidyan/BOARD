@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: fonts.extraBold,
-    color: "#161719",
+    color: "#0C1014",
   },
 });
 

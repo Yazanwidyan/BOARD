@@ -30,7 +30,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { BottomSheet } from "../components/BottomSheet";
 import { EmptyState } from "../components/EmptyState";
 import { TopTenPicker } from "../components/TopTenPicker";
 import {
@@ -43,6 +42,7 @@ import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
+import { WatcherProfileSheet } from "../components/WatcherProfileSheet";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { MAX_PINNED, useProfileStore } from "../store/profileStore";
@@ -61,12 +61,6 @@ import {
 } from "../utils/scrollEffects";
 import { TIERS, getTier, getTierInfo, isRated } from "../utils/tiers";
 import {
-  COLLECTION_XP,
-  DIRECTOR_DEPTH_XP,
-  NEW_DECADE_XP,
-  NEW_GENRE_XP,
-  RATE_XP,
-  WATCH_XP,
   getCompletedChallengesCount,
   getLevel,
   getCompletedXPCollections,
@@ -942,60 +936,15 @@ export const ProfileScreen = ({ navigation, route }) => {
         fallbackMessage={getShareText()}
       />
 
-      <BottomSheet
+      <WatcherProfileSheet
         visible={isLeagueSheetOpen}
         onClose={() => setIsLeagueSheetOpen(false)}
-        title={t("Your watcher profile")}
-        subtitle={t("Level {level} · {name}", {
-          level: level.level,
-          name: level.name,
-        })}
-      >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.leagueSummary}>
-            <Text style={styles.leagueSummaryLevel}>{level.level}</Text>
-            <Text style={styles.leagueSummaryLabel}>{level.name}</Text>
-            <View style={styles.sheetBar}>
-              <View
-                style={[
-                  styles.sheetBarFill,
-                  { width: `${level.progress * 100}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.leagueSummaryNext}>
-              {xp.toLocaleString()} {t("XP ·")} {xpToNextLevel.toLocaleString()}{" "}
-              {t("to Level")} {level.level + 1}
-            </Text>
-          </View>
-
-          <Text style={[styles.badgeSectionTitle, styles.sheetSectionGap]}>
-            {t("How XP is earned")}
-          </Text>
-          <View style={styles.leagueFormulaCard}>
-            {[
-              [`Watching a movie`, `+${WATCH_XP}`],
-              [`Your first movie in a genre`, `+${NEW_GENRE_XP}`],
-              [`Your first movie from a decade`, `+${NEW_DECADE_XP}`],
-              [`Seeing 3 films by a director`, `+${DIRECTOR_DEPTH_XP}`],
-              [`Finishing a collection`, `+${COLLECTION_XP}`],
-              [`Giving a movie a tier`, `+${RATE_XP}`],
-            ].map(([label, value]) => (
-              <View key={label} style={styles.formulaRow}>
-                <Text style={styles.leagueFormulaRow}>{label}</Text>
-                <Text style={styles.formulaValue}>{value}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.formulaNote}>
-            {t(
-              "XP only grows from what you watch — it never decays, and there are no streaks or deadlines.",
-            )}
-          </Text>
-
-          <View style={{ height: insets.bottom + spacing.md }} />
-        </ScrollView>
-      </BottomSheet>
+        watched={watched}
+        avatarSource={
+          avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE
+        }
+        displayName={displayName}
+      />
     </SafeAreaView>
   );
 };
@@ -1010,40 +959,6 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       marginBottom: spacing.md,
-    },
-    leagueSummaryLevel: {
-      ...typography.display,
-      fontSize: 44,
-      lineHeight: 48,
-      color: colors.textPrimary,
-    },
-    // A thin line, like the other progress lines.
-    sheetBar: {
-      alignSelf: "stretch",
-      height: 3,
-      marginTop: spacing.md,
-      backgroundColor: colors.surfaceSoft,
-      overflow: "hidden",
-    },
-    sheetBarFill: {
-      height: "100%",
-      backgroundColor: colors.textPrimary,
-    },
-    sheetSectionGap: {
-      marginTop: spacing.lg,
-    },
-    formulaRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    formulaValue: {
-      ...typography.bodyBold,
-      color: colors.rating,
-    },
-    formulaNote: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.sm,
     },
     // Bleeds to the screen edges like the other rows.
     showcaseCover: {
@@ -1364,35 +1279,6 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 13,
       color: colors.textPrimary,
-    },
-    badgeSectionTitle: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-    },
-    leagueSummary: {
-      alignItems: "center",
-      marginBottom: spacing.xl,
-    },
-    leagueSummaryLabel: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginTop: spacing.sm,
-    },
-    leagueSummaryNext: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.xs,
-    },
-    leagueFormulaCard: {
-      backgroundColor: colors.card,
-      padding: spacing.md,
-      gap: spacing.xs,
-      marginBottom: spacing.md,
-    },
-    leagueFormulaRow: {
-      ...typography.body,
-      color: colors.textSecondary,
     },
   });
 

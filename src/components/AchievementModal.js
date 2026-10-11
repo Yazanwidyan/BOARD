@@ -640,7 +640,13 @@ const AchievementDialog = ({ achievement }) => {
           />
         )}
 
-        <View style={styles.bottom} pointerEvents="box-none">
+        {/* Kept below the status bar: however many rewards there are, the
+            sheet never grows past it — the rewards list shrinks and
+            scrolls instead (the sheet, card and list all flex-shrink). */}
+        <View
+          style={[styles.bottom, { paddingTop: insets.top + spacing.sm }]}
+          pointerEvents="box-none"
+        >
           <GestureDetector gesture={pan}>
             <Animated.View style={[styles.sheetWrap, sheetStyle]}>
               <Rays color={theme.color} />
@@ -767,6 +773,8 @@ const createStyles = (colors) =>
     },
     sheetWrap: {
       paddingTop: HERO_HEIGHT - HERO_OVERLAP,
+      flexShrink: 1,
+      minHeight: 0,
     },
     heroWrap: {
       position: "absolute",
@@ -778,6 +786,8 @@ const createStyles = (colors) =>
       justifyContent: "center",
     },
     card: {
+      flexShrink: 1,
+      minHeight: 0,
       alignItems: "center",
       backgroundColor: colors.cardElevated,
       paddingTop: HERO_OVERLAP + spacing.sm,
@@ -905,9 +915,12 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       marginBottom: spacing.sm,
     },
+    // Gives way first when space runs out: shorter, and scrollable.
     rowsScroll: {
       alignSelf: "stretch",
       flexGrow: 0,
+      flexShrink: 1,
+      minHeight: 0,
     },
     rows: {
       gap: 2,

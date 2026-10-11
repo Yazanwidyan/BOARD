@@ -1,28 +1,29 @@
-// Two neutral, Instagram-style palettes. Main actions use `accent` (white in
+// Two Instagram-style palettes — dark is a cool blue-black (#0C1014) with
+// greys tinted to match, light is neutral. Main actions use `accent` (white in
 // dark mode, near-black in light mode) with `accentContrast` text; there's
 // no coloured brand accent. `isDark` lets the few theme-specific bits (status
 // bar, blur tint, glass tab bar) pick their side.
 export const darkColors = {
   isDark: true,
 
-  background: "#161719",
+  background: "#0C1014",
 
-  card: "#202124",
+  card: "#161B21",
 
-  cardElevated: "#292B2F",
+  cardElevated: "#1D232A",
 
-  cardElevatedLight: "#383B40",
+  cardElevatedLight: "#2B323A",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#C8C9CC",
+  textSecondary: "#C2C8CF",
 
-  textMuted: "#92949A",
+  textMuted: "#89919B",
 
   accent: "#FFFFFF",
-  accentLight: "#C8C9CC",
+  accentLight: "#C2C8CF",
 
-  accentContrast: "#161719",
+  accentContrast: "#0C1014",
 
   success: "#8BD39A",
 
@@ -30,11 +31,11 @@ export const darkColors = {
 
   danger: "#F08086",
 
-  border: "#37393E",
+  border: "#262D35",
 
   selected: "#FFFFFF",
 
-  selectedText: "#161719",
+  selectedText: "#0C1014",
 
   successSoft: "rgba(139, 211, 154, 0.14)",
 

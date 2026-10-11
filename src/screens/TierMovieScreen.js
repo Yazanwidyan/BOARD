@@ -547,7 +547,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "stretch",
       // Darker than the page — slots on the tier list, not cards.
-      backgroundColor: colors.isDark ? "#0D0E10" : colors.cardElevatedLight,
+      backgroundColor: colors.isDark ? "#05070A" : colors.cardElevatedLight,
     },
     // Tier colours are light, so the letter is dark on every theme.
     letterTile: {
@@ -559,7 +559,7 @@ const createStyles = (colors) =>
       ...typography.display,
       fontSize: 24,
       lineHeight: 30,
-      color: "#161719",
+      color: "#0C1014",
     },
     rowBody: {
       flex: 1,

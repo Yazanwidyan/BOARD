@@ -100,7 +100,8 @@ export const DIFFICULTY = {
 // meaningfully longer, without needing a lookup table.
 const levelRequirement = (level) => 800 + (level - 1) * 90;
 
-const LEVEL_NAMES = [
+// The rank ladder — exported for the watcher profile's ladder view.
+export const LEVEL_NAMES = [
   { through: 5, name: "Opening Credits" },
   { through: 12, name: "Movie Fan" },
   { through: 20, name: "Film Buff" },

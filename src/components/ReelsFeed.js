@@ -60,7 +60,7 @@ export const SeenMark = ({ color, filled }) => (
     />
     <Path
       d="M10.5 14.5 l3 3 l6 -6.5"
-      stroke={filled ? "#161719" : color}
+      stroke={filled ? "#0C1014" : color}
       strokeWidth={2.4}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -705,7 +705,7 @@ const createStyles = (colors) =>
       color: "#FFFFFF",
     },
     chipTierText: {
-      color: "#161719",
+      color: "#0C1014",
     },
     rail: {
       position: "absolute",

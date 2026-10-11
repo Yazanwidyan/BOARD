@@ -381,7 +381,7 @@ const createStyles = (colors) =>
     tierChipText: {
       ...typography.label,
       fontSize: 12,
-      color: "#161719",
+      color: "#0C1014",
     },
     // A plain text action, not a pill.
     saveButton: {

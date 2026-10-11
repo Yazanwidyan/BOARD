@@ -146,7 +146,7 @@ const createStyles = (colors) =>
       ...typography.display,
       fontSize: 22,
       lineHeight: 26,
-      color: "#161719",
+      color: "#0C1014",
     },
     rungMeaning: {
       ...typography.bodyBold,
