@@ -12,7 +12,7 @@ import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
-import { TasteDnaBars } from "./TasteDnaBars";
+import { TasteDnaRadar } from "./TasteDnaRadar";
 import { WatcherCard } from "./WatcherCard";
 import { t } from "../i18n";
 
@@ -129,7 +129,11 @@ export const TasteShareSheet = ({
                   <Text style={styles.insight}>{t(dna.archetype.line)}</Text>
                   {/* Still, not animated — this is captured as an image. */}
                   <View style={styles.bars}>
-                    <TasteDnaBars fingerprint={dna.fingerprint} animate={false} />
+                    <TasteDnaRadar
+                      fingerprint={dna.fingerprint}
+                      size={CARD_WIDTH - spacing.md * 4}
+                      animate={false}
+                    />
                   </View>
                   {dna.themes.length > 0 && (
                     <View style={styles.genreRow}>

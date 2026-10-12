@@ -6,7 +6,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
-import { TasteDnaBars } from "./TasteDnaBars";
+import { TasteDnaRadar } from "./TasteDnaRadar";
 
 const SIGNATURE_GAP = 2;
 
@@ -59,7 +59,10 @@ export const TasteDnaCard = ({
       <Text style={styles.line}>{t(dna.archetype.line)}</Text>
 
       <View style={styles.section}>
-        <TasteDnaBars fingerprint={dna.fingerprint} />
+        <TasteDnaRadar
+          fingerprint={dna.fingerprint}
+          size={Math.min(300, inner)}
+        />
       </View>
 
       {dna.themes.length > 0 && (

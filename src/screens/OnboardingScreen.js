@@ -31,7 +31,7 @@ import { BackButton } from "../components/BackButton";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { TasteDnaBars } from "../components/TasteDnaBars";
+import { TasteDnaRadar } from "../components/TasteDnaRadar";
 import { MOVIES, getMovieById } from "../data/movies";
 import { DIMENSIONS } from "../data/vibes";
 import { useMovieStore } from "../store/movieStore";
@@ -388,7 +388,7 @@ const DnaStep = ({
       </Animated.View>
       <Text style={styles.dnaLine}>{t(archetype.line)}</Text>
       <View style={styles.dnaBars}>
-        <TasteDnaBars fingerprint={fingerprint} />
+        <TasteDnaRadar fingerprint={fingerprint} size={280} />
       </View>
       <View style={styles.dnaFooter}>
         {xp > 0 ? (

@@ -3,11 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   FadeInDown,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -32,12 +30,9 @@ import { TIERS, getTier } from "../utils/tiers";
 const POSTER_WIDTH = 104;
 const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
 const EASE = { duration: 200, easing: Easing.out(Easing.cubic) };
-const FLY = { duration: 280, easing: Easing.inOut(Easing.cubic) };
-// Held: a touch bigger. Over a row: smaller, so it reads as "fits here".
-const SCALE_HELD = 1.06;
-const SCALE_OVER_ROW = 0.78;
+const FLY = { duration: 300, easing: Easing.inOut(Easing.cubic) };
 
-// Row geometry (shared by the styles and the drop animation, which puts
+// Row geometry (shared by the styles and the move animation, which puts
 // the poster exactly in the row's thumbnail slot).
 const GUTTER = spacing.md;
 // The tier list's side margin — the same gutter as the rest of the page.
@@ -50,42 +45,24 @@ const THUMB_SCALE = THUMB_HEIGHT / POSTER_HEIGHT;
 const THUMB_CENTER_FROM_EDGE =
   ROW_INSET + LETTER_WIDTH + ROW_BODY_PADDING + THUMB_WIDTH / 2;
 
-// Tier one movie like a tier list, by dragging only.
+// Tier one movie like a tier list, by tapping.
 //
-// There's one poster, and it's always the thing you drag. An untiered
-// movie's poster starts big at the top; a tiered one's sits small in its
-// tier's row. Pick it up from wherever it is and drop it on a row: the row
-// under the poster's centre lights up as you go (a haptic tick per row),
-// and on release the poster settles into that row's slot. Let go anywhere
-// else and it goes back to where it was.
+// There's one poster. An untiered movie's poster starts big at the top; a
+// tiered one's sits small in its tier's row. Tap a row and the poster
+// glides into that row's slot; tap another to move it again.
 //
-// Nothing is saved by dropping — "Save" at the bottom confirms the tier.
+// Nothing is saved by tapping — "Save" at the bottom confirms the tier.
 // Once it's in a tier, a row of one-tap reasons asks why ("the twist",
 // "too slow"…), saved with it as a taste signal (see utils/aspects). Their
 // space is always reserved, so the rows never move under the poster.
 //
-// The poster is laid out at the top and moved with transforms: its resting
-// place (`base…`) is either home (0, 0, full size) or a row's slot.
-// Every position is a plain onLayout value inside one container (`body`),
-// so the drag and the drop zones share one coordinate space.
+// The poster is laid out at the top and moved with transforms: either home
+// (0, 0, full size) or a row's slot. Every position is a plain onLayout
+// value inside one container (`body`), so they share one coordinate space.
 
-// Rows only take a dropped poster — no tapping. A screen reader can't
-// drag, so for it each row still offers "activate" to choose that tier.
-const TierRow = ({
-  tier,
-  index,
-  hovered,
-  chosen,
-  onAccessibilityChoose,
-  onLayout,
-  styles,
-}) => {
+const TierRow = ({ tier, index, chosen, onChoose, onLayout, styles }) => {
   const { key, meaning, color } = tier;
   const isChosen = chosen === key;
-
-  const hoverStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(hovered.value === index ? 1 : 0, { duration: 120 }),
-  }));
 
   return (
     <Animated.View
@@ -95,47 +72,41 @@ const TierRow = ({
       onLayout={(event) => onLayout(index, event.nativeEvent.layout)}
       style={styles.rowWrap}
     >
-      <View
+      <Pressable
+        onPress={() => onChoose(index)}
         style={styles.row}
-        accessible
         accessibilityRole="radio"
         accessibilityState={{ selected: isChosen }}
         accessibilityLabel={`${key} · ${t(meaning)}`}
-        accessibilityActions={[{ name: "activate" }]}
-        onAccessibilityAction={() => onAccessibilityChoose(index)}
       >
-        <View style={[styles.letterTile, { backgroundColor: color }]}>
-          <Text style={styles.letter}>{key}</Text>
-        </View>
-        <View style={styles.rowBody}>
-          {/* The slot the poster settles into — always reserved, so the
-              rows never shift when a poster lands. */}
-          <View style={styles.thumbSlot} />
-          <Text style={styles.meaning} numberOfLines={1}>
-            {meaning}
-          </Text>
-        </View>
-        {/* Lit while the poster is over this row. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            styles.outline,
-            { borderColor: color, backgroundColor: `${color}2E` },
-            hoverStyle,
-          ]}
-        />
-        {isChosen && (
-          <View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              styles.outline,
-              { borderColor: color },
-            ]}
-          />
+        {({ pressed }) => (
+          <>
+            <View style={[styles.letterTile, { backgroundColor: color }]}>
+              <Text style={styles.letter}>{key}</Text>
+            </View>
+            <View style={styles.rowBody}>
+              {/* The slot the poster settles into — always reserved, so
+                  the rows never shift when a poster lands. */}
+              <View style={styles.thumbSlot} />
+              <Text style={styles.meaning} numberOfLines={1}>
+                {meaning}
+              </Text>
+            </View>
+            {/* Lit while pressed, outlined while chosen. */}
+            {(pressed || isChosen) && (
+              <View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.outline,
+                  { borderColor: color },
+                  pressed && { backgroundColor: `${color}2E` },
+                ]}
+              />
+            )}
+          </>
         )}
-      </View>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -171,25 +142,17 @@ export const TierMovieScreen = ({ navigation, route }) => {
         : [...current, key],
     );
   };
-  // Once saved the screen is on its way out: no more drags.
+  // Once saved the screen is on its way out: no more changes.
   const [locked, setLocked] = useState(false);
 
-  // Where the poster is (offset from home, scale) and where it rests.
+  // Where the poster is: its offset from home and its scale.
   const posX = useSharedValue(0);
   const posY = useSharedValue(0);
   const scale = useSharedValue(1);
-  const baseX = useSharedValue(0);
-  const baseY = useSharedValue(0);
-  const baseScale = useSharedValue(1);
-  const lift = useSharedValue(0); // 0 resting … 1 held (shadow, tilt)
   // A tiered movie's poster stays hidden until it's been put in its row.
   const posterOpacity = useSharedValue(current ? 0 : 1);
-  const hovered = useSharedValue(-1); // index into TIERS, -1 = none
 
-  // Geometry, relative to `body`. Each value lives in a JS ref (always
-  // current — what the JS side reads) and a shared value (what the drag
-  // reads). Row frames are collected in the ref and published whole:
-  // copying the shared array lost updates when the rows laid out at once.
+  // Geometry, relative to `body`.
   const geo = useRef({
     bodyWidth: 0,
     posterAreaY: 0,
@@ -197,22 +160,18 @@ export const TierMovieScreen = ({ navigation, route }) => {
     tiersY: 0,
     rows: TIERS.map(() => null),
   });
-  const bodyWidth = useSharedValue(0);
-  const posterAreaY = useSharedValue(0);
-  const posterWrapY = useSharedValue(0);
-  const tiersY = useSharedValue(0);
-  const rowFrames = useSharedValue(TIERS.map(() => null));
-  // Until you first touch it, a tiered movie's poster is (re)placed in its
-  // row on every layout update, so a late measurement can't leave it off.
+  // Until the first tap, a tiered movie's poster is (re)placed in its row
+  // on every layout update, so a late measurement can't leave it off.
   const touched = useRef(false);
   const shownInitially = useRef(false);
 
-  // The offset + scale that puts the poster in row `index`'s slot.
-  const slotFor = (index, g) => {
-    "worklet";
+  // The offset that puts the poster in row `index`'s slot.
+  const slotFor = (index) => {
+    const g = geo.current;
     const frame = g.rows[index];
+    if (!frame || !g.bodyWidth) return null;
     const homeY = g.posterAreaY + g.posterWrapY + POSTER_HEIGHT / 2;
-    const thumbX = g.isRTL
+    const thumbX = isRTL
       ? g.bodyWidth - THUMB_CENTER_FROM_EDGE
       : THUMB_CENTER_FROM_EDGE;
     return {
@@ -225,13 +184,8 @@ export const TierMovieScreen = ({ navigation, route }) => {
   // (no animation) and fade it in there.
   const placeInitially = () => {
     if (touched.current || !current) return;
-    const g = geo.current;
-    const index = TIERS.findIndex((tier) => tier.key === current);
-    if (index === -1 || !g.rows[index] || !g.bodyWidth) return;
-    const slot = slotFor(index, { ...g, isRTL });
-    baseX.value = slot.x;
-    baseY.value = slot.y;
-    baseScale.value = THUMB_SCALE;
+    const slot = slotFor(TIERS.findIndex((tier) => tier.key === current));
+    if (!slot) return;
     posX.value = slot.x;
     posY.value = slot.y;
     scale.value = THUMB_SCALE;
@@ -240,18 +194,13 @@ export const TierMovieScreen = ({ navigation, route }) => {
       posterOpacity.value = withTiming(1, EASE);
     }
   };
-  const markTouched = () => {
-    touched.current = true;
-  };
 
-  const setGeo = (key, value, shared) => {
+  const setGeo = (key, value) => {
     geo.current[key] = value;
-    shared.value = value;
     placeInitially();
   };
   const storeRowFrame = (index, { y, height }) => {
     geo.current.rows[index] = { y, height };
-    rowFrames.value = [...geo.current.rows];
     placeInitially();
   };
 
@@ -262,6 +211,20 @@ export const TierMovieScreen = ({ navigation, route }) => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tap a row: the poster glides into its slot.
+  const choose = (index) => {
+    if (!entry || locked) return;
+    const slot = slotFor(index);
+    if (!slot) return;
+    touched.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    posX.value = withTiming(slot.x, FLY);
+    posY.value = withTiming(slot.y, FLY);
+    scale.value = withTiming(THUMB_SCALE, FLY);
+    posterOpacity.value = withTiming(1, EASE);
+    setChosen(TIERS[index].key);
+  };
 
   const tierChanged = !!chosen && chosen !== current;
   const canSave = !!entry && !!chosen && (tierChanged || aspectsChanged) && !locked;
@@ -278,104 +241,14 @@ export const TierMovieScreen = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const handleDrop = (index) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setChosen(TIERS[index].key);
-  };
-  const handleAccessibilityChoose = (index) => {
-    if (locked) return;
-    markTouched();
-    const slot = slotFor(index, { ...geo.current, isRTL });
-    baseX.value = slot.x;
-    baseY.value = slot.y;
-    baseScale.value = THUMB_SCALE;
-    posX.value = withTiming(slot.x, FLY);
-    posY.value = withTiming(slot.y, FLY);
-    scale.value = withTiming(THUMB_SCALE, FLY);
-    posterOpacity.value = withTiming(1, EASE);
-    setChosen(TIERS[index].key);
-  };
-  const tick = () => Haptics.selectionAsync();
-
-  const pan = Gesture.Pan()
-    .enabled(!!entry && !locked)
-    .onStart(() => {
-      runOnJS(markTouched)();
-      lift.value = withTiming(1, EASE);
-      scale.value = withTiming(SCALE_HELD, EASE);
-    })
-    .onUpdate((event) => {
-      posX.value = baseX.value + event.translationX;
-      posY.value = baseY.value + event.translationY;
-
-      // Which row is under the poster's centre?
-      const centerY =
-        posterAreaY.value +
-        posterWrapY.value +
-        POSTER_HEIGHT / 2 +
-        posY.value;
-      const frames = rowFrames.value;
-      let over = -1;
-      for (let i = 0; i < frames.length; i += 1) {
-        const frame = frames[i];
-        if (!frame) continue;
-        const top = tiersY.value + frame.y;
-        if (centerY >= top && centerY <= top + frame.height) {
-          over = i;
-          break;
-        }
-      }
-      if (over !== hovered.value) {
-        hovered.value = over;
-        scale.value = withTiming(
-          over === -1 ? SCALE_HELD : SCALE_OVER_ROW,
-          EASE,
-        );
-        if (over !== -1) runOnJS(tick)();
-      }
-    })
-    .onEnd(() => {
-      const target = hovered.value;
-      hovered.value = -1;
-      lift.value = withTiming(0, EASE);
-      if (target === -1) {
-        // Missed — back to where it was resting.
-        posX.value = withTiming(baseX.value, EASE);
-        posY.value = withTiming(baseY.value, EASE);
-        scale.value = withTiming(baseScale.value, EASE);
-        return;
-      }
-      // Landed — settle into that row's slot, which is now its rest.
-      const slot = slotFor(target, {
-        bodyWidth: bodyWidth.value,
-        posterAreaY: posterAreaY.value,
-        posterWrapY: posterWrapY.value,
-        tiersY: tiersY.value,
-        rows: rowFrames.value,
-        isRTL,
-      });
-      baseX.value = slot.x;
-      baseY.value = slot.y;
-      baseScale.value = THUMB_SCALE;
-      posX.value = withTiming(slot.x, FLY);
-      posY.value = withTiming(slot.y, FLY);
-      scale.value = withTiming(THUMB_SCALE, FLY);
-      runOnJS(handleDrop)(target);
-    });
-
   const posterStyle = useAnimatedStyle(() => ({
     opacity: posterOpacity.value,
     transform: [
       { translateX: posX.value },
       { translateY: posY.value },
       { scale: scale.value },
-      // Tilts with sideways drag while held, settling as it's let go.
-      {
-        rotate: `${Math.max(-8, Math.min(8, (posX.value - baseX.value) / 30)) * lift.value}deg`,
-      },
     ],
   }));
-  const shadowStyle = useAnimatedStyle(() => ({ opacity: lift.value }));
 
   if (!movie) return <View style={styles.container} />;
 
@@ -409,58 +282,44 @@ export const TierMovieScreen = ({ navigation, route }) => {
 
       <View
         style={styles.body}
-        onLayout={(event) =>
-          setGeo("bodyWidth", event.nativeEvent.layout.width, bodyWidth)
-        }
+        onLayout={(event) => setGeo("bodyWidth", event.nativeEvent.layout.width)}
       >
         {/* Above the rows (zIndex / elevation), so the poster is drawn
-            over them wherever it is. */}
+            over them wherever it is. It doesn't take touches — the rows
+            under it do. */}
         <View
           style={styles.posterArea}
-          onLayout={(event) =>
-            setGeo("posterAreaY", event.nativeEvent.layout.y, posterAreaY)
-          }
+          pointerEvents="box-none"
+          onLayout={(event) => setGeo("posterAreaY", event.nativeEvent.layout.y)}
         >
           <View
             style={styles.posterHome}
-            onLayout={(event) =>
-              setGeo("posterWrapY", event.nativeEvent.layout.y, posterWrapY)
-            }
+            pointerEvents="none"
+            onLayout={(event) => setGeo("posterWrapY", event.nativeEvent.layout.y)}
           >
             {/* Where an untiered poster starts — a faint outline once the
                 poster has moved down into the list. */}
             {!!chosen && <View style={styles.homeOutline} />}
-            <GestureDetector gesture={pan}>
-              <Animated.View style={[styles.posterWrap, posterStyle]}>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[styles.dragShadow, shadowStyle]}
-                />
-                <MoviePoster uri={movie.poster} shadow style={styles.poster} />
-              </Animated.View>
-            </GestureDetector>
+            <Animated.View style={[styles.posterWrap, posterStyle]}>
+              <MoviePoster uri={movie.poster} shadow style={styles.poster} />
+            </Animated.View>
           </View>
           <Text style={styles.prompt}>
-            {chosen
-              ? t("Drag the poster to another tier to change it.")
-              : t("Drag the poster onto a tier.")}
+            {chosen ? t("Tap another tier to change it.") : t("Tap a tier.")}
           </Text>
         </View>
 
         <View
           style={styles.tiers}
-          onLayout={(event) =>
-            setGeo("tiersY", event.nativeEvent.layout.y, tiersY)
-          }
+          onLayout={(event) => setGeo("tiersY", event.nativeEvent.layout.y)}
         >
           {TIERS.map((tier, index) => (
             <TierRow
               key={tier.key}
               tier={tier}
               index={index}
-              hovered={hovered}
               chosen={chosen}
-              onAccessibilityChoose={handleAccessibilityChoose}
+              onChoose={choose}
               onLayout={storeRowFrame}
               styles={styles}
             />
@@ -580,15 +439,6 @@ const createStyles = (colors) =>
     posterWrap: {
       width: POSTER_WIDTH,
       height: POSTER_HEIGHT,
-    },
-    // A soft dark halo under the poster while it's held up.
-    dragShadow: {
-      position: "absolute",
-      top: 8,
-      start: 4,
-      end: 4,
-      bottom: -8,
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
     },
     poster: {
       width: POSTER_WIDTH,

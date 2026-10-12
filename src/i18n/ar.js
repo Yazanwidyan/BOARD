@@ -1076,6 +1076,9 @@ const ar = {
   "Tier a few movies and we'll map it — how dark, how fast, how twisty you like them.": "صنّف بعض الأفلام وسنرسمها — كم تحبها قاتمة وسريعة ومليئة بالمفاجآت.",
   "Films that sum you up": "أفلام تلخّصك",
   "Taste DNA": "بصمة الذوق",
+  "Leans {leanings}": "يميل إلى {leanings}",
+  "Tap a tier.": "اضغط على تصنيف.",
+  "Tap another tier to change it.": "اضغط على تصنيف آخر لتغييره.",
 };
 
 export default ar;
