@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -63,14 +63,22 @@ const SettingsRow = ({ label, onPress, destructive, value }) => {
   );
 };
 
+// Saves the name and bio drafts — only what actually changed. A blank name
+// goes back to "You".
+const saveProfileDrafts = ({ name, bio }) => {
+  const profile = useProfileStore.getState();
+  const nextName = name.trim() || "You";
+  if (nextName !== profile.displayName) profile.setDisplayName(nextName);
+  const nextBio = bio.trim();
+  if (nextBio !== profile.bio) profile.setBio(nextBio);
+};
+
 export const SettingsScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const displayName = useProfileStore((state) => state.displayName);
-  const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const bio = useProfileStore((state) => state.bio);
-  const setBio = useProfileStore((state) => state.setBio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const insets = useSafeAreaInsets();
@@ -80,13 +88,22 @@ export const SettingsScreen = ({ navigation }) => {
   const resetTips = useTipsStore((state) => state.resetTips);
   const account = useAuthStore((state) => state.user);
 
-  const handleNameBlur = () => {
-    if (!displayName.trim()) setDisplayName("You");
+  // Name and bio are edited as drafts and saved when you're done — leaving
+  // the field or the screen — not on every keystroke (each save is a
+  // request to the server).
+  const [nameDraft, setNameDraft] = useState(displayName);
+  const [bioDraft, setBioDraft] = useState(bio);
+  const drafts = useRef(null);
+  drafts.current = { name: nameDraft, bio: bioDraft };
+
+  const saveDrafts = () => {
+    saveProfileDrafts(drafts.current);
+    setNameDraft((name) => name.trim() || "You");
+    setBioDraft((text) => text.trim());
   };
 
-  const handleBioBlur = () => {
-    if (bio.trim() !== bio) setBio(bio.trim());
-  };
+  // Leaving the screen with the keyboard still up doesn't blur the field.
+  useEffect(() => () => saveProfileDrafts(drafts.current), []);
 
   // The picked photo waiting in the circular cropper.
   const [cropImage, setCropImage] = useState(null);
@@ -156,9 +173,9 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.fieldLabel}>{t("Name")}</Text>
         <View style={styles.fieldBox}>
           <TextInput
-            value={displayName}
-            onChangeText={setDisplayName}
-            onBlur={handleNameBlur}
+            value={nameDraft}
+            onChangeText={setNameDraft}
+            onBlur={saveDrafts}
             placeholder={t("Your name")}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}
@@ -170,14 +187,14 @@ export const SettingsScreen = ({ navigation }) => {
             {t("Bio")}
           </Text>
           <Text style={styles.fieldCount}>
-            {bio.length}/{BIO_MAX_LENGTH}
+            {bioDraft.length}/{BIO_MAX_LENGTH}
           </Text>
         </View>
         <View style={styles.fieldBox}>
           <TextInput
-            value={bio}
-            onChangeText={setBio}
-            onBlur={handleBioBlur}
+            value={bioDraft}
+            onChangeText={setBioDraft}
+            onBlur={saveDrafts}
             placeholder={t("Tell people what you love to watch...")}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}

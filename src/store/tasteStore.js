@@ -1,4 +1,5 @@
-import { create } from "zustand";
+import { queryKeys, queueChange } from "../services/queryClient";
+import { createAccountStore } from "./accountStore";
 
 // The taste signals beyond a tier (see utils/tasteEngine):
 //
@@ -10,33 +11,59 @@ import { create } from "zustand";
 //   leanings  onboarding's "this or that" answers: per Taste DNA dimension
 //             (data/vibes DIMENSIONS order), -1 leans low, 1 leans high,
 //             0 no preference. null until answered.
+//
+// Server data (GET /api/me/taste), cached by TanStack Query — see
+// store/accountStore.js.
 const MAX_PASSES = 300;
 
-export const useTasteStore = create((set) => ({
-  aspects: {},
-  passes: [],
-  leanings: null,
+const TASTE = { invalidate: [queryKeys.taste] };
 
-  setLeanings: (leanings) => set({ leanings }),
+export const useTasteStore = createAccountStore({
+  queryKey: queryKeys.taste,
+  initial: { aspects: {}, passes: [], leanings: null },
+  actions: ({ get, set }) => ({
+    setLeanings: (leanings) => {
+      set({ leanings });
+      queueChange(
+        "PUT",
+        "/me/taste/leanings",
+        { leanings: leanings ?? null },
+        { merge: "leanings", ...TASTE },
+      );
+    },
 
-  setAspects: (movieId, keys) =>
-    set((state) => {
-      const next = { ...state.aspects };
+    setAspects: (movieId, keys) => {
+      const next = { ...get().aspects };
       if (keys.length > 0) next[movieId] = keys;
       else delete next[movieId];
-      return { aspects: next };
-    }),
+      set({ aspects: next });
+      queueChange(
+        "PUT",
+        `/me/taste/aspects/${movieId}`,
+        { aspects: keys },
+        {
+          merge: `aspects:${movieId}`,
+          ...TASTE,
+        },
+      );
+    },
 
-  recordPass: (movieId) =>
-    set((state) => ({
-      passes: [
-        { movieId, at: Date.now() },
-        ...state.passes.filter((pass) => pass.movieId !== movieId),
-      ].slice(0, MAX_PASSES),
-    })),
+    recordPass: (movieId) => {
+      set((state) => ({
+        passes: [
+          { movieId, at: Date.now() },
+          ...state.passes.filter((pass) => pass.movieId !== movieId),
+        ].slice(0, MAX_PASSES),
+      }));
+      queueChange("POST", "/me/taste/passes", { movieId }, TASTE);
+    },
 
-  clearTaste: () => set({ aspects: {}, passes: [], leanings: null }),
-}));
+    clearTaste: () => {
+      set({ aspects: {}, passes: [], leanings: null });
+      queueChange("DELETE", "/me/taste", undefined, TASTE);
+    },
+  }),
+});
 
 export const recordPass = (movieId) =>
   useTasteStore.getState().recordPass(movieId);

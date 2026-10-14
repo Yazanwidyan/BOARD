@@ -13,10 +13,12 @@ import { IBMPlexSansArabic_400Regular } from "@expo-google-fonts/ibm-plex-sans-a
 import { IBMPlexSansArabic_500Medium } from "@expo-google-fonts/ibm-plex-sans-arabic/500Medium";
 import { IBMPlexSansArabic_600SemiBold } from "@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold";
 import { IBMPlexSansArabic_700Bold } from "@expo-google-fonts/ibm-plex-sans-arabic/700Bold";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { syncLayoutDirection } from "./src/i18n";
+import { persistOptions, queryClient } from "./src/services/queryClient";
 import { useLanguageStore } from "./src/store/languageStore";
 import { useColors } from "./src/theme/useColors";
 
@@ -56,22 +58,30 @@ export default function App() {
     return null;
   }
 
+  // The query cache (the account's data and its waiting changes) is
+  // restored from the device before anything reads it — see
+  // services/queryClient.js.
   return (
-    <GestureHandlerRootView
-      style={{
-        flex: 1,
-        backgroundColor: colors.background,
-        // Arabic mirrors the whole layout (see src/i18n).
-        direction: language === "ar" ? "rtl" : "ltr",
-      }}
-      onLayout={onLayoutRootView}
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
     >
-      <SafeAreaProvider>
-        <StatusBar style={colors.isDark ? "light" : "dark"} />
-        {/* Keyed on the language: switching it remounts the screens so
+      <GestureHandlerRootView
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          // Arabic mirrors the whole layout (see src/i18n).
+          direction: language === "ar" ? "rtl" : "ltr",
+        }}
+        onLayout={onLayoutRootView}
+      >
+        <SafeAreaProvider>
+          <StatusBar style={colors.isDark ? "light" : "dark"} />
+          {/* Keyed on the language: switching it remounts the screens so
             every t() reads the new language at once — no restart. */}
-        <AppNavigator key={language} />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+          <AppNavigator key={language} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </PersistQueryClientProvider>
   );
 }

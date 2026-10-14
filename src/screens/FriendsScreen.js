@@ -1,6 +1,5 @@
 import * as Clipboard from "expo-clipboard";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   Pressable,
   Share,
@@ -21,7 +20,7 @@ import {
 } from "../components/ScreenHeader";
 import { getMovieById } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
-import { useFriendsStore } from "../store/friendsStore";
+import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
@@ -50,19 +49,12 @@ export const FriendsScreen = ({ navigation }) => {
     loaded,
     loading,
     error,
-    refresh,
     sendRequest,
     acceptRequest,
     dropRequest,
-  } = useFriendsStore();
+  } = useFriends();
   const [handleInput, setHandleInput] = useState("");
   const [sending, setSending] = useState(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
 
   const myHandle = account?.handle;
   const friends = friendList

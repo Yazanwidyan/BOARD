@@ -1,8 +1,7 @@
-import { useFocusEffect } from "@react-navigation/native";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
@@ -14,7 +13,7 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { getMovieById } from "../data/movies";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
-import { useFriendsStore } from "../store/friendsStore";
+import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
@@ -54,18 +53,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const friendId = route?.params?.friendId;
-  const friend = useFriendsStore((state) =>
-    state.friends.find((item) => item.id === friendId),
-  );
-  const allActivity = useFriendsStore((state) => state.activity);
-  const refresh = useFriendsStore((state) => state.refresh);
-  const removeFriend = useFriendsStore((state) => state.removeFriend);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
+  const { friends, activity: allActivity, removeFriend } = useFriends();
+  const friend = friends.find((item) => item.id === friendId);
 
   if (!friend) {
     return (

@@ -1,6 +1,7 @@
 // The movie catalog, served by the ReelBoard backend (GET /api/movies/catalog)
-// and loaded at sign-in by services/catalog.js — the app doesn't ship any
-// movie data of its own. The backend's data/catalog.json is where movies,
+// and loaded by services/catalog.js — from the copy saved on the device,
+// then checked against the server. The app doesn't ship any movie data of
+// its own. The backend's data/catalog.json is where movies,
 // cast, details and vibes are maintained.
 //
 // MOVIES is filled in place, so the many modules importing it read the

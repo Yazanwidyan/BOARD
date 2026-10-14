@@ -1,83 +1,104 @@
-import { create } from "zustand";
+import { useFocusEffect } from "@react-navigation/native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef } from "react";
 
 import { api } from "../services/api";
+import { queryKeys } from "../services/queryClient";
 import { useAuthStore } from "./authStore";
 
-// Friends, requests and the activity feed, from the server.
-// Not persisted — screens refresh it when they open.
+// Friends, requests and the activity feed — other people's data, so plain
+// TanStack queries: cached (and saved on the device) for an instant screen,
+// refetched in the background when a screen opens or comes back into view.
 // Friends come in the same shape the mock ones had —
 // { id, name, handle, color, level, watched: [{ movieId, tier }] } — so
 // utils/friends.js works on them unchanged.
-const EMPTY = {
-  friends: [],
-  incoming: [],
-  outgoing: [],
-  activity: [],
-  loaded: false,
-  error: null,
+const EMPTY = [];
+
+const useSignedIn = () => useAuthStore((state) => Boolean(state.token));
+
+// Refetch when a screen comes back into view (TanStack refetches on mount
+// by itself; a stacked screen stays mounted underneath the next one).
+const useRefetchOnFocus = (refetch) => {
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch]),
+  );
 };
 
-export const useFriendsStore = create((set, get) => ({
-  ...EMPTY,
-  loading: false,
+export const useFriends = () => {
+  const queryClient = useQueryClient();
+  const enabled = useSignedIn();
+  const friendsQuery = useQuery({
+    queryKey: queryKeys.friends,
+    queryFn: async () => (await api.get("/friends")).friends,
+    enabled,
+  });
+  const requestsQuery = useQuery({
+    queryKey: queryKeys.friendRequests,
+    queryFn: () => api.get("/friends/requests"),
+    enabled,
+  });
+  const activityQuery = useQuery({
+    queryKey: queryKeys.activity,
+    queryFn: async () => (await api.get("/activity?limit=50")).activity,
+    enabled,
+  });
+  const queries = [friendsQuery, requestsQuery, activityQuery];
 
-  refresh: async () => {
-    if (!useAuthStore.getState().token) {
-      set({ ...EMPTY, loading: false });
-      return;
-    }
-    set({ loading: true });
-    try {
-      const [friends, requests, feed] = await Promise.all([
-        api.get("/friends"),
-        api.get("/friends/requests"),
-        api.get("/activity?limit=50"),
-      ]);
-      set({
-        friends: friends.friends,
-        incoming: requests.incoming,
-        outgoing: requests.outgoing,
-        activity: feed.activity,
-        loaded: true,
-        loading: false,
-        error: null,
-      });
-    } catch (error) {
-      set({ loading: false, error: error.message });
-    }
-  },
+  const refresh = useCallback(
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.friends }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity }),
+      ]),
+    [queryClient],
+  );
+  useRefetchOnFocus(refresh);
 
-  // Returns "friends" when they'd already asked you (so it's accepted
+  // Every change to who your friends are also changes the feed.
+  const onSuccess = () => refresh();
+
+  // Resolves to "friends" when they'd already asked you (so it's accepted
   // straight away), "outgoing" when it's a new request.
-  sendRequest: async (handle) => {
-    const { relationship } = await api.post("/friends/requests", { handle });
-    await get().refresh();
-    return relationship;
-  },
-
-  acceptRequest: async (userId) => {
-    await api.post(`/friends/requests/${userId}/accept`);
-    await get().refresh();
-  },
-
+  const send = useMutation({
+    mutationFn: async (handle) =>
+      (await api.post("/friends/requests", { handle })).relationship,
+    onSuccess,
+  });
+  const accept = useMutation({
+    mutationFn: (userId) => api.post(`/friends/requests/${userId}/accept`),
+    onSuccess,
+  });
   // Decline a request to you, or cancel one you sent.
-  dropRequest: async (userId) => {
-    await api.delete(`/friends/requests/${userId}`);
-    await get().refresh();
-  },
+  const drop = useMutation({
+    mutationFn: (userId) => api.delete(`/friends/requests/${userId}`),
+    onSuccess,
+  });
+  const remove = useMutation({
+    mutationFn: (userId) => api.delete(`/friends/${userId}`),
+    onSuccess,
+  });
 
-  removeFriend: async (userId) => {
-    await api.delete(`/friends/${userId}`);
-    await get().refresh();
-  },
-}));
+  return {
+    friends: friendsQuery.data ?? EMPTY,
+    incoming: requestsQuery.data?.incoming ?? EMPTY,
+    outgoing: requestsQuery.data?.outgoing ?? EMPTY,
+    activity: activityQuery.data ?? EMPTY,
+    loaded: queries.every((query) => query.data !== undefined),
+    loading: queries.some((query) => query.isFetching),
+    error: queries.find((query) => query.error)?.error?.message ?? null,
+    refresh,
+    sendRequest: send.mutateAsync,
+    acceptRequest: accept.mutateAsync,
+    dropRequest: drop.mutateAsync,
+    removeFriend: remove.mutateAsync,
+  };
+};
 
-// Forget everything when the session ends.
-useAuthStore.subscribe((state, prev) => {
-  if (prev.token && !state.token) useFriendsStore.setState({ ...EMPTY, loading: false });
-});
-
-export const getFriend = (friendId) =>
-  useFriendsStore.getState().friends.find((friend) => friend.id === friendId) ?? null;
-
-export default useFriendsStore;
+export default useFriends;

@@ -1,4 +1,6 @@
+import { onlineManager } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import { AppState } from "react-native";
 
 import { useAuthStore } from "../store/authStore";
 
@@ -33,7 +35,53 @@ export class ApiError extends Error {
 export const isOfflineError = (error) =>
   error instanceof ApiError && (error.status === 0 || error.status >= 500);
 
-export const request = async (method, path, body, { token } = {}) => {
+// ---- Online / offline ------------------------------------------------------
+//
+// TanStack Query pauses queries and queued changes while its onlineManager
+// says we're offline, and resumes them when we're back. React Native has no
+// built-in network events, so the server itself is the signal: a request
+// that can't reach it marks the app offline, and from then on /health is
+// polled (and checked whenever the app comes to the front) until it answers.
+
+const PROBE_INTERVAL_MS = 5000;
+let probeTimer = null;
+
+const probe = async () => {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    if (response.ok) setOnline(true);
+  } catch {
+    // Still offline — try again on the next tick.
+  }
+};
+
+const setOnline = (online) => {
+  if (online) {
+    clearInterval(probeTimer);
+    probeTimer = null;
+  } else if (!probeTimer) {
+    probeTimer = setInterval(probe, PROBE_INTERVAL_MS);
+  }
+  if (onlineManager.isOnline() !== online) onlineManager.setOnline(online);
+};
+
+AppState.addEventListener("change", (status) => {
+  if (status === "active" && !onlineManager.isOnline()) probe();
+});
+
+// ---- Requests --------------------------------------------------------------
+
+// `idempotencyKey`: sent as Idempotency-Key, so the server applies a change
+// once however many times it's sent (see services/queryClient.js).
+// `etag`: sent as If-None-Match; a 304 then resolves to NOT_MODIFIED.
+export const NOT_MODIFIED = Symbol("not modified");
+
+const send = async (
+  method,
+  path,
+  body,
+  { token, idempotencyKey, etag } = {},
+) => {
   const authToken = token ?? useAuthStore.getState().token;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -45,15 +93,20 @@ export const request = async (method, path, body, { token } = {}) => {
         Accept: "application/json",
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        ...(etag ? { "If-None-Match": etag } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
   } catch {
+    setOnline(false);
     throw new ApiError("Can't reach the ReelBoard server", 0);
   } finally {
     clearTimeout(timer);
   }
+  setOnline(true);
+  if (response.status === 304) return { response, data: NOT_MODIFIED };
 
   const text = await response.text();
   let data = null;
@@ -74,7 +127,19 @@ export const request = async (method, path, body, { token } = {}) => {
       data?.error?.details,
     );
   }
-  return data;
+  return { response, data };
+};
+
+export const request = async (method, path, body, options) =>
+  (await send(method, path, body, options)).data;
+
+// A GET that the server can answer with "unchanged": resolves to
+// NOT_MODIFIED when `etag` still matches, or { data, etag } otherwise.
+export const requestIfChanged = async (path, etag) => {
+  const { response, data } = await send("GET", path, undefined, { etag });
+  return data === NOT_MODIFIED
+    ? NOT_MODIFIED
+    : { data, etag: response.headers.get("etag") };
 };
 
 export const api = {

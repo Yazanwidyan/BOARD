@@ -1,5 +1,3 @@
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
@@ -13,7 +11,7 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { getMovieById } from "../data/movies";
-import { useFriendsStore } from "../store/friendsStore";
+import { useFriends } from "../store/friendsStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -141,14 +139,7 @@ export const ActivityScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const { friends, activity, loaded, loading, error, refresh } =
-    useFriendsStore();
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
+  const { friends, activity, loaded, loading, error } = useFriends();
 
   const now = Date.now();
   const groups = groupByAge(
