@@ -21,6 +21,7 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { signOut } from "../services/sync";
 import { showToast } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
 import { useProfileStore } from "../store/profileStore";
@@ -306,12 +307,17 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Deleting lives on the Account screen (it asks for the password). */}
+        {/* Signing out is here, on its own. Deleting the account is kept
+            apart, on the Account screen ("Signed in as…" above). */}
         <View style={[styles.section, styles.dangerSection]}>
           <SettingsRow
-            label={t("Delete account")}
-            destructive
-            onPress={() => navigation.navigate("Account")}
+            label={t("Sign out")}
+            onPress={() =>
+              Alert.alert(t("Sign out?"), "", [
+                { text: t("Cancel"), style: "cancel" },
+                { text: t("Sign out"), style: "destructive", onPress: signOut },
+              ])
+            }
           />
         </View>
 

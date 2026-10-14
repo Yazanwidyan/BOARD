@@ -1143,6 +1143,8 @@ const ar = {
   "Remove {name}?": "إزالة {name}؟",
   "You'll stop seeing each other's activity.": "لن يرى أيٌّ منكما نشاط الآخر بعد الآن.",
   "Remove friend": "إزالة الصديق",
+  "Permanently deletes your account and everything in it.":
+    "يحذف حسابك وكل ما فيه نهائيًا.",
 };
 
 export default ar;

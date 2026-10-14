@@ -11,7 +11,7 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { t } from "../i18n";
-import { deleteAccount, signOut } from "../services/sync";
+import { deleteAccount } from "../services/sync";
 import { useAuthStore } from "../store/authStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -31,8 +31,10 @@ const Row = ({ label, value, onPress, destructive, styles }) => (
   </Pressable>
 );
 
-// The signed-in account: who you are, sign out, or delete the account (asks for the password — or, for an account made
-// with Google / Apple, which has none, for the word DELETE).
+// The signed-in account: who you are, and deleting it (asks for the
+// password — or, for an account made with Google / Apple, which has none,
+// for the word DELETE). Signing out is on the Settings screen, kept apart
+// from this.
 export const AccountScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
@@ -49,12 +51,6 @@ export const AccountScreen = ({ navigation }) => {
   const canDelete = hasPassword
     ? confirmation.length > 0
     : confirmation.trim().toUpperCase() === "DELETE";
-
-  const confirmSignOut = () =>
-    Alert.alert(t("Sign out?"), "", [
-      { text: t("Cancel"), style: "cancel" },
-      { text: t("Sign out"), style: "destructive", onPress: signOut },
-    ]);
 
   const confirmDelete = () =>
     Alert.alert(
@@ -110,10 +106,6 @@ export const AccountScreen = ({ navigation }) => {
         </View>
 
         <View style={[styles.section, styles.gap]}>
-          <Row label={t("Sign out")} onPress={confirmSignOut} styles={styles} />
-        </View>
-
-        <View style={[styles.section, styles.gap]}>
           <Row
             label={t("Delete account")}
             destructive
@@ -121,6 +113,9 @@ export const AccountScreen = ({ navigation }) => {
             styles={styles}
           />
         </View>
+        <Text style={styles.footnote}>
+          {t("Permanently deletes your account and everything in it.")}
+        </Text>
         {deleting && (
           <>
             <Text style={styles.fieldLabel}>
@@ -210,6 +205,12 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
       flexShrink: 1,
+    },
+    footnote: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     fieldLabel: {
       ...typography.caption,
