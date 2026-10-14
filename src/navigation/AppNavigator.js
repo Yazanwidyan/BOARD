@@ -30,7 +30,8 @@ import { AiPickScreen } from "../screens/AiPickScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
-import { AuthScreen } from "../screens/AuthScreen";
+import { EmailAuthScreen } from "../screens/EmailAuthScreen";
+import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { startSync } from "../services/sync";
 import { useAuthStore } from "../store/authStore";
 import { useUserStore } from "../store/userStore";
@@ -101,7 +102,10 @@ export const AppNavigator = () => {
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >
         {!signedIn ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
+          <>
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
+          </>
         ) : !accountReady ? (
           <Stack.Screen name="AccountLoading" component={AccountLoadingScreen} />
         ) : !hasCompletedOnboarding ? (

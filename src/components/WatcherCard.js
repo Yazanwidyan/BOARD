@@ -16,8 +16,9 @@ const TOP_BADGE_SIZE = 34;
 // The top of Profile — and the header of the shared taste image: who you
 // are as a watcher at a glance, laid out like a social profile.
 //
-//   avatar (with level ring)   name · level
+//   avatar (with level ring)   name
 //                              movies · hours · collections · badges
+//                              rank · XP to the next level
 //   "bio, as a quote"
 //   top badges — your best from each track, most valuable first
 //
@@ -32,6 +33,7 @@ export const WatcherCard = ({
   bio,
   avatarSource,
   level,
+  xpToNextLevel,
   earnedBadgeCount,
   showcase = [],
   allBadges = [],
@@ -71,17 +73,10 @@ export const WatcherCard = ({
           />
         </Touch>
         <View style={styles.side}>
-          {/* Name · level, over the numbers */}
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Touch onPress={onPressAvatar} hitSlop={6} style={styles.levelWrap}>
-              <Text style={styles.levelName} numberOfLines={1}>
-                · {level.name}
-              </Text>
-            </Touch>
-          </View>
+          {/* Just the name, over the numbers */}
+          <Text style={styles.name} numberOfLines={1}>
+            {displayName}
+          </Text>
           {isShare && <Text style={styles.handle}>{handle}</Text>}
           <View style={styles.stats}>
             {statItems.map(({ value, label, onPress }) => {
@@ -106,6 +101,26 @@ export const WatcherCard = ({
               );
             })}
           </View>
+          {/* Rank, and how far to the next level — under the numbers */}
+          <Touch
+            onPress={onPressAvatar}
+            hitSlop={6}
+            style={styles.rankRow}
+            accessibilityLabel={t("Your watcher profile")}
+          >
+            <Text style={styles.rankName} numberOfLines={1}>
+              {t(level.name)}
+              {xpToNextLevel != null && (
+                <Text style={styles.rankNext}>
+                  {" · "}
+                  {t("{count} XP to level {level}", {
+                    count: xpToNextLevel,
+                    level: level.level + 1,
+                  })}
+                </Text>
+              )}
+            </Text>
+          </Touch>
         </View>
       </View>
 
@@ -208,24 +223,24 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
-    nameRow: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: 6,
-    },
     name: {
       ...typography.title,
       fontSize: 18,
       color: colors.textPrimary,
-      flexShrink: 1,
     },
-    levelWrap: {
-      flexShrink: 0,
+    rankRow: {
+      marginTop: spacing.sm,
+      alignSelf: "flex-start",
     },
-    levelName: {
+    rankName: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 12,
       color: colors.textSecondary,
+    },
+    rankNext: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textMuted,
     },
     handle: {
       ...typography.caption,

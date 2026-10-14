@@ -454,7 +454,7 @@ const ar = {
     "{title} ‏({year}) — IMDb ‏{value}. وجدته على ReelBoard. https://youtu.be/{youtubeId}",
   "Browse Movies": "تصفّح الأفلام",
   "Search {rowIdsCount} movies...": "ابحث في {rowIdsCount} فيلماً...",
-  "Search the Top 250...": "ابحث في أفضل 250...",
+  "Search movies...": "ابحث عن الأفلام...",
   "Recent Searches": "عمليات البحث الأخيرة",
   "Your recent searches will appear here.": "ستظهر عمليات بحثك الأخيرة هنا.",
   'Nothing found for "{query}"': 'لا نتائج لـ"{query}"',
@@ -1108,6 +1108,24 @@ const ar = {
   "Try again": "حاول مجددًا",
   "You're offline — that change wasn't saved": "أنت غير متصل — لم يُحفظ هذا التغيير",
   "Couldn't save that change: {error}": "تعذّر حفظ هذا التغيير: {error}",
+
+  // ---- Welcome / sign-in ----
+  "Continue with Google": "المتابعة باستخدام Google",
+  "Continue with Apple": "المتابعة باستخدام Apple",
+  "Continue with email": "المتابعة بالبريد الإلكتروني",
+  "Track what you watch, tier it with friends, and let ReelBoard pick tonight's movie.":
+    "تابِع ما تشاهده، وصنّفه مع أصدقائك، ودع ReelBoard يختار فيلم الليلة.",
+  "Type DELETE to confirm": "اكتب DELETE للتأكيد",
+  "Google sign-in isn't set up yet — it needs the app's Google client ids.":
+    "تسجيل الدخول عبر Google غير مُعدّ بعد — يحتاج إلى معرّفات عميل Google الخاصة بالتطبيق.",
+  "Google sign-in needs a new build of the app.":
+    "تسجيل الدخول عبر Google يحتاج إلى إصدار جديد من التطبيق.",
+  "Google didn't send a sign-in token — check the web client id.":
+    "لم يُرسل Google رمز تسجيل الدخول — تحقّق من معرّف عميل الويب.",
+  "Sign in with Apple needs an iPhone and a new build of the app.":
+    "تسجيل الدخول عبر Apple يحتاج إلى iPhone وإصدار جديد من التطبيق.",
+  "Apple didn't send a sign-in token — try again.":
+    "لم تُرسل Apple رمز تسجيل الدخول — حاول مجددًا.",
 
   // ---- Friends & activity (live) ----
   "You're now friends with {handle}": "أنت الآن صديق لـ {handle}",

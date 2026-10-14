@@ -65,7 +65,7 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder={t("Search the Top 250...")}
+          placeholder={t("Search movies...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}

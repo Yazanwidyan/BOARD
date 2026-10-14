@@ -95,7 +95,7 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
               ? t("Search {rowIdsCount} movies...", {
                   rowIdsCount: rowIds.length,
                 })
-              : t("Search the Top 250...")
+              : t("Search movies...")
           }
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}

@@ -11,10 +11,8 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { t } from "../i18n";
-import { API_URL } from "../services/api";
-import { deleteAccount, reload, signOut } from "../services/sync";
+import { deleteAccount, signOut } from "../services/sync";
 import { useAuthStore } from "../store/authStore";
-import { showToast } from "../store/toastStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -33,8 +31,8 @@ const Row = ({ label, value, onPress, destructive, styles }) => (
   </Pressable>
 );
 
-// The signed-in account: who you are, reload from the server, sign out,
-// or delete the account (asks for the password).
+// The signed-in account: who you are, sign out, or delete the account (asks for the password — or, for an account made
+// with Google / Apple, which has none, for the word DELETE).
 export const AccountScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
@@ -43,22 +41,14 @@ export const AccountScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState(null);
 
   if (!user) return <View style={styles.container} />;
-
-  const refresh = async () => {
-    setBusy(true);
-    try {
-      await reload();
-      showToast(t("Up to date"), { tone: "success" });
-    } catch (err) {
-      showToast(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const hasPassword = user.hasPassword !== false;
+  const canDelete = hasPassword
+    ? confirmation.length > 0
+    : confirmation.trim().toUpperCase() === "DELETE";
 
   const confirmSignOut = () =>
     Alert.alert(t("Sign out?"), "", [
@@ -81,7 +71,9 @@ export const AccountScreen = ({ navigation }) => {
             setBusy(true);
             setError(null);
             try {
-              await deleteAccount(password);
+              await deleteAccount(
+                hasPassword ? { password: confirmation } : { confirm: "DELETE" },
+              );
             } catch (err) {
               setError(err.message);
               setBusy(false);
@@ -118,12 +110,6 @@ export const AccountScreen = ({ navigation }) => {
         </View>
 
         <View style={[styles.section, styles.gap]}>
-          <Row
-            label={busy ? t("Loading…") : t("Reload from server")}
-            value={API_URL}
-            onPress={busy ? null : refresh}
-            styles={styles}
-          />
           <Row label={t("Sign out")} onPress={confirmSignOut} styles={styles} />
         </View>
 
@@ -138,14 +124,19 @@ export const AccountScreen = ({ navigation }) => {
         {deleting && (
           <>
             <Text style={styles.fieldLabel}>
-              {t("Enter your password to confirm")}
+              {hasPassword
+                ? t("Enter your password to confirm")
+                : t("Type DELETE to confirm")}
             </Text>
             <View style={styles.fieldBox}>
               <TextInput
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="current-password"
+                value={confirmation}
+                onChangeText={setConfirmation}
+                secureTextEntry={hasPassword}
+                autoComplete={hasPassword ? "current-password" : "off"}
+                autoCapitalize={hasPassword ? "none" : "characters"}
+                autoCorrect={false}
+                placeholder={hasPassword ? "" : "DELETE"}
                 placeholderTextColor={colors.textMuted}
                 style={styles.fieldInput}
               />
@@ -155,7 +146,7 @@ export const AccountScreen = ({ navigation }) => {
               label={t("Delete account forever")}
               variant="outline"
               onPress={confirmDelete}
-              disabled={busy || !password}
+              disabled={busy || !canDelete}
               style={styles.deleteButton}
               textStyle={styles.deleteText}
             />

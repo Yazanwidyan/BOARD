@@ -77,7 +77,7 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => query.trim() && addSearch(query)}
-          placeholder={t("Search the Top 250...")}
+          placeholder={t("Search movies...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}

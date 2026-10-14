@@ -17,6 +17,7 @@ import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 import { getLevel, getUserXP } from "../utils/xp";
 import { request } from "./api";
 import { loadCatalog } from "./catalog";
+import { signOutOfProviders } from "./socialAuth";
 
 // The ReelBoard server is the source of truth for everything the user
 // owns: library, tiers, boards, profile, settings, taste, challenges.
@@ -446,6 +447,15 @@ export const signIn = async ({ email, password }) => {
   await loadAccount();
 };
 
+// Google or Apple: `credentials` is what services/socialAuth got back from
+// the provider's sign-in sheet. Signs in to the matching account, or
+// creates one (which then starts with onboarding).
+export const signInWith = async (provider, credentials) => {
+  const { token, user } = await request("POST", `/auth/${provider}`, credentials);
+  useAuthStore.getState().setSession(token, user);
+  await loadAccount();
+};
+
 // A new account starts empty; onboarding runs next and saves to it.
 export const register = async ({ displayName, email, password }) => {
   const { token, user } = await request("POST", "/auth/register", {
@@ -467,11 +477,14 @@ const clearStores = () => {
 };
 
 export const signOut = () => {
+  signOutOfProviders();
   useAuthStore.getState().clearSession();
 };
 
-export const deleteAccount = async (password) => {
-  await request("DELETE", "/me", { password });
+// `confirmation`: { password } — or { confirm: "DELETE" } for an account
+// made with Google / Apple, which has no password.
+export const deleteAccount = async (confirmation) => {
+  await request("DELETE", "/me", confirmation);
   signOut();
 };
 

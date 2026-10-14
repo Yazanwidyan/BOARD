@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { Image, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 
 import { Text } from "../components/AppText";
 import { PrimaryButton } from "../components/PrimaryButton";
+import {
+  StackHeader,
+  useStackHeaderScroll,
+} from "../components/ScreenHeader";
 import { t } from "../i18n";
-import { API_URL } from "../services/api";
 import { register, signIn } from "../services/sync";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-
-const LOGO_LIGHT = require("../../assets/reelboard-logo-black.png");
-const LOGO_DARK = require("../../assets/reelboard-logo-white.png");
 
 const Field = ({ label, styles, colors, ...inputProps }) => (
   <>
@@ -28,11 +28,13 @@ const Field = ({ label, styles, colors, ...inputProps }) => (
   </>
 );
 
-// The way in: sign in, or create an account. Everything in ReelBoard
-// belongs to an account on the server, so this comes before anything else.
-export const AuthScreen = () => {
+// Sign in or create an account with email and password — reached from the
+// welcome screen's "Continue with email".
+export const EmailAuthScreen = ({ navigation }) => {
+  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState("signIn"); // "signIn" | "register"
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -64,18 +66,23 @@ export const AuthScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StackHeader
+        title={t("Continue with email")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+      />
       <Animated.ScrollView
-        contentContainerStyle={styles.content}
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + spacing.xl },
+        ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
-        <Image
-          source={colors.isDark ? LOGO_DARK : LOGO_LIGHT}
-          style={styles.logo}
-          resizeMode="contain"
-        />
         <Text style={styles.intro}>
           {isRegister
             ? t("Create your account — your library, tiers and boards are saved to it.")
@@ -151,12 +158,8 @@ export const AuthScreen = () => {
           disabled={busy || !email.trim() || !password}
           style={styles.submit}
         />
-
-        <Text style={styles.server}>
-          {t("Server")}: {API_URL}
-        </Text>
       </Animated.ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -167,13 +170,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     content: {
-      paddingTop: spacing.xl,
-      paddingBottom: spacing.xl,
-    },
-    logo: {
-      alignSelf: "center",
-      width: 180,
-      height: 48,
+      paddingTop: spacing.md,
     },
     intro: {
       ...typography.body,
@@ -235,14 +232,6 @@ const createStyles = (colors) =>
       marginTop: spacing.lg,
       marginHorizontal: spacing.md,
     },
-    server: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textMuted,
-      textAlign: "center",
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.md,
-    },
   });
 
-export default AuthScreen;
+export default EmailAuthScreen;
