@@ -15,7 +15,8 @@
     "backgroundColor": "#0C1014",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yazanwidyan.reelboard"
+      "bundleIdentifier": "com.yazanwidyan.reelboard",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -51,7 +52,8 @@
         }
       ],
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-apple-authentication"
     ]
   }
 }

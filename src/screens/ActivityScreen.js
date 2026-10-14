@@ -1,3 +1,5 @@
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
@@ -10,8 +12,8 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { MOCK_FRIENDS, getMockActivity } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
+import { useFriendsStore } from "../store/friendsStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -131,17 +133,26 @@ const EventVisual = ({ event, onOpenMovie, styles }) => {
   return null;
 };
 
-// Activity (MOCK — see data/mockFriends): what your friends have been
-// watching, tiering, saving and finishing, newest first, grouped by age.
+// Activity: what your friends have been watching, tiering, saving and
+// finishing, newest first, grouped by age (from the ReelBoard server).
 // Tap an event for that friend's page, a poster for the movie.
 export const ActivityScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const { friends, activity, loaded, loading, error, refresh } =
+    useFriendsStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
   const now = Date.now();
   const groups = groupByAge(
-    getMockActivity(now).sort((a, b) => b.timestamp - a.timestamp),
+    [...activity].sort((a, b) => b.timestamp - a.timestamp),
     now,
   );
   const openMovie = (movieId) =>
@@ -169,7 +180,7 @@ export const ActivityScreen = ({ navigation }) => {
           onPress={() => navigation.navigate("Friends")}
         >
           <View style={styles.avatarStack}>
-            {MOCK_FRIENDS.slice(0, AVATARS_SHOWN).map((friend, index) => (
+            {friends.slice(0, AVATARS_SHOWN).map((friend, index) => (
               <FriendAvatar
                 key={friend.id}
                 friend={friend}
@@ -180,7 +191,7 @@ export const ActivityScreen = ({ navigation }) => {
           </View>
           <View style={styles.friendsText}>
             <Text style={styles.friendsTitle}>
-              {MOCK_FRIENDS.length} friends
+              {t("{count} friends", { count: friends.length })}
             </Text>
             <Text style={styles.friendsSubtitle}>
               {t("Compare tiers · invite more")}
@@ -225,9 +236,21 @@ export const ActivityScreen = ({ navigation }) => {
           </View>
         ))}
 
-        <Text style={styles.footnote}>
-          {t("Activity is a preview: sample friends for now.")}
-        </Text>
+        {loaded && activity.length === 0 && (
+          <Text style={styles.footnote}>
+            {friends.length === 0
+              ? t("Add friends to see what they're watching.")
+              : t("Nothing yet — your friends' watches and tiers show up here.")}
+          </Text>
+        )}
+        {!loaded && loading && (
+          <Text style={styles.footnote}>{t("Loading…")}</Text>
+        )}
+        {!!error && (
+          <Text style={styles.footnote}>
+            {t("Couldn't load activity: {error}", { error })}
+          </Text>
+        )}
       </Animated.ScrollView>
     </View>
   );
@@ -330,6 +353,7 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       textAlign: "center",
       marginTop: spacing.lg,
+      paddingHorizontal: spacing.md,
     },
   });
 

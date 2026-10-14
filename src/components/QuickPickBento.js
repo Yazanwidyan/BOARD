@@ -4,7 +4,7 @@ import { Text } from "./AppText";
 import Svg, { Path } from "react-native-svg";
 import { Heart } from "lucide-react-native";
 
-import { MOVIES } from "../data/movies";
+import { MOVIES, getCatalogVersion } from "../data/movies";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -18,16 +18,26 @@ const REEL_POSTER_HEIGHT = REEL_POSTER_WIDTH * 1.5;
 const REEL_WINDOW_HEIGHT = 124;
 const REEL_GAP = 2;
 
-// Highest-rated titles make the decorative posters — computed once at
-// module load, the catalog is static.
-const SHOWCASE_POSTERS = [...MOVIES]
-  .sort((a, b) => b.rating - a.rating)
-  .slice(0, 8)
-  .map((movie) => movie.poster);
-const AI_POSTERS = SHOWCASE_POSTERS.slice(0, 2);
-const SWIPE_POSTERS = SHOWCASE_POSTERS.slice(2, 5);
-const REEL_POSTERS = SHOWCASE_POSTERS.slice(5, 8);
-const NIGHT_POSTERS = SHOWCASE_POSTERS.slice(0, 2);
+// Highest-rated titles make the decorative posters — picked once per
+// catalog load (the catalog comes from the server after start-up).
+let showcase = null;
+const getShowcase = () => {
+  const version = getCatalogVersion();
+  if (showcase?.version !== version) {
+    const posters = [...MOVIES]
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 8)
+      .map((movie) => movie.poster);
+    showcase = {
+      version,
+      ai: posters.slice(0, 2),
+      swipe: posters.slice(2, 5),
+      reel: posters.slice(5, 8),
+      night: posters.slice(0, 2),
+    };
+  }
+  return showcase;
+};
 
 const MiniReel = ({ colors, styles }) => {
   const slotTop = (REEL_WINDOW_HEIGHT - REEL_POSTER_HEIGHT) / 2;
@@ -43,7 +53,7 @@ const MiniReel = ({ colors, styles }) => {
             { top: slotTop - REEL_POSTER_HEIGHT - REEL_GAP },
           ]}
         >
-          {REEL_POSTERS.map((uri) => (
+          {getShowcase().reel.map((uri) => (
             <MoviePoster key={uri} uri={uri} style={styles.reelPoster} />
           ))}
         </View>
@@ -79,7 +89,7 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
       <Pressable style={styles.aiGlow} onPress={onAI}>
         <View style={styles.aiTile}>
           <View style={styles.aiPosters} pointerEvents="none">
-            {AI_POSTERS.map((uri, index) => (
+            {getShowcase().ai.map((uri, index) => (
               <MoviePoster
                 key={uri}
                 uri={uri}
@@ -110,7 +120,7 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
       <View style={styles.halfRow}>
         <Pressable style={styles.halfTile} onPress={onSwipe}>
           <View style={styles.preview}>
-            {SWIPE_POSTERS.map((uri, index) => (
+            {getShowcase().swipe.map((uri, index) => (
               <MoviePoster
                 key={uri}
                 uri={uri}
@@ -141,7 +151,7 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
             </Text>
           </View>
           <View style={styles.nightPreview} pointerEvents="none">
-            {NIGHT_POSTERS.map((uri, index) => (
+            {getShowcase().night.map((uri, index) => (
               <MoviePoster
                 key={uri}
                 uri={uri}

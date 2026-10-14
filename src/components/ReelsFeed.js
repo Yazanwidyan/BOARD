@@ -31,7 +31,6 @@ import { getTastePicks } from "../utils/tasteEngine";
 import { getTier, getTierInfo } from "../utils/tiers";
 import { t } from "../i18n";
 
-const CLIPS_BY_MOVIE = new Map(REEL_CLIPS.map((clip) => [clip.movieId, clip]));
 const VIDEO_RATIO = 9 / 16;
 
 // ---------- hand-drawn rail marks (no icon set) ----------
@@ -168,14 +167,15 @@ const SoundMark = ({ color, muted }) => (
 // Clips for movies you haven't seen come first, ranked by the taste engine
 // (with its reason, e.g. "this is Nolan too"); ones you've seen follow.
 const buildFeed = (watched, bucketList) => {
+  const clipsByMovie = new Map(REEL_CLIPS.map((clip) => [clip.movieId, clip]));
   const picks = getTastePicks(watched, {
     watchlist: bucketList.map((entry) => entry.movieId),
     count: MOVIES.length,
   });
   const unseen = picks
-    .filter((pick) => CLIPS_BY_MOVIE.has(pick.movie.id))
+    .filter((pick) => clipsByMovie.has(pick.movie.id))
     .map((pick) => ({
-      clip: CLIPS_BY_MOVIE.get(pick.movie.id),
+      clip: clipsByMovie.get(pick.movie.id),
       movie: pick.movie,
       reason: pick.reasons[0] ?? null,
       match: pick.match,

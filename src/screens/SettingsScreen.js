@@ -22,26 +22,22 @@ import {
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { showToast } from "../store/toastStore";
-import { useMovieStore } from "../store/movieStore";
+import { useAuthStore } from "../store/authStore";
 import { useProfileStore } from "../store/profileStore";
-import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { useTipsStore } from "../store/tipsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { changeLanguage } from "../i18n";
-import { useUserStore } from "../store/userStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { resetAppData } from "../utils/resetAppData";
 import { t } from "../i18n";
 
 const APP_VERSION = "1.0.0";
 const BIO_MAX_LENGTH = 140;
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
-// One-line "not yet" notices go to a toast; real confirmations
-// (destructive actions) stay native Alerts below.
+// One-line notices (e.g. photo access needed) go to a toast.
 const showStub = (title, message) => showToast(message || title);
 
 // A plain text row on the page, split from the next by a hairline — no
@@ -67,28 +63,14 @@ const SettingsRow = ({ label, onPress, destructive, value }) => {
   );
 };
 
-const confirmAction = (title, message, onConfirm) => {
-  Alert.alert(title, message, [
-    { text: "Cancel", style: "cancel" },
-    { text: "Confirm", style: "destructive", onPress: onConfirm },
-  ]);
-};
-
 export const SettingsScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
-  const clearBucketList = useMovieStore((state) => state.clearBucketList);
-  const clearPickedMovie = useMovieStore((state) => state.clearPickedMovie);
-  const clearWatched = useMovieStore((state) => state.clearWatched);
-  const endSession = useSessionStore((state) => state.endSession);
-  const replayOnboarding = useUserStore((state) => state.replayOnboarding);
   const displayName = useProfileStore((state) => state.displayName);
   const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const bio = useProfileStore((state) => state.bio);
   const setBio = useProfileStore((state) => state.setBio);
-  const email = useProfileStore((state) => state.email);
-  const setEmail = useProfileStore((state) => state.setEmail);
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const insets = useSafeAreaInsets();
@@ -96,6 +78,7 @@ export const SettingsScreen = ({ navigation }) => {
   const setThemeMode = useThemeStore((state) => state.setMode);
   const language = useLanguageStore((state) => state.language);
   const resetTips = useTipsStore((state) => state.resetTips);
+  const account = useAuthStore((state) => state.user);
 
   const handleNameBlur = () => {
     if (!displayName.trim()) setDisplayName("You");
@@ -202,16 +185,13 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.fieldLabel}>{t("Email")}</Text>
-        <View style={styles.fieldBox}>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t("you@example.com")}
-            placeholderTextColor={colors.textMuted}
-            style={styles.fieldInput}
-            autoCapitalize="none"
-            keyboardType="email-address"
+        {/* The account's email is its sign-in, so it's shown, not edited. */}
+        <Text style={styles.sectionLabel}>{t("Account")}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            label={t("Signed in as {handle}", { handle: account?.handle ?? "" })}
+            value={account?.email}
+            onPress={() => navigation.navigate("Account")}
           />
         </View>
 
@@ -220,53 +200,6 @@ export const SettingsScreen = ({ navigation }) => {
           <SettingsRow
             label={t("Preferences")}
             onPress={() => navigation.navigate("Preferences")}
-          />
-          <SettingsRow
-            label={t("Reset recommendations")}
-            onPress={() =>
-              confirmAction(
-                t("Reset Recommendations"),
-                t("This will end your current pick session."),
-                endSession,
-              )
-            }
-          />
-        </View>
-
-        <Text style={styles.sectionLabel}>{t("Your data")}</Text>
-        <View style={styles.section}>
-          <SettingsRow
-            label={t("Clear watchlist")}
-            destructive
-            onPress={() =>
-              confirmAction(
-                t("Clear Watchlist"),
-                t("This will remove all movies from your watchlist."),
-                clearBucketList,
-              )
-            }
-          />
-          <SettingsRow
-            label={t("Clear current pick")}
-            destructive
-            onPress={() =>
-              confirmAction(
-                t("Clear Current Pick"),
-                t("This will remove tonight’s pick from your Home screen."),
-                clearPickedMovie,
-              )
-            }
-          />
-          <SettingsRow
-            label={t("Clear watched history")}
-            destructive
-            onPress={() =>
-              confirmAction(
-                t("Clear Watched History"),
-                t("This will remove all movies marked as watched."),
-                clearWatched,
-              )
-            }
           />
         </View>
 
@@ -335,10 +268,6 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.sectionLabel}>{t("App")}</Text>
         <View style={styles.section}>
           <SettingsRow
-            label={t("Replay onboarding")}
-            onPress={replayOnboarding}
-          />
-          <SettingsRow
             label={t("Show tips again")}
             onPress={() => {
               resetTips();
@@ -360,32 +289,12 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>{t("Friend invites")}</Text>
-        <View style={styles.section}>
-          <SettingsRow
-            label={t("Enter referral code")}
-            onPress={() =>
-              showStub(
-                t("Referral Codes"),
-                t("ReelBoard doesn't have referral codes yet."),
-              )
-            }
-          />
-        </View>
-
+        {/* Deleting lives on the Account screen (it asks for the password). */}
         <View style={[styles.section, styles.dangerSection]}>
           <SettingsRow
             label={t("Delete account")}
             destructive
-            onPress={() =>
-              confirmAction(
-                t("Delete Account"),
-                t(
-                  "ReelBoard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
-                ),
-                resetAppData,
-              )
-            }
+            onPress={() => navigation.navigate("Account")}
           />
         </View>
 

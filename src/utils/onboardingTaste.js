@@ -65,10 +65,11 @@ const WELL_KNOWN = [
   "Inside Out",
   "Men in Black",
   "Pirates of the Caribbean: The Curse of the Black Pearl",
-]
-  .map(byTitle)
-  .filter(Boolean);
-const WELL_KNOWN_IDS = new Set(WELL_KNOWN.map((movie) => movie.id));
+];
+
+// Looked up in the catalog when needed — it loads from the server after
+// start-up, so not at module load.
+const wellKnownMovies = () => WELL_KNOWN.map(byTitle).filter(Boolean);
 
 const distance = (a, b) =>
   Math.sqrt(
@@ -82,7 +83,7 @@ const distance = (a, b) =>
 // as possible (farthest-point sampling in Taste DNA space), from a random
 // start so replays differ.
 export const pickSpreadMovies = (count, excludeIds = new Set()) => {
-  const pool = WELL_KNOWN.filter((movie) => !excludeIds.has(movie.id));
+  const pool = wellKnownMovies().filter((movie) => !excludeIds.has(movie.id));
   if (pool.length === 0) return [];
   const chosen = [pool[Math.floor(Math.random() * pool.length)]];
   while (chosen.length < Math.min(count, pool.length)) {
@@ -108,10 +109,11 @@ export const pickMoreMovies = (count, shownIds, seenMovies) => {
   if (seenMovies.length === 0) return pickSpreadMovies(count, shownIds);
   const closest = (movie) =>
     Math.min(...seenMovies.map((seen) => distance(movie, seen)));
+  const wellKnownIds = new Set(wellKnownMovies().map((movie) => movie.id));
   return MOVIES.filter((movie) => !shownIds.has(movie.id))
     .map((movie) => ({
       movie,
-      score: closest(movie) - (WELL_KNOWN_IDS.has(movie.id) ? 1.5 : 0),
+      score: closest(movie) - (wellKnownIds.has(movie.id) ? 1.5 : 0),
     }))
     .sort((a, b) => a.score - b.score)
     .slice(0, count)

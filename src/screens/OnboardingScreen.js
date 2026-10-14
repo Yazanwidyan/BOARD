@@ -1,8 +1,7 @@
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { Bookmark, Check, Share2 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -13,26 +12,15 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Text } from "../components/AppText";
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
 import { Confetti } from "../components/AchievementModal";
-import { BackButton } from "../components/BackButton";
-import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { TasteDnaRadar } from "../components/TasteDnaRadar";
-import { MOVIES, getMovieById } from "../data/movies";
+import { getMovieById } from "../data/movies";
 import { DIMENSIONS } from "../data/vibes";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -52,9 +40,10 @@ import { getUserXP } from "../utils/xp";
 import { t } from "../i18n";
 
 // "Play, don't tell", built around Taste DNA (data/vibes.js). In about a
-// minute the engine gets real signals instead of a pile of checkmarks:
+// minute the engine gets real signals instead of a pile of checkmarks.
+// It starts straight at "seen" — the sign-in screen just before it is the
+// welcome (poster wall and all).
 //
-//   welcome      the poster wall
 //   seen         a grid spread across every kind of taste (not the top of
 //                the Top 250); "Show more" brings more like what you've seen
 //   quick tier   up to six of those, one at a time: Loved / Liked / Not
@@ -64,19 +53,16 @@ import { t } from "../i18n";
 //                your name on a card you can share
 //   tonight      three picks from the real taste engine, with reasons
 //
-// Everything after "seen" can be skipped; Skip (top right) ends it.
-const STEP = { welcome: 0, seen: 1, tier: 2, versus: 3, dna: 4, pick: 5 };
-const STEP_COUNT = 5; // segments in the progress bar (everything but welcome)
+// No top bar — each step's bottom button moves on (several double as a
+// skip: "I haven't seen these", "Skip the rest", "Skip", "Maybe later").
+const STEP = { seen: 1, tier: 2, versus: 3, dna: 4, pick: 5 };
 
 const SEEN_FIRST = 12;
 const SEEN_MORE = 9;
 const SEEN_COLUMNS = 3;
 const TIER_MAX = 6;
 const PICK_COUNT = 3;
-const WALL_COLUMNS = 3;
-const WALL_PER_COLUMN = 6;
 // Posters sit 2px apart everywhere in the app.
-const WALL_GAP = 2;
 const GRID_GAP = 2;
 
 // Tap cycle on a poster: nothing → seen → want → nothing.
@@ -87,102 +73,6 @@ const QUICK_TIERS = [
   { tier: "B", label: "Liked it" },
   { tier: "D", label: "Not for me" },
 ];
-
-const ProgressBar = ({ step, styles }) => (
-  <View style={styles.progressRow}>
-    {Array.from({ length: STEP_COUNT }).map((_, index) => (
-      <View
-        key={index}
-        style={[
-          styles.progressSegment,
-          index + 1 <= step && styles.progressSegmentActive,
-        ]}
-      />
-    ))}
-  </View>
-);
-
-// One slowly drifting column of the welcome screen's poster wall —
-// alternate columns drift in opposite directions.
-const WallColumn = ({ movies, index, width, styles }) => {
-  const offset = useSharedValue(0);
-  const posterHeight = width * 1.5;
-  const travel = posterHeight + WALL_GAP;
-  // Reduce Motion: the poster wall stays still.
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    offset.value = withRepeat(
-      withTiming(1, { duration: 18000 + index * 4000, easing: Easing.linear }),
-      -1,
-      true,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          (index % 2 === 0 ? -1 : 1) * travel * offset.value -
-          (index % 2 === 0 ? 0 : travel),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View style={[styles.wallColumn, style]}>
-      {movies.map((movie) => (
-        <MoviePoster
-          key={movie.id}
-          uri={movie.poster}
-          style={{ width, height: posterHeight }}
-        />
-      ))}
-    </Animated.View>
-  );
-};
-
-const WelcomeStep = ({ colors, styles }) => {
-  const { width } = useWindowDimensions();
-  const columnWidth = (width - WALL_GAP * (WALL_COLUMNS + 1)) / WALL_COLUMNS;
-  const wallMovies = MOVIES.slice(0, WALL_COLUMNS * WALL_PER_COLUMN);
-
-  return (
-    <View style={styles.welcome}>
-      <View style={styles.wall} pointerEvents="none">
-        {Array.from({ length: WALL_COLUMNS }, (_, index) => (
-          <WallColumn
-            key={index}
-            index={index}
-            width={columnWidth}
-            styles={styles}
-            movies={wallMovies.slice(
-              index * WALL_PER_COLUMN,
-              (index + 1) * WALL_PER_COLUMN,
-            )}
-          />
-        ))}
-      </View>
-      <LinearGradient
-        pointerEvents="none"
-        colors={["rgba(2, 0, 2, 0.35)", colors.background]}
-        locations={[0, 0.72]}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.welcomeText}>
-        <ReelBoardIcon size={56} color={colors.textPrimary} />
-        <Text style={styles.welcomeTitle}>{t("Bored? Let's fix that.")}</Text>
-        <Text style={styles.subtitle}>
-          {t(
-            "Tell us what you've seen and what you're into. We'll map your taste and pick tonight's movie. About a minute.",
-          )}
-        </Text>
-      </View>
-    </View>
-  );
-};
 
 // ---------- What have you seen? ----------
 const SeenStep = ({ movies, marks, onTap, onMore, canMore, styles, colors }) => {
@@ -486,7 +376,7 @@ const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => (
 export const OnboardingScreen = () => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const [step, setStep] = useState(STEP.welcome);
+  const [step, setStep] = useState(STEP.seen);
   const currentName = useProfileStore((state) => state.displayName);
   const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
@@ -647,7 +537,6 @@ export const OnboardingScreen = () => {
   };
 
   const handleNext = () => {
-    if (step === STEP.welcome) return goToStep(STEP.seen);
     if (step === STEP.seen) {
       applyMarks();
       // Quick tier the seen ones that aren't tiered yet.
@@ -677,16 +566,8 @@ export const OnboardingScreen = () => {
     }
   };
 
-  const handleBack = () => {
-    if (step === STEP.versus && tierQueue.length === 0) {
-      return goToStep(STEP.seen);
-    }
-    goToStep(Math.max(0, step - 1));
-  };
-
   const markedCount = Object.keys(marks).length;
   const footer = {
-    [STEP.welcome]: { label: t("Get started"), primary: true },
     [STEP.seen]:
       markedCount > 0
         ? { label: t("Continue"), primary: true }
@@ -704,107 +585,87 @@ export const OnboardingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      {step === STEP.welcome ? (
-        <WelcomeStep colors={colors} styles={styles} />
-      ) : (
-        <>
-          <View style={styles.topBar}>
-            <View style={styles.topBarSlot}>
-              <BackButton onPress={handleBack} size={36} />
-            </View>
-            <ProgressBar step={step} styles={styles} />
-            <View style={[styles.topBarSlot, styles.topBarSlotRight]}>
-              {step !== STEP.pick && (
-                <Pressable onPress={finish} hitSlop={8}>
-                  <Text style={styles.skipText}>{t("Skip")}</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          <Animated.View
-            key={step}
-            entering={FadeIn.duration(250)}
-            style={styles.contentWrap}
-          >
-            <ScrollView
-              contentContainerStyle={styles.content}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {step === STEP.seen && (
-                <SeenStep
-                  movies={gridMovies}
-                  marks={marks}
-                  onTap={tapPoster}
-                  onMore={showMore}
-                  canMore={gridMovies.length < 40}
-                  styles={styles}
-                  colors={colors}
-                />
-              )}
-              {step === STEP.tier && tierMovie && (
-                <QuickTierStep
-                  movie={tierMovie}
-                  position={tierIndex + 1}
-                  total={tierQueue.length}
-                  onAnswer={answerTier}
-                  styles={styles}
-                />
-              )}
-              {step === STEP.versus && question && (
-                <VersusStep
-                  question={question}
-                  position={questionIndex + 1}
-                  total={questions.length}
-                  onAnswer={answerVersus}
-                  styles={styles}
-                />
-              )}
-              {step === STEP.dna && (
-                <DnaStep
-                  fingerprint={fingerprint}
-                  archetype={getArchetype(fingerprint)}
-                  xp={xpGained}
-                  seenCount={seenIds.length}
-                  name={name}
-                  onChangeName={setName}
-                  cardRef={cardRef}
-                  onShare={shareCard}
-                  isSharing={isSharing}
-                  styles={styles}
-                  colors={colors}
-                />
-              )}
-              {step === STEP.pick && (
-                <PickStep
-                  picks={picks}
-                  selectedId={selectedPickId}
-                  onSelect={(id) => {
-                    Haptics.selectionAsync();
-                    setSelectedPickId((current) =>
-                      current === id ? null : id,
-                    );
-                  }}
-                  styles={styles}
-                  colors={colors}
-                />
-              )}
-            </ScrollView>
-          </Animated.View>
-
-          {step === STEP.dna && (
-            <Confetti
-              palette={[
-                colors.accent,
-                colors.accentLight,
-                colors.rating,
-                colors.success,
-                colors.danger,
-              ]}
+      <Animated.View
+        key={step}
+        entering={FadeIn.duration(250)}
+        style={styles.contentWrap}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {step === STEP.seen && (
+            <SeenStep
+              movies={gridMovies}
+              marks={marks}
+              onTap={tapPoster}
+              onMore={showMore}
+              canMore={gridMovies.length < 40}
+              styles={styles}
+              colors={colors}
             />
           )}
-        </>
+          {step === STEP.tier && tierMovie && (
+            <QuickTierStep
+              movie={tierMovie}
+              position={tierIndex + 1}
+              total={tierQueue.length}
+              onAnswer={answerTier}
+              styles={styles}
+            />
+          )}
+          {step === STEP.versus && question && (
+            <VersusStep
+              question={question}
+              position={questionIndex + 1}
+              total={questions.length}
+              onAnswer={answerVersus}
+              styles={styles}
+            />
+          )}
+          {step === STEP.dna && (
+            <DnaStep
+              fingerprint={fingerprint}
+              archetype={getArchetype(fingerprint)}
+              xp={xpGained}
+              seenCount={seenIds.length}
+              name={name}
+              onChangeName={setName}
+              cardRef={cardRef}
+              onShare={shareCard}
+              isSharing={isSharing}
+              styles={styles}
+              colors={colors}
+            />
+          )}
+          {step === STEP.pick && (
+            <PickStep
+              picks={picks}
+              selectedId={selectedPickId}
+              onSelect={(id) => {
+                Haptics.selectionAsync();
+                setSelectedPickId((current) =>
+                  current === id ? null : id,
+                );
+              }}
+              styles={styles}
+              colors={colors}
+            />
+          )}
+        </ScrollView>
+      </Animated.View>
+
+      {step === STEP.dna && (
+        <Confetti
+          palette={[
+            colors.accent,
+            colors.accentLight,
+            colors.rating,
+            colors.success,
+            colors.danger,
+          ]}
+        />
       )}
 
       <View style={styles.footer}>
@@ -819,8 +680,6 @@ export const OnboardingScreen = () => {
   );
 };
 
-const TOP_BAR_SLOT_WIDTH = 56;
-
 const createStyles = (colors) =>
   StyleSheet.create({
     container: {
@@ -829,39 +688,6 @@ const createStyles = (colors) =>
     },
     pressed: {
       opacity: 0.75,
-    },
-    topBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      gap: spacing.sm,
-    },
-    topBarSlot: {
-      width: TOP_BAR_SLOT_WIDTH,
-      alignItems: "flex-start",
-      justifyContent: "center",
-    },
-    topBarSlotRight: {
-      alignItems: "flex-end",
-    },
-    skipText: {
-      ...typography.body,
-      color: colors.textSecondary,
-    },
-    // Square segments: white for done, grey to go.
-    progressRow: {
-      flex: 1,
-      flexDirection: "row",
-      gap: 4,
-    },
-    progressSegment: {
-      flex: 1,
-      height: 3,
-      backgroundColor: colors.surfaceSoft,
-    },
-    progressSegmentActive: {
-      backgroundColor: colors.textPrimary,
     },
     contentWrap: {
       flex: 1,
@@ -908,33 +734,6 @@ const createStyles = (colors) =>
     moreText: {
       ...typography.bodyBold,
       color: colors.textPrimary,
-    },
-
-    // Welcome
-    welcome: {
-      flex: 1,
-      justifyContent: "flex-end",
-      overflow: "hidden",
-    },
-    wall: {
-      ...StyleSheet.absoluteFill,
-      flexDirection: "row",
-      gap: WALL_GAP,
-      paddingHorizontal: WALL_GAP,
-      transform: [{ rotate: "-6deg" }, { scale: 1.2 }],
-    },
-    wallColumn: {
-      gap: WALL_GAP,
-    },
-    welcomeText: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.lg,
-      gap: spacing.sm,
-    },
-    welcomeTitle: {
-      ...typography.display,
-      color: colors.textPrimary,
-      marginTop: spacing.md,
     },
 
     // Seen

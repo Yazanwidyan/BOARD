@@ -1,5 +1,6 @@
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
   Pressable,
   Share,
@@ -18,10 +19,10 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { MOCK_FRIENDS } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
+import { useAuthStore } from "../store/authStore";
+import { useFriendsStore } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
-import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -32,54 +33,80 @@ import { t } from "../i18n";
 
 const POSTERS_SHOWN = 5;
 
-const toHandle = (name) =>
-  `@${
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "") || "you"
-  }`;
-
-// Friends (MOCK — see data/mockFriends): your handle to share, adding by
-// handle (sends a pretend request), and your friends with how close their
-// taste is to yours and their top-tiered posters. Tap one for their page.
+// Friends: your handle to share, adding by handle, requests waiting on
+// you (or on them), and your friends with how close their taste is to
+// yours and their top-tiered posters. Tap one for their page.
 export const FriendsScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const watched = useMovieStore((state) => state.watched);
-  const displayName = useProfileStore((state) => state.displayName);
+  const account = useAuthStore((state) => state.user);
+  const {
+    friends: friendList,
+    incoming,
+    outgoing,
+    loaded,
+    loading,
+    error,
+    refresh,
+    sendRequest,
+    acceptRequest,
+    dropRequest,
+  } = useFriendsStore();
   const [handleInput, setHandleInput] = useState("");
-  const [pending, setPending] = useState([]);
+  const [sending, setSending] = useState(false);
 
-  const myHandle = toHandle(displayName);
-  const friends = MOCK_FRIENDS.map((friend) => ({
-    ...friend,
-    match: getTasteMatch(watched, friend.watched),
-    topPosters: [...friend.watched]
-      .sort((a, b) => (a.tier === "S" ? 0 : 1) - (b.tier === "S" ? 0 : 1))
-      .slice(0, POSTERS_SHOWN)
-      .map((entry) => getMovieById(entry.movieId))
-      .filter(Boolean),
-  })).sort((a, b) => (b.match ?? 0) - (a.match ?? 0));
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
-  const sendRequest = () => {
-    const raw = handleInput.trim().replace(/^@/, "").toLowerCase();
-    if (!/^[a-z0-9_.]{2,24}$/.test(raw)) {
+  const myHandle = account?.handle;
+  const friends = friendList
+    .map((friend) => ({
+      ...friend,
+      match: getTasteMatch(watched, friend.watched),
+      topPosters: [...friend.watched]
+        .sort((a, b) => (a.tier === "S" ? 0 : 1) - (b.tier === "S" ? 0 : 1))
+        .slice(0, POSTERS_SHOWN)
+        .map((entry) => getMovieById(entry.movieId))
+        .filter(Boolean),
+    }))
+    .sort((a, b) => (b.match ?? 0) - (a.match ?? 0));
+
+  const send = async () => {
+    const raw = handleInput.trim().replace(/^@/, "");
+    if (!/^[a-zA-Z0-9_.]{3,20}$/.test(raw)) {
       showToast(t("Enter a handle like @sam"));
       return;
     }
-    const handle = `@${raw}`;
-    if (pending.includes(handle)) {
-      showToast(t("Already sent to {handle}", { handle: handle }));
-      return;
+    setSending(true);
+    try {
+      const relationship = await sendRequest(raw);
+      setHandleInput("");
+      showToast(
+        relationship === "friends"
+          ? t("You're now friends with {handle}", { handle: `@${raw}` })
+          : t("Request sent to {handle}", { handle: `@${raw}` }),
+        { tone: "success" },
+      );
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSending(false);
     }
-    setPending((current) => [handle, ...current]);
-    setHandleInput("");
-    showToast(t("Request sent to {handle}", { handle: handle }), {
-      tone: "success",
-    });
+  };
+
+  const act = async (action, message) => {
+    try {
+      await action();
+      if (message) showToast(message, { tone: "success" });
+    } catch (err) {
+      showToast(err.message);
+    }
   };
 
   return (
@@ -138,7 +165,8 @@ export const FriendsScreen = ({ navigation }) => {
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="send"
-            onSubmitEditing={sendRequest}
+            onSubmitEditing={send}
+            editable={!sending}
             style={styles.addInput}
           />
           <Pressable
@@ -146,15 +174,66 @@ export const FriendsScreen = ({ navigation }) => {
               styles.addButton,
               pressed && styles.pressed,
             ]}
-            onPress={sendRequest}
+            onPress={send}
+            disabled={sending}
           >
-            <Text style={styles.addButtonText}>{t("Add")}</Text>
+            <Text style={styles.addButtonText}>
+              {sending ? t("Sending…") : t("Add")}
+            </Text>
           </Pressable>
         </View>
-        {pending.map((handle) => (
-          <View key={handle} style={styles.pendingRow}>
-            <Text style={styles.pendingHandle}>{handle}</Text>
+
+        {/* Requests to you */}
+        {incoming.length > 0 && (
+          <>
+            <Text style={styles.tagText}>
+              {t("Requests ·")} {incoming.length}
+            </Text>
+            {incoming.map(({ user }) => (
+              <View key={user.id} style={styles.requestRow}>
+                <FriendAvatar friend={user} size={38} />
+                <View style={styles.friendText}>
+                  <Text style={styles.friendName} numberOfLines={1}>
+                    {user.name}
+                  </Text>
+                  <Text style={styles.friendMeta} numberOfLines={1}>
+                    {user.handle}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => act(() => dropRequest(user.id))}
+                  hitSlop={6}
+                  style={styles.requestAction}
+                >
+                  <Text style={styles.pendingState}>{t("Decline")}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() =>
+                    act(
+                      () => acceptRequest(user.id),
+                      t("You're now friends with {handle}", {
+                        handle: user.handle,
+                      }),
+                    )
+                  }
+                  hitSlop={6}
+                  style={styles.requestAction}
+                >
+                  <Text style={styles.addButtonText}>{t("Accept")}</Text>
+                </Pressable>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* Requests you sent */}
+        {outgoing.map(({ user }) => (
+          <View key={user.id} style={styles.pendingRow}>
+            <Text style={styles.pendingHandle}>{user.handle}</Text>
             <Text style={styles.pendingState}>{t("Request sent")}</Text>
+            <Pressable onPress={() => act(() => dropRequest(user.id))} hitSlop={6}>
+              <Text style={styles.cancelText}>{t("Cancel")}</Text>
+            </Pressable>
           </View>
         ))}
 
@@ -191,21 +270,33 @@ export const FriendsScreen = ({ navigation }) => {
                 <Text style={styles.matchLabel}>{t("taste match")}</Text>
               </View>
             </View>
-            <View style={styles.posterRow}>
-              {friend.topPosters.map((movie) => (
-                <MoviePoster
-                  key={movie.id}
-                  uri={movie.poster}
-                  style={styles.miniPoster}
-                />
-              ))}
-            </View>
+            {friend.topPosters.length > 0 && (
+              <View style={styles.posterRow}>
+                {friend.topPosters.map((movie) => (
+                  <MoviePoster
+                    key={movie.id}
+                    uri={movie.poster}
+                    style={styles.miniPoster}
+                  />
+                ))}
+              </View>
+            )}
           </Pressable>
         ))}
 
-        <Text style={styles.footnote}>
-          {t("Friends is a preview: these are sample profiles for now.")}
-        </Text>
+        {loaded && friends.length === 0 && (
+          <Text style={styles.footnote}>
+            {t("No friends yet — share your handle to get started.")}
+          </Text>
+        )}
+        {!loaded && loading && (
+          <Text style={styles.footnote}>{t("Loading…")}</Text>
+        )}
+        {!!error && (
+          <Text style={styles.footnote}>
+            {t("Couldn't load friends: {error}", { error })}
+          </Text>
+        )}
       </Animated.ScrollView>
     </View>
   );
@@ -245,6 +336,7 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
       marginTop: 2,
+      textAlign: "center",
     },
     inviteButton: {
       alignSelf: "stretch",
@@ -274,19 +366,37 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       color: colors.textPrimary,
     },
+    requestRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 2,
+      padding: spacing.md,
+      marginBottom: 2,
+      backgroundColor: colors.card,
+    },
+    requestAction: {
+      paddingStart: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
     pendingRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
+      alignItems: "center",
+      gap: spacing.sm,
       paddingHorizontal: spacing.md + spacing.sm,
       paddingTop: spacing.sm,
     },
     pendingHandle: {
       ...typography.bodyBold,
+      flex: 1,
       color: colors.textSecondary,
     },
     pendingState: {
       ...typography.caption,
       color: colors.textMuted,
+    },
+    cancelText: {
+      ...typography.caption,
+      color: colors.textPrimary,
     },
     // Section caption, like Settings.
     tagText: {

@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
+import { reportAchievements } from "../services/sync";
 import { useAchievementStore } from "../store/achievementStore";
 import { showToast } from "../store/toastStore";
 import { isRated } from "./tiers";
@@ -120,6 +121,8 @@ const showAchievement = (
   xp = null,
 ) => {
   if (rows.length === 0) return;
+  // Badges and finished collections go to friends' activity feeds.
+  reportAchievements(rows);
   const xpNow = xp ?? {
     before: getUserXP(useMovieStore.getState().watched),
     after: getUserXP(useMovieStore.getState().watched),
@@ -205,6 +208,7 @@ export const giveWatchedFeedback = (
       label: "Collection complete",
       detail: collection.title,
       xp: xpCollectionIds.has(collection.id) ? COLLECTION_XP : null,
+      collection,
     });
     kinds.push("collection");
   });
