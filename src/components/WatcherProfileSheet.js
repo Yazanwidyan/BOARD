@@ -101,10 +101,11 @@ const RULES = [
   { label: "Tier a movie", xp: RATE_XP, Icon: Star },
 ];
 
-const CATALOG_GENRES = [...new Set(MOVIES.flatMap((movie) => movie.genres))];
-const CATALOG_DECADES = [
-  ...new Set(MOVIES.map((movie) => decadeOf(movie.year))),
-].sort();
+// Every genre and decade in the catalog (loaded from the server, so read
+// when needed rather than at module load).
+const catalogGenres = () => [...new Set(MOVIES.flatMap((movie) => movie.genres))];
+const catalogDecades = () =>
+  [...new Set(MOVIES.map((movie) => decadeOf(movie.year)))].sort();
 
 const listNames = (names, max = 3) =>
   names.length > max
@@ -114,7 +115,7 @@ const listNames = (names, max = 3) =>
 // The next few cheap XP moves, from the user's own history.
 const getEasyWins = (watched, breakdown) => {
   const wins = [];
-  const untriedGenres = CATALOG_GENRES.filter(
+  const untriedGenres = catalogGenres().filter(
     (genre) => !breakdown.genres.includes(genre),
   );
   if (untriedGenres.length > 0) {
@@ -129,7 +130,7 @@ const getEasyWins = (watched, breakdown) => {
       xp: NEW_GENRE_XP,
     });
   }
-  const untriedDecades = CATALOG_DECADES.filter(
+  const untriedDecades = catalogDecades().filter(
     (decade) => !breakdown.decades.includes(decade),
   );
   if (untriedDecades.length > 0) {

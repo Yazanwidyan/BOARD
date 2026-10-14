@@ -10,6 +10,7 @@ import { View } from "react-native";
 import { AchievementModal } from "../components/AchievementModal";
 import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
+import { AccountScreen } from "../screens/AccountScreen";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { BadgesScreen } from "../screens/BadgesScreen";
 import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
@@ -28,15 +29,13 @@ import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { AiPickScreen } from "../screens/AiPickScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
-import { useBoardStore } from "../store/boardStore";
-import { useChallengeStore } from "../store/challengeStore";
-import { useMovieStore } from "../store/movieStore";
-import { useProfileStore } from "../store/profileStore";
+import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
+import { AuthScreen } from "../screens/AuthScreen";
+import { startSync } from "../services/sync";
+import { useAuthStore } from "../store/authStore";
 import { useUserStore } from "../store/userStore";
 import { useLanguageStore } from "../store/languageStore";
-import { useTasteStore } from "../store/tasteStore";
 import { useThemeStore } from "../store/themeStore";
-import { useTipsStore } from "../store/tipsStore";
 import { useColors } from "../theme/useColors";
 import { TabNavigator } from "./TabNavigator";
 
@@ -61,28 +60,23 @@ export const AppNavigator = () => {
   const hasCompletedOnboarding = useUserStore(
     (state) => state.hasCompletedOnboarding,
   );
-  const hasUserHydrated = useHasHydrated(useUserStore);
-  const hasMovieHydrated = useHasHydrated(useMovieStore);
-  const hasProfileHydrated = useHasHydrated(useProfileStore);
-  const hasChallengeHydrated = useHasHydrated(useChallengeStore);
-  const hasBoardHydrated = useHasHydrated(useBoardStore);
-  // Language and theme load first too, so nothing renders in the wrong
-  // language (t() reads the store directly) or flashes the wrong theme.
+  // The only things kept on the device: the session, and the language and
+  // theme (so the sign-in screen shows right before an account is loaded —
+  // the account's own settings take over once it is). Everything else is
+  // loaded from the server.
+  const hasAuthHydrated = useHasHydrated(useAuthStore);
   const hasLanguageHydrated = useHasHydrated(useLanguageStore);
   const hasThemeHydrated = useHasHydrated(useThemeStore);
-  const hasTipsHydrated = useHasHydrated(useTipsStore);
-  const hasTasteHydrated = useHasHydrated(useTasteStore);
-  const hasHydrated =
-    hasUserHydrated &&
-    hasMovieHydrated &&
-    hasProfileHydrated &&
-    hasChallengeHydrated &&
-    hasBoardHydrated &&
-    hasLanguageHydrated &&
-    hasThemeHydrated &&
-    hasTipsHydrated &&
-    hasTasteHydrated;
+  const hasHydrated = hasAuthHydrated && hasLanguageHydrated && hasThemeHydrated;
+  const signedIn = useAuthStore((state) => Boolean(state.token));
+  const accountReady = useAuthStore((state) => state.status === "ready");
   const colors = useColors();
+
+  // Once the saved session is known, load the account from the server
+  // (if signed in) and start sending changes to it.
+  useEffect(() => {
+    if (hasHydrated) startSync();
+  }, [hasHydrated]);
 
   const baseTheme = colors.isDark ? DarkTheme : DefaultTheme;
   const navigationTheme = {
@@ -106,7 +100,11 @@ export const AppNavigator = () => {
       <Stack.Navigator
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >
-        {!hasCompletedOnboarding ? (
+        {!signedIn ? (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        ) : !accountReady ? (
+          <Stack.Screen name="AccountLoading" component={AccountLoadingScreen} />
+        ) : !hasCompletedOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <>
@@ -162,6 +160,7 @@ export const AppNavigator = () => {
             />
             <Stack.Screen name="Badges" component={BadgesScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Account" component={AccountScreen} />
           </>
         )}
       </Stack.Navigator>

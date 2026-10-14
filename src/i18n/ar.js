@@ -1079,6 +1079,52 @@ const ar = {
   "Leans {leanings}": "يميل إلى {leanings}",
   "Tap a tier.": "اضغط على تصنيف.",
   "Tap another tier to change it.": "اضغط على تصنيف آخر لتغييره.",
+
+  // ---- Account (sign in, account page) ----
+  Account: "الحساب",
+  "Sign in": "تسجيل الدخول",
+  "Create account": "إنشاء حساب",
+  Password: "كلمة المرور",
+  "At least 8 characters": "8 أحرف على الأقل",
+  "Enter your name": "أدخل اسمك",
+  "Please wait…": "يرجى الانتظار…",
+  Server: "الخادم",
+  "Create your account — your library, tiers and boards are saved to it.":
+    "أنشئ حسابك — تُحفظ فيه مكتبتك وتصنيفاتك ولوحاتك.",
+  "Welcome back. Sign in to pick up where you left off.":
+    "مرحبًا بعودتك. سجّل الدخول لتكمل من حيث توقفت.",
+  "Signed in as {handle}": "مسجّل الدخول باسم {handle}",
+  "Reload from server": "إعادة التحميل من الخادم",
+  "Up to date": "محدّث",
+  "Loading…": "جارٍ التحميل…",
+  "Sign out": "تسجيل الخروج",
+  "Sign out?": "تسجيل الخروج؟",
+  "Delete account?": "حذف الحساب؟",
+  "This permanently deletes your account and everything in it — watched, tiers, boards, friends. This can't be undone.":
+    "سيؤدي هذا إلى حذف حسابك وكل ما فيه نهائيًا — المشاهدات والتصنيفات واللوحات والأصدقاء. لا يمكن التراجع عن ذلك.",
+  "Enter your password to confirm": "أدخل كلمة المرور للتأكيد",
+  "Delete account forever": "حذف الحساب نهائيًا",
+  "Couldn't load your account": "تعذّر تحميل حسابك",
+  "Try again": "حاول مجددًا",
+  "You're offline — that change wasn't saved": "أنت غير متصل — لم يُحفظ هذا التغيير",
+  "Couldn't save that change: {error}": "تعذّر حفظ هذا التغيير: {error}",
+
+  // ---- Friends & activity (live) ----
+  "You're now friends with {handle}": "أنت الآن صديق لـ {handle}",
+  "Sending…": "جارٍ الإرسال…",
+  "Requests ·": "الطلبات ·",
+  Decline: "رفض",
+  "No friends yet — share your handle to get started.":
+    "لا أصدقاء بعد — شارك معرّفك لتبدأ.",
+  "Couldn't load friends: {error}": "تعذّر تحميل الأصدقاء: {error}",
+  "{count} friends": "{count} أصدقاء",
+  "Add friends to see what they're watching.": "أضف أصدقاء لترى ما يشاهدونه.",
+  "Nothing yet — your friends' watches and tiers show up here.":
+    "لا شيء بعد — تظهر هنا مشاهدات أصدقائك وتصنيفاتهم.",
+  "Couldn't load activity: {error}": "تعذّر تحميل النشاط: {error}",
+  "Remove {name}?": "إزالة {name}؟",
+  "You'll stop seeing each other's activity.": "لن يرى أيٌّ منكما نشاط الآخر بعد الآن.",
+  "Remove friend": "إزالة الصديق",
 };
 
 export default ar;

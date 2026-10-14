@@ -1,6 +1,4 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // The taste signals beyond a tier (see utils/tasteEngine):
 //
@@ -14,39 +12,31 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 //             0 no preference. null until answered.
 const MAX_PASSES = 300;
 
-export const useTasteStore = create(
-  persist(
-    (set) => ({
-      aspects: {},
-      passes: [],
-      leanings: null,
+export const useTasteStore = create((set) => ({
+  aspects: {},
+  passes: [],
+  leanings: null,
 
-      setLeanings: (leanings) => set({ leanings }),
+  setLeanings: (leanings) => set({ leanings }),
 
-      setAspects: (movieId, keys) =>
-        set((state) => {
-          const next = { ...state.aspects };
-          if (keys.length > 0) next[movieId] = keys;
-          else delete next[movieId];
-          return { aspects: next };
-        }),
-
-      recordPass: (movieId) =>
-        set((state) => ({
-          passes: [
-            { movieId, at: Date.now() },
-            ...state.passes.filter((pass) => pass.movieId !== movieId),
-          ].slice(0, MAX_PASSES),
-        })),
-
-      clearTaste: () => set({ aspects: {}, passes: [], leanings: null }),
+  setAspects: (movieId, keys) =>
+    set((state) => {
+      const next = { ...state.aspects };
+      if (keys.length > 0) next[movieId] = keys;
+      else delete next[movieId];
+      return { aspects: next };
     }),
-    {
-      name: "board:taste-store",
-      storage: createJSONStorage(() => AsyncStorage),
-    },
-  ),
-);
+
+  recordPass: (movieId) =>
+    set((state) => ({
+      passes: [
+        { movieId, at: Date.now() },
+        ...state.passes.filter((pass) => pass.movieId !== movieId),
+      ].slice(0, MAX_PASSES),
+    })),
+
+  clearTaste: () => set({ aspects: {}, passes: [], leanings: null }),
+}));
 
 export const recordPass = (movieId) =>
   useTasteStore.getState().recordPass(movieId);

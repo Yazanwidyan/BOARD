@@ -1,4 +1,4 @@
-import { MOVIES } from "../data/movies";
+import { MOVIES, getCatalogVersion } from "../data/movies";
 
 // A collection needs at least this many real entries to be worth surfacing
 // as an objective — a franchise with one stray title in the catalog would
@@ -56,7 +56,7 @@ const buildDirectorCollections = () =>
 const MIN_ACTOR_COLLECTION_SIZE = 3;
 
 // One collection per actor with at least MIN_ACTOR_COLLECTION_SIZE catalog
-// movies in their top-billed cast (movie.cast, from data/cast.js). Empty
+// movies in their top-billed cast (movie.cast, from the catalog). Empty
 // until cast data has been generated — the Actors section just doesn't
 // appear until then.
 const buildActorCollections = () => {
@@ -123,31 +123,45 @@ const buildGenreCollections = () => {
     });
 };
 
-// Computed once at module load — the catalog itself doesn't change at
-// runtime, only which of its movies are watched does.
-const FRANCHISE_COLLECTIONS = buildFranchiseCollections();
-const DIRECTOR_COLLECTIONS = buildDirectorCollections();
-const ACTOR_COLLECTIONS = buildActorCollections();
-const DECADE_COLLECTIONS = buildDecadeCollections();
-const GENRE_COLLECTIONS = buildGenreCollections();
-const ALL_COLLECTIONS = [
-  ...FRANCHISE_COLLECTIONS,
-  ...DIRECTOR_COLLECTIONS,
-  ...ACTOR_COLLECTIONS,
-  ...DECADE_COLLECTIONS,
-  ...GENRE_COLLECTIONS,
-];
+// Built the first time they're needed and kept until the catalog changes —
+// not at module load, since the catalog arrives from the server after
+// start-up. Only which movies are watched changes from moment to moment.
+let built = null;
+const collections = () => {
+  const version = getCatalogVersion();
+  if (built?.version !== version) {
+    const franchise = buildFranchiseCollections();
+    const director = buildDirectorCollections();
+    const actor = buildActorCollections();
+    const decade = buildDecadeCollections();
+    const genre = buildGenreCollections();
+    built = {
+      version,
+      franchise,
+      director,
+      actor,
+      decade,
+      genre,
+      all: [...franchise, ...director, ...actor, ...decade, ...genre],
+    };
+  }
+  return built;
+};
+const allCollections = () => collections().all;
 
-export const getCollectionSections = () => [
-  { type: "franchise", title: "Franchises", collections: FRANCHISE_COLLECTIONS },
-  { type: "director", title: "Directors", collections: DIRECTOR_COLLECTIONS },
-  { type: "actor", title: "Actors", collections: ACTOR_COLLECTIONS },
-  { type: "decade", title: "Decades", collections: DECADE_COLLECTIONS },
-  { type: "genre", title: "Genres", collections: GENRE_COLLECTIONS },
-].filter((section) => section.collections.length > 0);
+export const getCollectionSections = () => {
+  const { franchise, director, actor, decade, genre } = collections();
+  return [
+    { type: "franchise", title: "Franchises", collections: franchise },
+    { type: "director", title: "Directors", collections: director },
+    { type: "actor", title: "Actors", collections: actor },
+    { type: "decade", title: "Decades", collections: decade },
+    { type: "genre", title: "Genres", collections: genre },
+  ].filter((section) => section.collections.length > 0);
+};
 
 export const getCollectionById = (id) =>
-  ALL_COLLECTIONS.find((collection) => collection.id === id);
+  allCollections().find((collection) => collection.id === id);
 
 // Library's Collections tab shows this instead of the full catalog — a
 // collection is "unlocked" (visible there) once you've actually watched
@@ -172,7 +186,7 @@ export const getUnlockedCollectionSections = (watchedIds, unlockedCollectionIds)
 // director, a decade, a genre) — used by Movie Details' "Your Progress" and
 // by the challenge generator to find what a given watch would complete.
 export const getCollectionsForMovie = (movieId) =>
-  ALL_COLLECTIONS.filter((collection) =>
+  allCollections().filter((collection) =>
     collection.movies.some((movie) => movie.id === movieId),
   );
 
@@ -206,7 +220,7 @@ export const getCollectionProgress = (collection, watchedIds) => {
 // How many collections are fully watched — feeds both the Collections
 // badge ladder and the league score's completion bonus.
 export const getCompletedCollectionsCount = (watchedIds) =>
-  ALL_COLLECTIONS.filter(
+  allCollections().filter(
     (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
   ).length;
 
@@ -216,7 +230,7 @@ export const getCompletedCollectionsCount = (watchedIds) =>
 export const getCurrentCollection = (watchedIds) => {
   let current = null;
   let bestProgress = 0;
-  ALL_COLLECTIONS.forEach((collection) => {
+  allCollections().forEach((collection) => {
     const { progress } = getCollectionProgress(collection, watchedIds);
     if (progress > 0 && progress < 1 && progress > bestProgress) {
       current = collection;
@@ -229,7 +243,7 @@ export const getCurrentCollection = (watchedIds) => {
 // Every collection that's been started but not finished, best progress
 // first — Home shows 2-4 of these under "Continue a Collection".
 export const getInProgressCollections = (watchedIds, limit = 4) =>
-  ALL_COLLECTIONS
+  allCollections()
     .map((collection) => ({ collection, ...getCollectionProgress(collection, watchedIds) }))
     .filter(({ progress }) => progress > 0 && progress < 1)
     .sort((a, b) => b.progress - a.progress)
@@ -269,7 +283,7 @@ export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 
     .map(([genre]) => genre);
   if (topGenres.length === 0) return [];
 
-  return ALL_COLLECTIONS
+  return allCollections()
     .filter(
       (collection) =>
         ["franchise", "director", "actor"].includes(collection.type) &&

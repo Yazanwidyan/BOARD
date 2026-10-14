@@ -22,6 +22,7 @@ import {
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { showToast } from "../store/toastStore";
+import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -33,7 +34,6 @@ import { useUserStore } from "../store/userStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { resetAppData } from "../utils/resetAppData";
 import { t } from "../i18n";
 
 const APP_VERSION = "1.0.0";
@@ -87,8 +87,6 @@ export const SettingsScreen = ({ navigation }) => {
   const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const bio = useProfileStore((state) => state.bio);
   const setBio = useProfileStore((state) => state.setBio);
-  const email = useProfileStore((state) => state.email);
-  const setEmail = useProfileStore((state) => state.setEmail);
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const insets = useSafeAreaInsets();
@@ -96,6 +94,7 @@ export const SettingsScreen = ({ navigation }) => {
   const setThemeMode = useThemeStore((state) => state.setMode);
   const language = useLanguageStore((state) => state.language);
   const resetTips = useTipsStore((state) => state.resetTips);
+  const account = useAuthStore((state) => state.user);
 
   const handleNameBlur = () => {
     if (!displayName.trim()) setDisplayName("You");
@@ -202,16 +201,13 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.fieldLabel}>{t("Email")}</Text>
-        <View style={styles.fieldBox}>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t("you@example.com")}
-            placeholderTextColor={colors.textMuted}
-            style={styles.fieldInput}
-            autoCapitalize="none"
-            keyboardType="email-address"
+        {/* The account's email is its sign-in, so it's shown, not edited. */}
+        <Text style={styles.sectionLabel}>{t("Account")}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            label={t("Signed in as {handle}", { handle: account?.handle ?? "" })}
+            value={account?.email}
+            onPress={() => navigation.navigate("Account")}
           />
         </View>
 
@@ -373,19 +369,12 @@ export const SettingsScreen = ({ navigation }) => {
           />
         </View>
 
+        {/* Deleting lives on the Account screen (it asks for the password). */}
         <View style={[styles.section, styles.dangerSection]}>
           <SettingsRow
             label={t("Delete account")}
             destructive
-            onPress={() =>
-              confirmAction(
-                t("Delete Account"),
-                t(
-                  "ReelBoard doesn't have accounts on a server — this wipes everything on this device instead: watched, watchlist, XP, badges, challenges, profile. This can't be undone.",
-                ),
-                resetAppData,
-              )
-            }
+            onPress={() => navigation.navigate("Account")}
           />
         </View>
 

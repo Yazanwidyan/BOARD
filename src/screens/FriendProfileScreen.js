@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
@@ -11,10 +12,11 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
-import { getMockActivity, getMockFriend } from "../data/mockFriends";
 import { getMovieById } from "../data/movies";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
+import { useFriendsStore } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
+import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -37,9 +39,9 @@ const TierChip = ({ tier, styles }) => (
   </View>
 );
 
-// A friend's page (MOCK — see data/mockFriends): who they are, how close
-// your taste is, what you both loved, what they loved that you haven't
-// seen (one tap to save it), their top tier, and their recent activity.
+// A friend's page: who they are, how close your taste is, what you both
+// loved, what they loved that you haven't seen (one tap to save it), their
+// top tier, and their recent activity.
 export const FriendProfileScreen = ({ navigation, route }) => {
   const headerScroll = useStackHeaderScroll();
   // Where the big name ends in the page: the bar picks the name up as it
@@ -51,7 +53,19 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
-  const friend = getMockFriend(route?.params?.friendId);
+  const friendId = route?.params?.friendId;
+  const friend = useFriendsStore((state) =>
+    state.friends.find((item) => item.id === friendId),
+  );
+  const allActivity = useFriendsStore((state) => state.activity);
+  const refresh = useFriendsStore((state) => state.refresh);
+  const removeFriend = useFriendsStore((state) => state.removeFriend);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   if (!friend) {
     return (
@@ -61,6 +75,27 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     );
   }
 
+  const confirmRemove = () =>
+    Alert.alert(
+      t("Remove {name}?", { name: friend.name }),
+      t("You'll stop seeing each other's activity."),
+      [
+        { text: t("Cancel"), style: "cancel" },
+        {
+          text: t("Remove"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeFriend(friend.id);
+              navigation.goBack();
+            } catch (err) {
+              showToast(err.message);
+            }
+          },
+        },
+      ],
+    );
+
   const savedIds = new Set(bucketList.map((entry) => entry.movieId));
   const match = getTasteMatch(watched, friend.watched);
   const bothLoved = getBothLoved(watched, friend.watched);
@@ -69,9 +104,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     .filter((entry) => entry.tier === "S")
     .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean);
-  const activity = getMockActivity().filter(
-    (event) => event.friendId === friend.id,
-  );
+  const activity = allActivity.filter((event) => event.friendId === friend.id);
   const openMovie = (movieId) =>
     navigation.navigate("MovieDetails", { movieId });
 
@@ -262,6 +295,10 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             </View>
           </>
         )}
+
+        <Pressable onPress={confirmRemove} hitSlop={8} style={styles.remove}>
+          <Text style={styles.removeText}>{t("Remove friend")}</Text>
+        </Pressable>
       </Animated.ScrollView>
     </View>
   );
@@ -413,6 +450,16 @@ const createStyles = (colors) =>
     activityTime: {
       ...typography.caption,
       color: colors.textMuted,
+    },
+    remove: {
+      alignSelf: "center",
+      marginTop: spacing.xl,
+      padding: spacing.sm,
+    },
+    removeText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.danger,
     },
   });
 
