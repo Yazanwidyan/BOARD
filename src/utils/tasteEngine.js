@@ -5,7 +5,7 @@ import { getAspect } from "./aspects";
 import { getTier } from "./tiers";
 import { t } from "../i18n";
 
-// ReelBoard's "AI pick" — a small, local taste engine (no network, no
+// ReelBoard's "Taste pick" — a small, local taste engine (no network, no
 // model). Every unwatched movie gets a score from what you've actually
 // watched and how you tiered it, and every signal that moved the score
 // leaves a plain-English reason, so a pick always explains itself.

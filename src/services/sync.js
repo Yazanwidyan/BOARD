@@ -21,6 +21,7 @@ import {
   resumeQueue,
   setAccountData,
 } from "./queryClient";
+import { unregisterPushToken } from "./notifications";
 import { signOutOfProviders } from "./socialAuth";
 
 // The signed-in account's life cycle. The data itself — and how changes
@@ -149,16 +150,24 @@ const forgetAccount = () => {
   persister.removeClient();
 };
 
-export const signOut = () => {
+const endSession = () => {
   signOutOfProviders();
   useAuthStore.getState().clearSession();
+};
+
+// This phone stops getting the account's push notifications first — that
+// needs the session, so it's done before the session ends.
+export const signOut = async () => {
+  await unregisterPushToken().catch(() => {});
+  endSession();
 };
 
 // `confirmation`: { password } — or { confirm: "DELETE" } for an account
 // made with Google / Apple, which has no password.
 export const deleteAccount = async (confirmation) => {
   await request("DELETE", "/me", confirmation);
-  signOut();
+  // The account's push tokens went with it.
+  endSession();
 };
 
 // Badges and finished collections are worked out by the app — the

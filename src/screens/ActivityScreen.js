@@ -24,8 +24,8 @@ const AVATARS_SHOWN = 5;
 
 // Badge names in the feed → which medal to draw.
 const BADGE_EMBLEM = {
-  Cinephile: { emblem: "watched", tier: 3, metal: "#7FE0D6" },
-  "Film Fan": { emblem: "watched", tier: 2, metal: "#E8B94E" },
+  "Front Row": { emblem: "watched", tier: 3, metal: "#7FE0D6" },
+  "Season Pass": { emblem: "watched", tier: 2, metal: "#E8B94E" },
   "Rising Critic": { emblem: "critic", tier: 1, metal: "#B9BBD2" },
 };
 

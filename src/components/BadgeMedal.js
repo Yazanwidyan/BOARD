@@ -65,10 +65,10 @@ export const BADGE_CATEGORIES = [
   },
   {
     key: "challenges",
-    title: "Challenges",
+    title: "Dares",
     Icon: TargetIcon,
     verb: "Complete",
-    unit: "challenges",
+    unit: "dares",
     cta: { label: "Start a dare", route: "Decide" },
   },
   {

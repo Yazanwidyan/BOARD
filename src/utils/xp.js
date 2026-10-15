@@ -84,6 +84,14 @@ export const getXPBreakdown = (watched) => {
 
 export const getUserXP = (watched) => getXPBreakdown(watched).total;
 
+// The XP watching `movieId` would add to this history right now — the
+// watch itself plus any new genre / decade / director / collection it
+// unlocks. What a dare can honestly promise (dares add no XP of their own).
+export const getWatchXPGain = (watched, movieId) => {
+  if (watched.some((entry) => entry.movieId === movieId)) return 0;
+  return getUserXP([...watched, { movieId }]) - getUserXP(watched);
+};
+
 export const getCompletedChallengesCount = (history) =>
   history.filter((entry) => entry.status === "completed").length;
 

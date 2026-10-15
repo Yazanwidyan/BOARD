@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
 import { getMovieById } from "../data/movies";
+import { useMovieStore } from "../store/movieStore";
+import { getWatchXPGain } from "../utils/xp";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -23,6 +25,10 @@ export const ChallengeCard = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const movie = getMovieById(challenge.targetMovieId);
+  // What watching it would really earn you now (dares add no XP of their
+  // own) — worked out live, so it stays true as your history changes.
+  const watched = useMovieStore((state) => state.watched);
+  const xpGain = getWatchXPGain(watched, challenge.targetMovieId);
   const difficultyColor =
     {
       EASY: colors.success,
@@ -52,7 +58,7 @@ export const ChallengeCard = ({
             </Text>
             <View style={styles.spacer} />
             <Text style={styles.reward}>
-              {t("+{xp} XP", { xp: challenge.xpReward })}
+              {t("+{xp} XP", { xp: xpGain })}
             </Text>
           </View>
           <Text style={styles.dare} numberOfLines={3}>

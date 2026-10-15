@@ -9,10 +9,21 @@ export const RAIL_PREVIEW = 10;
 const RECOMMENDED_COUNT = 20;
 const RECENT_FOR_ACTORS = 10;
 const MIN_ACTOR_FILMS = 2;
-// "Hidden gems": well-rated but in the lower part of the Top 250, i.e. the
-// ones people don't already know by heart.
+// "Hidden gems": well-rated but not widely seen — the ones people don't
+// already know by heart. Movies with an IMDb vote count: highly rated by a
+// real but modest audience. The original Top 250 (no vote counts, and all
+// famous): only the lower part of the list.
 const GEM_MIN_RANK = 120;
 const GEM_MIN_RATING = 7.9;
+const GEM_RATING = 7.5;
+const GEM_MIN_VOTES = 5000;
+const GEM_MAX_VOTES = 150000;
+
+const isHiddenGem = (movie) => {
+  const votes = movie.details?.imdbVotes;
+  if (votes == null) return movie.rank > GEM_MIN_RANK && movie.rating >= GEM_MIN_RATING;
+  return movie.rating >= GEM_RATING && votes >= GEM_MIN_VOTES && votes < GEM_MAX_VOTES;
+};
 const SHORT_RUNTIME = 100;
 // "Because you watched": how alike two movies must feel (Taste DNA, 0–1)
 // to make the row.
@@ -92,11 +103,7 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
   rails.push({
     key: "gems",
     title: "Hidden gems",
-    movies: unwatched
-      .filter(
-        (movie) => movie.rank > GEM_MIN_RANK && movie.rating >= GEM_MIN_RATING,
-      )
-      .sort(byRating),
+    movies: unwatched.filter(isHiddenGem).sort(byRating),
   });
 
   rails.push({

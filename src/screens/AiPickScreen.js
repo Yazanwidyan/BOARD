@@ -243,7 +243,7 @@ const ThinkingLine = ({ text, active, dwell, onDone, colors, styles }) => {
   );
 };
 
-// ReelBoard's AI pick: the local taste engine (utils/tasteEngine) thinks
+// ReelBoard's Taste pick: the local taste engine (utils/tasteEngine) thinks
 // for a moment — showing what it's actually reading — then shows one pick
 // with how well it matches, why, and the full signal breakdown on demand.
 export const AiPickScreen = ({ navigation }) => {

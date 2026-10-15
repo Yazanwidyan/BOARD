@@ -53,7 +53,13 @@
       ],
       "expo-sharing",
       "@react-native-community/datetimepicker",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#0C1014"
+        }
+      ]
     ]
   }
 }

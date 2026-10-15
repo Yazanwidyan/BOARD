@@ -5,6 +5,7 @@ import {
   Image,
   Pressable,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from "react-native";
@@ -21,6 +22,11 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import {
+  disableNotifications,
+  enableNotifications,
+  getNotificationsEnabled,
+} from "../services/notifications";
 import { signOut } from "../services/sync";
 import { showToast } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
@@ -88,6 +94,27 @@ export const SettingsScreen = ({ navigation }) => {
   const language = useLanguageStore((state) => state.language);
   const resetTips = useTipsStore((state) => state.resetTips);
   const account = useAuthStore((state) => state.user);
+
+  // Reminders and push are a setting of this phone, not the account.
+  const [notificationsOn, setNotificationsOn] = useState(false);
+  const [notificationsBusy, setNotificationsBusy] = useState(false);
+  useEffect(() => {
+    getNotificationsEnabled().then(setNotificationsOn);
+  }, []);
+  const toggleNotifications = async (on) => {
+    if (notificationsBusy) return;
+    setNotificationsBusy(true);
+    setNotificationsOn(on);
+    try {
+      if (on) await enableNotifications();
+      else await disableNotifications();
+    } catch (error) {
+      setNotificationsOn(!on);
+      showToast(error?.message || t("Couldn't change notifications"));
+    } finally {
+      setNotificationsBusy(false);
+    }
+  };
 
   // Name and bio are edited as drafts and saved when you're done — leaving
   // the field or the screen — not on every keystroke (each save is a
@@ -283,6 +310,24 @@ export const SettingsScreen = ({ navigation }) => {
           })}
         </View>
 
+        <Text style={styles.sectionLabel}>{t("Notifications")}</Text>
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>{t("Reminders and friend updates")}</Text>
+              <Text style={styles.rowHint}>
+                {t("Tonight's pick at 7:30 pm, your monthly recap, friend requests and movie nights.")}
+              </Text>
+            </View>
+            <Switch
+              value={notificationsOn}
+              onValueChange={toggleNotifications}
+              disabled={notificationsBusy}
+              accessibilityLabel={t("Notifications")}
+            />
+          </View>
+        </View>
+
         <Text style={styles.sectionLabel}>{t("App")}</Text>
         <View style={styles.section}>
           <SettingsRow
@@ -403,6 +448,15 @@ const createStyles = (colors) =>
       ...typography.body,
       color: colors.textPrimary,
       flex: 1,
+    },
+    rowText: {
+      flex: 1,
+      gap: 2,
+      marginEnd: spacing.md,
+    },
+    rowHint: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     rowLabelDestructive: {
       color: colors.danger,

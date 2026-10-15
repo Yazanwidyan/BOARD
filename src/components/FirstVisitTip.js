@@ -23,7 +23,7 @@ const TIPS = {
   },
   decide: {
     title: "Decide",
-    body: "Can't choose? Swipe, Spin, or let the AI pick — or take a dare for bonus XP.",
+    body: "Can't choose? Swipe, Spin, or get a taste pick — or take a dare.",
   },
   library: {
     title: "Library",

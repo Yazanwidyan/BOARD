@@ -32,6 +32,7 @@ import { SPIN_STOP_MS } from "../components/RefreshFillTitle";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { MOVIES, getMovieById } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
+import { useLanguageStore } from "../store/languageStore";
 import { useMovieStore } from "../store/movieStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -39,6 +40,7 @@ import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
+import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { getLevel, getUserXP } from "../utils/xp";
 import { t } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
@@ -321,6 +323,19 @@ export const HomeScreen = ({ navigation }) => {
 
   const header = useDockHeader();
 
+  // In a month's first week, last month's recap (if anything was watched).
+  const language = useLanguageStore((state) => state.language);
+  const lastMonthRecap = (() => {
+    if (new Date().getDate() > 7) return null;
+    const period = getRecapPeriods().find((item) => item.key === "last-month");
+    const { count } = buildRecap(watched, period);
+    if (count === 0) return null;
+    const name = period.date.toLocaleDateString(language === "ar" ? "ar" : "en", {
+      month: "long",
+    });
+    return { count, name };
+  })();
+
   // Pull to refresh: a fresh suggestion (and the latest data on re-render).
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
@@ -384,6 +399,22 @@ export const HomeScreen = ({ navigation }) => {
             />
           )}
         </View>
+
+        {/* First week of the month: last month's recap is ready. */}
+        {lastMonthRecap && (
+          <Pressable
+            style={({ pressed }) => [styles.recapBanner, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate("Recap", { period: "last-month" })}
+            accessibilityRole="button"
+          >
+            <Text style={styles.recapTitle}>
+              {t("Your {month} recap is ready", { month: lastMonthRecap.name })}
+            </Text>
+            <Text style={styles.recapHint}>
+              {t("{count} movies · see your favourites", { count: lastMonthRecap.count })} ›
+            </Text>
+          </Pressable>
+        )}
 
         <View style={styles.section}>
           {activeChallenge ? (
@@ -503,6 +534,21 @@ const createStyles = (colors) =>
     // The header inset already leaves the gap under the header.
     firstSection: {
       marginTop: 0,
+    },
+    recapBanner: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      gap: 2,
+    },
+    recapTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    recapHint: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     tagRow: {
       flexDirection: "row",

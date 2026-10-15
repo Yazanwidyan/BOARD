@@ -45,7 +45,7 @@ import { t } from "../i18n";
 // welcome (poster wall and all).
 //
 //   seen         a grid spread across every kind of taste (not the top of
-//                the Top 250); "Show more" brings more like what you've seen
+//                the catalog by rank); "Show more" brings more like what you've seen
 //   quick tier   up to six of those, one at a time: Loved / Liked / Not
 //                for me — real tiers from minute one
 //   this or that five pairs on the dimensions we know least about yet

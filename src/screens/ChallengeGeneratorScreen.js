@@ -19,6 +19,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
 import { formatRuntime } from "../utils/movieFilters";
+import { getWatchXPGain } from "../utils/xp";
 
 const HAND_SIZE = 3;
 
@@ -102,9 +103,17 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
   const styles = createStyles(colors);
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);
 
+  // Each dare's reward is the XP its movie would really add for you — the
+  // watch plus any new genre / decade / director / collection — since dares
+  // give no XP of their own.
   const deal = () => {
     const { watched, bucketList } = useMovieStore.getState();
-    return generateChallengeOptions({ watched, bucketList }, HAND_SIZE);
+    return generateChallengeOptions({ watched, bucketList }, HAND_SIZE).map(
+      (challenge) => ({
+        ...challenge,
+        xpReward: getWatchXPGain(watched, challenge.targetMovieId),
+      }),
+    );
   };
   const [hand, setHand] = useState(deal);
   const [handId, setHandId] = useState(0);

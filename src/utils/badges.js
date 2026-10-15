@@ -4,19 +4,19 @@ import { getCollectionById, getCollectionProgress } from "./collections";
 // badge's earned/unearned status can never drift out of sync with the data
 // it's supposedly based on.
 //
-// Thresholds go up to 1500 on purpose, well past the current 250-movie
-// catalog — they're future-proofed for when the catalog grows rather than
-// capped at what's earnable today, so the top tiers stay real goals instead
-// of being quietly redefined down to fit the current dataset.
+// The top thresholds sit just under the catalog's size (about 1,100 movies)
+// — reachable, but only by watching nearly all of it. Every badge has to be
+// earnable: one that needs more movies than exist is a broken promise. When
+// the catalog grows, raise them with it.
 const WATCHED_TIERS = [
   { id: "first-watch", label: "First Watch", threshold: 1 },
-  { id: "movie-buff", label: "Movie Buff", threshold: 10 },
-  { id: "film-fan", label: "Film Fan", threshold: 50 },
-  { id: "cinephile", label: "Cinephile", threshold: 100 },
+  { id: "movie-buff", label: "Regular", threshold: 10 },
+  { id: "film-fan", label: "Season Pass", threshold: 50 },
+  { id: "cinephile", label: "Front Row", threshold: 100 },
   { id: "completionist", label: "Completionist", threshold: 250 },
   { id: "archivist", label: "Archivist", threshold: 500 },
-  { id: "marathoner", label: "Marathoner", threshold: 1000 },
-  { id: "cinema-legend", label: "Legend of Cinema", threshold: 1500 },
+  { id: "marathoner", label: "Marathoner", threshold: 750 },
+  { id: "cinema-legend", label: "Hall of Fame", threshold: 1000 },
 ];
 
 // "Reviews" map to the star rating a user leaves on a watched movie — the
@@ -29,8 +29,8 @@ const CRITIC_TIERS = [
   { id: "certified-critic", label: "Certified Critic", threshold: 250 },
   { id: "veteran-critic", label: "Veteran Critic", threshold: 500 },
   { id: "elite-critic", label: "Elite Critic", threshold: 750 },
-  { id: "master-critic", label: "Master Critic", threshold: 1000 },
-  { id: "legendary-critic", label: "Legendary Critic", threshold: 1500 },
+  { id: "master-critic", label: "Master Critic", threshold: 900 },
+  { id: "legendary-critic", label: "Legendary Critic", threshold: 1000 },
 ];
 
 // How many whole collections (franchises, decades, genres) have been fully
@@ -43,12 +43,13 @@ const COLLECTION_TIERS = [
   { id: "master-curator", label: "Master Curator", threshold: 20 },
 ];
 
-// Completed challenges — a different axis of engagement than raw watch
-// volume: taking on and finishing what BOARD suggests, not just watching.
+// Completed dares — a different axis of engagement than raw watch volume:
+// taking on and finishing what ReelBoard suggests, not just watching.
+// (Called "challenges" in the code; "dares" everywhere people read.)
 const CHALLENGE_TIERS = [
-  { id: "challenge-accepted", label: "Challenge Accepted", threshold: 1 },
-  { id: "challenge-hunter", label: "Challenge Hunter", threshold: 25 },
-  { id: "challenge-master", label: "Challenge Master", threshold: 100 },
+  { id: "challenge-accepted", label: "Dare Accepted", threshold: 1 },
+  { id: "challenge-hunter", label: "Dare Hunter", threshold: 25 },
+  { id: "challenge-master", label: "Dare Master", threshold: 100 },
 ];
 
 // Counts DISTINCT movies rewatched at least once, not total rewatch volume

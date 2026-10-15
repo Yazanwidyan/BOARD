@@ -164,7 +164,7 @@ const ar = {
 
   // ---- Decide ----
   "Quick pick": "اختيار سريع",
-  "AI pick": "اختيار الذكاء الاصطناعي",
+  "Taste pick": "اختيار حسب ذوقك",
   "Let ReelBoard choose": "دع ReelBoard يختار",
   "Based on your taste": "حسب ذوقك",
   "Pick for me": "اختر لي",
@@ -562,11 +562,12 @@ const ar = {
   "this collection": "هذه المجموعة",
   Watching: "المشاهدة",
   Critic: "الناقد",
-  Challenges: "التحدّيات",
+  Dares: "التحدّيات",
   "Badge earned": "شارة جديدة",
   "First Watch": "المشاهدة الأولى",
-  "Movie Buff": "عاشق الأفلام",
-  "Film Fan": "محب الأفلام",
+  Regular: "زبون دائم",
+  "Season Pass": "اشتراك الموسم",
+  "Front Row": "الصف الأمامي",
   Marathoner: "عدّاء الماراثون",
   "Rising Critic": "ناقد صاعد",
   "Amateur Critic": "ناقد هاوٍ",
@@ -583,13 +584,13 @@ const ar = {
   Completionist: "مُكمِل",
   "Set Completionist": "مُكمِل المجموعات",
   Archivist: "أمين الأرشيف",
-  "Challenge Accepted": "التحدّي مقبول",
-  "Challenge Hunter": "صائد التحدّيات",
-  "Challenge Master": "سيد التحدّيات",
+  "Dare Accepted": "التحدّي مقبول",
+  "Dare Hunter": "صائد التحدّيات",
+  "Dare Master": "سيد التحدّيات",
   Curator: "منسّق",
   "Master Curator": "منسّق خبير",
   "Series Enthusiast": "عاشق السلاسل",
-  "Legend of Cinema": "أسطورة السينما",
+  "Hall of Fame": "قاعة المشاهير",
   "Hogwarts Graduate": "خرّيج هوغوورتس",
   "Middle-earth Complete": "أنهيت الأرض الوسطى",
   "To Infinity and Beyond": "إلى اللانهاية وما بعدها",
@@ -658,8 +659,8 @@ const ar = {
     "اختيار الليلة، وتحدّيك، وما تشاهده بعد ذلك — كلها في مكان واحد.",
   "Watch trailer clips in Reels, or browse rails picked for your taste. Tap + to save a movie.":
     "شاهد مقاطع الإعلانات في المقاطع، أو تصفّح قوائم مختارة لذوقك. اضغط + لحفظ فيلم.",
-  "Can't choose? Swipe, Spin, or let the AI pick — or take a dare for bonus XP.":
-    "محتار؟ اسحب، أو دوّر، أو دع الذكاء الاصطناعي يختار — أو خذ تحدّياً لتكسب XP إضافية.",
+  "Can't choose? Swipe, Spin, or get a taste pick — or take a dare.":
+    "محتار؟ اسحب، أو دوّر، أو خذ اختياراً حسب ذوقك — أو خذ تحدّياً.",
   "Your watchlist, what you've watched, and collections. Tier what you watch from S to F.":
     "قائمة مشاهدتك، وما شاهدته، والمجموعات. صنّف ما تشاهده من S إلى F.",
   "Your level, badges and taste. Pick your top ten and share your taste card.":
@@ -898,7 +899,7 @@ const ar = {
   "Marked as Watched": "تمت المشاهدة",
   "Big Night!": "ليلة كبيرة!",
   "Collection Complete!": "اكتملت المجموعة!",
-  "Challenge Complete!": "اكتمل التحدّي!",
+  "Dare Complete!": "اكتمل التحدّي!",
   "Rewatched!": "أُعيدت مشاهدته!",
   "Badges Earned!": "شارات جديدة!",
   "Badge Earned!": "شارة جديدة!",
@@ -1144,6 +1145,78 @@ const ar = {
   "Remove friend": "إزالة الصديق",
   "Permanently deletes your account and everything in it.":
     "يحذف حسابك وكل ما فيه نهائيًا.",
+
+  // Movie night on everyone's phones
+  "Codes are {count} letters and numbers": "الرمز {count} أحرف وأرقام",
+  "Join my ReelBoard movie night — we each swipe, then see what we all want to watch. Code: {code}\n{link}":
+    "انضم إلى سهرة الفيلم على ReelBoard — كلٌّ منا يسحب، ثم نرى ما نريد جميعًا مشاهدته. الرمز: {code}\n{link}",
+  "You're the host — leaving ends it for everyone.": "أنت المضيف — مغادرتك تُنهي السهرة للجميع.",
+  "Your picks so far will be lost.": "ستضيع اختياراتك حتى الآن.",
+  Host: "المضيف",
+  "Swiping…": "يسحب…",
+  "Join a movie night": "انضم إلى سهرة فيلم",
+  "Ask whoever's hosting for the code on their screen.": "اطلب من المضيف الرمز الظاهر على شاشته.",
+  "Joining…": "جارٍ الانضمام…",
+  Join: "انضمام",
+  "This movie night has ended": "انتهت سهرة الفيلم هذه",
+  "Can't open this movie night": "تعذّر فتح سهرة الفيلم هذه",
+  "Room code": "رمز الغرفة",
+  "Everyone swipes the same {count} movies on their own phone. When you're all done, you'll see the ones you all want.":
+    "يسحب الجميع نفس الأفلام الـ{count} كلٌّ على هاتفه. عندما تنتهون جميعًا سترون الأفلام التي تريدونها كلكم.",
+  "Invite friends": "ادعُ أصدقاءك",
+  "In the room · {count}": "في الغرفة · {count}",
+  "You're done": "انتهيت",
+  "Nobody else is in yet — share the code {code}.": "لم ينضم أحد بعد — شارك الرمز {code}.",
+  "Waiting for the others · {done} of {total} done": "بانتظار الآخرين · انتهى {done} من {total}",
+  "Revealing…": "جارٍ الكشف…",
+  "Reveal now": "اكشف الآن",
+  "You all want to watch": "تريدون جميعًا مشاهدة",
+  "No movie everyone kept": "لا يوجد فيلم احتفظ به الجميع",
+  "These came closest — everyone but one kept them.": "هذه الأقرب — احتفظ بها الجميع إلا واحدًا.",
+  "Try a new stack together.": "جرّبوا مجموعة جديدة معًا.",
+  "{count} of {total} kept it": "احتفظ به {count} من {total}",
+  "Not on the same couch?": "لستم على نفس الأريكة؟",
+  "Everyone swipes on their own phone, up to 8 people. Same stack as above.":
+    "يسحب كلٌّ على هاتفه، حتى 8 أشخاص. نفس المجموعة أعلاه.",
+  "Host on everyone's phones": "استضف على هواتف الجميع",
+  "Join with a code": "انضم برمز",
+
+  // Recap
+  "Your {month} recap is ready": "ملخّص {month} جاهز",
+  "{count} movies · see your favourites": "{count} أفلام · شاهد مفضّلاتك",
+  "Your recap": "ملخّصك",
+  "Your month on ReelBoard, ready to share": "شهرك على ReelBoard، جاهز للمشاركة",
+  "My {period} on ReelBoard: {count} movies, {hours} hours.":
+    "ملخّصي لـ{period} على ReelBoard: {count} أفلام، {hours} ساعات.",
+  "This month": "هذا الشهر",
+  "Last month": "الشهر الماضي",
+  "This year": "هذا العام",
+  "Nothing logged for {period} yet": "لا شيء مسجّل في {period} بعد",
+  "Watch something and mark it watched — your recap fills in as you go.":
+    "شاهد شيئًا وعلّمه كمُشاهَد — يمتلئ ملخّصك مع الوقت.",
+  Favourites: "المفضّلة",
+  "Top genres": "أبرز الأنواع",
+  "Most watched director": "المخرج الأكثر مشاهدة",
+  "{name} ({count} films)": "{name} ({count} أفلام)",
+  "Longest sit": "أطول جلسة",
+  "Share your recap": "شارك ملخّصك",
+
+  // Notifications
+  "Couldn't change notifications": "تعذّر تغيير الإشعارات",
+  Notifications: "الإشعارات",
+  "Reminders and friend updates": "التذكيرات وأخبار الأصدقاء",
+  "Tonight's pick at 7:30 pm, your monthly recap, friend requests and movie nights.":
+    "اختيار الليلة الساعة 7:30 مساءً، ملخّصك الشهري، طلبات الصداقة وسهرات الأفلام.",
+  "Tonight's pick: {title}": "اختيار الليلة: {title}",
+  "Can't decide what to watch?": "محتار ماذا تشاهد؟",
+  "Ready when you are. Enjoy the movie.": "جاهز متى ما كنت جاهزًا. استمتع بالفيلم.",
+  "Swipe ten movies and let ReelBoard pick.": "اسحب عشرة أفلام ودع ReelBoard يختار.",
+  "Your month on ReelBoard": "شهرك على ReelBoard",
+  "What you watched, your top genre and your best-tiered movies.":
+    "ما شاهدته، نوعك المفضّل وأعلى أفلامك تصنيفًا.",
+  "Notifications need a new build of the app.": "الإشعارات تحتاج نسخة جديدة من التطبيق.",
+  "Allow notifications for ReelBoard in your phone's settings.":
+    "اسمح بإشعارات ReelBoard من إعدادات هاتفك.",
 };
 
 export default ar;

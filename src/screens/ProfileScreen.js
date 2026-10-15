@@ -425,6 +425,18 @@ export const ProfileScreen = ({ navigation, route }) => {
             onPressBadges={() => navigation.navigate("Badges")}
           />
 
+          {/* Your month (or year) on ReelBoard — the shareable recap. */}
+          <Pressable
+            style={({ pressed }) => [styles.recapRow, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate("Recap")}
+            accessibilityRole="button"
+          >
+            <Text style={styles.recapTitle}>{t("Your recap")}</Text>
+            <Text style={styles.recapHint} numberOfLines={1}>
+              {t("Your month on ReelBoard, ready to share")} ›
+            </Text>
+          </Pressable>
+
           {/* Profile tabs, Instagram-style: an icon per column over a
               hairline, the open one white with a thin underline. Swipe the
               page below to switch too. */}
@@ -869,6 +881,25 @@ const createStyles = (colors) =>
     },
     // Instagram-style: three equal columns edge to edge, a hairline under
     // the bar, and a thin white underline across the open tab's column.
+    recapRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
+    },
+    recapTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    recapHint: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      flexShrink: 1,
+    },
     // Solid and above the page below it, since it pins over the content
     // as you scroll.
     tabTrack: {

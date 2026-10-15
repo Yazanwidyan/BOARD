@@ -109,7 +109,7 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
           </View>
 
           <View style={styles.aiText}>
-            <Text style={styles.aiEyebrow}>{t("AI pick")}</Text>
+            <Text style={styles.aiEyebrow}>{t("Taste pick")}</Text>
             <Text style={styles.aiTitle}>{t("Let ReelBoard choose")}</Text>
             <Text style={styles.aiSubtitle}>{t("Based on your taste")}</Text>
             <Text style={styles.aiCtaText}>{t("Pick for me")}</Text>

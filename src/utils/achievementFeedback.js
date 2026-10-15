@@ -137,7 +137,7 @@ const showAchievement = (
       : kinds.includes("collection")
         ? "Collection Complete!"
         : kinds.includes("challenge")
-          ? "Challenge Complete!"
+          ? "Dare Complete!"
           : kinds.includes("rewatch")
             ? "Rewatched!"
             : kinds.includes("badge")

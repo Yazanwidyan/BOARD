@@ -197,13 +197,15 @@ export const MovieNightScreen = ({ navigation, route }) => {
     setPhase("handoff");
   };
 
-  const handleStart = () => {
+  // The stack from the chosen source and size.
+  const pickStack = () => {
     const count = Math.min(size, sourceMax);
-    const movies = source.movies
+    return source.movies
       ? shuffle(source.movies).slice(0, count)
       : generateRecommendations(preferences, count, [], [...watchedIds]);
-    beginRound(movies, 1);
   };
+
+  const handleStart = () => beginRound(pickStack(), 1);
 
   const record = useCallback(
     (keep) => {
@@ -371,6 +373,28 @@ export const MovieNightScreen = ({ navigation, route }) => {
               })}
             </Text>
           )}
+
+          {/* Or each on their own phone, up to 8 people (GroupNightScreen). */}
+          <Text style={styles.sectionLabel}>{t("Not on the same couch?")}</Text>
+          <Text style={styles.hint}>
+            {t("Everyone swipes on their own phone, up to 8 people. Same stack as above.")}
+          </Text>
+          <View style={styles.chipRow}>
+            <Chip
+              label={t("Host on everyone's phones")}
+              onPress={() =>
+                navigation.navigate("GroupNight", {
+                  movieIds: pickStack().map((movie) => movie.id),
+                })
+              }
+              styles={styles}
+            />
+            <Chip
+              label={t("Join with a code")}
+              onPress={() => navigation.navigate("GroupNight")}
+              styles={styles}
+            />
+          </View>
         </ScrollView>
         <View
           style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
