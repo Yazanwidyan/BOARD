@@ -369,6 +369,12 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={styles.footerText}>
           {t("Version")} {APP_VERSION}
         </Text>
+        {/* Required by TMDB's API terms wherever its data is used. */}
+        <Text style={styles.attribution}>
+          {t(
+            "Movie data and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.",
+          )}
+        </Text>
       </Animated.ScrollView>
       <ScreenBottomFade />
       {cropImage && (
@@ -464,6 +470,14 @@ const createStyles = (colors) =>
     rowValue: {
       ...typography.caption,
       color: colors.textSecondary,
+    },
+    attribution: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.xl,
     },
     footerText: {
       ...typography.caption,

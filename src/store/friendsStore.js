@@ -1,9 +1,9 @@
-import { useFocusEffect } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 import { api } from "../services/api";
 import { queryKeys } from "../services/queryClient";
+import { useRefetchOnFocus } from "../utils/useRefetchOnFocus";
 import { useAuthStore } from "./authStore";
 
 // Friends, requests and the activity feed — other people's data, so plain
@@ -15,21 +15,6 @@ import { useAuthStore } from "./authStore";
 const EMPTY = [];
 
 const useSignedIn = () => useAuthStore((state) => Boolean(state.token));
-
-// Refetch when a screen comes back into view (TanStack refetches on mount
-// by itself; a stacked screen stays mounted underneath the next one).
-const useRefetchOnFocus = (refetch) => {
-  const firstFocus = useRef(true);
-  useFocusEffect(
-    useCallback(() => {
-      if (firstFocus.current) {
-        firstFocus.current = false;
-        return;
-      }
-      refetch();
-    }, [refetch]),
-  );
-};
 
 export const useFriends = () => {
   const queryClient = useQueryClient();

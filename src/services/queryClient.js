@@ -44,6 +44,11 @@ export const queryKeys = {
   friends: ["friends"],
   friendRequests: ["friends", "requests"],
   activity: ["activity"],
+  communityMovie: (movieId) => ["community", "movie", movieId],
+  trending: ["community", "trending"],
+  clubs: ["clubs"],
+  club: (clubId) => ["clubs", clubId],
+  clubActivity: (clubId) => ["clubs", clubId, "activity"],
 };
 
 const SYNC_KEY = ["sync"];

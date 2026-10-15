@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
+import { CommunityTiers } from "../components/CommunityTiers";
 import { ScoreRings } from "../components/ScoreRings";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
@@ -368,7 +369,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     giveRatingFeedback(watchedBefore);
   };
 
+  // The movie's own trailer (from TMDB), or a YouTube search without one.
   const handleWatchTrailer = () => {
+    if (details?.trailer) {
+      Linking.openURL(`https://www.youtube.com/watch?v=${details.trailer}`);
+      return;
+    }
     const query = encodeURIComponent(`${movie.title} ${movie.year} trailer`);
     Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
   };
@@ -607,6 +613,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.awardsText}>{details.awards}</Text>
             </View>
           )}
+
+          <CommunityTiers movieId={movieId} labelStyle={styles.sectionLabel} />
 
           <View style={styles.factChips}>
             <View style={styles.factChip}>

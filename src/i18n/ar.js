@@ -1217,6 +1217,126 @@ const ar = {
   "Notifications need a new build of the app.": "الإشعارات تحتاج نسخة جديدة من التطبيق.",
   "Allow notifications for ReelBoard in your phone's settings.":
     "اسمح بإشعارات ReelBoard من إعدادات هاتفك.",
+
+  // ---- Community and clubs ----
+  "Welcome to {name}":
+    "أهلًا بك في {name}",
+  "Clubs":
+    "الأندية",
+  "Watch together: a shared board, one movie everyone watches next, and the club's own tier list.":
+    "شاهدوا معًا: لوحة مشتركة، وفيلم واحد يشاهده الجميع تاليًا، وقائمة تصنيف خاصة بالنادي.",
+  "Start a club":
+    "أنشئ ناديًا",
+  "Club name, e.g. Horror Nights":
+    "اسم النادي، مثل ليالي الرعب",
+  "Invite code":
+    "رمز الدعوة",
+  "Your clubs ·":
+    "أنديتك ·",
+  "{members} members · {movies} movies":
+    "{members} أعضاء · {movies} أفلام",
+  "Now watching: {title}":
+    "نشاهد الآن: {title}",
+  "Owner":
+    "المالك",
+  "No clubs yet — start one, or ask a friend for their code.":
+    "لا أندية بعد — أنشئ واحدًا، أو اطلب الرمز من صديق.",
+  "Couldn't load clubs: {error}":
+    "تعذّر تحميل الأندية: {error}",
+  "Club":
+    "النادي",
+  "Couldn't load the club: {error}":
+    "تعذّر تحميل النادي: {error}",
+  "Open movie":
+    "افتح الفيلم",
+  "Set as now watching":
+    "اجعله ما نشاهده الآن",
+  "Remove from club":
+    "أزِله من النادي",
+  "{count} members":
+    "{count} أعضاء",
+  "Code copied":
+    "تم نسخ الرمز",
+  "Friends join from Clubs with this code — tap it to copy.":
+    "ينضم الأصدقاء من الأندية بهذا الرمز — اضغط عليه لنسخه.",
+  "Invite to the club":
+    "ادعُ إلى النادي",
+  "Join my ReelBoard club \"{name}\" — open Friends → Clubs and enter the code {code}.":
+    "انضم إلى ناديّ \"{name}\" على ReelBoard — افتح الأصدقاء ← الأندية وأدخل الرمز {code}.",
+  "Now watching":
+    "نشاهد الآن",
+  "{watched} of {members} have watched it":
+    "شاهده {watched} من {members}",
+  "Pick what everyone watches next: long-press a movie on the board below.":
+    "اختر ما سيشاهده الجميع تاليًا: اضغط مطولًا على فيلم في اللوحة أدناه.",
+  "The owner hasn't picked the next movie yet.":
+    "لم يختر المالك الفيلم التالي بعد.",
+  "Club tier list":
+    "قائمة تصنيف النادي",
+  "Each movie sits at the average of members' tiers.":
+    "كل فيلم في متوسط تصنيفات الأعضاء.",
+  "The board ·":
+    "اللوحة ·",
+  "{watched}/{members} watched":
+    "شاهده {watched}/{members}",
+  "Nothing here yet.":
+    "لا شيء هنا بعد.",
+  "Add movies from any movie's page with Board. Long-press one here for more.":
+    "أضف أفلامًا من صفحة أي فيلم عبر «لوحة». اضغط مطولًا على فيلم هنا للمزيد.",
+  "Members ·":
+    "الأعضاء ·",
+  "(you)":
+    "(أنت)",
+  "They can join again with the invite code.":
+    "يمكنه الانضمام مجددًا برمز الدعوة.",
+  "Club activity":
+    "نشاط النادي",
+  "Edit club":
+    "تعديل النادي",
+  "New invite code?":
+    "رمز دعوة جديد؟",
+  "The old code stops working.":
+    "سيتوقف الرمز القديم عن العمل.",
+  "New code":
+    "رمز جديد",
+  "New invite code":
+    "رمز دعوة جديد",
+  "The club is deleted for everyone. This can't be undone.":
+    "سيُحذف النادي للجميع. لا يمكن التراجع عن ذلك.",
+  "Delete club":
+    "حذف النادي",
+  "Leave {name}?":
+    "مغادرة {name}؟",
+  "You can join again with the invite code.":
+    "يمكنك الانضمام مجددًا برمز الدعوة.",
+  "Leave club":
+    "مغادرة النادي",
+  "Club name":
+    "اسم النادي",
+  "What's this club watching?":
+    "ماذا يشاهد هذا النادي؟",
+  "{count} tiered":
+    "صنّفه {count}",
+  "ReelBoard community":
+    "مجتمع ReelBoard",
+  "Nobody's tiered it yet — be the first.":
+    "لم يصنّفه أحد بعد — كن الأول.",
+  "Club · {count} members":
+    "نادٍ · {count} أعضاء",
+  "{count} clubs · watch together":
+    "{count} أندية · شاهدوا معًا",
+  "Watch together — start a club or join one":
+    "شاهدوا معًا — أنشئ ناديًا أو انضم إلى واحد",
+  "Open":
+    "فتح",
+  "Couldn't update the club: {error}":
+    "تعذّر تحديث النادي: {error}",
+  "Trending on ReelBoard":
+    "الأكثر رواجًا على ReelBoard",
+  "Community favorites":
+    "مفضّلات المجتمع",
+  "Movie data and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.":
+    "بيانات الأفلام وصورها من TMDB. يستخدم هذا المنتج واجهة TMDB البرمجية، لكنه غير معتمد أو مصدّق من TMDB.",
 };
 
 export default ar;

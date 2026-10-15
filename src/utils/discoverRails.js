@@ -34,10 +34,24 @@ const byRating = (a, b) => b.rating - a.rating;
 // Every Discover row, built from real state. Watched movies never appear —
 // Discover is for finding something new. Rows with nothing to show are
 // dropped. Each row carries its full list (`movies`) for "All ›".
-export const buildDiscoverRails = ({ watched, preferences }) => {
+// `community` is GET /api/community/trending (store/communityStore), when
+// it's loaded: what everyone else is watching and loving.
+export const buildDiscoverRails = ({ watched, preferences, community }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const unwatched = MOVIES.filter((movie) => !watchedIds.has(movie.id));
   const rails = [];
+  const unwatchedFrom = (rows = []) =>
+    rows
+      .filter((row) => !watchedIds.has(row.movieId))
+      .map((row) => getMovieById(row.movieId))
+      .filter(Boolean);
+
+  // Trending on ReelBoard — most watched and saved by everyone this week.
+  rails.push({
+    key: "trending",
+    title: t("Trending on ReelBoard"),
+    movies: unwatchedFrom(community?.trending),
+  });
 
   // Because you watched — movies that *feel* like the latest watch
   // (Taste DNA: tone, pace, complexity, weight, scale, themes), closest
@@ -98,6 +112,13 @@ export const buildDiscoverRails = ({ watched, preferences }) => {
       [],
       [...watchedIds],
     ),
+  });
+
+  // Community favourites — the highest share of S and A tiers.
+  rails.push({
+    key: "favorites",
+    title: t("Community favorites"),
+    movies: unwatchedFrom(community?.favorites),
   });
 
   rails.push({

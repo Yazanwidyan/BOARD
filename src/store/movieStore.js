@@ -9,6 +9,10 @@ const LIBRARY = { invalidate: [queryKeys.library] };
 // Changes to the watch history also change XP and level, which the server
 // works out — so the profile is re-read afterwards too.
 const WATCHED = { invalidate: [queryKeys.library, queryKeys.profile] };
+// …and the movie's community tiers (if its page is open, it updates).
+const watchedChange = (movieId) => ({
+  invalidate: [...WATCHED.invalidate, queryKeys.communityMovie(movieId)],
+});
 
 // XP and level are worked out by the server from the watch history (its
 // lib/xp.js — the same rules as utils/xp.js), so nobody can claim a level
@@ -85,7 +89,7 @@ export const useMovieStore = createAccountStore({
       }));
       queueChange("PATCH", `/me/watched/${movieId}`, body, {
         merge: `watched:${movieId}`,
-        ...WATCHED,
+        ...watchedChange(movieId),
       });
       // Rating a movie earns XP too.
       refreshLevel();
@@ -151,7 +155,12 @@ export const useMovieStore = createAccountStore({
           set((state) => ({
             watched: state.watched.filter((entry) => entry.movieId !== movieId),
           }));
-          queueChange("DELETE", `/me/watched/${movieId}`, undefined, WATCHED);
+          queueChange(
+            "DELETE",
+            `/me/watched/${movieId}`,
+            undefined,
+            watchedChange(movieId),
+          );
         } else {
           const timestamp = Date.now();
           set((state) => ({
@@ -170,7 +179,12 @@ export const useMovieStore = createAccountStore({
             "POST",
             "/me/watched",
             { movieId, tier: null, watchedAt: timestamp },
-            { invalidate: [...WATCHED.invalidate, queryKeys.challenges] },
+            {
+              invalidate: [
+                ...watchedChange(movieId).invalidate,
+                queryKeys.challenges,
+              ],
+            },
           );
         }
         refreshLevel();

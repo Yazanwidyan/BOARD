@@ -26,6 +26,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { useTrending } from "../store/communityStore";
 import { useMovieStore } from "../store/movieStore";
 import { useUserStore } from "../store/userStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
@@ -118,6 +119,7 @@ export const DiscoverScreen = ({ navigation }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const preferences = useUserStore((state) => state.preferences);
+  const { data: community, refetch: refetchCommunity } = useTrending();
   const header = useDockHeader();
   // Reels (full-screen trailer clips, the default) or Browse (the rails).
   const [mode, setMode] = useState("reels");
@@ -130,13 +132,14 @@ export const DiscoverScreen = ({ navigation }) => {
   const [refreshCount, setRefreshCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const rails = useMemo(
-    () => buildDiscoverRails({ watched, preferences }),
+    () => buildDiscoverRails({ watched, preferences, community }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [watched, preferences, refreshCount],
+    [watched, preferences, community, refreshCount],
   );
   const onRefresh = () => {
     setRefreshing(true);
     Haptics.selectionAsync();
+    refetchCommunity();
     setRefreshCount((value) => value + 1);
     // Long enough for the title to fill and unfill once.
     setTimeout(() => setRefreshing(false), 1100);

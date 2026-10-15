@@ -31,6 +31,8 @@ import { SwipeScreen } from "../screens/SwipeScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { AiPickScreen } from "../screens/AiPickScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
+import { ClubDetailsScreen } from "../screens/ClubDetailsScreen";
+import { ClubsScreen } from "../screens/ClubsScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
 import { EmailAuthScreen } from "../screens/EmailAuthScreen";
@@ -192,6 +194,8 @@ export const AppNavigator = () => {
             />
             <Stack.Screen name="Activity" component={ActivityScreen} />
             <Stack.Screen name="Friends" component={FriendsScreen} />
+            <Stack.Screen name="Clubs" component={ClubsScreen} />
+            <Stack.Screen name="ClubDetails" component={ClubDetailsScreen} />
             <Stack.Screen
               name="FriendProfile"
               component={FriendProfileScreen}

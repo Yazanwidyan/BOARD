@@ -20,6 +20,7 @@ import {
 } from "../components/ScreenHeader";
 import { getMovieById } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
+import { useClubs } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
@@ -53,6 +54,7 @@ export const FriendsScreen = ({ navigation }) => {
     acceptRequest,
     dropRequest,
   } = useFriends();
+  const { clubs } = useClubs();
   const [handleInput, setHandleInput] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -174,6 +176,22 @@ export const FriendsScreen = ({ navigation }) => {
             </Text>
           </Pressable>
         </View>
+
+        {/* Clubs */}
+        <Pressable
+          style={({ pressed }) => [styles.clubsRow, pressed && styles.pressed]}
+          onPress={() => navigation.navigate("Clubs")}
+        >
+          <View style={styles.friendText}>
+            <Text style={styles.friendName}>{t("Clubs")}</Text>
+            <Text style={styles.friendMeta} numberOfLines={1}>
+              {clubs.length > 0
+                ? t("{count} clubs · watch together", { count: clubs.length })
+                : t("Watch together — start a club or join one")}
+            </Text>
+          </View>
+          <Text style={styles.addButtonText}>{t("Open")}</Text>
+        </Pressable>
 
         {/* Requests to you */}
         {incoming.length > 0 && (
@@ -357,6 +375,14 @@ const createStyles = (colors) =>
     addButtonText: {
       ...typography.bodyBold,
       color: colors.textPrimary,
+    },
+    clubsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: 2,
+      padding: spacing.md,
+      backgroundColor: colors.card,
     },
     requestRow: {
       flexDirection: "row",
