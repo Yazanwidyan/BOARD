@@ -16,6 +16,7 @@ import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { findMovies } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
@@ -36,11 +37,9 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
   const toggleBoardMovie = useBoardStore((state) => state.toggleBoardMovie);
   const bucketList = useMovieStore((state) => state.bucketList);
 
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = query.trim();
   const movies = trimmed
-    ? MOVIES.filter((movie) =>
-        movie.title.toLowerCase().includes(trimmed),
-      ).slice(0, RESULTS_LIMIT)
+    ? findMovies(MOVIES, query, RESULTS_LIMIT)
     : [...bucketList]
         .reverse()
         .map((entry) => getMovieById(entry.movieId))
@@ -65,7 +64,7 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder={t("Search movies...")}
+          placeholder={t("Search movies, directors, actors...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}

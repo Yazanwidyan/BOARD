@@ -58,6 +58,7 @@ import {
   getUnlockedCollectionSections,
 } from "../utils/collections";
 import { matchesGenres } from "../utils/movieFilters";
+import { movieMatches } from "../utils/movieSearch";
 import { shuffle } from "../utils/shuffle";
 import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
 import { t } from "../i18n";
@@ -144,8 +145,8 @@ const groupByTier = (items) => {
   return groups;
 };
 
-const matchesQuery = (movie, query) =>
-  !query || movie.title.toLowerCase().includes(query.trim().toLowerCase());
+// Title, director or cast — see utils/movieSearch.
+const matchesQuery = (movie, query) => movieMatches(movie, query ?? "");
 
 const SORT_OPTIONS = [
   { key: "recent", label: "Recently Watched" },

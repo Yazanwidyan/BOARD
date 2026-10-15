@@ -3,7 +3,7 @@ import { AppState } from "react-native";
 import { changeLanguage } from "../i18n";
 import { useAuthStore } from "../store/authStore";
 import { useLanguageStore } from "../store/languageStore";
-import { reportLevel, resetReportedLevel } from "../store/movieStore";
+import { resetShownLevel } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { request } from "./api";
@@ -44,7 +44,7 @@ const signedIn = () => Boolean(useAuthStore.getState().token);
 // switching the language remounts every screen.
 const applyServerState = (state, { full = false } = {}) => {
   setAccountData(state);
-  resetReportedLevel(state.profile.level);
+  resetShownLevel(state.profile.level);
   if (full) {
     applyingRemote = true;
     try {
@@ -56,9 +56,6 @@ const applyServerState = (state, { full = false } = {}) => {
       applyingRemote = false;
     }
   }
-  // A level worked out by a newer app version than the one that last
-  // reported it gets corrected here.
-  reportLevel();
 };
 
 // Re-reads the whole account in one request. Skipped while changes are on
@@ -97,7 +94,7 @@ export const loadAccount = async () => {
 const openSavedAccount = async () => {
   const hasCatalog = await restoreCatalog();
   if (!hasCatalog || !hasAccountData()) return false;
-  resetReportedLevel(
+  resetShownLevel(
     queryClient.getQueryData(queryKeys.profile)?.level ?? null,
   );
   useAuthStore.getState().setStatus("ready");
@@ -147,7 +144,7 @@ export const register = async ({ displayName, email, password }) => {
 // its cached data nor changes still waiting to be sent.
 const forgetAccount = () => {
   clearAccountCache();
-  resetReportedLevel();
+  resetShownLevel();
   useSessionStore.getState().endSession();
   persister.removeClient();
 };

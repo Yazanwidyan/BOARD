@@ -18,6 +18,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
+import { findMovies } from "../utils/movieSearch";
 import { t } from "../i18n";
 
 const RESULTS_LIMIT = 60;
@@ -55,13 +56,12 @@ export const SearchScreen = ({ navigation }) => {
   const [pasteResult, setPasteResult] = useState(null);
   const bucketList = useMovieStore((state) => state.bucketList);
 
-  const trimmed = query.trim().toLowerCase();
-  const results = useMemo(() => {
-    if (!trimmed) return [];
-    return MOVIES.filter((movie) =>
-      movie.title.toLowerCase().includes(trimmed),
-    ).slice(0, RESULTS_LIMIT);
-  }, [trimmed]);
+  const trimmed = query.trim();
+  // Title, director or cast, best matches first — see utils/movieSearch.
+  const results = useMemo(
+    () => findMovies(MOVIES, query, RESULTS_LIMIT),
+    [query],
+  );
 
   const handlePasteSubmit = () => {
     setPasteResult(matchTitles(pasteText));
@@ -86,7 +86,7 @@ export const SearchScreen = ({ navigation }) => {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder={t("Search for titles...")}
+            placeholder={t("Search movies, directors, actors...")}
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
             autoCorrect={false}

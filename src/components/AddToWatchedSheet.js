@@ -18,6 +18,7 @@ import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
+import { searchMovies } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
@@ -38,12 +39,9 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
 
   const watchedIds = watched.map((entry) => entry.movieId);
 
-  const trimmed = query.trim().toLowerCase();
-  const results = trimmed
-    ? MOVIES.filter((movie) =>
-        movie.title.toLowerCase().includes(trimmed),
-      ).slice(0, RESULTS_LIMIT)
-    : [];
+  const trimmed = query.trim();
+  // Title, director or cast — see utils/movieSearch.
+  const results = searchMovies(MOVIES, query, RESULTS_LIMIT);
 
   const handleClose = () => {
     setQuery("");
@@ -77,7 +75,7 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => query.trim() && addSearch(query)}
-          placeholder={t("Search movies...")}
+          placeholder={t("Search movies, directors, actors...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
@@ -92,7 +90,7 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {results.map((movie) => {
+          {results.map(({ movie, matchedBy }) => {
             const isWatched = watchedIds.includes(movie.id);
             return (
               <Pressable
@@ -110,7 +108,11 @@ export const AddToWatchedSheet = ({ visible, onClose }) => {
                     {movie.title}
                   </Text>
                   <View style={styles.rowMeta}>
-                    <Text style={styles.rowYear}>{movie.year}</Text>
+                    <Text style={styles.rowYear} numberOfLines={1}>
+                      {movie.year}
+                      {/* Found by director / actor: say who. */}
+                      {matchedBy ? ` · ${matchedBy.name}` : ""}
+                    </Text>
                   </View>
                 </View>
                 <View

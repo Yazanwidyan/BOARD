@@ -16,6 +16,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
+import { findMovies } from "../utils/movieSearch";
 import { t } from "../i18n";
 
 const MovieRow = ({ movie, inBucketList, onToggle, onPress }) => {
@@ -70,12 +71,11 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
     [rowIds],
   );
 
+  // The row's own order until you search; then best matches first (title,
+  // director or cast — see utils/movieSearch).
   const filteredMovies = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return baseMovies;
-    return baseMovies.filter((movie) =>
-      movie.title.toLowerCase().includes(trimmed),
-    );
+    if (!query.trim()) return baseMovies;
+    return findMovies(baseMovies, query);
   }, [query, baseMovies]);
 
   return (
@@ -95,7 +95,7 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
               ? t("Search {rowIdsCount} movies...", {
                   rowIdsCount: rowIds.length,
                 })
-              : t("Search movies...")
+              : t("Search movies, directors, actors...")
           }
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}

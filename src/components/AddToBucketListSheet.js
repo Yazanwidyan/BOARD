@@ -18,6 +18,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
+import { searchMovies } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
@@ -34,12 +35,9 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
   const addSearch = useRecentSearchStore((state) => state.addSearch);
   const clearSearches = useRecentSearchStore((state) => state.clearSearches);
 
-  const trimmed = query.trim().toLowerCase();
-  const results = trimmed
-    ? MOVIES.filter((movie) =>
-        movie.title.toLowerCase().includes(trimmed),
-      ).slice(0, RESULTS_LIMIT)
-    : [];
+  const trimmed = query.trim();
+  // Title, director or cast — see utils/movieSearch.
+  const results = searchMovies(MOVIES, query, RESULTS_LIMIT);
 
   const handleClose = () => {
     setQuery("");
@@ -63,7 +61,7 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => query.trim() && addSearch(query)}
-          placeholder={t("Search movies...")}
+          placeholder={t("Search movies, directors, actors...")}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
@@ -78,7 +76,7 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {results.map((movie) => {
+          {results.map(({ movie, matchedBy }) => {
             const inBucketList = isInBucketList(bucketList, movie.id);
             return (
               <Pressable
@@ -96,7 +94,11 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
                     {movie.title}
                   </Text>
                   <View style={styles.rowMeta}>
-                    <Text style={styles.rowYear}>{movie.year}</Text>
+                    <Text style={styles.rowYear} numberOfLines={1}>
+                      {movie.year}
+                      {/* Found by director / actor: say who. */}
+                      {matchedBy ? ` · ${matchedBy.name}` : ""}
+                    </Text>
                   </View>
                 </View>
                 <View

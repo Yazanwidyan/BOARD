@@ -325,7 +325,6 @@ const ar = {
   "Add to Watchlist": "أضف إلى قائمة المشاهدة",
   "Add to watchlist": "أضف إلى قائمة المشاهدة",
   "Remove from watchlist": "أزل من قائمة المشاهدة",
-  "Search for titles...": "ابحث عن عناوين...",
   "No movies found.": "لم يتم العثور على أفلام.",
   "All Collections": "كل المجموعات",
   "Tap one to start or stop tracking it":
@@ -454,7 +453,7 @@ const ar = {
     "{title} ‏({year}) — IMDb ‏{value}. وجدته على ReelBoard. https://youtu.be/{youtubeId}",
   "Browse Movies": "تصفّح الأفلام",
   "Search {rowIdsCount} movies...": "ابحث في {rowIdsCount} فيلماً...",
-  "Search movies...": "ابحث عن الأفلام...",
+  "Search movies, directors, actors...": "ابحث عن أفلام أو مخرجين أو ممثلين...",
   "Recent Searches": "عمليات البحث الأخيرة",
   "Your recent searches will appear here.": "ستظهر عمليات بحثك الأخيرة هنا.",
   'Nothing found for "{query}"': 'لا نتائج لـ"{query}"',

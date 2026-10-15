@@ -6,29 +6,31 @@ import { createAccountStore } from "./accountStore";
 // unlocked collections. Server data, cached by TanStack Query (see
 // store/accountStore.js) under queryKeys.library = GET /api/me/library.
 const LIBRARY = { invalidate: [queryKeys.library] };
+// Changes to the watch history also change XP and level, which the server
+// works out — so the profile is re-read afterwards too.
+const WATCHED = { invalidate: [queryKeys.library, queryKeys.profile] };
 
-// XP and level are worked out by the app (utils/xp.js) from the watch
-// history; the server keeps the latest so friends see the right level.
-let lastReportedLevel = null;
+// XP and level are worked out by the server from the watch history (its
+// lib/xp.js — the same rules as utils/xp.js), so nobody can claim a level
+// they haven't earned. The app doesn't send them; it only updates the
+// cached profile straight away with the same formula, so the number moves
+// the moment you watch something, and the server's copy replaces it on the
+// next refresh.
+let lastShownLevel = null;
 
-export const resetReportedLevel = (level = null) => {
-  lastReportedLevel = level;
+export const resetShownLevel = (level = null) => {
+  lastShownLevel = level;
 };
 
-export const reportLevel = () => {
+export const refreshLevel = () => {
   const xp = getUserXP(useMovieStore.getState().watched);
   const { level } = getLevel(xp);
-  if (level === lastReportedLevel) return;
-  lastReportedLevel = level;
-  const changes = { xp: Math.round(xp), level };
+  if (level === lastShownLevel) return;
+  lastShownLevel = level;
   queryClient.setQueryData(
     queryKeys.profile,
-    (profile) => profile && { ...profile, ...changes },
+    (profile) => profile && { ...profile, xp: Math.round(xp), level },
   );
-  queueChange("PATCH", "/me/profile", changes, {
-    merge: "profile",
-    invalidate: [queryKeys.profile],
-  });
 };
 
 export const useMovieStore = createAccountStore({
@@ -83,10 +85,10 @@ export const useMovieStore = createAccountStore({
       }));
       queueChange("PATCH", `/me/watched/${movieId}`, body, {
         merge: `watched:${movieId}`,
-        ...LIBRARY,
+        ...WATCHED,
       });
       // Rating a movie earns XP too.
-      reportLevel();
+      refreshLevel();
     };
 
     return {
@@ -149,7 +151,7 @@ export const useMovieStore = createAccountStore({
           set((state) => ({
             watched: state.watched.filter((entry) => entry.movieId !== movieId),
           }));
-          queueChange("DELETE", `/me/watched/${movieId}`, undefined, LIBRARY);
+          queueChange("DELETE", `/me/watched/${movieId}`, undefined, WATCHED);
         } else {
           const timestamp = Date.now();
           set((state) => ({
@@ -168,10 +170,10 @@ export const useMovieStore = createAccountStore({
             "POST",
             "/me/watched",
             { movieId, tier: null, watchedAt: timestamp },
-            { invalidate: [queryKeys.library, queryKeys.challenges] },
+            { invalidate: [...WATCHED.invalidate, queryKeys.challenges] },
           );
         }
-        reportLevel();
+        refreshLevel();
       },
 
       // ReelBoard's rating: a tier (S–F), or null to clear it. Drops any old
@@ -193,7 +195,7 @@ export const useMovieStore = createAccountStore({
             entry.movieId === movieId ? { ...entry, rating } : entry,
           ),
         }));
-        reportLevel();
+        refreshLevel();
       },
 
       // Distinct from toggleWatched on purpose — a rewatch of something
@@ -222,7 +224,7 @@ export const useMovieStore = createAccountStore({
           undefined,
           LIBRARY,
         );
-        reportLevel();
+        refreshLevel();
       },
 
       // Set (not toggle) tonight's pick — e.g. a Movie night match.
@@ -236,8 +238,8 @@ export const useMovieStore = createAccountStore({
       setMoodPick: (movieId, mood) => setPick(movieId, mood),
       clearWatched: () => {
         set({ watched: [] });
-        queueChange("DELETE", "/me/watched", undefined, LIBRARY);
-        reportLevel();
+        queueChange("DELETE", "/me/watched", undefined, WATCHED);
+        refreshLevel();
       },
       clearUnlockedCollections: () => {
         const ids = get().unlockedCollections;

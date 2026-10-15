@@ -16,6 +16,7 @@ import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { movieMatches } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
@@ -37,16 +38,13 @@ export const TopTenPicker = ({ visible, onClose, watched }) => {
   const posterWidth =
     (windowWidth - spacing.md * 2 - 2 * (COLUMNS - 1)) / COLUMNS;
 
-  // Most recently watched first.
-  const normalizedQuery = query.trim().toLowerCase();
+  // Most recently watched first; the search (title, director or cast)
+  // narrows it without reordering.
   const movies = [...watched]
     .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
     .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean)
-    .filter(
-      (movie) =>
-        !normalizedQuery || movie.title.toLowerCase().includes(normalizedQuery),
-    );
+    .filter((movie) => movieMatches(movie, query));
 
   const toggle = (movie) => {
     const isPicked = topTen.includes(movie.id);
