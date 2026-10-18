@@ -1,3 +1,19 @@
+// A rating counted by how many people gave it (IMDb's Top 250 formula): a
+// 9.1 from a few hundred fans isn't better than an 8.7 from 20,000 — what
+// "best first" means everywhere in the app. The server ranks candidates the
+// same way (backend lib/candidates.js). The rating filter (minRating) still
+// uses the plain rating, the number shown.
+const RATING_VOTES = 3000;
+const AVERAGE_RATING = 6.7;
+export const weightedRating = (movie) => {
+  const votes = movie.details?.votes ?? movie.votes ?? 0;
+  return (
+    (votes / (votes + RATING_VOTES)) * (movie.rating ?? 0) +
+    (RATING_VOTES / (votes + RATING_VOTES)) * AVERAGE_RATING
+  );
+};
+export const byWeightedRating = (a, b) => weightedRating(b) - weightedRating(a);
+
 // The app's 12 genres (the server maps TMDB's onto these), and the decades
 // its movies span.
 export const ALL_GENRES = [

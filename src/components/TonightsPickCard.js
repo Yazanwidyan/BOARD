@@ -16,7 +16,7 @@ import {
   getCollectionsForMovie,
 } from "../utils/collections";
 import { getMood, pickMovieForMood } from "../utils/moods";
-import { formatRuntime } from "../utils/movieFilters";
+import { formatRuntime, byWeightedRating } from "../utils/movieFilters";
 import { HomeHero } from "./HomeHero";
 import { PrimaryButton } from "./PrimaryButton";
 import { t } from "../i18n";
@@ -120,7 +120,7 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
         !watchedIds.has(movie.id) &&
         movie.genres[0] === pickedMovie.genres[0],
     )
-      .sort((a, b) => b.rating - a.rating)
+      .sort(byWeightedRating)
       .slice(0, SIMILAR_POOL);
     if (similar.length > 0) {
       togglePickedMovie(randomFrom(similar).id);

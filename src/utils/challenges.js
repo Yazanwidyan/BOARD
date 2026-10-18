@@ -6,7 +6,7 @@ import {
   getCurrentCollection,
   getCollectionSections,
 } from "./collections";
-import { bucketListIds } from "./movieFilters";
+import { bucketListIds, byWeightedRating, weightedRating } from "./movieFilters";
 import { shuffle } from "./shuffle";
 import { t } from "../i18n";
 
@@ -167,7 +167,7 @@ const genreExplorer = ({ watched, bucketList }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const pool = MOVIES.filter(
     (movie) => movie.genres.includes(genre) && !watchedIds.has(movie.id),
-  ).sort((a, b) => b.rating - a.rating);
+  ).sort(byWeightedRating);
   if (pool.length === 0) return null;
   const inWatchlist = bucketListIds(bucketList);
   const movie = pool.find((m) => inWatchlist.includes(m.id)) ?? pool[0];
@@ -193,7 +193,7 @@ const outsideComfortZone = ({ watched, bucketList }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const pool = MOVIES.filter(
     (movie) => movie.genres.includes(leastGenre) && !watchedIds.has(movie.id),
-  ).sort((a, b) => b.rating - a.rating);
+  ).sort(byWeightedRating);
   if (pool.length === 0) return null;
   const inWatchlist = bucketListIds(bucketList);
   const movie = pool.find((m) => inWatchlist.includes(m.id)) ?? pool[0];
@@ -326,7 +326,7 @@ const startSomethingNew = ({ watched }) => {
 const hiddenGem = ({ watched }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const pool = MOVIES.filter(
-    (movie) => movie.rating >= 8.5 && !watchedIds.has(movie.id),
+    (movie) => weightedRating(movie) >= 7.8 && !watchedIds.has(movie.id),
   );
   if (pool.length === 0) return null;
   const movie = shuffle(pool)[0];

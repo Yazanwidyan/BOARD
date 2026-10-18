@@ -2,10 +2,12 @@ import { AppState } from "react-native";
 import { create } from "zustand";
 
 import {
+  FILTERED_MOVIES,
   MOVIES,
   forgetMovies,
   getMovieById,
   setCandidates,
+  setFilteredCandidates,
   setMissingMovieHandler,
 } from "../data/movies";
 import { setReelClips } from "../data/reelClips";
@@ -19,9 +21,12 @@ import { queryClient, queryKeys } from "./queryClient";
 // in memory only — nothing is saved on the phone. There's no catalog: the
 // server picks a few hundred candidates for you from its 8,000, and every
 // response brings the movies it mentions. This module:
-//   - loads candidates for your taste and your filters (Preferences), and
-//     loads new ones when the filters change, when they're half a day old,
-//     or when you've watched your way through too many of them
+//   - loads candidates for your taste (MOVIES — Taste pick, dares, the
+//     rails…), and a second set with your Swipe setup filters too
+//     (FILTERED_MOVIES — Swipe, Spin, Movie Night). New ones when they're
+//     half a day old, when you've watched your way through too many of
+//     them, or (the filtered set) when the filters change. The filters
+//     never narrow the rest of the app.
 //   - loads the featured collections (to browse) and the Reels clips
 //   - fetches any movie something asks for that the app doesn't have
 
@@ -35,8 +40,10 @@ const CANDIDATES_LOW = 120;
 const DAILY_MS = 24 * 60 * 60 * 1000;
 
 const EMPTY_STATE = {
-  candidatesKey: null,
   candidatesAt: 0,
+  generalMatching: null,
+  filteredKey: null,
+  filteredAt: 0,
   featuredEtag: null,
   featuredAt: 0,
   reelsAt: 0,
@@ -66,17 +73,27 @@ const watchedIds = () =>
     (queryClient.getQueryData(queryKeys.library)?.watched ?? []).map((entry) => entry.movieId),
   );
 
-const candidatesAreStale = (filters) => {
-  if (MOVIES.length === 0) return true;
-  if (state.candidatesKey !== filtersKey(filters)) return true;
-  if (Date.now() - state.candidatesAt > CANDIDATES_MAX_AGE_MS) return true;
+const NO_FILTERS = { genres: [], decade: "Any", runtime: "Any", minRating: null };
+const hasFilters = (filters) => filtersKey(filters) !== filtersKey(NO_FILTERS);
+
+const runningLow = (movies) => {
   const watched = watchedIds();
-  return MOVIES.filter((movie) => !watched.has(movie.id)).length < CANDIDATES_LOW;
+  return movies.filter((movie) => !watched.has(movie.id)).length < CANDIDATES_LOW;
 };
 
-// For screens: whether candidates for the current filters are on their way
-// (or couldn't be had), and how many movies on the server match them —
-// `matchingKey` says which filters that count is for.
+const generalIsStale = () =>
+  MOVIES.length === 0 ||
+  Date.now() - state.candidatesAt > CANDIDATES_MAX_AGE_MS ||
+  runningLow(MOVIES);
+
+const filteredIsStale = (filters) =>
+  state.filteredKey !== filtersKey(filters) ||
+  Date.now() - state.filteredAt > CANDIDATES_MAX_AGE_MS ||
+  runningLow(FILTERED_MOVIES);
+
+// For screens (Swipe setup): whether candidates for the current filters are
+// on their way (or couldn't be had), and how many movies on the server
+// match them — `matchingKey` says which filters that count is for.
 export const useCandidatesStatus = create(() => ({
   loading: false,
   failed: false,
@@ -86,17 +103,29 @@ export const useCandidatesStatus = create(() => ({
 
 export const currentFiltersKey = () => filtersKey(currentFilters());
 
-const fetchCandidates = async (filters) => {
+const fetchCandidateSet = async (filters) => {
+  const params = new URLSearchParams({ count: String(CANDIDATE_COUNT) });
+  if (filters.genres.length) params.set("genres", filters.genres.join(","));
+  if (filters.decade !== "Any") params.set("decade", filters.decade);
+  if (filters.runtime !== "Any") params.set("runtime", filters.runtime);
+  if (filters.minRating) params.set("minRating", String(filters.minRating));
+  return request("GET", `/me/candidates?${params}`);
+};
+
+// Your taste, no filters.
+const fetchGeneral = async () => {
+  const { movies, matching } = await fetchCandidateSet(NO_FILTERS);
+  setCandidates(movies);
+  state = { ...state, candidatesAt: Date.now(), generalMatching: matching };
+};
+
+// Your taste and the Swipe setup filters.
+const fetchFiltered = async (filters) => {
   useCandidatesStatus.setState({ loading: true, failed: false });
   try {
-    const params = new URLSearchParams({ count: String(CANDIDATE_COUNT) });
-    if (filters.genres.length) params.set("genres", filters.genres.join(","));
-    if (filters.decade !== "Any") params.set("decade", filters.decade);
-    if (filters.runtime !== "Any") params.set("runtime", filters.runtime);
-    if (filters.minRating) params.set("minRating", String(filters.minRating));
-    const { movies, matching } = await request("GET", `/me/candidates?${params}`);
-    setCandidates(movies);
-    state = { ...state, candidatesKey: filtersKey(filters), candidatesAt: Date.now() };
+    const { movies, matching } = await fetchCandidateSet(filters);
+    setFilteredCandidates(movies);
+    state = { ...state, filteredKey: filtersKey(filters), filteredAt: Date.now() };
     useCandidatesStatus.setState({ matching, matchingKey: filtersKey(filters) });
   } catch (error) {
     useCandidatesStatus.setState({ failed: true });
@@ -108,15 +137,36 @@ const fetchCandidates = async (filters) => {
 
 let loadingCandidates = null;
 
-// New candidates if the ones in the app are stale (or `force`) — always for
-// the filters as they are when it's called, even if they changed while an
-// earlier load was on its way. Throws if the server can't be reached.
+// New candidates where the ones in the app are stale (or `force`) — the
+// filtered set always for the filters as they are when it's called, even if
+// they changed while an earlier load was on its way. With no filters set,
+// the filtered set is just the general one. Throws if the server can't be
+// reached.
 export const loadCandidates = async ({ force = false } = {}) => {
   if (!signedIn()) return;
   while (loadingCandidates) await loadingCandidates.catch(() => {});
   const filters = currentFilters();
-  if (!force && !candidatesAreStale(filters)) return;
-  loadingCandidates = fetchCandidates(filters).finally(() => {
+  const loads = [];
+  if (force || generalIsStale()) loads.push(fetchGeneral());
+  if (hasFilters(filters)) {
+    if (force || filteredIsStale(filters)) loads.push(fetchFiltered(filters));
+  } else if (state.filteredKey !== filtersKey(filters) || force || loads.length) {
+    // No filters: Swipe uses the general set (once it's in).
+    loadingCandidates = Promise.all(loads).then(() => {
+      setFilteredCandidates(MOVIES);
+      state = { ...state, filteredKey: filtersKey(filters), filteredAt: state.candidatesAt };
+      useCandidatesStatus.setState({
+        matching: state.generalMatching ?? null,
+        matchingKey: filtersKey(filters),
+      });
+    });
+    await loadingCandidates.finally(() => {
+      loadingCandidates = null;
+    });
+    return;
+  }
+  if (loads.length === 0) return;
+  loadingCandidates = Promise.all(loads).finally(() => {
     loadingCandidates = null;
   });
   return loadingCandidates;

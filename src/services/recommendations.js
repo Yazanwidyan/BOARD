@@ -1,4 +1,4 @@
-import { MOVIES, getMovieById } from '../data/movies';
+import { FILTERED_MOVIES, MOVIES, getMovieById } from '../data/movies';
 import { shuffle } from '../utils/shuffle';
 import { applyPreferenceFilters } from '../utils/movieFilters';
 
@@ -56,7 +56,10 @@ export const generateRecommendations = (
     return shuffle(priorityPicks);
   }
 
-  const restPool = excludeIds(MOVIES, [
+  // The candidates picked with the Swipe setup filters (services/movieData)
+  // — the general ones until those are in.
+  const pool = FILTERED_MOVIES.length > 0 ? FILTERED_MOVIES : MOVIES;
+  const restPool = excludeIds(pool, [
     ...priorityPicks.map((movie) => movie.id),
     ...skipIds,
   ]);

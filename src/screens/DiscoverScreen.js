@@ -4,7 +4,6 @@ import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
 import {
   Pressable,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -144,7 +143,7 @@ export const DiscoverScreen = ({ navigation }) => {
     Haptics.selectionAsync();
     refetchCommunity();
     setRefreshCount((value) => value + 1);
-    // Long enough for the title to fill and unfill once.
+    // Long enough for the spinner to read as a refresh.
     setTimeout(() => setRefreshing(false), 1100);
   };
 
@@ -204,11 +203,8 @@ export const DiscoverScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // iOS: no spinner — the header title fills instead.
-            // Android can't report the pull, so it keeps its spinner.
-            tintColor={
-              Platform.OS === "ios" ? "transparent" : colors.textSecondary
-            }
+            // No logo in this header to spin: the system spinner.
+            tintColor={colors.textSecondary}
             colors={[colors.textPrimary]}
             progressBackgroundColor={colors.card}
           />

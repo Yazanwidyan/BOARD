@@ -1,3 +1,4 @@
+import { byWeightedRating } from "./movieFilters";
 // Resolves what carries into the next elimination round from what you kept,
 // so the game always converges toward one movie — and never brings back
 // something you passed on unless there's nothing else to go on.
@@ -13,7 +14,7 @@ const RETRY_RATIO = 0.4;
 const HIGH_KEEP_RATE = 0.8;
 const TRIM_RATIO = 0.6;
 
-const byRatingDesc = (a, b) => b.rating - a.rating;
+const byRatingDesc = byWeightedRating;
 
 export const resolveRoundOutcome = (roundSize, kept, removed) => {
   if (kept.length === 0) {

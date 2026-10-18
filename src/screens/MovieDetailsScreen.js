@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
 import { CommunityTiers } from "../components/CommunityTiers";
+import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
@@ -59,12 +60,12 @@ import {
   getCollectionsForMovie,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
-import { getTier, getTierInfo } from "../utils/tiers";
+import { getAverageTier, getTier } from "../utils/tiers";
 import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
-import { formatRuntime, isInBucketList } from "../utils/movieFilters";
+import { formatRuntime, isInBucketList, byWeightedRating } from "../utils/movieFilters";
 import { t } from "../i18n";
 
 const HEADER_BAR_HEIGHT = 40;
@@ -135,7 +136,7 @@ const getSimilarMovies = (movie) =>
       other.director !== movie.director &&
       other.genres[0] === movie.genres[0],
   )
-    .sort((a, b) => b.rating - a.rating)
+    .sort(byWeightedRating)
     .slice(0, SIMILAR_COUNT);
 
 const getDirectorMovies = (movie) =>
@@ -191,6 +192,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     queryFn: () => api.get(`/movies/${movieId}`),
     staleTime: 60 * 60 * 1000,
   });
+  // Everyone's tiers, for the ReelBoard score (and the community bars).
+  const community = useMovieCommunity(movieId);
   const known = getMovieById(movieId);
   const movie = known && !known.partial ? known : null;
   const colors = useColors();
@@ -316,6 +319,15 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const similarMovies = getSimilarMovies(movie);
   const directorMovies = getDirectorMovies(movie);
   const details = movie.details;
+  // The cast with photos and characters comes with the movie's page — read
+  // from the page itself, since other copies of the movie (in lists, the
+  // catalog) leave it out. Until it arrives, just the names.
+  const castDetails =
+    page.data?.movie?.details?.castDetails ?? details?.castDetails ?? [];
+  const castPeople =
+    castDetails.length > 0
+      ? castDetails
+      : (movie.cast ?? []).map((name) => ({ name }));
 
   const openList = (title, movies) =>
     navigation.push("BrowseMovies", {
@@ -338,7 +350,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const scores = [
     {
       key: "imdb",
-      label: "IMDb",
+      label: "TMDB",
       value: movie.rating.toFixed(1),
       suffix: "/10",
       fraction: movie.rating / 10,
@@ -359,12 +371,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       fraction: details.metacritic / 100,
       color: scoreColor("mc", details.metacritic, colors),
     },
+    // ReelBoard: everyone's tiers averaged — not yours (yours is below).
     {
       key: "reelboard",
       label: "ReelBoard",
-      value: getTier(watchedEntry) ?? "–",
+      value: getAverageTier(community.data?.tiers) ?? "–",
       suffix: "",
-      color: getTierInfo(getTier(watchedEntry))?.color ?? colors.textMuted,
     },
   ].filter(Boolean);
 
@@ -657,7 +669,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   t("The {decade}", { decade }),
                   getKnownMovies().filter(
                     (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
-                  ).sort((a, b) => b.rating - a.rating),
+                  ).sort(byWeightedRating),
                 )
               }
             >
@@ -673,7 +685,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   openList(
                     genre,
                     getKnownMovies().filter((item) => item.genres.includes(genre)).sort(
-                      (a, b) => b.rating - a.rating,
+                      byWeightedRating,
                     ),
                   )
                 }
@@ -683,17 +695,14 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             ))}
           </View>
 
-          {movie.cast?.length > 0 && (
+          {castPeople.length > 0 && (
             <>
               <Text style={styles.sectionLabel}>{t("Cast")}</Text>
               <View style={styles.castList}>
-                {movie.cast.map((actor) => {
+                {castPeople.map(({ name: actor, character, photo }) => {
                   const hasCollection = !!getCollectionById(
                     `actor-${slugify(actor)}`,
                   );
-                  const filmCount = getKnownMovies().filter((item) =>
-                    item.cast?.includes(actor),
-                  ).length;
                   return (
                     <Pressable
                       key={actor}
@@ -701,22 +710,31 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                       onPress={() => openActor(actor)}
                     >
                       <View style={styles.castAvatar}>
-                        <Text style={styles.castInitials}>
-                          {initials(actor)}
-                        </Text>
+                        {photo ? (
+                          <Image
+                            source={{ uri: photo }}
+                            style={styles.castPhoto}
+                          />
+                        ) : (
+                          <Text style={styles.castInitials}>
+                            {initials(actor)}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.castInfo}>
                         <Text style={styles.castName} numberOfLines={1}>
                           {actor}
                         </Text>
-                        <Text style={styles.castMeta}>
-                          {filmCount > 1
-                            ? t("{filmCount} films in ReelBoard{value}", {
-                                filmCount: filmCount,
-                                value: hasCollection ? " · collection" : "",
-                              })
-                            : t("1 film in ReelBoard")}
-                        </Text>
+                        {!!character && (
+                          <Text style={styles.castCharacter} numberOfLines={1}>
+                            {character}
+                          </Text>
+                        )}
+                        {/* Only actors with a collection say so — tapping
+                            opens it. */}
+                        {hasCollection && (
+                          <Text style={styles.castMeta}>{t("Collection")}</Text>
+                        )}
                       </View>
                     </Pressable>
                   );
@@ -1015,9 +1033,18 @@ const createStyles = (colors) =>
       width: 40,
       height: 40,
       borderRadius: 20,
+      overflow: "hidden",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.cardElevatedLight,
+    },
+    castPhoto: {
+      width: 40,
+      height: 40,
+    },
+    castCharacter: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     castInitials: {
       ...typography.label,

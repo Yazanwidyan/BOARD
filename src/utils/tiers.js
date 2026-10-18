@@ -16,6 +16,22 @@ export const TIERS = [
 
 const TIER_BY_KEY = Object.fromEntries(TIERS.map((tier) => [tier.key, tier]));
 
+// ReelBoard's tier for a movie: everyone's tiers averaged (S = 5 … F = 0)
+// and rounded to the nearest one. `counts`: { S: n, A: n, … } from
+// GET /api/community/movies/:id. Null until somebody has tiered it.
+export const getAverageTier = (counts) => {
+  let total = 0;
+  let sum = 0;
+  TIERS.forEach((tier, index) => {
+    const count = counts?.[tier.key] ?? 0;
+    total += count;
+    sum += count * (TIERS.length - 1 - index);
+  });
+  if (total === 0) return null;
+  const score = sum / total;
+  return TIERS[TIERS.length - 1 - Math.round(score)].key;
+};
+
 export const getTierInfo = (key) => TIER_BY_KEY[key] ?? null;
 
 // 5★ → S, 4–4.5★ → A, 3–3.5★ → B, 2–2.5★ → C, 1–1.5★ → D, 0.5★ → F

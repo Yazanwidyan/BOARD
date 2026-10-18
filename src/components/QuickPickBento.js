@@ -10,6 +10,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
+import { byWeightedRating } from "../utils/movieFilters";
 
 // The Spin tile's mini slot reel (matches the Spin screen): a window with
 // three posters — the middle one framed — and a marker either side.
@@ -25,7 +26,7 @@ const getShowcase = () => {
   const version = getCatalogVersion();
   if (showcase?.version !== version) {
     const posters = [...MOVIES]
-      .sort((a, b) => b.rating - a.rating)
+      .sort(byWeightedRating)
       .slice(0, 8)
       .map((movie) => movie.poster);
     showcase = {

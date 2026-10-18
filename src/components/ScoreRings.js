@@ -6,13 +6,12 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTierInfo } from "../utils/tiers";
-import { t } from "../i18n";
 
 const SIZE = 64;
 const STROKE = 5;
 
 const SHORT_LABEL = {
-  imdb: "IMDb",
+  imdb: "TMDB",
   rt: "Rotten T.",
   mc: "Metacritic",
 };
@@ -52,10 +51,11 @@ const Ring = ({ fraction, color, value, styles, trackColor }) => {
   );
 };
 
-// Movie Details' scores as rings: IMDb (out of 10), Rotten Tomatoes and
-// Metacritic (out of 100), each filling to its score, then your ReelBoard
-// tier as a square tile in its colour (a plain grey square until you tier
-// it). Sits in a square filled box, edge to edge.
+// Movie Details' scores as rings: TMDB (out of 10), Rotten Tomatoes and
+// Metacritic (out of 100), each filling to its score, then the ReelBoard
+// tier — everyone's tiers averaged — as a square tile in its colour (a
+// plain grey square until somebody tiers it). Sits in a square filled box,
+// edge to edge.
 //
 // scores: [{ key, value, color?, fraction? }] — key "reelboard" is the tier.
 export const ScoreRings = ({ scores }) => {
@@ -85,7 +85,7 @@ export const ScoreRings = ({ scores }) => {
                 </Text>
               </View>
               <Text style={styles.label} numberOfLines={1}>
-                {t("Your tier")}
+                ReelBoard
               </Text>
             </View>
           );

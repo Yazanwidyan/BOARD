@@ -2,6 +2,7 @@ import { MOVIES, getMovieById } from "../data/movies";
 import { DIMENSIONS, THEMES, getVibe } from "../data/vibes";
 import { useTasteStore } from "../store/tasteStore";
 import { getAspect } from "./aspects";
+import { weightedRating } from "./movieFilters";
 import { getTier } from "./tiers";
 import { t } from "../i18n";
 
@@ -25,7 +26,8 @@ import { t } from "../i18n";
 // - genre           still counts, but lightly
 // - era fit         decades you favour
 // - runtime         long films count against once you've said "too long"
-// - quality         IMDb rating, as a gentle tiebreaker
+// - quality         TMDB rating, counted by its votes, as a gentle
+//                   tiebreaker
 // - watchlist       you saved it yourself
 // - "not this one"  this session's turned-down picks steer away
 // - a pinch of randomness, so "pick again" varies but still fits
@@ -54,6 +56,9 @@ const LEANING_NUDGE = 0.7;
 // say something about.
 const OPEN_DIMENSION_WEIGHT = 0.25;
 const LONG_RUNTIME = 135;
+// With nothing to go on (nothing watched, no "this or that" answered), a
+// bigger shuffle among the good, well-known films.
+const COLD_JITTER = 2;
 
 const WEIGHTS = {
   vibe: 2.4,
@@ -428,11 +433,12 @@ const scoreMovie = (movie, model, context) => {
   }
 
   // Quality.
+  const quality = weightedRating(movie);
   push(
     "quality",
-    WEIGHTS.quality * (movie.rating - 7.5),
-    movie.rating >= 8.3
-      ? t("IMDb {rating} — one of the greats.", {
+    WEIGHTS.quality * (quality - 7.5),
+    quality >= 8
+      ? t("Rated {rating} on TMDB — one of the greats.", {
           rating: movie.rating.toFixed(1),
         })
       : null,
@@ -451,7 +457,7 @@ const scoreMovie = (movie, model, context) => {
     push("rejected", -WEIGHTS.rejected * rejectedMatches, null);
   }
 
-  push("jitter", WEIGHTS.jitter * context.random(), null);
+  push("jitter", context.jitter * context.random(), null);
 
   const score = signals.reduce((sum, signal) => sum + signal.value, 0);
   return { movie, score, signals };
@@ -488,6 +494,10 @@ export const getTastePicks = (watched, options = {}) => {
     rejectedGenres: new Set(rejectedMovies.flatMap((movie) => movie.genres)),
     rejectedDirectors: new Set(rejectedMovies.map((movie) => movie.director)),
     random,
+    jitter:
+      model.watchedCount === 0 && !useTasteStore.getState().leanings?.some(Boolean)
+        ? COLD_JITTER
+        : WEIGHTS.jitter,
   };
 
   return from.filter(

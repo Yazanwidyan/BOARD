@@ -3,6 +3,7 @@ import { generateRecommendations } from "../services/recommendations";
 import { getTasteProfile } from "./taste";
 import { vibeSimilarity } from "./tasteEngine";
 import { t } from "../i18n";
+import { byWeightedRating } from "./movieFilters";
 
 // Rows show the first RAIL_PREVIEW; "All ›" opens the full list.
 export const RAIL_PREVIEW = 10;
@@ -25,7 +26,7 @@ const SHORT_RUNTIME = 100;
 // to make the row.
 const BECAUSE_MIN_SIMILARITY = 0.72;
 
-const byRating = (a, b) => b.rating - a.rating;
+const byRating = byWeightedRating;
 
 // Every Discover row, built from real state. Watched movies never appear —
 // Discover is for finding something new. Rows with nothing to show are

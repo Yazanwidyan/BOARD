@@ -28,7 +28,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
-import { SPIN_STOP_MS } from "../components/RefreshFillTitle";
+import { SPIN_STOP_MS } from "../components/RefreshSpin";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
@@ -38,7 +38,7 @@ import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
-import { formatRuntime } from "../utils/movieFilters";
+import { formatRuntime, byWeightedRating } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { getLevel, getUserXP } from "../utils/xp";
@@ -158,7 +158,7 @@ const WatchlistSuggestion = ({
   const candidates = fromWatchlist
     ? saved
     : MOVIES.filter((movie) => !watchedIds.has(movie.id))
-        .sort((a, b) => b.rating - a.rating)
+        .sort(byWeightedRating)
         .slice(0, SUGGESTION_FALLBACK_POOL)
         .map((movie) => ({ movie, addedAt: null }));
   if (candidates.length === 0) return null;
@@ -370,7 +370,7 @@ export const HomeScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // iOS: no spinner — the header title fills instead.
+            // iOS: no spinner — the header logo spins instead.
             // Android can't report the pull, so it keeps its spinner.
             tintColor={
               Platform.OS === "ios" ? "transparent" : colors.textSecondary

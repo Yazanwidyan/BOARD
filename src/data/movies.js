@@ -5,9 +5,10 @@ import { useSyncExternalStore } from "react";
 // needs —
 //   - every movie a response mentions (your library, boards, friends,
 //     feed…): services/api.js remembers each response's `movies`
-//   - candidates: a few hundred movies picked for your taste and filters
-//     from the whole set (GET /api/me/candidates), which Swipe, Spin,
-//     Taste pick, dares and the rails choose from — that's MOVIES below
+//   - candidates: a few hundred movies picked for your taste from the
+//     whole set (GET /api/me/candidates), which Taste pick, dares and the
+//     rails choose from — that's MOVIES below — and a second set picked
+//     with your Swipe setup filters, FILTERED_MOVIES, for Swipe and Spin
 //   - anything you search for or open
 // services/movieData.js loads candidates. Nothing is saved on the phone;
 // every launch starts empty and loads from the server.
@@ -64,6 +65,22 @@ export const setCandidates = (movies) => {
   changed();
 };
 
+// The candidates for your Swipe setup filters (genres, decade, runtime,
+// rating) — only what Swipe, Spin, Movie Night and "Recommended for you"
+// choose from (services/recommendations). Everything else uses MOVIES,
+// which isn't filtered.
+export const FILTERED_MOVIES = [];
+
+export const setFilteredCandidates = (movies) => {
+  movies.filter(isMovie).forEach(remember);
+  FILTERED_MOVIES.splice(
+    0,
+    FILTERED_MOVIES.length,
+    ...movies.map((movie) => known.get(movie.id)).filter(Boolean),
+  );
+  changed();
+};
+
 // Asking for a movie the app doesn't have yet fetches it in the background
 // (services/movieData.js sets the handler); screens using
 // useMoviesVersion() re-render when it arrives.
@@ -92,6 +109,7 @@ export const moviesChanged = () => changed();
 export const forgetMovies = () => {
   known.clear();
   MOVIES.splice(0, MOVIES.length);
+  FILTERED_MOVIES.splice(0, FILTERED_MOVIES.length);
   changed();
 };
 

@@ -210,7 +210,7 @@ const ar = {
   "{actor} is in it — you tiered {title} {tier}.":
     "يشارك فيه {actor} — صنّفت {title} بـ{tier}.",
   "From the {decade}, an era you love.": "من {decade}، حقبة تحبها.",
-  "IMDb {rating} — one of the greats.": "IMDb ‏{rating} — من الأعظم.",
+  "Rated {rating} on TMDB — one of the greats.": "تقييمه ‏{rating} على TMDB — من الأعظم.",
   "Got it — fewer like that": "فهمت — أقل من هذا النوع",
   "Not this one": "ليس هذا",
   "Start over": "ابدأ من جديد",
