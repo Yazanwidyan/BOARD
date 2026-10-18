@@ -468,6 +468,23 @@ const scoreMovie = (movie, model, context) => {
 const toMatch = (score) =>
   Math.round(52 + 46 * (1 - Math.exp(-Math.max(0, score) / 7)));
 
+// Why a pick scored well, best reason first: the "feels like…" vibe reason
+// leads when there is one — it's the most personal — then the rest by how
+// much they moved the score.
+const reasonsOf = (signals) => {
+  const reasons = signals
+    .filter((signal) => signal.reason && signal.value > 0)
+    .sort(
+      (a, b) =>
+        (b.key === "vibe") - (a.key === "vibe") || b.value - a.value,
+    )
+    .map((signal) => signal.reason)
+    .slice(0, 3);
+  return reasons.length > 0
+    ? reasons
+    : [t("Highly rated, and you haven't seen it yet.")];
+};
+
 // Your own model: tiers plus your aspects and passes.
 export const buildMyTasteModel = (watched) => {
   const { aspects, passes, leanings } = useTasteStore.getState();
@@ -506,26 +523,32 @@ export const getTastePicks = (watched, options = {}) => {
     .map((movie) => scoreMovie(movie, model, context))
     .sort((a, b) => b.score - a.score)
     .slice(0, count)
-    .map((pick) => {
-      // The "feels like…" vibe reason leads when there is one — it's the
-      // most personal — then the rest by how much they moved the score.
-      const reasons = pick.signals
-        .filter((signal) => signal.reason && signal.value > 0)
-        .sort(
-          (a, b) =>
-            (b.key === "vibe") - (a.key === "vibe") || b.value - a.value,
-        )
-        .map((signal) => signal.reason)
-        .slice(0, 3);
-      return {
-        ...pick,
-        match: toMatch(pick.score),
-        reasons:
-          reasons.length > 0
-            ? reasons
-            : [t("Highly rated, and you haven't seen it yet.")],
-      };
-    });
+    .map((pick) => ({
+      ...pick,
+      match: toMatch(pick.score),
+      reasons: reasonsOf(pick.signals),
+    }));
+};
+
+// How well one movie fits your taste — for its page. The same score as the
+// picks, but without the shuffle (so it reads the same on every visit) and
+// without the watchlist bonus (it's about taste, not plans). null for a
+// movie you've watched (your tier says it) or with too little history.
+// → { match: 0–100, reasons: [string] }
+export const getMovieMatch = (watched, movie) => {
+  if (!movie?.vibe || watched.some((entry) => entry.movieId === movie.id)) {
+    return null;
+  }
+  const model = buildMyTasteModel(watched);
+  if (model.watchedCount < 3) return null;
+  const pick = scoreMovie(movie, model, {
+    watchlistIds: new Set(),
+    rejectedGenres: new Set(),
+    rejectedDirectors: new Set(),
+    random: () => 0,
+    jitter: 0,
+  });
+  return { match: toMatch(pick.score), reasons: reasonsOf(pick.signals) };
 };
 
 // What the "thinking" screen says it's doing — real numbers from your data.

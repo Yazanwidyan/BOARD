@@ -1349,6 +1349,36 @@ const ar = {
   "Finding titles…": "جارٍ إيجاد العناوين…",
   "Can't reach ReelBoard right now — check your connection.":
     "تعذّر الوصول إلى ReelBoard الآن — تحقّق من اتصالك.",
+
+  // Collection page
+  "Tap an untiered one to tier it.": "اضغط على فيلم غير مصنّف لتصنّفه.",
+  "{count} films": "{count} أفلام",
+  "finished {date}": "اكتملت في {date}",
+  "{watched} of {total} watched": "شاهدت {watched} من {total}",
+  "{time} to go": "متبقٍّ {time}",
+  "Your tiers": "تصنيفاتك",
+  "All {total}": "كلها ({total})",
+  "{watched} of {total}": "{watched} من {total}",
+  "+{xp} XP earned": "‏+{xp} XP مكتسبة",
+  "Up next": "التالي",
+  "To watch · {count}": "للمشاهدة · {count}",
+  "Best first": "الأفضل أولًا",
+  Oldest: "الأقدم",
+  Shortest: "الأقصر",
+  Franchise: "سلسلة",
+  Actor: "ممثل",
+  Genre: "نوع",
+
+  // Profiles
+  "Top ten": "أفضل عشرة",
+  "Finished · {count}": "مكتملة · {count}",
+  "{name} hasn't made any boards yet.": "لم يُنشئ {name} أي لوحات بعد.",
+  "Watch and tier a few movies — your Taste DNA shows up here.":
+    "شاهد وصنّف بعض الأفلام — ستظهر بصمة ذوقك هنا.",
+  Together: "معًا",
+  "Your tier list, boards and taste. Pick your top ten and share your taste card.":
+    "قائمة تصنيفك ولوحاتك وذوقك. اختر أفضل عشرة وشارك بطاقة ذوقك.",
+  "{match}% your taste": "{match}% من ذوقك",
 };
 
 export default ar;

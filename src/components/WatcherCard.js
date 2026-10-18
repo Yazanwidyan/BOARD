@@ -41,6 +41,7 @@ export const WatcherCard = ({
   onPressAvatar,
   onPressBio,
   onPressBadges,
+  onPressCollections,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -50,7 +51,7 @@ export const WatcherCard = ({
   const statItems = [
     { value: stats.movies, label: stats.movies === 1 ? "movie" : "movies" },
     { value: `${stats.hours}h`, label: "watched" },
-    { value: stats.completed, label: "collections" },
+    { value: stats.completed, label: "collections", onPress: onPressCollections },
     {
       value: earnedBadgeCount,
       label: earnedBadgeCount === 1 ? "badge" : "badges",

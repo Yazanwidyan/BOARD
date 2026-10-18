@@ -1,18 +1,16 @@
 import {
   Bell,
-  Layers,
   LayoutGrid,
   ListOrdered,
-  Pin,
   Settings as SettingsIcon,
   Share2,
+  Sparkles,
   Users,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -30,7 +28,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { EmptyState } from "../components/EmptyState";
+import { ProfileBoards } from "../components/ProfileBoards";
+import { ProfileTopTen } from "../components/ProfileTopTen";
+import { TierListRows } from "../components/TierListRows";
 import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
@@ -44,9 +44,10 @@ import { TasteDnaCard } from "../components/TasteDnaCard";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
 import { WatcherProfileSheet } from "../components/WatcherProfileSheet";
+import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { MAX_PINNED, useProfileStore } from "../store/profileStore";
+import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -55,13 +56,13 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { getBadges } from "../utils/badges";
 import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
-import { FAVORITE_COUNT, getTasteProfile } from "../utils/taste";
+import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
 import {
   useStickyStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
-import { TIERS, getTier, isRated } from "../utils/tiers";
+import { isRated } from "../utils/tiers";
 import {
   getCompletedChallengesCount,
   getLevel,
@@ -73,27 +74,17 @@ import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
-// Favorite ten: a 5 × 2 poster grid.
-const FAVORITE_COLUMNS = 5;
-// Completed tab: a 3-column grid of collection covers.
-const COMPLETED_COLUMNS = 3;
-// Tier list rows: poster size beside each tier letter.
-const TIER_POSTER_WIDTH = 64;
 // The blurred poster strip behind the identity.
 const BACKDROP_POSTERS = 5;
 const BACKDROP_HEIGHT = 190;
 
-// Completed tab sections, in this order.
-const COMPLETED_GROUPS = [
-  { type: "actor", title: "Actors", unit: "movies" },
-  { type: "director", title: "Directors", unit: "films" },
-  { type: "franchise", title: "Franchises", unit: "movies" },
-];
-
+// Who you are as a watcher, in three pages: your tier list (the heart of
+// ReelBoard, so it opens first), the boards you've made, and your Taste
+// DNA. Your top ten and finished collections sit above them, always.
 const PROFILE_TABS = [
-  { key: "overview", label: "Overview", Icon: LayoutGrid },
   { key: "tiers", label: "Tier list", Icon: ListOrdered },
-  { key: "completed", label: "Collections", Icon: Layers },
+  { key: "boards", label: "Boards", Icon: LayoutGrid },
+  { key: "taste", label: "Taste", Icon: Sparkles },
 ];
 
 const getHandle = (name) =>
@@ -111,20 +102,10 @@ export const ProfileScreen = ({ navigation, route }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-  // Edge to edge (no page padding), 2px apart.
-  // Whole pixels, so five always fit on a row without wrapping early.
-  const favoriteWidth = Math.floor(
-    (windowWidth - 2 * (FAVORITE_COLUMNS - 1)) / FAVORITE_COLUMNS,
-  );
-  // An explicit height (not aspectRatio): Yoga can mis-measure a wrapping
-  // row of aspect-ratio items and clip the second row.
-  const favoriteSize = { width: favoriteWidth, height: favoriteWidth * 1.5 };
-  const completedWidth =
-    (windowWidth - spacing.md * 2 - 2 * (COMPLETED_COLUMNS - 1)) /
-    COMPLETED_COLUMNS;
   const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [profileTab, setProfileTab] = useState("overview");
+  const [profileTab, setProfileTab] = useState("tiers");
+  const boards = useBoardStore((state) => state.boards);
 
   // "View Details" on the watched/challenge XP alert deep-links straight
   // into this sheet instead of just landing on the plain profile page.
@@ -143,12 +124,6 @@ export const ProfileScreen = ({ navigation, route }) => {
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
-  const pinnedCollections = useProfileStore(
-    (state) => state.pinnedCollections ?? [],
-  );
-  const togglePinnedCollection = useProfileStore(
-    (state) => state.togglePinnedCollection,
-  );
   const challengeHistory = useChallengeStore((state) => state.history);
 
   const queuedCount = bucketListEntries.length;
@@ -211,18 +186,9 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   // The Watcher card: same data on Profile and in the shared image.
 
-  // Tier list: every watched movie in its tier row, most recent first.
   const watchedByRecent = [...watched].sort(
     (a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0),
   );
-  const tierRows = TIERS.map((tier) => ({
-    ...tier,
-    movies: watchedByRecent
-      .filter((entry) => getTier(entry) === tier.key)
-      .map((entry) => getMovieById(entry.movieId))
-      .filter(Boolean),
-  }));
-  const untieredCount = watched.length - ratedCount;
 
   // Backdrop: your top ten (or, before you've picked any, what you watched
   // last).
@@ -234,37 +200,9 @@ export const ProfileScreen = ({ navigation, route }) => {
           .filter(Boolean)
   ).slice(0, BACKDROP_POSTERS);
 
-  // Fully completed director / actor / franchise sets — the brag shelf.
-  // Pinned ones first (in pin order), then the rest by size.
-  const completedSets = getCompletedXPCollections(watchedIds).sort((a, b) => {
-    const pinA = pinnedCollections.indexOf(a.id);
-    const pinB = pinnedCollections.indexOf(b.id);
-    if (pinA !== -1 || pinB !== -1) {
-      return (pinA === -1 ? 99 : pinA) - (pinB === -1 ? 99 : pinB);
-    }
-    return b.movieIds.length - a.movieIds.length;
-  });
-
-  const togglePin = (collection) => {
-    const isPinned = pinnedCollections.includes(collection.id);
-    if (!isPinned && pinnedCollections.length >= MAX_PINNED) {
-      showToast(
-        t("You can pin up to {MAX_PINNED} — unpin one first", {
-          MAX_PINNED: MAX_PINNED,
-        }),
-      );
-      return;
-    }
-    togglePinnedCollection(collection.id);
-    showToast(
-      isPinned
-        ? t("Unpinned")
-        : t("{title} pinned", { title: collection.title }),
-      {
-        tone: "success",
-      },
-    );
-  };
+  // Fully finished director / actor / franchise sets — counted in the
+  // stats (tap it for Library → Collections) and named in the share text.
+  const completedSets = getCompletedXPCollections(watchedIds);
 
   const getShareText = () => {
     const genres = taste.topGenres.map(({ genre }) => genre).join(" · ");
@@ -375,9 +313,7 @@ export const ProfileScreen = ({ navigation, route }) => {
     transform: [{ translateX: tabPosition.value * tabWidth * flow }],
   }));
 
-  const goToLibrary = (initialTab) => {
-    navigation.navigate("Library", { initialTab });
-  };
+  const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -425,6 +361,14 @@ export const ProfileScreen = ({ navigation, route }) => {
             onPressAvatar={() => setIsLeagueSheetOpen(true)}
             onPressBio={() => navigation.navigate("Settings")}
             onPressBadges={() => navigation.navigate("Badges")}
+            // `openedAt` makes a repeat tap switch Library back even when
+            // it was left on another tab.
+            onPressCollections={() =>
+              navigation.navigate("Library", {
+                initialTab: "collections",
+                openedAt: Date.now(),
+              })
+            }
           />
 
           {/* Your month (or year) on ReelBoard — the shareable recap. */}
@@ -438,6 +382,20 @@ export const ProfileScreen = ({ navigation, route }) => {
               {t("Your month on ReelBoard, ready to share")} ›
             </Text>
           </Pressable>
+
+          {/* Your top ten — the signature, always here. */}
+          <View style={styles.topTen}>
+            <ProfileTopTen
+              movies={topTenMovies}
+              editable
+              onOpen={openMovie}
+              onRemove={(movie) => {
+                toggleTopTen(movie.id);
+                showToast(t("{title} taken out of your top ten", { title: movie.title }));
+              }}
+              onPick={() => setIsTopTenOpen(true)}
+            />
+          </View>
 
           {/* Profile tabs, Instagram-style: an icon per column over a
               hairline, the open one white with a thin underline. Swipe the
@@ -482,280 +440,45 @@ export const ProfileScreen = ({ navigation, route }) => {
 
           <GestureDetector gesture={pageSwipe}>
             <Animated.View style={pageStyle}>
-              {profileTab === "overview" && (
-                <>
-                  {/* Top ten — picked by hand, right under the tabs.
-                      Tap a poster to open it, long-press to take it out;
-                      empty slots open the picker. */}
-                  <View style={styles.favoriteRow}>
-                    {Array.from({ length: FAVORITE_COUNT }, (_, index) => {
-                      const movie = topTenMovies[index];
-                      return movie ? (
-                        <Pressable
-                          key={movie.id}
-                          style={[styles.favoriteSlot, favoriteSize]}
-                          onPress={() =>
-                            navigation.navigate("MovieDetails", {
-                              movieId: movie.id,
-                            })
-                          }
-                          onLongPress={() => {
-                            toggleTopTen(movie.id);
-                            showToast(
-                              t("{title} taken out of your top ten", {
-                                title: movie.title,
-                              }),
-                            );
-                          }}
-                          accessibilityLabel={t("Number {value}, {title}", {
-                            value: index + 1,
-                            title: movie.title,
-                          })}
-                        >
-                          <MoviePoster
-                            uri={movie.poster}
-                            style={styles.favoritePoster}
-                          />
-                          <View style={styles.favoriteRank}>
-                            <Text style={styles.favoriteRankText}>
-                              {index + 1}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      ) : (
-                        <Pressable
-                          key={`empty-${index}`}
-                          style={[
-                            styles.favoriteSlot,
-                            styles.favoriteEmpty,
-                            favoriteSize,
-                          ]}
-                          onPress={() => setIsTopTenOpen(true)}
-                          accessibilityLabel={t(
-                            "Top ten number {value}, empty. Pick a movie",
-                            { value: index + 1 },
-                          )}
-                        >
-                          <Text style={styles.favoriteEmptyRank}>
-                            {index + 1}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  <View style={styles.topTenBar}>
-                    <Text style={styles.topTenLabel}>
-                      {t("Your top ten")}
-                      {topTenMovies.length > 0 &&
-                        topTenMovies.length < FAVORITE_COUNT &&
-                        t(" · {topTenMoviesCount} of {FAVORITE_COUNT}", {
-                          topTenMoviesCount: topTenMovies.length,
-                          FAVORITE_COUNT: FAVORITE_COUNT,
-                        })}
-                    </Text>
-                    <Pressable
-                      onPress={() => setIsTopTenOpen(true)}
-                      hitSlop={8}
-                    >
-                      <Text style={styles.topTenEdit}>
-                        {topTenMovies.length > 0 ? t("Edit") : t("Pick")}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {/* Taste — your Taste DNA */}
-                  {watched.length > 0 && (
-                    <>
-                      <Text style={styles.sectionLabel}>{t("Taste")}</Text>
-                      <TasteDnaCard
-                        dna={tasteDna}
-                        director={taste.director}
-                        decade={taste.decade}
-                        topGenres={taste.topGenres}
-                        onOpenMovie={(movieId) =>
-                          navigation.navigate("MovieDetails", { movieId })
-                        }
-                        onOpenCollection={(collectionId) =>
-                          navigation.navigate("CollectionDetails", {
-                            collectionId,
-                          })
-                        }
-                        onSeeUntiered={() =>
-                          navigation.navigate("Library", {
-                            showUntiered: true,
-                          })
-                        }
-                      />
-                    </>
-                  )}
-                </>
+              {profileTab === "tiers" && (
+                <TierListRows
+                  entries={watched}
+                  onOpen={openMovie}
+                  onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
+                />
               )}
 
-              {/* Tier list — your real S → F rows */}
-              {profileTab === "tiers" && (
-                <View style={styles.tierList}>
-                  {tierRows.map(({ key, meaning, color, movies }) => (
-                    <View key={key} style={styles.tierListRow}>
-                      <View
-                        style={[
-                          styles.tierListLetter,
-                          { backgroundColor: color },
-                        ]}
-                      >
-                        <Text style={styles.tierListLetterText}>{key}</Text>
-                      </View>
-                      {movies.length > 0 ? (
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.tierListPosters}
-                        >
-                          {movies.map((movie) => (
-                            <Pressable
-                              key={movie.id}
-                              onPress={() =>
-                                navigation.navigate("MovieDetails", {
-                                  movieId: movie.id,
-                                })
-                              }
-                            >
-                              <MoviePoster
-                                uri={movie.poster}
-                                style={styles.tierListPoster}
-                              />
-                            </Pressable>
-                          ))}
-                        </ScrollView>
-                      ) : (
-                        <View style={styles.tierListEmpty}>
-                          <Text style={styles.tierListEmptyText}>
-                            {meaning}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                  {untieredCount > 0 && (
-                    <Pressable
-                      style={styles.untieredLink}
-                      onPress={() =>
-                        navigation.navigate("Library", { showUntiered: true })
-                      }
-                    >
-                      <Text style={styles.untieredLinkText}>
-                        {untieredCount === 1
-                          ? t("1 watched movie isn't tiered yet")
-                          : t(
-                              "{untieredCount} watched movies aren't tiered yet",
-                              { untieredCount: untieredCount },
-                            )}
-                      </Text>
-                    </Pressable>
-                  )}
+              {profileTab === "boards" && (
+                <View style={styles.tabPage}>
+                  <ProfileBoards
+                    boards={boards}
+                    onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
+                    onCreate={() => navigation.navigate("Library", { initialTab: "boards" })}
+                  />
                 </View>
               )}
 
-              {/* Completed — the director / actor / franchise sets you've fully
-              watched. Tap to open, long-press to pin to the front. */}
-              {profileTab === "completed" && completedSets.length > 0 && (
-                <Text style={styles.completedIntro}>
-                  {t(
-                    "Actors, directors and franchises you've seen every movie of.",
-                  )}
-                </Text>
-              )}
-              {profileTab === "completed" &&
-                (completedSets.length > 0 ? (
-                  COMPLETED_GROUPS.map(({ type, title, unit }) => {
-                    const sets = completedSets.filter(
-                      (collection) => collection.type === type,
-                    );
-                    if (sets.length === 0) return null;
-                    return (
-                      <View key={type}>
-                        <View style={styles.completedHeader}>
-                          <Text style={styles.completedHeaderTitle}>
-                            {title}
-                          </Text>
-                          <Text style={styles.completedHeaderCount}>
-                            {sets.length}
-                          </Text>
-                        </View>
-                        <View style={styles.completedGrid}>
-                          {sets.map((collection) => {
-                            const isPinned = pinnedCollections.includes(
-                              collection.id,
-                            );
-                            return (
-                              <Pressable
-                                key={collection.id}
-                                style={{ width: completedWidth }}
-                                onPress={() =>
-                                  navigation.navigate("CollectionDetails", {
-                                    collectionId: collection.id,
-                                  })
-                                }
-                                onLongPress={() => togglePin(collection)}
-                                delayLongPress={350}
-                              >
-                                <View
-                                  style={[
-                                    styles.showcaseCover,
-                                    {
-                                      width: completedWidth,
-                                      height: completedWidth,
-                                    },
-                                  ]}
-                                >
-                                  {[0, 1, 2, 3].map((index) => {
-                                    const movies = collection.movies;
-                                    const movie =
-                                      movies[index % Math.max(1, movies.length)];
-                                    if (!movie) return null;
-                                    return (
-                                      <MoviePoster
-                                        key={index}
-                                        uri={movie.poster}
-                                        style={styles.showcaseCell}
-                                      />
-                                    );
-                                  })}
-                                  {isPinned && (
-                                    <View style={styles.showcasePin}>
-                                      <Pin
-                                        size={10}
-                                        color={colors.background}
-                                      />
-                                    </View>
-                                  )}
-                                </View>
-                                <Text
-                                  style={styles.showcaseTitle}
-                                  numberOfLines={2}
-                                >
-                                  {collection.title}
-                                </Text>
-                                <Text style={styles.showcaseMeta}>
-                                  {t("Seen all")} {collection.movieIds.length}{" "}
-                                  {unit}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    );
-                  })
+              {profileTab === "taste" &&
+                (watched.length > 0 ? (
+                  <View style={styles.tabPage}>
+                    <TasteDnaCard
+                      dna={tasteDna}
+                      director={taste.director}
+                      decade={taste.decade}
+                      topGenres={taste.topGenres}
+                      onOpenMovie={openMovie}
+                      onOpenCollection={(collectionId) =>
+                        navigation.navigate("CollectionDetails", { collectionId })
+                      }
+                      onSeeUntiered={() =>
+                        navigation.navigate("Library", { showUntiered: true })
+                      }
+                    />
+                  </View>
                 ) : (
-                  <EmptyState
-                    art="noCollections"
-                    title={t("No collections yet")}
-                    subtitle={t(
-                      "Watch every film from a director, actor or franchise and it shows up here.",
-                    )}
-                    actionLabel={t("Continue a collection")}
-                    onAction={() => goToLibrary("collections")}
-                  />
+                  <Text style={styles.tabEmpty}>
+                    {t("Watch and tier a few movies — your Taste DNA shows up here.")}
+                  </Text>
                 ))}
             </Animated.View>
           </GestureDetector>
@@ -832,42 +555,6 @@ const createStyles = (colors) =>
       paddingTop: spacing.sm,
       marginBottom: spacing.md,
     },
-    // Bleeds to the screen edges like the other rows.
-    showcaseCover: {
-      width: 96,
-      height: 96,
-      flexDirection: "row",
-      flexWrap: "wrap",
-      overflow: "hidden",
-      borderWidth: 1.5,
-      borderColor: `${colors.rating}AA`,
-    },
-    showcaseCell: {
-      width: "50%",
-      height: "50%",
-    },
-    showcasePin: {
-      position: "absolute",
-      start: 4,
-      top: 4,
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.accent,
-    },
-    showcaseTitle: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
-      marginTop: spacing.xs,
-    },
-    showcaseMeta: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.rating,
-    },
     backdrop: {
       position: "absolute",
       top: 0,
@@ -883,6 +570,18 @@ const createStyles = (colors) =>
     },
     // Instagram-style: three equal columns edge to edge, a hairline under
     // the bar, and a thin white underline across the open tab's column.
+    topTen: {
+      marginTop: spacing.md,
+    },
+    tabPage: {
+      marginTop: spacing.md,
+    },
+    tabEmpty: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: spacing.xl,
+    },
     recapRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -941,151 +640,6 @@ const createStyles = (colors) =>
       bottom: -StyleSheet.hairlineWidth,
       height: 1.5,
       backgroundColor: colors.textPrimary,
-    },
-    // Edge to edge (cancels the page padding) — a real tier-list maker:
-    // the tier letter sits right at the screen edge, rows split by a thin
-    // line of page colour.
-    tierList: {
-      marginHorizontal: -spacing.md,
-      gap: 2,
-    },
-    tierListRow: {
-      flexDirection: "row",
-      minHeight: TIER_POSTER_WIDTH * 1.5,
-      backgroundColor: colors.card,
-      overflow: "hidden",
-    },
-    tierListLetter: {
-      width: 48,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    tierListLetterText: {
-      ...typography.hero,
-      fontSize: 24,
-      lineHeight: 28,
-      color: colors.background,
-    },
-    tierListPosters: {
-      gap: 2,
-      padding: 4,
-    },
-    tierListPoster: {
-      width: TIER_POSTER_WIDTH,
-      height: TIER_POSTER_WIDTH * 1.5 - 8,
-    },
-    tierListEmpty: {
-      flex: 1,
-      justifyContent: "center",
-      paddingHorizontal: spacing.md,
-    },
-    tierListEmptyText: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    untieredLink: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 2,
-      paddingVertical: spacing.sm,
-    },
-    untieredLinkText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    completedIntro: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.md,
-    },
-    completedHeader: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: spacing.sm,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    completedHeaderTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    completedHeaderCount: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    completedGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 2,
-      rowGap: spacing.md,
-    },
-    sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    favoriteRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 2,
-      marginHorizontal: -spacing.md,
-      justifyContent: "center",
-    },
-    favoriteSlot: {
-      overflow: "hidden",
-    },
-    favoritePoster: {
-      width: "100%",
-      height: "100%",
-    },
-    favoriteRank: {
-      position: "absolute",
-      top: 4,
-      start: 4,
-      minWidth: 18,
-      height: 18,
-      paddingHorizontal: 4,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
-    },
-    favoriteRankText: {
-      ...typography.bodyBold,
-      fontSize: 10,
-      lineHeight: 13,
-      color: "#FFFFFF",
-    },
-    // Under the grid: what it is, and the way to change it.
-    topTenBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginTop: spacing.sm + 2,
-    },
-    topTenLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    topTenEdit: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
-    },
-    // Empty slot: a plain card tile with its rank, so the ten still read
-    // as a ranked row before they're filled.
-    favoriteEmpty: {
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.card,
-    },
-    favoriteEmptyRank: {
-      ...typography.display,
-      fontSize: 24,
-      lineHeight: 28,
-      color: colors.cardElevatedLight,
     },
   });
 

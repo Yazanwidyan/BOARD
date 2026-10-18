@@ -34,6 +34,11 @@ const XP_COLLECTIONS = () =>
     .flatMap((section) => section.collections)
     .filter((collection) => collection.movieIds.length >= XP_COLLECTION_MIN_SIZE);
 
+// Whether finishing this collection earns COLLECTION_XP.
+export const isXPCollection = (collection) =>
+  XP_COLLECTION_TYPES.includes(collection.type) &&
+  collection.movieIds.length >= XP_COLLECTION_MIN_SIZE;
+
 export const getCompletedXPCollections = (watchedIds) =>
   XP_COLLECTIONS().filter(
     (collection) =>

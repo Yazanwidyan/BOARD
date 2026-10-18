@@ -1,8 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Share2 } from "lucide-react-native";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Bookmark, BookmarkCheck, Check, Share2 } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text } from "../components/AppText";
 import Animated, {
   Extrapolation,
@@ -17,7 +24,8 @@ import {
 } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
-import { MovieGrid } from "../components/MovieGrid";
+import { FriendAvatar } from "../components/FriendAvatar";
+import { MovieListRow } from "../components/MovieListRow";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useMoviesVersion } from "../data/movies";
@@ -29,6 +37,10 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
+  giveWatchedFeedback,
+  toggleBucketListWithFeedback,
+} from "../utils/achievementFeedback";
+import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
@@ -37,8 +49,15 @@ import {
   getCollectionCompletedAt,
   getCollectionProgress,
 } from "../utils/collections";
-import { formatRuntime } from "../utils/movieFilters";
+import {
+  byWeightedRating,
+  formatRuntime,
+  isInBucketList,
+} from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
+import { getTastePicks } from "../utils/tasteEngine";
+import { TIERS, getTier } from "../utils/tiers";
+import { COLLECTION_XP, isXPCollection } from "../utils/xp";
 import { t } from "../i18n";
 
 const TYPE_LABELS = {
@@ -71,17 +90,99 @@ const formatShortDate = (timestamp) => {
   return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
 };
 
-// A collection, in Profile's flat style:
-//   the set's posters, blurred, behind a grey caption + big title
-//   numbers like a profile (watched / to go / time left — or, once done,
-//   movies / runtime / completed date), then a thin progress line
-//   square actions (pick one · or rewatch marathon + share when complete)
-//   the posters edge to edge, watched ones checked.
+// How the "To watch" list can be ordered.
+const SORTS = [
+  { key: "best", label: "Best first", compare: byWeightedRating },
+  { key: "oldest", label: "Oldest", compare: (a, b) => (a.year ?? 9999) - (b.year ?? 9999) },
+  {
+    key: "shortest",
+    label: "Shortest",
+    compare: (a, b) => (a.runtime ?? 9999) - (b.runtime ?? 9999),
+  },
+];
+
+// One frame per film, filled when you've watched it — gold once they all
+// are. Thin frames for big collections, but always one each.
+const FilmStrip = ({ movieIds, watchedIds, complete, styles }) => (
+  <View style={styles.strip}>
+    {movieIds.map((id) => (
+      <View
+        key={id}
+        style={[
+          styles.frame,
+          watchedIds.has(id) && (complete ? styles.frameComplete : styles.frameWatched),
+        ]}
+      />
+    ))}
+  </View>
+);
+
+// The films you've watched here, as a small tier board: a row per tier you
+// used, then the untiered ones — tap one of those to tier it.
+const TierBoard = ({ entries, navigation, styles }) => {
+  const rows = [
+    ...TIERS.map((tier) => ({
+      key: tier.key,
+      color: tier.color,
+      items: entries.filter(({ entry }) => getTier(entry) === tier.key),
+    })),
+    {
+      key: "–",
+      color: null,
+      items: entries.filter(({ entry }) => !getTier(entry)),
+    },
+  ].filter((row) => row.items.length > 0);
+
+  return (
+    <View style={styles.board}>
+      {rows.map((row) => (
+        <View key={row.key} style={styles.boardRow}>
+          <View style={[styles.boardTier, row.color && { backgroundColor: row.color }]}>
+            <Text style={[styles.boardTierText, row.color && styles.boardTierTextOnColor]}>
+              {row.key}
+            </Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boardItems}>
+            {row.items.map(({ movie }) => (
+              <Pressable
+                key={movie.id}
+                onPress={() =>
+                  row.color
+                    ? navigation.push("MovieDetails", { movieId: movie.id })
+                    : navigation.navigate("TierMovie", { movieId: movie.id })
+                }
+                accessibilityLabel={movie.title}
+              >
+                <MoviePoster uri={movie.poster} radius={0} style={styles.boardPoster} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ))}
+      {rows.some((row) => row.key === "–") && (
+        <Text style={styles.hint}>{t("Tap an untiered one to tier it.")}</Text>
+      )}
+    </View>
+  );
+};
+
+// A collection, from "what's left" to "how you ranked it":
+//   the header — the actor's or director's photo, the franchise's artwork,
+//     or the films' posters — with a film strip (a frame per film, filled
+//     when watched) and what finishing it is worth
+//   up next — the best unwatched film for you (the Taste pick engine), why,
+//     and buttons to mark it watched or save it
+//   to watch — the rest, as a list you can sort
+//   your tiers — what you've watched here, as a tier board
+//   friends — how far your friends have got
+// Once it's complete: the date, the rewatch marathon and share up top, and
+// your tiers first.
 export const CollectionDetailsScreen = ({ route, navigation }) => {
   const { collectionId } = route.params;
-  // The whole collection, with every film in it (the phone may have only
-  // its first few, or not know it yet) — remembered by services/api, and
-  // this screen re-renders as it arrives.
+  // The whole collection, with every film in it (the app may have only its
+  // first few, or not know it yet), its picture and your friends' progress.
+  // The films are remembered by services/api; this screen re-renders as
+  // they arrive.
   useMoviesVersion();
   const page = useQuery({
     queryKey: ["collection", collectionId],
@@ -93,11 +194,15 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const watched = useMovieStore((state) => state.watched);
+  const bucketList = useMovieStore((state) => state.bucketList);
+  const toggleWatched = useMovieStore((state) => state.toggleWatched);
   const startSession = useSessionStore((state) => state.startSession);
+  const [sortKey, setSortKey] = useState("best");
+  // Up next's "not this one" — the films you skipped past here.
+  const [skipped, setSkipped] = useState([]);
 
-  // The header bar: transparent over the blurred posters, then a solid bar
-  // with the title fades in as the top scrolls away — so the flat back and
-  // share icons never float over the grid. (Hooks stay above the early
+  // The header bar: transparent over the picture, then a solid bar with the
+  // title fades in as the top scrolls away. (Hooks stay above the early
   // return.)
   const [heroHeight, setHeroHeight] = useState(320);
   const scrollY = useSharedValue(0);
@@ -125,12 +230,31 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
       transform: [{ translateY: (1 - progress) * 10 }],
     };
   });
-  // Pull down and the posters zoom in with you; scroll up and they drift
+  // Pull down and the picture zooms in with you; scroll up and it drifts
   // behind the page while the title block eases away.
   const backdropStyle = useStretchyBackdropStyle(scrollY, heroHeight);
   const heroContentStyle = useHeroFadeStyle(scrollY, heroHeight - 80, {
     scale: false,
   });
+
+  const movies = collection?.movies ?? [];
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const unwatched = movies.filter((movie) => !watchedIds.has(movie.id));
+
+  // The best unwatched film for you — the Taste pick engine, over this
+  // collection's films.
+  const upNext = useMemo(
+    () =>
+      getTastePicks(watched, {
+        from: unwatched,
+        watchlist: bucketList.map((entry) => entry.movieId),
+        rejected: skipped,
+        count: 1,
+      })[0] ?? null,
+    // The films and what you've watched and skipped are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [unwatched.map((movie) => movie.id).join(), watched, skipped],
+  );
 
   if (!collection) {
     return (
@@ -149,37 +273,23 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     );
   }
 
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const { watchedCount, total, progress } = getCollectionProgress(
-    collection,
-    watchedIds,
-  );
+  const { watchedCount, total } = getCollectionProgress(collection, watchedIds);
   const isComplete = total > 0 && watchedCount === total;
-  const minutesLeft = collection.movies
-    .filter((movie) => !watchedIds.has(movie.id))
-    .reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
-  const totalMinutes = collection.movies.reduce(
-    (sum, movie) => sum + (movie.runtime ?? 0),
-    0,
-  );
+  const minutesLeft = unwatched.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
+  const totalMinutes = movies.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
+  const worthXP = isXPCollection(collection);
+  const completedAt = isComplete ? getCollectionCompletedAt(collection, watched) : null;
+  const art = page.data?.art ?? null;
+  const friends = page.data?.friends ?? [];
 
-  const openMovie = (movieId) =>
-    navigation.navigate("MovieDetails", { movieId });
+  const openMovie = (movieId) => navigation.push("MovieDetails", { movieId });
 
-  // Nothing in a collection is ordered, so instead of an "up next" this
-  // just picks any unwatched movie at random.
-  const pickRandomUnwatched = () => {
-    const unwatched = collection.movies.filter(
-      (movie) => !watchedIds.has(movie.id),
-    );
-    if (unwatched.length === 0) return;
-    const pick = unwatched[Math.floor(Math.random() * unwatched.length)];
-    openMovie(pick.id);
+  const markWatched = (movieId) => {
+    const { watched: watchedBefore, bucketList: bucketListBefore } =
+      useMovieStore.getState();
+    toggleWatched(movieId);
+    giveWatchedFeedback(movieId, watchedBefore, bucketListBefore);
   };
-
-  const completedAt = isComplete
-    ? getCollectionCompletedAt(collection, watched)
-    : null;
 
   // Opens the brag image card (posters grid + "I've seen all N …").
   const shareCollection = () => openShareCard(collection.id);
@@ -187,25 +297,62 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   // A completed collection's own movies as a Swipe session — pick tonight's
   // rewatch from the set you just finished.
   const startMarathon = () => {
-    startSession(shuffle(collection.movies).slice(0, MARATHON_SIZE));
+    startSession(shuffle(movies).slice(0, MARATHON_SIZE));
     navigation.navigate("Swipe");
   };
 
-  const stats = isComplete
-    ? [
-        { value: total, label: "movies" },
-        { value: formatRuntime(totalMinutes), label: "watched" },
-        ...(completedAt
-          ? [{ value: formatShortDate(completedAt), label: "completed" }]
-          : []),
-      ]
-    : [
-        { value: watchedCount, label: "watched" },
-        { value: total - watchedCount, label: "to go" },
-        { value: formatRuntime(minutesLeft), label: "left" },
-      ];
+  const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
+  const toWatch = unwatched
+    .filter((movie) => movie.id !== upNext?.movie.id)
+    .sort(sort.compare);
+
+  const watchedEntries = watched
+    .filter((entry) => collection.movieIds.includes(entry.movieId))
+    .map((entry) => ({ entry, movie: movies.find((movie) => movie.id === entry.movieId) }))
+    .filter((item) => item.movie);
 
   const headerTop = insets.top + spacing.sm;
+  const progressLine = isComplete
+    ? [
+        t("{count} films", { count: total }),
+        formatRuntime(totalMinutes),
+        completedAt ? t("finished {date}", { date: formatShortDate(completedAt) }) : null,
+      ]
+    : [
+        t("{watched} of {total} watched", { watched: watchedCount, total }),
+        minutesLeft > 0 ? t("{time} to go", { time: formatRuntime(minutesLeft) }) : null,
+      ];
+
+  const tiersSection = watchedEntries.length > 0 && (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{t("Your tiers")}</Text>
+      <TierBoard entries={watchedEntries} navigation={navigation} styles={styles} />
+    </View>
+  );
+
+  const friendsSection = friends.length > 0 && (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{t("Friends")}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.friends}>
+        {friends.map(({ user, watchedCount: count }) => (
+          <Pressable
+            key={user.id}
+            style={styles.friend}
+            onPress={() => navigation.navigate("FriendProfile", { friendId: user.id })}
+            accessibilityRole="button"
+          >
+            <FriendAvatar friend={user} size={44} />
+            <Text style={styles.friendName} numberOfLines={1}>
+              {user.name}
+            </Text>
+            <Text style={[styles.friendCount, count === total && styles.friendCountDone]}>
+              {count === total ? t("All {total}", { total }) : t("{watched} of {total}", { watched: count, total })}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -218,64 +365,79 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         <View
           style={[
             styles.hero,
-            { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.lg },
+            { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.xl * 2 },
           ]}
           onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
         >
-          {/* The set's own posters, blurred, fading into the page. */}
-          <Animated.View
-            style={[styles.backdrop, backdropStyle]}
-            pointerEvents="none"
-          >
-            {collection.movies.slice(0, BACKDROP_POSTERS).map((movie) => (
-              <MoviePoster
-                key={movie.id}
-                uri={movie.poster}
-                blurRadius={14}
-                style={styles.backdropPoster}
-              />
-            ))}
+          {/* The collection's own picture, fading into the page. */}
+          <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents="none">
+            {art?.backdrop ? (
+              <Image source={{ uri: art.backdrop }} style={styles.backdropImage} />
+            ) : art?.photo ? (
+              // A portrait: on the right, fading into the page on its left.
+              <View style={styles.portraitWrap}>
+                <Image source={{ uri: art.photo }} style={styles.portrait} />
+                <LinearGradient
+                  colors={[colors.background, `${colors.background}00`]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0.6, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+              </View>
+            ) : (
+              <View style={styles.collage}>
+                {movies.slice(0, BACKDROP_POSTERS).map((movie) => (
+                  <MoviePoster
+                    key={movie.id}
+                    uri={movie.poster}
+                    blurRadius={14}
+                    style={styles.collagePoster}
+                  />
+                ))}
+              </View>
+            )}
             <LinearGradient
-              colors={[`${colors.background}8C`, colors.background]}
-              locations={[0, 0.95]}
+              colors={[`${colors.background}59`, colors.background]}
+              locations={[0.2, 1]}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
 
           <Animated.View style={heroContentStyle}>
-          <Text style={styles.eyebrow}>
-            {TYPE_LABELS[collection.type] ?? t("Collection")}
-            {isComplete ? t(" · Completed") : ""}
-          </Text>
-          <Text style={styles.title} numberOfLines={2}>
-            {collection.title}
-          </Text>
+            <Text style={styles.eyebrow}>
+              {t(TYPE_LABELS[collection.type] ?? "Collection")}
+              {isComplete ? t(" · Completed") : ""}
+            </Text>
+            <Text style={styles.title} numberOfLines={2}>
+              {collection.title}
+            </Text>
 
-          <View style={styles.stats}>
-            {stats.map(({ value, label }) => (
-              <View key={label} style={styles.stat}>
-                <Text style={styles.statValue}>{value}</Text>
-                <Text style={styles.statLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
+            <FilmStrip
+              movieIds={collection.movieIds}
+              watchedIds={watchedIds}
+              complete={isComplete}
+              styles={styles}
+            />
+            <View style={styles.progressRow}>
+              <Text style={styles.progressText} numberOfLines={1}>
+                {progressLine.filter(Boolean).join(" · ")}
+              </Text>
+              {worthXP && (
+                <View style={[styles.xpChip, isComplete && styles.xpChipEarned]}>
+                  <Text style={[styles.xpText, isComplete && styles.xpTextEarned]}>
+                    {isComplete
+                      ? t("+{xp} XP earned", { xp: COLLECTION_XP })
+                      : t("+{xp} XP", { xp: COLLECTION_XP })}
+                  </Text>
+                </View>
+              )}
+            </View>
           </Animated.View>
         </View>
 
-        {/* Progress: a thin line edge to edge — gold once complete. */}
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              isComplete && styles.progressFillComplete,
-              { width: `${progress * 100}%` },
-            ]}
-          />
-        </View>
-
-        <View style={styles.actions}>
-          {isComplete ? (
-            <>
+        {isComplete ? (
+          <>
+            <View style={styles.actions}>
               <PrimaryButton
                 label={t("Rewatch marathon")}
                 onPress={startMarathon}
@@ -289,22 +451,116 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                 style={styles.action}
                 contentStyle={styles.actionContent}
               />
-            </>
-          ) : (
-            <PrimaryButton
-              label={t("Pick from this collection")}
-              onPress={pickRandomUnwatched}
-              style={styles.action}
-              contentStyle={styles.actionContent}
-            />
-          )}
-        </View>
+            </View>
+            {tiersSection}
+            {friendsSection}
+          </>
+        ) : (
+          <>
+            {upNext && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("Up next")}</Text>
+                <View style={styles.upNext}>
+                  <Pressable onPress={() => openMovie(upNext.movie.id)} accessibilityLabel={upNext.movie.title}>
+                    <MoviePoster uri={upNext.movie.poster} radius={0} style={styles.upNextPoster} />
+                  </Pressable>
+                  <View style={styles.upNextInfo}>
+                    <Pressable onPress={() => openMovie(upNext.movie.id)}>
+                      <Text style={styles.upNextTitle} numberOfLines={2}>
+                        {upNext.movie.title}
+                      </Text>
+                      <Text style={styles.upNextMeta} numberOfLines={1}>
+                        {[
+                          upNext.movie.year,
+                          upNext.movie.runtime ? formatRuntime(upNext.movie.runtime) : null,
+                          upNext.movie.rating ? `★ ${upNext.movie.rating.toFixed(1)}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text>
+                    </Pressable>
+                    {!!upNext.reasons[0] && (
+                      <Text style={styles.upNextReason} numberOfLines={3}>
+                        {upNext.reasons[0]}
+                      </Text>
+                    )}
+                    <View style={styles.upNextButtons}>
+                      <Pressable
+                        style={({ pressed }) => [styles.upNextButton, styles.upNextPrimary, pressed && styles.pressed]}
+                        onPress={() => markWatched(upNext.movie.id)}
+                        accessibilityRole="button"
+                      >
+                        <Check size={15} color={colors.selectedText} strokeWidth={2.6} />
+                        <Text style={styles.upNextPrimaryText}>{t("Watched")}</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.upNextButton, pressed && styles.pressed]}
+                        onPress={() => toggleBucketListWithFeedback(upNext.movie.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("Watchlist")}
+                      >
+                        {isInBucketList(bucketList, upNext.movie.id) ? (
+                          <BookmarkCheck size={16} color={colors.textPrimary} />
+                        ) : (
+                          <Bookmark size={16} color={colors.textSecondary} />
+                        )}
+                      </Pressable>
+                      {unwatched.length > 1 && (
+                        <Pressable
+                          style={({ pressed }) => [styles.upNextButton, pressed && styles.pressed]}
+                          onPress={() => setSkipped((list) => [...list, upNext.movie.id])}
+                          accessibilityRole="button"
+                        >
+                          <Text style={styles.upNextSkipText}>{t("Another")}</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
 
-        <MovieGrid
-          movies={collection.movies}
-          onPressMovie={(movie) => openMovie(movie.id)}
-          showWatchedCheck
-        />
+            {toWatch.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHead}>
+                  <Text style={[styles.sectionLabel, styles.sectionLabelInRow]}>
+                    {t("To watch · {count}", { count: toWatch.length })}
+                  </Text>
+                  <View style={styles.sorts}>
+                    {SORTS.map((item) => {
+                      const active = item.key === sort.key;
+                      return (
+                        <Pressable
+                          key={item.key}
+                          onPress={() => setSortKey(item.key)}
+                          style={[styles.sort, active && styles.sortActive]}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                        >
+                          <Text style={[styles.sortText, active && styles.sortTextActive]}>
+                            {t(item.label)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+                {toWatch.map((movie) => (
+                  <MovieListRow
+                    key={movie.id}
+                    movie={movie}
+                    inQueue={isInBucketList(bucketList, movie.id)}
+                    onToggleQueue={() => toggleBucketListWithFeedback(movie.id)}
+                    onPress={() => openMovie(movie.id)}
+                  />
+                ))}
+              </View>
+            )}
+
+            {tiersSection}
+            {friendsSection}
+          </>
+        )}
       </Animated.ScrollView>
 
       <View
@@ -393,7 +649,12 @@ const createStyles = (colors) =>
       alignItems: "flex-end",
       justifyContent: "center",
     },
-    // No overflow clipping: the backdrop has to grow past the hero's top
+    pressed: {
+      opacity: 0.7,
+    },
+
+    // ---- Header
+    // No overflow clipping: the picture has to grow past the hero's top
     // when you pull down.
     hero: {
       paddingHorizontal: spacing.md,
@@ -401,9 +662,29 @@ const createStyles = (colors) =>
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
+    },
+    backdropImage: {
+      width: "100%",
+      height: "100%",
+      opacity: 0.7,
+    },
+    portraitWrap: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      end: 0,
+      width: "62%",
+    },
+    portrait: {
+      width: "100%",
+      height: "100%",
+      opacity: 0.85,
+    },
+    collage: {
+      flex: 1,
       flexDirection: "row",
     },
-    backdropPoster: {
+    collagePoster: {
       flex: 1,
       height: "100%",
       opacity: 0.55,
@@ -417,38 +698,219 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },
-    // Numbers like a profile: value over a small label.
-    stats: {
+    // The film strip: a frame per film, 2px apart.
+    strip: {
       flexDirection: "row",
-      gap: spacing.lg,
+      gap: 2,
+      height: 10,
       marginTop: spacing.md,
     },
-    stat: {
-      alignItems: "flex-start",
+    frame: {
+      flex: 1,
+      backgroundColor: colors.border,
     },
-    statValue: {
-      ...typography.hero,
-      fontSize: 19,
-      lineHeight: 24,
+    frameWatched: {
+      backgroundColor: colors.textPrimary,
+    },
+    frameComplete: {
+      backgroundColor: colors.rating,
+    },
+    progressRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    progressText: {
+      ...typography.caption,
+      flex: 1,
+      color: colors.textSecondary,
+    },
+    xpChip: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      backgroundColor: colors.card,
+    },
+    xpChipEarned: {
+      backgroundColor: colors.rating,
+    },
+    xpText: {
+      ...typography.bodyBold,
+      fontSize: 12,
       color: colors.textPrimary,
     },
-    statLabel: {
+    xpTextEarned: {
+      color: "#0C1014",
+    },
+
+    // ---- Sections
+    section: {
+      marginTop: spacing.lg,
+    },
+    sectionHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    sectionLabel: {
+      ...typography.caption,
+      color: colors.textMuted,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    sectionLabelInRow: {
+      paddingHorizontal: 0,
+      marginBottom: 0,
+    },
+    hint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
+    },
+
+    // ---- Up next
+    upNext: {
+      flexDirection: "row",
+      gap: spacing.md,
+      marginHorizontal: spacing.md,
+      padding: spacing.sm,
+      backgroundColor: colors.card,
+    },
+    upNextPoster: {
+      width: 96,
+      height: 144,
+    },
+    upNextInfo: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    upNextTitle: {
+      ...typography.title,
+      fontSize: 18,
+      color: colors.textPrimary,
+    },
+    upNextMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    upNextReason: {
+      ...typography.caption,
+      color: colors.textPrimary,
+      fontStyle: "italic",
+    },
+    upNextButtons: {
+      flexDirection: "row",
+      gap: 2,
+      marginTop: "auto",
+    },
+    upNextButton: {
+      height: 34,
+      minWidth: 40,
+      paddingHorizontal: spacing.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: colors.background,
+    },
+    upNextPrimary: {
+      backgroundColor: colors.selected,
+      paddingHorizontal: spacing.md,
+    },
+    upNextPrimaryText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.selectedText,
+    },
+    upNextSkipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+
+    // ---- To watch: sort chips
+    sorts: {
+      flexDirection: "row",
+      gap: 2,
+    },
+    sort: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      backgroundColor: colors.card,
+    },
+    sortActive: {
+      backgroundColor: colors.selected,
+    },
+    sortText: {
+      ...typography.bodyBold,
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    sortTextActive: {
+      color: colors.selectedText,
+    },
+
+    // ---- Your tiers
+    board: {
+      gap: 2,
+    },
+    boardRow: {
+      flexDirection: "row",
+      alignItems: "stretch",
+      backgroundColor: colors.card,
+    },
+    boardTier: {
+      width: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevated,
+    },
+    boardTierText: {
+      ...typography.title,
+      fontSize: 18,
+      color: colors.textMuted,
+    },
+    boardTierTextOnColor: {
+      color: "#0C1014",
+    },
+    boardItems: {
+      gap: 2,
+      padding: 2,
+    },
+    boardPoster: {
+      width: 48,
+      height: 72,
+    },
+
+    // ---- Friends
+    friends: {
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    friend: {
+      width: 72,
+      alignItems: "center",
+      gap: 4,
+    },
+    friendName: {
+      ...typography.caption,
+      color: colors.textPrimary,
+      maxWidth: 72,
+    },
+    friendCount: {
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
-      marginTop: 1,
     },
-    progressTrack: {
-      height: 2,
-      backgroundColor: colors.border,
+    friendCountDone: {
+      color: colors.rating,
     },
-    progressFill: {
-      height: "100%",
-      backgroundColor: colors.textPrimary,
-    },
-    progressFillComplete: {
-      backgroundColor: colors.rating,
-    },
+
+    // ---- Done: actions
     actions: {
       flexDirection: "row",
       gap: 2,

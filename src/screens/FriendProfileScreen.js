@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { LayoutGrid, ListOrdered, Users } from "lucide-react-native";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
@@ -6,12 +8,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
+import { ProfileBoards } from "../components/ProfileBoards";
+import { ProfileTopTen } from "../components/ProfileTopTen";
+import { TierListRows } from "../components/TierListRows";
+import { TrophyShelf } from "../components/TrophyShelf";
 import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
 import { getMovieById, useMoviesVersion } from "../data/movies";
+import { api } from "../services/api";
+import { getCollectionById } from "../utils/collections";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
@@ -38,9 +46,16 @@ const TierChip = ({ tier, styles }) => (
   </View>
 );
 
-// A friend's page: who they are, how close your taste is, what you both
-// loved, what they loved that you haven't seen (one tap to save it), their
-// top tier, and their recent activity.
+// A friend's page, laid out like your Profile: who they are, their top
+// ten and finished collections, then their tier list, their boards, and
+// "Together" — how close your taste is: what you both loved, what they
+// loved that you haven't seen (one tap to save it), and their recent
+// activity.
+const FRIEND_TABS = [
+  { key: "tiers", label: "Tier list", Icon: ListOrdered },
+  { key: "boards", label: "Boards", Icon: LayoutGrid },
+  { key: "together", label: "Together", Icon: Users },
+];
 export const FriendProfileScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -57,6 +72,21 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const friendId = route?.params?.friendId;
   const { friends, activity: allActivity, removeFriend } = useFriends();
   const friend = friends.find((item) => item.id === friendId);
+  const [tab, setTab] = useState("tiers");
+  // Their finished collections (and the definitions, remembered by
+  // services/api) and their boards.
+  const profile = useQuery({
+    queryKey: ["user", friendId],
+    queryFn: () => api.get(`/users/${friendId}`),
+    enabled: Boolean(friendId),
+    staleTime: 60 * 1000,
+  });
+  const boards = useQuery({
+    queryKey: ["user", friendId, "boards"],
+    queryFn: () => api.get(`/users/${friendId}/boards`),
+    enabled: Boolean(friendId),
+    staleTime: 60 * 1000,
+  });
 
   if (!friend) {
     return (
@@ -91,10 +121,11 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const match = getTasteMatch(watched, friend.watched);
   const bothLoved = getBothLoved(watched, friend.watched);
   const recommendations = getTheyLovedYouHavent(watched, friend.watched);
-  const topTier = friend.watched
-    .filter((entry) => entry.tier === "S")
-    .map((entry) => getMovieById(entry.movieId))
+  const topTen = (friend.topTen ?? []).map(getMovieById).filter(Boolean);
+  const trophies = (profile.data?.user?.finishedCollections ?? [])
+    .map(getCollectionById)
     .filter(Boolean);
+  const firstName = friend.name.split(" ")[0];
   const activity = allActivity.filter((event) => event.friendId === friend.id);
   const openMovie = (movieId) =>
     navigation.navigate("MovieDetails", { movieId });
@@ -155,6 +186,64 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           </View>
         </Animated.View>
 
+        <View style={styles.topTen}>
+          <ProfileTopTen movies={topTen} onOpen={openMovie} />
+        </View>
+        <TrophyShelf
+          collections={trophies}
+          pinnedIds={profile.data?.user?.pinnedCollections ?? []}
+          onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
+        />
+
+        {/* Tabs, like Profile's: an icon per column over a hairline. */}
+        <View style={styles.tabTrack}>
+          {FRIEND_TABS.map(({ key, label, Icon }) => {
+            const active = tab === key;
+            return (
+              <Pressable
+                key={key}
+                style={[styles.tabOption, active && styles.tabOptionActive]}
+                onPress={() => setTab(key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Icon
+                  size={22}
+                  color={active ? colors.textPrimary : colors.textMuted}
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
+                  {t(label)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {tab === "tiers" && (
+          <View style={styles.tabPage}>
+            <TierListRows entries={friend.watched} onOpen={openMovie} />
+          </View>
+        )}
+
+        {tab === "boards" && (
+          <View style={styles.tabPage}>
+            <ProfileBoards
+              boards={boards.data?.boards ?? []}
+              onOpen={(board) =>
+                navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
+              }
+              emptyText={
+                boards.isLoading
+                  ? t("Loading…")
+                  : t("{name} hasn't made any boards yet.", { name: firstName })
+              }
+            />
+          </View>
+        )}
+
+        {tab === "together" && (
+        <>
         {/* You both loved */}
         <Tag label={t("You both loved")} />
         {bothLoved.length > 0 ? (
@@ -183,7 +272,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           <>
             <Tag
               label={t("{value} says watch these", {
-                value: friend.name.split(" ")[0],
+                value: firstName,
               })}
             />
             <View style={styles.list}>
@@ -231,27 +320,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           </>
         )}
 
-        {/* Their top tier */}
-        {topTier.length > 0 && (
-          <>
-            <Tag label={t("Their S tier")} />
-            <ShelfRail
-              itemWidth={POSTER_ITEM}
-              items={topTier.map((movie) => ({
-                key: movie.id,
-                onPress: () => openMovie(movie.id),
-                content: (
-                  <MoviePoster
-                    uri={movie.poster}
-                    shadow
-                    style={styles.railPoster}
-                  />
-                ),
-              }))}
-            />
-          </>
-        )}
-
         {/* Recent */}
         {activity.length > 0 && (
           <>
@@ -287,6 +355,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           </>
         )}
 
+        </>
+        )}
+
         <Pressable onPress={confirmRemove} hitSlop={8} style={styles.remove}>
           <Text style={styles.removeText}>{t("Remove friend")}</Text>
         </Pressable>
@@ -297,6 +368,46 @@ export const FriendProfileScreen = ({ navigation, route }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    topTen: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.md,
+    },
+    tabTrack: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    tabOption: {
+      flex: 1,
+      alignItems: "center",
+      gap: 4,
+      paddingTop: spacing.sm + 2,
+      paddingBottom: spacing.sm,
+      borderBottomWidth: 1.5,
+      borderBottomColor: "transparent",
+      marginBottom: -StyleSheet.hairlineWidth,
+    },
+    tabOptionActive: {
+      borderBottomColor: colors.textPrimary,
+    },
+    tabLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textMuted,
+    },
+    tabLabelActive: {
+      ...typography.bodyBold,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textPrimary,
+    },
+    // Tier list and boards run edge to edge inside this page padding.
+    tabPage: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.md,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.background,

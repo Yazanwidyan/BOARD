@@ -10,7 +10,7 @@ import {
   RotateCw,
   Share2,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -20,6 +20,7 @@ import {
   Share,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "../components/AppText";
 import Animated, {
@@ -60,6 +61,7 @@ import {
   getCollectionsForMovie,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
+import { getMovieMatch } from "../utils/tasteEngine";
 import { getAverageTier, getTier } from "../utils/tiers";
 import {
   useHeroFadeStyle,
@@ -71,6 +73,9 @@ import { t } from "../i18n";
 const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
 const DESCRIPTION_LINES = 4;
+// The title logo fits inside this box, keeping its shape.
+const LOGO_MAX_HEIGHT = 96;
+const LOGO_MAX_WIDTH = 300;
 const SIMILAR_COUNT = 10;
 
 const MONTHS = [
@@ -200,6 +205,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  const [logoFailed, setLogoFailed] = useState(false);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   // Measured height of the poster stage, for the blurred backdrop behind it.
   const [stageHeight, setStageHeight] = useState(0);
@@ -292,6 +299,26 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       ),
     }),
     [stickyStart],
+  );
+
+  // The title logo's size: as big as fits the box, keeping its shape.
+  const logo = (page.data?.movie?.details ?? movie?.details)?.logo;
+  const logoSize =
+    colors.isDark && logo?.url && logo.aspect > 0 && !logoFailed
+      ? (() => {
+          const width = Math.min(
+            LOGO_MAX_WIDTH,
+            windowWidth * 0.72,
+            LOGO_MAX_HEIGHT * logo.aspect,
+          );
+          return { width, height: width / logo.aspect };
+        })()
+      : null;
+
+  // How well it fits your taste (not for movies you've watched).
+  const tasteMatch = useMemo(
+    () => getMovieMatch(watched, movie),
+    [watched, movie],
   );
 
   if (!movie) {
@@ -475,15 +502,37 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           <Animated.View style={posterStyle}>
             <MoviePoster uri={movie.poster} style={styles.poster} shadow />
           </Animated.View>
-          <Text
-            style={styles.title}
-            onLayout={(event) => {
-              const { y, height } = event.nativeEvent.layout;
-              setTitleBottom(y + height);
-            }}
-          >
-            {movie.title}
-          </Text>
+          {logoSize ? (
+            // The movie's own title art (from TMDB). Dark mode only — most
+            // logos are white — and the plain title if it doesn't load.
+            <View
+              style={styles.logoWrap}
+              onLayout={(event) => {
+                const { y, height } = event.nativeEvent.layout;
+                setTitleBottom(y + height);
+              }}
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={movie.title}
+            >
+              <Image
+                source={{ uri: logo.url }}
+                style={logoSize}
+                resizeMode="contain"
+                onError={() => setLogoFailed(true)}
+              />
+            </View>
+          ) : (
+            <Text
+              style={styles.title}
+              onLayout={(event) => {
+                const { y, height } = event.nativeEvent.layout;
+                setTitleBottom(y + height);
+              }}
+            >
+              {movie.title}
+            </Text>
+          )}
           <Text style={styles.director} numberOfLines={1}>
             {movie.director} · {movie.year}
           </Text>
@@ -497,6 +546,18 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
             </Text>
           </View>
+          {tasteMatch && (
+            <View style={styles.matchBlock}>
+              <View style={styles.matchPill}>
+                <Text style={styles.matchText}>
+                  {t("{match}% your taste", { match: tasteMatch.match })}
+                </Text>
+              </View>
+              <Text style={styles.matchReason} numberOfLines={2}>
+                {tasteMatch.reasons[0]}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -956,6 +1017,28 @@ const createStyles = (colors) =>
       marginTop: 4,
       maxWidth: "100%",
     },
+    // Your taste match, under the title: a pill, and why.
+    matchBlock: {
+      alignItems: "center",
+      gap: spacing.xs,
+      marginTop: spacing.sm + 2,
+      paddingHorizontal: spacing.lg,
+    },
+    matchPill: {
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+      backgroundColor: colors.successSoft,
+    },
+    matchText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.success,
+    },
+    matchReason: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
     ageBadge: {
       paddingHorizontal: 5,
       paddingVertical: 1,
@@ -1144,6 +1227,10 @@ const createStyles = (colors) =>
     poster: {
       width: 168,
       aspectRatio: 2 / 3,
+    },
+    logoWrap: {
+      alignItems: "center",
+      marginTop: spacing.md,
     },
     title: {
       ...typography.display,

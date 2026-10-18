@@ -296,12 +296,13 @@ export const LibraryScreen = ({ navigation, route }) => {
 
   // The tab screen stays mounted between visits, so a fresh `initialTab`
   // param (e.g. tapping a stat a second time) needs to actually switch the
-  // view, not just seed the very first render.
+  // view, not just seed the very first render. `openedAt` (a timestamp)
+  // marks a repeat of the same tab as new.
   useEffect(() => {
     if (route?.params?.initialTab) {
       setTab(route.params.initialTab);
     }
-  }, [route?.params?.initialTab]);
+  }, [route?.params?.initialTab, route?.params?.openedAt]);
 
   // A new section starts with the header showing — a short one might not
   // scroll at all, and would leave it stuck out of sight.
