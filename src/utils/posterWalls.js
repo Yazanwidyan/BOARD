@@ -1,43 +1,34 @@
-import { MOVIES } from "../data/movies";
+import { getMovieById } from "../data/movies";
 
 // The movies on the sign-in screen's drifting poster wall: recognisable
-// recent films, not the catalog's 1940s classics.
-//
-// Titles are looked up in the catalog. If the catalog is ever missing one,
-// the gap is filled with its newest, best-rated movies, so the wall is
-// never short.
+// recent films, by TMDB id. The sign-in screen fetches them from the server
+// first (services/movieData's loadWallMovies — no account needed); any it
+// couldn't get are just left off.
 
 export const WALL_SIZE = 18;
 
-const SIGN_IN_WALL = [
-  "Dune: Part Two",
-  "Oppenheimer",
-  "Barbie",
-  "Spider-Man: Into the Spider-Verse",
-  "The Batman",
-  "Top Gun: Maverick",
-  "Everything Everywhere All at Once",
-  "Interstellar",
-  "Parasite",
-  "Avengers: Endgame",
-  "Inception",
-  "The Dark Knight",
-  "Get Out",
-  "Spider-Man: No Way Home",
-  "Mad Max: Fury Road",
-  "La La Land",
-  "Coco",
-  "John Wick",
+export const SIGN_IN_WALL = [
+  "693134", // Dune: Part Two
+  "872585", // Oppenheimer
+  "346698", // Barbie
+  "324857", // Spider-Man: Into the Spider-Verse
+  "414906", // The Batman
+  "361743", // Top Gun: Maverick
+  "545611", // Everything Everywhere All at Once
+  "157336", // Interstellar
+  "496243", // Parasite
+  "299534", // Avengers: Endgame
+  "27205", // Inception
+  "155", // The Dark Knight
+  "419430", // Get Out
+  "634649", // Spider-Man: No Way Home
+  "76341", // Mad Max: Fury Road
+  "313369", // La La Land
+  "354912", // Coco
+  "245891", // John Wick
 ];
 
-export const getSignInWallMovies = () => {
-  const byTitle = new Map(MOVIES.map((movie) => [movie.title, movie]));
-  const picked = SIGN_IN_WALL.map((title) => byTitle.get(title)).filter(Boolean);
-  if (picked.length >= WALL_SIZE) return picked.slice(0, WALL_SIZE);
-
-  const onWall = new Set(SIGN_IN_WALL);
-  const fill = MOVIES.filter((movie) => !onWall.has(movie.title))
-    .sort((a, b) => b.year - a.year || b.rating - a.rating)
-    .slice(0, WALL_SIZE - picked.length);
-  return [...picked, ...fill];
-};
+export const getSignInWallMovies = () =>
+  SIGN_IN_WALL.map(getMovieById)
+    .filter((movie) => movie?.poster)
+    .slice(0, WALL_SIZE);

@@ -21,7 +21,7 @@ import { BackButton } from "../components/BackButton";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { StorySwipeCard } from "../components/StorySwipeCard";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { generateRecommendations } from "../services/recommendations";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
@@ -130,6 +130,8 @@ const PosterStrip = ({ label, movies, onPress, styles }) =>
   );
 
 export const MovieNightScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

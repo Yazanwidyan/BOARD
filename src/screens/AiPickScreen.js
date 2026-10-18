@@ -31,7 +31,7 @@ import { BackButton } from "../components/BackButton";
 import { StampCheck } from "../components/DialogArt";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { MOVIES, getMovieById } from "../data/movies";
+import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { recordPass } from "../store/tasteStore";
 import { showToast } from "../store/toastStore";
@@ -247,6 +247,8 @@ const ThinkingLine = ({ text, active, dwell, onDone, colors, styles }) => {
 // for a moment — showing what it's actually reading — then shows one pick
 // with how well it matches, why, and the full signal breakdown on demand.
 export const AiPickScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

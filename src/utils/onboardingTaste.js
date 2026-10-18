@@ -1,75 +1,72 @@
-import { MOVIES } from "../data/movies";
+import { MOVIES, getMovieById } from "../data/movies";
 import { DIMENSIONS, getVibe } from "../data/vibes";
 
 // The taste side of onboarding (see OnboardingScreen): which posters to
 // ask about, which "this or that" pairs to ask, and what to call the
 // watcher at the end.
 
-const byTitle = (title) => MOVIES.find((movie) => movie.title === title);
-
 // Films most people have actually seen, across every kind of taste — the
 // "What have you seen?" grid draws from these first, so it isn't a wall
-// of 1940s classics.
+// of 1940s classics. By TMDB id; onboarding fetches them all first
+// (ONBOARDING_MOVIE_IDS).
 const WELL_KNOWN = [
-  "Toy Story",
-  "The Dark Knight",
-  "Titanic",
-  "Inception",
-  "Get Out",
-  "Mean Girls",
-  "Spirited Away",
-  "Mad Max: Fury Road",
-  "The Lion King",
-  "Pulp Fiction",
-  "Forrest Gump",
-  "The Shawshank Redemption",
-  "Jurassic Park",
-  "The Matrix",
-  "Star Wars",
-  "Harry Potter and the Sorcerer's Stone",
-  "Finding Nemo",
-  "Shrek",
-  "The Avengers",
-  "Interstellar",
-  "La La Land",
-  "Parasite",
-  "Back to the Future",
-  "Home Alone",
-  "Notting Hill",
-  "Superbad",
-  "Gone Girl",
-  "The Conjuring",
-  "Barbie",
-  "Oppenheimer",
-  "Avengers: Endgame",
-  "Up",
-  "Coco",
-  "The Godfather",
-  "Fight Club",
-  "Se7en",
-  "Gladiator",
-  "The Lord of the Rings: The Fellowship of the Ring",
-  "Spider-Man: Into the Spider-Verse",
-  "Top Gun: Maverick",
-  "Knives Out",
-  "John Wick",
-  "A Quiet Place",
-  "It",
-  "Crazy Rich Asians",
-  "Dune",
-  "Everything Everywhere All at Once",
-  "Grease",
-  "The Sixth Sense",
-  "Shutter Island",
-  "Guardians of the Galaxy",
-  "Inside Out",
-  "Men in Black",
-  "Pirates of the Caribbean: The Curse of the Black Pearl",
+  "862", // Toy Story
+  "155", // The Dark Knight
+  "597", // Titanic
+  "27205", // Inception
+  "419430", // Get Out
+  "10625", // Mean Girls
+  "129", // Spirited Away
+  "76341", // Mad Max: Fury Road
+  "8587", // The Lion King
+  "680", // Pulp Fiction
+  "13", // Forrest Gump
+  "278", // The Shawshank Redemption
+  "329", // Jurassic Park
+  "603", // The Matrix
+  "11", // Star Wars
+  "671", // Harry Potter and the Philosopher's Stone
+  "12", // Finding Nemo
+  "808", // Shrek
+  "24428", // The Avengers
+  "157336", // Interstellar
+  "313369", // La La Land
+  "496243", // Parasite
+  "105", // Back to the Future
+  "771", // Home Alone
+  "509", // Notting Hill
+  "8363", // Superbad
+  "210577", // Gone Girl
+  "138843", // The Conjuring
+  "346698", // Barbie
+  "872585", // Oppenheimer
+  "299534", // Avengers: Endgame
+  "14160", // Up
+  "354912", // Coco
+  "238", // The Godfather
+  "550", // Fight Club
+  "807", // Se7en
+  "98", // Gladiator
+  "120", // The Lord of the Rings: The Fellowship of the Ring
+  "324857", // Spider-Man: Into the Spider-Verse
+  "361743", // Top Gun: Maverick
+  "546554", // Knives Out
+  "245891", // John Wick
+  "447332", // A Quiet Place
+  "346364", // It
+  "455207", // Crazy Rich Asians
+  "438631", // Dune
+  "545611", // Everything Everywhere All at Once
+  "621", // Grease
+  "745", // The Sixth Sense
+  "11324", // Shutter Island
+  "118340", // Guardians of the Galaxy
+  "150540", // Inside Out
+  "607", // Men in Black
+  "22", // Pirates of the Caribbean: The Curse of the Black Pearl
 ];
 
-// Looked up in the catalog when needed — it loads from the server after
-// start-up, so not at module load.
-const wellKnownMovies = () => WELL_KNOWN.map(byTitle).filter(Boolean);
+const wellKnownMovies = () => WELL_KNOWN.map(getMovieById).filter(Boolean);
 
 const distance = (a, b) =>
   Math.sqrt(
@@ -124,30 +121,36 @@ export const pickMoreMovies = (count, shownIds, seenMovies) => {
 // each side means. Neither needs to have been seen — it's about appetite.
 const PAIRS = {
   dark: [
-    ["The Grand Budapest Hotel", "Se7en"],
-    ["Toy Story", "The Silence of the Lambs"],
+    ["120467", "807"], // The Grand Budapest Hotel · Se7en
+    ["862", "274"], // Toy Story · The Silence of the Lambs
   ],
   pace: [
-    ["Arrival", "Mad Max: Fury Road"],
-    ["Lost in Translation", "John Wick"],
+    ["329865", "76341"], // Arrival · Mad Max: Fury Road
+    ["153", "245891"], // Lost in Translation · John Wick
   ],
   mind: [
-    ["Mean Girls", "Inception"],
-    ["Notting Hill", "Memento"],
+    ["10625", "27205"], // Mean Girls · Inception
+    ["509", "77"], // Notting Hill · Memento
   ],
   heavy: [
-    ["Ferris Bueller's Day Off", "Schindler's List"],
-    ["Superbad", "The Green Mile"],
+    ["9377", "424"], // Ferris Bueller's Day Off · Schindler's List
+    ["8363", "497"], // Superbad · The Green Mile
   ],
   scale: [
-    ["Past Lives", "The Lord of the Rings: The Return of the King"],
-    ["Whiplash", "Avengers: Endgame"],
+    ["666277", "122"], // Past Lives · The Lord of the Rings: The Return of the King
+    ["244786", "299534"], // Whiplash · Avengers: Endgame
   ],
   unreal: [
-    ["The Social Network", "Spirited Away"],
-    ["Goodfellas", "Harry Potter and the Sorcerer's Stone"],
+    ["37799", "129"], // The Social Network · Spirited Away
+    ["769", "671"], // GoodFellas · Harry Potter and the Philosopher's Stone
   ],
 };
+// Every film onboarding may show — fetched in full before it starts.
+export const ONBOARDING_MOVIE_IDS = [
+  ...WELL_KNOWN,
+  ...Object.values(PAIRS).flat(2),
+];
+
 const SIDE_LABELS = {
   dark: ["Light & fun", "Dark & tense"],
   pace: ["Slow burn", "Non-stop"],
@@ -171,13 +174,13 @@ export const pickQuestions = (fingerprint, markedIds = new Set()) =>
     .slice(0, QUESTION_COUNT)
     .map(({ dimension, index }) => {
       const options = PAIRS[dimension.key]
-        .map(([low, high]) => [byTitle(low), byTitle(high)])
+        .map(([low, high]) => [getMovieById(low), getMovieById(high)])
         .filter(
           ([low, high]) =>
             low && high && !markedIds.has(low.id) && !markedIds.has(high.id),
         );
       const pair = options[0] ??
-        PAIRS[dimension.key].map(([low, high]) => [byTitle(low), byTitle(high)])[0];
+        PAIRS[dimension.key].map(([low, high]) => [getMovieById(low), getMovieById(high)])[0];
       return {
         key: dimension.key,
         index,

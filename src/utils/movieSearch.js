@@ -11,7 +11,8 @@
 //
 // Results are ranked: title matches first (exact, then starting with the
 // search, then a word in the title starting with it, then anywhere), then
-// director, then cast — ties go to the higher-rated movie.
+// director, then cast — ties go to the better-known movie (more TMDB
+// votes), then the higher-rated one.
 
 // Lowercase, accents off, punctuation → spaces, single spaces.
 const normalize = (text) =>
@@ -103,6 +104,8 @@ const scoreMovie = (movie, query) => {
   return null;
 };
 
+const votesOf = (movie) => movie.votes ?? movie.details?.votes ?? 0;
+
 // Searches `movies` for `query`: [{ movie, matchedBy }], best first.
 // An empty query matches nothing.
 export const searchMovies = (movies, query, limit = Infinity) => {
@@ -117,8 +120,8 @@ export const searchMovies = (movies, query, limit = Infinity) => {
     .sort(
       (a, b) =>
         b.score - a.score ||
-        (b.movie.rating ?? 0) - (a.movie.rating ?? 0) ||
-        (a.movie.rank ?? 0) - (b.movie.rank ?? 0),
+        votesOf(b.movie) - votesOf(a.movie) ||
+        (b.movie.rating ?? 0) - (a.movie.rating ?? 0),
     )
     .slice(0, limit)
     .map(({ movie, matchedBy }) => ({ movie, matchedBy }));

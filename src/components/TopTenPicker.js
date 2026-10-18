@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Text } from "./AppText";
 
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { TOP_TEN_SIZE, useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { radius, spacing } from "../theme/spacing";
@@ -28,6 +28,8 @@ const COLUMNS = 3;
 // add it (it takes the next rank), tap it again to take it out — the ranks
 // close up behind it. Changes save as you go.
 export const TopTenPicker = ({ visible, onClose, watched }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const { width: windowWidth } = useWindowDimensions();

@@ -15,7 +15,7 @@ import { Text } from "./AppText";
 import YoutubePlayer from "react-native-youtube-iframe";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
-import { MOVIES, getMovieById } from "../data/movies";
+import { getMovieById } from "../data/movies";
 import { REEL_CLIPS, getYoutubeThumbnail } from "../data/reelClips";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
@@ -168,9 +168,14 @@ const SoundMark = ({ color, muted }) => (
 // (with its reason, e.g. "this is Nolan too"); ones you've seen follow.
 const buildFeed = (watched, bucketList) => {
   const clipsByMovie = new Map(REEL_CLIPS.map((clip) => [clip.movieId, clip]));
+  // The clips' own movies (they come with them — services/movieData).
+  const clipMovies = REEL_CLIPS.map((clip) => getMovieById(clip.movieId)).filter(
+    (movie) => movie && !movie.partial,
+  );
   const picks = getTastePicks(watched, {
     watchlist: bucketList.map((entry) => entry.movieId),
-    count: MOVIES.length,
+    count: clipMovies.length,
+    from: clipMovies,
   });
   const unseen = picks
     .filter((pick) => clipsByMovie.has(pick.movie.id))

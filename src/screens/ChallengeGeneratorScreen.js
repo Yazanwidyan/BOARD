@@ -9,7 +9,7 @@ import { Text } from "../components/AppText";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { HeaderIconButton, StackHeader } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
@@ -99,6 +99,8 @@ const DareCard = ({ challenge, selected, onPress, index, styles, colors }) => {
 // Pick tonight's dare: three real options dealt at once (spanning Easy →
 // Hard when your history allows). Pick one, take it. ⇄ deals a new hand.
 export const ChallengeGeneratorScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);

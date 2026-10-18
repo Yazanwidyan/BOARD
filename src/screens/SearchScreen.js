@@ -1,5 +1,5 @@
 import { ClipboardPaste, Search, X } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "../components/AppText";
 import {
@@ -11,35 +11,56 @@ import { BackButton } from "../components/BackButton";
 import { EmptyState } from "../components/EmptyState";
 import { MovieListRow } from "../components/MovieListRow";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { MOVIES } from "../data/movies";
+import { rememberMovies } from "../data/movies";
+import { useMovieSearch } from "../hooks/useMovieSearch";
+import { api } from "../services/api";
+import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
-import { findMovies } from "../utils/movieSearch";
 import { t } from "../i18n";
 
 const RESULTS_LIMIT = 60;
 
-const matchTitles = (lines) => {
+// One pasted title: ReelBoard's own movies first, then all of TMDB — the
+// exact title, else one containing it.
+const findTitle = async (line) => {
+  const lower = line.toLowerCase();
+  const pick = (movies) =>
+    movies.find((movie) => movie.title.toLowerCase() === lower) ??
+    movies.find((movie) => movie.title.toLowerCase().includes(lower));
+  const term = encodeURIComponent(line);
+  const pool = await api.get(`/movies?q=${term}&limit=10`);
+  const fromPool = pick(pool.movies);
+  if (fromPool) return fromPool;
+  const { results } = await api.get(`/movies/search?q=${term}`);
+  rememberMovies(results.map((result) => ({ ...result, partial: true })));
+  return pick(results) ?? null;
+};
+
+const LOOKUPS_AT_ONCE = 4;
+
+const matchTitles = async (lines) => {
   const normalizedLines = lines
     .split(/[\n,]/)
     .map((line) => line.trim())
     .filter(Boolean);
 
+  const found = [];
+  for (let i = 0; i < normalizedLines.length; i += LOOKUPS_AT_ONCE) {
+    const batch = normalizedLines.slice(i, i + LOOKUPS_AT_ONCE);
+    found.push(...(await Promise.all(batch.map(findTitle))));
+  }
   const matched = [];
   const unmatched = [];
-  normalizedLines.forEach((line) => {
-    const lower = line.toLowerCase();
-    const exact = MOVIES.find((movie) => movie.title.toLowerCase() === lower);
-    const partial =
-      exact ??
-      MOVIES.find((movie) => movie.title.toLowerCase().includes(lower));
-    if (partial && !matched.some((movie) => movie.id === partial.id)) {
-      matched.push(partial);
-    } else if (!partial) {
+  normalizedLines.forEach((line, index) => {
+    const movie = found[index];
+    if (movie && !matched.some((other) => other.id === movie.id)) {
+      matched.push(movie);
+    } else if (!movie) {
       unmatched.push(line);
     }
   });
@@ -54,17 +75,24 @@ export const SearchScreen = ({ navigation }) => {
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pasteResult, setPasteResult] = useState(null);
+  const [matching, setMatching] = useState(false);
   const bucketList = useMovieStore((state) => state.bucketList);
 
   const trimmed = query.trim();
-  // Title, director or cast, best matches first — see utils/movieSearch.
-  const results = useMemo(
-    () => findMovies(MOVIES, query, RESULTS_LIMIT),
-    [query],
-  );
+  // Any movie — by title, director or cast, best matches first
+  // (hooks/useMovieSearch).
+  const search = useMovieSearch(query, RESULTS_LIMIT);
+  const results = search.results.map((result) => result.movie);
 
-  const handlePasteSubmit = () => {
-    setPasteResult(matchTitles(pasteText));
+  const handlePasteSubmit = async () => {
+    setMatching(true);
+    try {
+      setPasteResult(await matchTitles(pasteText));
+    } catch {
+      showToast(t("Can't search right now — check your connection."));
+    } finally {
+      setMatching(false);
+    }
   };
 
   const handleAddMatched = () => {
@@ -115,8 +143,18 @@ export const SearchScreen = ({ navigation }) => {
         results.length === 0 ? (
           <EmptyState
             art="noMatches"
-            title={t("No matches")}
-            subtitle={t('Nothing found for "{query}"', { query: query })}
+            title={
+              search.searching
+                ? t("Searching…")
+                : search.failed
+                  ? t("Can't search right now — check your connection.")
+                  : t("No matches")
+            }
+            subtitle={
+              search.searching || search.failed
+                ? ""
+                : t('Nothing found for "{query}"', { query: query })
+            }
           />
         ) : (
           <FlatList
@@ -204,9 +242,9 @@ export const SearchScreen = ({ navigation }) => {
               />
             ) : (
               <PrimaryButton
-                label={t("Find titles")}
+                label={matching ? t("Finding titles…") : t("Find titles")}
                 onPress={handlePasteSubmit}
-                disabled={!pasteText.trim()}
+                disabled={!pasteText.trim() || matching}
                 style={styles.pasteAction}
               />
             )}

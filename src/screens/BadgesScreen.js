@@ -35,6 +35,7 @@ import {
 } from "../utils/collections";
 import { getCompletedChallengesCount } from "../utils/xp";
 import { t } from "../i18n";
+import { useMoviesVersion } from "../data/movies";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -50,6 +51,8 @@ const formatThreshold = (value) =>
   value >= 1000 ? `${value / 1000}k` : String(value);
 
 export const BadgesScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);

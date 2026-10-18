@@ -18,7 +18,7 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
 import { useClubs } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
@@ -37,6 +37,8 @@ const POSTERS_SHOWN = 5;
 // you (or on them), and your friends with how close their taste is to
 // yours and their top-tiered posters. Tap one for their page.
 export const FriendsScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);

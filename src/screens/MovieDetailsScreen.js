@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Bookmark,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Linking,
   Pressable,
@@ -37,7 +39,8 @@ import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { TierPicker } from "../components/TierPicker";
-import { MOVIES, getMovieById } from "../data/movies";
+import { getKnownMovies, getMovieById, useMoviesVersion } from "../data/movies";
+import { api } from "../services/api";
 import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
@@ -126,7 +129,7 @@ const initials = (name) =>
 // The director's other films get their own "Also by" row, so "More like
 // this" is purely the same lead genre (best-rated first) — no overlap.
 const getSimilarMovies = (movie) =>
-  MOVIES.filter(
+  getKnownMovies().filter(
     (other) =>
       other.id !== movie.id &&
       other.director !== movie.director &&
@@ -136,7 +139,7 @@ const getSimilarMovies = (movie) =>
     .slice(0, SIMILAR_COUNT);
 
 const getDirectorMovies = (movie) =>
-  MOVIES.filter(
+  getKnownMovies().filter(
     (other) => other.id !== movie.id && other.director === movie.director,
   ).sort((a, b) => a.year - b.year);
 
@@ -178,7 +181,18 @@ const DockButton = ({ icon, label, active, onPress, styles }) => (
 // it's part of → more like this.
 export const MovieDetailsScreen = ({ route, navigation }) => {
   const { movieId } = route.params;
-  const movie = getMovieById(movieId);
+  // Any movie can be opened — one from search may not be on the phone, or
+  // only as a card. Its page from the server brings the whole movie and
+  // the collections it's in (remembered by services/api); this screen
+  // re-renders as they arrive.
+  useMoviesVersion();
+  const page = useQuery({
+    queryKey: ["movie", movieId],
+    queryFn: () => api.get(`/movies/${movieId}`),
+    staleTime: 60 * 60 * 1000,
+  });
+  const known = getMovieById(movieId);
+  const movie = known && !known.partial ? known : null;
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -278,7 +292,20 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   );
 
   if (!movie) {
-    return null;
+    return (
+      <View style={[styles.container, styles.loading, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.loadingBar}>
+          <BackButton onPress={() => navigation.goBack()} />
+        </View>
+        {page.isError ? (
+          <Text style={styles.loadingText}>
+            {t("Couldn't load this movie. Check your connection and try again.")}
+          </Text>
+        ) : (
+          <ActivityIndicator color={colors.textSecondary} style={styles.loadingSpinner} />
+        )}
+      </View>
+    );
   }
 
   const watchedEntry = watched.find((entry) => entry.movieId === movieId);
@@ -303,7 +330,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     } else {
       openList(
         t("Starring {name}", { name: actor }),
-        MOVIES.filter((item) => item.cast?.includes(actor)),
+        getKnownMovies().filter((item) => item.cast?.includes(actor)),
       );
     }
   };
@@ -628,7 +655,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               onPress={() =>
                 openList(
                   t("The {decade}", { decade }),
-                  MOVIES.filter(
+                  getKnownMovies().filter(
                     (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
                   ).sort((a, b) => b.rating - a.rating),
                 )
@@ -645,7 +672,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 onPress={() =>
                   openList(
                     genre,
-                    MOVIES.filter((item) => item.genres.includes(genre)).sort(
+                    getKnownMovies().filter((item) => item.genres.includes(genre)).sort(
                       (a, b) => b.rating - a.rating,
                     ),
                   )
@@ -664,7 +691,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   const hasCollection = !!getCollectionById(
                     `actor-${slugify(actor)}`,
                   );
-                  const filmCount = MOVIES.filter((item) =>
+                  const filmCount = getKnownMovies().filter((item) =>
                     item.cast?.includes(actor),
                   ).length;
                   return (
@@ -1042,6 +1069,22 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    // While a movie the phone didn't have is fetched.
+    loading: {
+      paddingHorizontal: spacing.md,
+    },
+    loadingBar: {
+      flexDirection: "row",
+    },
+    loadingSpinner: {
+      marginTop: spacing.xl * 2,
+    },
+    loadingText: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: spacing.xl * 2,
     },
     headerBar: {
       position: "absolute",

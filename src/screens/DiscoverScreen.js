@@ -37,6 +37,7 @@ import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { isInBucketList } from "../utils/movieFilters";
 import { t } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
+import { useMoviesVersion } from "../data/movies";
 
 // One row: title + "See all" (opens the full list in Browse), then posters
 // with the IMDb rating and a one-tap save-to-watchlist button.
@@ -113,6 +114,8 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors }) => {
 // Personal rows built from your history (see utils/discoverRails) — watched
 // movies are never shown, so the page is always about something new.
 export const DiscoverScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -121,8 +124,8 @@ export const DiscoverScreen = ({ navigation }) => {
   const preferences = useUserStore((state) => state.preferences);
   const { data: community, refetch: refetchCommunity } = useTrending();
   const header = useDockHeader();
-  // Reels (full-screen trailer clips, the default) or Browse (the rails).
-  const [mode, setMode] = useState("reels");
+  // Browse (the rails, the default) or Reels (full-screen trailer clips).
+  const [mode, setMode] = useState("browse");
   const isFocused = useIsFocused();
 
   // Memoized on what the rows actually depend on — "Recommended" is

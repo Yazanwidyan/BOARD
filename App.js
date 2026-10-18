@@ -13,12 +13,12 @@ import { IBMPlexSansArabic_400Regular } from "@expo-google-fonts/ibm-plex-sans-a
 import { IBMPlexSansArabic_500Medium } from "@expo-google-fonts/ibm-plex-sans-arabic/500Medium";
 import { IBMPlexSansArabic_600SemiBold } from "@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold";
 import { IBMPlexSansArabic_700Bold } from "@expo-google-fonts/ibm-plex-sans-arabic/700Bold";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { syncLayoutDirection } from "./src/i18n";
-import { persistOptions, queryClient } from "./src/services/queryClient";
+import { queryClient } from "./src/services/queryClient";
 import { useLanguageStore } from "./src/store/languageStore";
 import { useColors } from "./src/theme/useColors";
 
@@ -58,14 +58,9 @@ export default function App() {
     return null;
   }
 
-  // The query cache (the account's data and its waiting changes) is
-  // restored from the device before anything reads it — see
-  // services/queryClient.js.
+  // The account's data, in memory only — see services/queryClient.js.
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={persistOptions}
-    >
+    <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView
         style={{
           flex: 1,
@@ -82,6 +77,6 @@ export default function App() {
           <AppNavigator key={language} />
         </SafeAreaProvider>
       </GestureHandlerRootView>
-    </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 }

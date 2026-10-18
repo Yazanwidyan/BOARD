@@ -27,7 +27,7 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -48,6 +48,8 @@ const MENU_WIDTH = 200;
 // list — add to it, swipe it down to one, swipe it together, share it as
 // an image. "Edit" turns the grid into tap-to-remove.
 export const BoardDetailsScreen = ({ route, navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const { boardId } = route.params;
   const colors = useColors();

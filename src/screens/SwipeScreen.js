@@ -26,6 +26,7 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
+import { useMoviesVersion } from "../data/movies";
 
 // Swipe in story mode, like Instagram Stories: each movie fills the screen
 // (its poster over a blurred copy of itself), with story bars across the
@@ -151,6 +152,8 @@ const Duels = ({ movies, onDecided, onDetails, styles }) => {
 };
 
 export const SwipeScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

@@ -19,11 +19,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MOVIES, getMovieById } from "../data/movies";
+import { getMovieById } from "../data/movies";
 import { t } from "../i18n";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { ALL_DECADES, ALL_GENRES } from "../utils/movieFilters";
 import { isRated } from "../utils/tiers";
 import {
   COLLECTION_XP,
@@ -34,7 +35,6 @@ import {
   NEW_GENRE_XP,
   RATE_XP,
   WATCH_XP,
-  decadeOf,
   getLevel,
   getXPBreakdown,
 } from "../utils/xp";
@@ -101,11 +101,9 @@ const RULES = [
   { label: "Tier a movie", xp: RATE_XP, Icon: Star },
 ];
 
-// Every genre and decade in the catalog (loaded from the server, so read
-// when needed rather than at module load).
-const catalogGenres = () => [...new Set(MOVIES.flatMap((movie) => movie.genres))];
-const catalogDecades = () =>
-  [...new Set(MOVIES.map((movie) => decadeOf(movie.year)))].sort();
+// Every genre and decade there is to try.
+const catalogGenres = () => ALL_GENRES;
+const catalogDecades = () => ALL_DECADES;
 
 const listNames = (names, max = 3) =>
   names.length > max

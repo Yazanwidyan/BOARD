@@ -10,13 +10,13 @@ import {
 import { Text } from "./AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MOVIES, getMovieById } from "../data/movies";
+import { getMovieById } from "../data/movies";
+import { useMovieSearch } from "../hooks/useMovieSearch";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { findMovies } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
@@ -24,7 +24,7 @@ import { t } from "../i18n";
 const RESULTS_LIMIT = 40;
 const SUGGESTED_LIMIT = 20;
 
-// From a board: search the catalog and tap to add or remove. Before you
+// From a board: search any movie and tap to add or remove. Before you
 // type, your watchlist is offered — the likeliest things to sort.
 export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
   const colors = useColors();
@@ -38,8 +38,9 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
 
   const trimmed = query.trim();
+  const search = useMovieSearch(query, RESULTS_LIMIT);
   const movies = trimmed
-    ? findMovies(MOVIES, query, RESULTS_LIMIT)
+    ? search.results.map((result) => result.movie)
     : [...bucketList]
         .reverse()
         .map((entry) => getMovieById(entry.movieId))
@@ -106,9 +107,13 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
         })}
         {movies.length === 0 && (
           <Text style={styles.empty}>
-            {trimmed
-              ? t("No movies found.")
-              : t("Search for a movie to add it.")}
+            {!trimmed
+              ? t("Search for a movie to add it.")
+              : search.searching
+                ? t("Searching…")
+                : search.failed
+                  ? t("Can't search right now — check your connection.")
+                  : t("No movies found.")}
           </Text>
         )}
       </ScrollView>

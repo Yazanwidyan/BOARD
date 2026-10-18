@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { getWatchXPGain } from "../utils/xp";
 import { spacing } from "../theme/spacing";
@@ -22,6 +22,8 @@ export const ChallengeCard = ({
   onContinue,
   onNewChallenge,
 }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const movie = getMovieById(challenge.targetMovieId);

@@ -20,7 +20,7 @@ import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { TasteDnaRadar } from "../components/TasteDnaRadar";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { DIMENSIONS } from "../data/vibes";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -374,6 +374,8 @@ const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => (
 );
 
 export const OnboardingScreen = () => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const [step, setStep] = useState(STEP.seen);

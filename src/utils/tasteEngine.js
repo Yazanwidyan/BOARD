@@ -468,14 +468,16 @@ export const buildMyTasteModel = (watched) => {
   return buildTasteModel(watched, { aspects, passes, leanings });
 };
 
-// The best unwatched picks, best first.
-// options: { watchlist: [movieId], rejected: [movieId], count, random }
+// The best unwatched picks, best first — from the candidates (MOVIES), or
+// `from`, a list of your own (e.g. the movies Reels has clips for).
+// options: { watchlist: [movieId], rejected: [movieId], count, random, from }
 export const getTastePicks = (watched, options = {}) => {
   const {
     watchlist = [],
     rejected = [],
     count = 5,
     random = Math.random,
+    from = MOVIES,
   } = options;
   const model = buildMyTasteModel(watched);
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
@@ -488,7 +490,7 @@ export const getTastePicks = (watched, options = {}) => {
     random,
   };
 
-  return MOVIES.filter(
+  return from.filter(
     (movie) => !watchedIds.has(movie.id) && !rejectedIds.has(movie.id),
   )
     .map((movie) => scoreMovie(movie, model, context))
@@ -546,9 +548,8 @@ export const getThinkingSteps = (watched, watchlist) => {
     watchlist.length > 0
       ? t("Checking your {count} saved movies…", { count: watchlist.length })
       : t("Scanning the whole catalog…"),
-    t("Scoring {count} movies you haven't seen…", {
-      count: MOVIES.length - model.watchedCount,
-    }),
+    // The candidates are picked from movies you haven't seen.
+    t("Scoring {count} movies you haven't seen…", { count: MOVIES.length }),
     t("Narrowing it down to one…"),
   ];
 };

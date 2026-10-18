@@ -22,7 +22,7 @@ import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { StackHeader } from "../components/ScreenHeader";
 import { StorySwipeCard } from "../components/StorySwipeCard";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import {
   createMovieNight,
@@ -55,6 +55,8 @@ const CODE_LENGTH = 6;
 // all are done or the host reveals early. While waiting it re-checks every
 // few seconds.
 export const GroupNightScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

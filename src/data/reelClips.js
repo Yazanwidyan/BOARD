@@ -2,9 +2,9 @@
 // own embed player (never downloaded or re-hosted). Each plays a window of
 // CLIP_SECONDS starting at `start`.
 //
-// Served with the catalog (GET /api/movies/catalog) and loaded at sign-in
-// by services/catalog.js; the list is maintained in the backend's
-// data/catalog.json. Any clip that's wrong or taken down just shows "Clip
+// Served by GET /api/movies/reels (with the clips' movies) and loaded by
+// services/movieData.js once a day; the list is maintained in the
+// backend's data/catalog.json. Any clip that's wrong or taken down just shows "Clip
 // unavailable" in the feed.
 
 // [{ movieId, youtubeId, start, end }] — filled in place.

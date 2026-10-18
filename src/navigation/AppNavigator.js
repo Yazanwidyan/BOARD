@@ -4,7 +4,6 @@ import {
   NavigationContainer,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useIsRestoring } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -83,22 +82,19 @@ export const AppNavigator = () => {
   const hasCompletedOnboarding = useUserStore(
     (state) => state.hasCompletedOnboarding,
   );
-  // Kept on the device: the session, the language and theme (so the
-  // sign-in screen shows right before an account is loaded — the account's
-  // own settings take over once it is), and TanStack Query's cache of the
-  // account and its waiting changes.
+  // All that's kept on the device: the session, and the language and
+  // theme (Arabic's right-to-left layout has to be set before anything
+  // shows; the account's own settings take over once it's loaded).
+  // Everything else comes from the server on every launch.
   const hasAuthHydrated = useHasHydrated(useAuthStore);
   const hasLanguageHydrated = useHasHydrated(useLanguageStore);
   const hasThemeHydrated = useHasHydrated(useThemeStore);
-  const isRestoringCache = useIsRestoring();
-  const hasHydrated =
-    hasAuthHydrated && hasLanguageHydrated && hasThemeHydrated && !isRestoringCache;
+  const hasHydrated = hasAuthHydrated && hasLanguageHydrated && hasThemeHydrated;
   const signedIn = useAuthStore((state) => Boolean(state.token));
   const accountReady = useAuthStore((state) => state.status === "ready");
   const colors = useColors();
 
-  // Once the saved session and cache are in, open the account (from the
-  // saved copy, or the server) and start sending its waiting changes.
+  // Once the saved session is in, load the account from the server.
   useEffect(() => {
     if (hasHydrated) startSync();
   }, [hasHydrated]);

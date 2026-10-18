@@ -19,7 +19,7 @@ const TIPS = {
   },
   discover: {
     title: "Discover",
-    body: "Watch trailer clips in Reels, or browse rails picked for your taste. Tap + to save a movie.",
+    body: "Browse rails picked for your taste, or watch trailer clips in Reels. Tap + to save a movie.",
   },
   decide: {
     title: "Decide",

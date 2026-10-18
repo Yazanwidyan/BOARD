@@ -1,3 +1,33 @@
+// The app's 12 genres (the server maps TMDB's onto these), and the decades
+// its movies span.
+export const ALL_GENRES = [
+  "Action",
+  "Adventure",
+  "Animation",
+  "Comedy",
+  "Crime",
+  "Drama",
+  "Fantasy",
+  "Horror",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Thriller",
+];
+export const ALL_DECADES = [
+  "1920s",
+  "1930s",
+  "1940s",
+  "1950s",
+  "1960s",
+  "1970s",
+  "1980s",
+  "1990s",
+  "2000s",
+  "2010s",
+  "2020s",
+];
+
 export const DECADE_RANGES = {
   Any: null,
   "2020s": [2020, 2029],

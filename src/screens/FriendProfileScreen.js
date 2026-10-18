@@ -11,7 +11,7 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
@@ -42,6 +42,8 @@ const TierChip = ({ tier, styles }) => (
 // loved, what they loved that you haven't seen (one tap to save it), their
 // top tier, and their recent activity.
 export const FriendProfileScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   // Where the big name ends in the page: the bar picks the name up as it
   // scrolls under it, while the avatar and name ease away.

@@ -3,7 +3,7 @@ import { Play, Shuffle } from "lucide-react-native";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { MOVIES, getMovieById } from "../data/movies";
+import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
@@ -31,6 +31,8 @@ const randomFrom = (items) => items[Math.floor(Math.random() * items.length)];
 // opens the movie. Renders nothing when there's no pick.
 // `scrollY`: Home's scroll position, so the banner stretches on a pull.
 export const TonightsPickCard = ({ navigation, scrollY }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const pickedMovieId = useMovieStore((state) => state.pickedMovie);

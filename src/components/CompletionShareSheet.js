@@ -48,7 +48,7 @@ const formatDate = (timestamp) => {
 // "I've seen all 10 Quentin Tarantino films" — honest about the count
 // (it's every one *in the catalog*, not a full filmography).
 export const bragHeadline = (collection) => {
-  const count = collection.movies.length;
+  const count = collection.movieIds.length;
   if (collection.type === "director") {
     return t("I've seen all {count} {title} films", {
       count,

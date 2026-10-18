@@ -18,12 +18,15 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { getTier, getTierInfo } from "../utils/tiers";
+import { useMoviesVersion } from "../data/movies";
 
 // "Your month on ReelBoard": a recap of a month or the year so far — how
 // much you watched, your top genres and director, your favourites and the
 // XP it earned — as a card you can share. Opened from Profile, from Home at
 // the start of a month, and from the monthly notification.
 export const RecapScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

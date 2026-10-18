@@ -9,7 +9,7 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { CLUB_NAME_MAX, useClubActions, useClubs } from "../store/clubsStore";
 import { showToast } from "../store/toastStore";
 import { spacing } from "../theme/spacing";
@@ -23,6 +23,8 @@ const COVER_SIZE = 56;
 // Clubs: the groups you're in, starting a new one, and joining one with an
 // invite code. Tap a club for its board, now watching, tier list and feed.
 export const ClubsScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);

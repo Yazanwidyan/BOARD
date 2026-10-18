@@ -23,6 +23,7 @@ import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
+import { useMoviesVersion } from "../data/movies";
 
 const TYPE_FILTERS = [
   { key: "all", label: "All" },
@@ -135,6 +136,8 @@ export const CollectionsShelf = ({
   onSeeAll,
   onOpenMovie,
 }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const { width } = useWindowDimensions();
@@ -145,13 +148,14 @@ export const CollectionsShelf = ({
     .flatMap((section) => section.collections)
     .map((collection) => {
       const progressInfo = getCollectionProgress(collection, watchedIds);
+      // Counted from the ids; the next movie is the first the phone has.
       const unwatched = collection.movies.filter(
         (movie) => !watchedIds.has(movie.id),
       );
       return {
         collection,
         ...progressInfo,
-        left: unwatched.length,
+        left: progressInfo.total - progressInfo.watchedCount,
         nextMovie: unwatched[0] ?? null,
         minutesLeft: unwatched.reduce((sum, movie) => sum + movie.runtime, 0),
         tracked:
@@ -404,7 +408,7 @@ export const CollectionsShelf = ({
                       {collection.title}
                     </Text>
                     <Text style={styles.almostMeta} numberOfLines={1}>
-                      {collection.movies.length}{" "}
+                      {collection.movieIds.length}{" "}
                       {t("movies · you watch a lot of")} {genre}
                     </Text>
                   </View>

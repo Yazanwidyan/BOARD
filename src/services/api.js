@@ -1,8 +1,8 @@
-import { onlineManager } from "@tanstack/react-query";
 import Constants from "expo-constants";
-import { AppState } from "react-native";
 
+import { moviesChanged, rememberMovies } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
+import { rememberCollections } from "../utils/collections";
 
 // Where the ReelBoard backend lives (see ../Reelboard-backend).
 //
@@ -23,7 +23,7 @@ export const API_URL = (
 const TIMEOUT_MS = 15000;
 
 // `status` is the HTTP status, or 0 when the server couldn't be reached
-// (offline, wrong address, timed out) — callers retry those later.
+// (no connection, wrong address, timed out).
 export class ApiError extends Error {
   constructor(message, status, details) {
     super(message);
@@ -31,43 +31,6 @@ export class ApiError extends Error {
     this.details = details;
   }
 }
-
-export const isOfflineError = (error) =>
-  error instanceof ApiError && (error.status === 0 || error.status >= 500);
-
-// ---- Online / offline ------------------------------------------------------
-//
-// TanStack Query pauses queries and queued changes while its onlineManager
-// says we're offline, and resumes them when we're back. React Native has no
-// built-in network events, so the server itself is the signal: a request
-// that can't reach it marks the app offline, and from then on /health is
-// polled (and checked whenever the app comes to the front) until it answers.
-
-const PROBE_INTERVAL_MS = 5000;
-let probeTimer = null;
-
-const probe = async () => {
-  try {
-    const response = await fetch(`${API_URL}/health`);
-    if (response.ok) setOnline(true);
-  } catch {
-    // Still offline — try again on the next tick.
-  }
-};
-
-const setOnline = (online) => {
-  if (online) {
-    clearInterval(probeTimer);
-    probeTimer = null;
-  } else if (!probeTimer) {
-    probeTimer = setInterval(probe, PROBE_INTERVAL_MS);
-  }
-  if (onlineManager.isOnline() !== online) onlineManager.setOnline(online);
-};
-
-AppState.addEventListener("change", (status) => {
-  if (status === "active" && !onlineManager.isOnline()) probe();
-});
 
 // ---- Requests --------------------------------------------------------------
 
@@ -100,12 +63,10 @@ const send = async (
       signal: controller.signal,
     });
   } catch {
-    setOnline(false);
     throw new ApiError("Can't reach the ReelBoard server", 0);
   } finally {
     clearTimeout(timer);
   }
-  setOnline(true);
   if (response.status === 304) return { response, data: NOT_MODIFIED };
 
   const text = await response.text();
@@ -127,7 +88,23 @@ const send = async (
       data?.error?.details,
     );
   }
+  rememberResponse(data);
   return { response, data };
+};
+
+// The app has no movie catalog of its own: a response that mentions movies
+// carries them (`movies`, or `movie` for one movie's page), and the
+// collections it mentions (`collections`). They're remembered here, for
+// everything that reads data/movies and utils/collections.
+const rememberResponse = (data) => {
+  if (!data || typeof data !== "object") return;
+  const collectionsArrived = rememberCollections(data.collections);
+  const movies = [
+    ...(Array.isArray(data.movies) ? data.movies : []),
+    ...(data.movie && typeof data.movie === "object" ? [data.movie] : []),
+  ];
+  if (movies.length) rememberMovies(movies);
+  else if (collectionsArrived) moviesChanged();
 };
 
 export const request = async (method, path, body, options) =>

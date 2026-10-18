@@ -229,8 +229,10 @@ const directorChallenge = ({ watched }) => {
   if (inProgress.length === 0) return null;
 
   const { collection, watchedCount, total } = inProgress[0];
-  const nextMovie = collection.movies.find(
-    (movie) => !watchedIds.has(movie.id),
+  // Not on the phone yet: it's fetched now, and this dare can come up next
+  // time.
+  const nextMovie = getMovieById(
+    collection.movieIds.find((id) => !watchedIds.has(id)),
   );
   if (!nextMovie) return null;
 
@@ -275,7 +277,9 @@ const completeTheCollection = ({ watched }) => {
   if (!current) return null;
   const { watchedCount, total } = getCollectionProgress(current, watchedIds);
   if (total - watchedCount !== 1) return null;
-  const nextMovie = current.movies.find((movie) => !watchedIds.has(movie.id));
+  const nextMovie = getMovieById(
+    current.movieIds.find((id) => !watchedIds.has(id)),
+  );
   if (!nextMovie) return null;
 
   return makeChallenge({
@@ -297,7 +301,8 @@ const startSomethingNew = ({ watched }) => {
     .flatMap((section) => section.collections)
     .filter(
       (collection) =>
-        getCollectionProgress(collection, watchedIds).progress === 0,
+        getCollectionProgress(collection, watchedIds).progress === 0 &&
+        collection.movies.length > 0,
     );
   if (notStarted.length === 0) return null;
   const collection = notStarted[Math.floor(Math.random() * notStarted.length)];

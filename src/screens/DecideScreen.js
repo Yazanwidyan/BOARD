@@ -10,7 +10,7 @@ import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { DecideHeader } from "../components/DecideHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { QuickPickBento } from "../components/QuickPickBento";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
@@ -78,6 +78,8 @@ const HistoryRow = ({ entry, isLast, styles }) => {
 // (casual/random vs. goal-oriented), so they share one screen instead of
 // Swipe/Spin being secondary cards buried on Home.
 export const DecideScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

@@ -10,7 +10,7 @@ import {
 import { Text } from "./AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { BOARD_NAME_MAX, useBoardStore } from "../store/boardStore";
 import { useClubActions, useClubs } from "../store/clubsStore";
 import { showToast } from "../store/toastStore";
@@ -26,6 +26,8 @@ const COVER_SIZE = 52;
 // From a movie: tick the boards it belongs on (a movie can be on several),
 // or make a new board right here and drop it in.
 export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

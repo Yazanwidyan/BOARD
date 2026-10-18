@@ -1,184 +1,111 @@
-import { MOVIES, getCatalogVersion } from "../data/movies";
+import { getMovieById } from "../data/movies";
 
-// A collection needs at least this many real entries to be worth surfacing
-// as an objective — a franchise with one stray title in the catalog would
-// be a hollow "complete it" claim, so it's filtered out entirely rather
-// than shown as a fake-feeling collection.
-const MIN_COLLECTION_SIZE = 2;
+// Collections — a franchise, a director's films, an actor's films, the best
+// of a decade or a genre. They're worked out on the server from its 8,000
+// movies (the backend's lib/collections.js, which also counts them for XP),
+// and the app gets the ones it needs as definitions —
+//   { id, type, title, movieIds }
+// — with your library (the ones you've started or unlocked), from
+// GET /api/collections (the best-known ones, to browse), and with any movie
+// you open (the ones it's in). services/api.js remembers every response's
+// `collections` (in memory only).
+//
+// Counts and progress come from `movieIds`, so they're exact. `movies` is
+// the films the app has so far; any it doesn't have are fetched (see
+// data/movies.js), and screens showing them re-render when they arrive.
 
-// Genre/decade groups can be huge (e.g. "Drama" spans over half the
-// catalog) — too big to be a meaningful objective and too big for the path
-// screen to render as nodes. Past this size they're curated down to the
-// top-ranked entries and the title says so, rather than silently claiming
-// to represent the whole genre/decade.
-const CURATED_SIZE = 15;
+const SECTIONS = [
+  { type: "franchise", title: "Franchises" },
+  { type: "director", title: "Directors" },
+  { type: "actor", title: "Actors" },
+  { type: "decade", title: "Decades" },
+  { type: "genre", title: "Genres" },
+];
 
-const slugify = (value) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+const registry = new Map();
+let version = 0;
 
-const groupBy = (movies, keyFn) => {
-  const map = new Map();
-  movies.forEach((movie) => {
-    const key = keyFn(movie);
-    if (key == null) return;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(movie);
+const toCollection = (definition) => ({
+  id: definition.id,
+  type: definition.type,
+  title: definition.title,
+  movieIds: definition.movieIds,
+  get movies() {
+    return this.movieIds.map(getMovieById).filter(Boolean);
+  },
+});
+
+const isDefinition = (item) =>
+  item &&
+  typeof item.id === "string" &&
+  typeof item.type === "string" &&
+  Array.isArray(item.movieIds);
+
+// True if anything new arrived.
+export const rememberCollections = (definitions) => {
+  if (!Array.isArray(definitions)) return false;
+  let any = false;
+  definitions.filter(isDefinition).forEach((definition) => {
+    const current = registry.get(definition.id);
+    if (
+      current &&
+      current.title === definition.title &&
+      current.movieIds.join() === definition.movieIds.join()
+    ) {
+      return;
+    }
+    registry.set(definition.id, toCollection(definition));
+    any = true;
   });
-  return map;
+  if (any) version += 1;
+  return any;
 };
 
-const buildFranchiseCollections = () =>
-  [...groupBy(MOVIES, (movie) => movie.franchise).entries()]
-    .filter(([, movies]) => movies.length >= MIN_COLLECTION_SIZE)
-    .map(([franchise, movies]) => ({
-      id: `franchise-${slugify(franchise)}`,
-      type: "franchise",
-      title: franchise,
-      movies: [...movies].sort((a, b) => a.year - b.year),
-    }));
-
-const buildDirectorCollections = () =>
-  [...groupBy(MOVIES, (movie) => movie.director).entries()]
-    .filter(([, movies]) => movies.length >= MIN_COLLECTION_SIZE)
-    .map(([director, movies]) => ({
-      id: `director-${slugify(director)}`,
-      type: "director",
-      title: director,
-      movies: [...movies].sort((a, b) => a.year - b.year),
-    }));
-
-// An actor needs a few more films than a director to be a collection —
-// top-billed casts overlap a lot, and a two-film "collection" for every
-// co-star would bury the meaningful ones.
-const MIN_ACTOR_COLLECTION_SIZE = 3;
-
-// One collection per actor with at least MIN_ACTOR_COLLECTION_SIZE catalog
-// movies in their top-billed cast (movie.cast, from the catalog). Empty
-// until cast data has been generated — the Actors section just doesn't
-// appear until then.
-const buildActorCollections = () => {
-  const map = new Map();
-  MOVIES.forEach((movie) => {
-    (movie.cast ?? []).forEach((actor) => {
-      if (!map.has(actor)) map.set(actor, []);
-      map.get(actor).push(movie);
-    });
-  });
-  return [...map.entries()]
-    .filter(([, movies]) => movies.length >= MIN_ACTOR_COLLECTION_SIZE)
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([actor, movies]) => ({
-      id: `actor-${slugify(actor)}`,
-      type: "actor",
-      title: actor,
-      movies: [...movies].sort((a, b) => a.year - b.year),
-    }));
+export const forgetCollections = () => {
+  registry.clear();
+  version += 1;
 };
 
-const decadeLabel = (year) => `${Math.floor(year / 10) * 10}s`;
-
-// Sorts by rank (best first) and, if there are more than CURATED_SIZE
-// entries, trims to the top ones — returning both the trimmed list and
-// whether curation actually happened, so the title can say so only when true.
-const rankTopN = (movies) => {
-  const sorted = [...movies].sort((a, b) => a.rank - b.rank);
-  const curated = sorted.length > CURATED_SIZE;
-  return { movies: curated ? sorted.slice(0, CURATED_SIZE) : sorted, curated };
-};
-
-const buildDecadeCollections = () =>
-  [...groupBy(MOVIES, (movie) => decadeLabel(movie.year)).entries()]
-    .filter(([, movies]) => movies.length >= MIN_COLLECTION_SIZE)
-    .map(([decade, rawMovies]) => {
-      const { movies, curated } = rankTopN(rawMovies);
-      return {
-        id: `decade-${slugify(decade)}`,
-        type: "decade",
-        title: curated ? `Best of the ${decade}` : decade,
-        movies,
-      };
-    });
-
-const buildGenreCollections = () => {
-  const map = new Map();
-  MOVIES.forEach((movie) => {
-    movie.genres.forEach((genre) => {
-      if (!map.has(genre)) map.set(genre, []);
-      map.get(genre).push(movie);
-    });
-  });
-  return [...map.entries()]
-    .filter(([, movies]) => movies.length >= MIN_COLLECTION_SIZE)
-    .map(([genre, rawMovies]) => {
-      const { movies, curated } = rankTopN(rawMovies);
-      return {
-        id: `genre-${slugify(genre)}`,
-        type: "genre",
-        title: curated ? `Best of ${genre}` : genre,
-        movies,
-      };
-    });
-};
-
-// Built the first time they're needed and kept until the catalog changes —
-// not at module load, since the catalog arrives from the server after
-// start-up. Only which movies are watched changes from moment to moment.
-let built = null;
-const collections = () => {
-  const version = getCatalogVersion();
-  if (built?.version !== version) {
-    const franchise = buildFranchiseCollections();
-    const director = buildDirectorCollections();
-    const actor = buildActorCollections();
-    const decade = buildDecadeCollections();
-    const genre = buildGenreCollections();
-    built = {
-      version,
-      franchise,
-      director,
-      actor,
-      decade,
-      genre,
-      all: [...franchise, ...director, ...actor, ...decade, ...genre],
-    };
+// Which collections each movie is in — rebuilt when collections arrive.
+let index = null;
+const collectionsByMovie = () => {
+  if (index?.version !== version) {
+    const byMovie = new Map();
+    registry.forEach((collection) =>
+      collection.movieIds.forEach((id) => {
+        if (!byMovie.has(id)) byMovie.set(id, []);
+        byMovie.get(id).push(collection);
+      }),
+    );
+    index = { version, byMovie };
   }
-  return built;
-};
-const allCollections = () => collections().all;
-
-export const getCollectionSections = () => {
-  const { franchise, director, actor, decade, genre } = collections();
-  return [
-    { type: "franchise", title: "Franchises", collections: franchise },
-    { type: "director", title: "Directors", collections: director },
-    { type: "actor", title: "Actors", collections: actor },
-    { type: "decade", title: "Decades", collections: decade },
-    { type: "genre", title: "Genres", collections: genre },
-  ].filter((section) => section.collections.length > 0);
+  return index.byMovie;
 };
 
-export const getCollectionById = (id) =>
-  allCollections().find((collection) => collection.id === id);
+const allCollections = () => [...registry.values()];
 
-// Library's Collections tab shows this instead of the full catalog — a
-// collection is "unlocked" (visible there) once you've actually watched
-// something in it, OR once you've explicitly chosen to track it from the
-// "See All Collections" browser (movieStore's unlockedCollections). The
-// full catalog itself never changes or hides anything — getCollectionSections()
-// still returns everything, for the browser and for the challenge generator's
-// "Start Something New" (which specifically needs untouched collections to
-// suggest).
+export const getCollectionSections = () =>
+  SECTIONS.map((section) => ({
+    ...section,
+    collections: allCollections().filter(
+      (collection) => collection.type === section.type,
+    ),
+  })).filter((section) => section.collections.length > 0);
+
+export const getCollectionById = (id) => registry.get(id);
+
+// Library's Collections tab: a collection is "unlocked" (visible there) once
+// you've watched something in it, or chosen to track it from the "See All
+// Collections" browser (movieStore's unlockedCollections).
 export const getUnlockedCollectionSections = (watchedIds, unlockedCollectionIds) =>
   getCollectionSections()
     .map((section) => ({
       ...section,
-      collections: section.collections.filter((collection) => (
-        getCollectionProgress(collection, watchedIds).progress > 0
-        || unlockedCollectionIds.includes(collection.id)
-      )),
+      collections: section.collections.filter(
+        (collection) =>
+          getCollectionProgress(collection, watchedIds).progress > 0 ||
+          unlockedCollectionIds.includes(collection.id),
+      ),
     }))
     .filter((section) => section.collections.length > 0);
 
@@ -186,30 +113,24 @@ export const getUnlockedCollectionSections = (watchedIds, unlockedCollectionIds)
 // director, a decade, a genre) — used by Movie Details' "Your Progress" and
 // by the challenge generator to find what a given watch would complete.
 export const getCollectionsForMovie = (movieId) =>
-  allCollections().filter((collection) =>
-    collection.movies.some((movie) => movie.id === movieId),
-  );
+  collectionsByMovie().get(movieId) ?? [];
 
 // Which of movieId's collections just became complete BY this watch —
-// every other movie in the collection was already in `watchedIdsBeforeAdd`
-// (the watched set from right before this movie was added). Lets a "mark
-// as watched" call site show a real "Collection Complete" celebration the
-// moment it happens, instead of that only being visible the next time
-// someone happens to open the Collections tab.
+// every other movie in it was already in `watchedIdsBeforeAdd`.
 export const getCollectionsCompletedBy = (movieId, watchedIdsBeforeAdd) =>
   getCollectionsForMovie(movieId).filter((collection) =>
-    collection.movies.every(
-      (movie) => movie.id === movieId || watchedIdsBeforeAdd.has(movie.id),
+    collection.movieIds.every(
+      (id) => id === movieId || watchedIdsBeforeAdd.has(id),
     ),
   );
 
 // `watchedIds` is a Set of movie ids, built once by the caller from the
 // real watched list, so progress is always derived live rather than stored.
 export const getCollectionProgress = (collection, watchedIds) => {
-  const watchedCount = collection.movies.filter((movie) =>
-    watchedIds.has(movie.id),
+  const watchedCount = collection.movieIds.filter((id) =>
+    watchedIds.has(id),
   ).length;
-  const total = collection.movies.length;
+  const total = collection.movieIds.length;
   return {
     watchedCount,
     total,
@@ -224,9 +145,7 @@ export const getCompletedCollectionsCount = (watchedIds) =>
     (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
   ).length;
 
-// The collection that's furthest along without being finished — the one
-// real "what should I continue" answer, not a suggestion, since there's
-// nothing to feature if nothing's actually in progress.
+// The collection that's furthest along without being finished.
 export const getCurrentCollection = (watchedIds) => {
   let current = null;
   let bestProgress = 0;
@@ -251,32 +170,33 @@ export const getInProgressCollections = (watchedIds, limit = 4) =>
     .map(({ collection }) => collection);
 
 // When a finished collection was finished: the latest watch date among its
-// movies (watched entries carry a timestamp). Null if it isn't complete or
-// no dates are known.
+// movies. Null if it isn't complete or no dates are known.
 export const getCollectionCompletedAt = (collection, watched) => {
   const byId = new Map(watched.map((entry) => [entry.movieId, entry]));
-  if (!collection.movies.every((movie) => byId.has(movie.id))) return null;
+  if (!collection.movieIds.every((id) => byId.has(id))) return null;
   const latest = Math.max(
-    ...collection.movies.map((movie) => byId.get(movie.id).timestamp ?? 0),
+    ...collection.movieIds.map((id) => byId.get(id).timestamp ?? 0),
   );
   return latest > 0 ? latest : null;
 };
 
-// Untracked collections worth suggesting: none of their movies watched yet
-// (anything with progress is already tracked automatically), ranked by how
-// much they overlap the genres the user actually watches most. Genre and
-// decade collections are left out — they're broad, and genres are already
-// the basis of the ranking.
+// Untracked collections worth suggesting: none of their movies watched yet,
+// ranked by how much they overlap the genres the user watches most. Genre
+// and decade collections are left out — they're broad, and genres are
+// already the basis of the ranking.
 const SUGGESTION_TOP_GENRES = 3;
 
 export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 3) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const genreCounts = new Map();
-  MOVIES.filter((movie) => watchedIds.has(movie.id)).forEach((movie) =>
-    movie.genres.forEach((genre) =>
-      genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1),
-    ),
-  );
+  watched
+    .map((entry) => getMovieById(entry.movieId))
+    .filter(Boolean)
+    .forEach((movie) =>
+      movie.genres.forEach((genre) =>
+        genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1),
+      ),
+    );
   const topGenres = [...genreCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, SUGGESTION_TOP_GENRES)
@@ -291,16 +211,22 @@ export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 
         getCollectionProgress(collection, watchedIds).watchedCount === 0,
     )
     .map((collection) => {
-      const matching = collection.movies.filter((movie) =>
+      // From the films the app has (at least the first few of each).
+      const movies = collection.movies;
+      if (movies.length === 0) return null;
+      const matching = movies.filter((movie) =>
         movie.genres.some((genre) => topGenres.includes(genre)),
       );
       const genre = topGenres.find((g) =>
         matching.some((movie) => movie.genres.includes(g)),
       );
-      return { collection, score: matching.length / collection.movies.length, genre };
+      return { collection, score: matching.length / movies.length, genre };
     })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score || b.collection.movies.length - a.collection.movies.length)
+    .filter((item) => item && item.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score || b.collection.movieIds.length - a.collection.movieIds.length,
+    )
     .slice(0, limit);
 };
 

@@ -30,7 +30,7 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { SPIN_STOP_MS } from "../components/RefreshFillTitle";
 import { TonightsPickCard } from "../components/TonightsPickCard";
-import { MOVIES, getMovieById } from "../data/movies";
+import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useMovieStore } from "../store/movieStore";
@@ -300,6 +300,8 @@ const RecentlyWatchedRail = ({ watched, navigation }) => {
 };
 
 export const HomeScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -456,8 +458,8 @@ export const HomeScreen = ({ navigation }) => {
             <ShelfRail
               itemWidth={BOX_ITEM}
               items={inProgressCollections.map((collection) => {
-                const seen = collection.movies.filter((movie) =>
-                  watchedIds.has(movie.id),
+                const seen = collection.movieIds.filter((id) =>
+                  watchedIds.has(id),
                 ).length;
                 return {
                   key: collection.id,
@@ -475,7 +477,7 @@ export const HomeScreen = ({ navigation }) => {
                   title: collection.title,
                   meta: t("{seen} of {moviesCount} watched", {
                     seen: seen,
-                    moviesCount: collection.movies.length,
+                    moviesCount: collection.movieIds.length,
                   }),
                 };
               })}

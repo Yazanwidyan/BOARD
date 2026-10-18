@@ -14,9 +14,8 @@ import { Text } from "../components/AppText";
 import { AppleLogo, GoogleLogo } from "../components/icons/BrandIcons";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { PosterWall } from "../components/PosterWall";
-import { MOVIES } from "../data/movies";
 import { t } from "../i18n";
-import { loadCatalog } from "../services/catalog";
+import { loadWallMovies } from "../services/movieData";
 import {
   SignInUnavailable,
   appleSignInSupported,
@@ -27,7 +26,7 @@ import { signInWith } from "../services/sync";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getSignInWallMovies } from "../utils/posterWalls";
+import { SIGN_IN_WALL, WALL_SIZE, getSignInWallMovies } from "../utils/posterWalls";
 
 const WALL_COLUMNS = 3;
 
@@ -50,8 +49,10 @@ const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, 
 export const WelcomeScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  // The catalog is public, so the wall can show before anyone signs in.
-  const [wallReady, setWallReady] = useState(MOVIES.length > 0);
+  // The wall's movies are public, so it can show before anyone signs in.
+  const [wallReady, setWallReady] = useState(
+    () => getSignInWallMovies().length >= WALL_SIZE,
+  );
   const [busy, setBusy] = useState(null); // "google" | "apple" | null
   const [message, setMessage] = useState(null);
   const insets = useSafeAreaInsets();
@@ -63,9 +64,9 @@ export const WelcomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (wallReady) return;
-    loadCatalog()
+    loadWallMovies(SIGN_IN_WALL)
       .then(() => setWallReady(true))
-      .catch(() => {}); // no wall offline — the buttons still work
+      .catch(() => {}); // no wall without the server — the buttons still show
   }, [wallReady]);
 
   const continueWith = async (provider, getCredentials) => {

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 
 import { changeLanguage } from "../i18n";
@@ -7,18 +8,21 @@ import { resetShownLevel } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { request } from "./api";
-import { loadCatalog, restoreCatalog } from "./catalog";
+import { ONBOARDING_MOVIE_IDS } from "../utils/onboardingTaste";
+import {
+  fetchMovies,
+  forgetMovieData,
+  loadMovieData,
+  startMovieData,
+} from "./movieData";
 import {
   clearAccountCache,
   getChangeCount,
-  hasAccountData,
   hasPendingChanges,
-  persister,
   queryClient,
   queryKeys,
   queueChange,
   refetchAfterQueue,
-  resumeQueue,
   setAccountData,
 } from "./queryClient";
 import { unregisterPushToken } from "./notifications";
@@ -30,8 +34,8 @@ import { signOutOfProviders } from "./socialAuth";
 // it fresh, and forgets it on sign-out.
 //
 // authStore.status drives the loading screen: "loading" → "ready", or
-// "error" (with a Retry). With the account saved on the device from last
-// time, the app is "ready" at once and refreshes in the background.
+// "error" (with a Retry). Nothing is saved on the device: every launch
+// loads the account from the server.
 
 let started = false;
 // True while server data is written into the language/theme stores, so it
@@ -74,36 +78,28 @@ const refreshAccount = async ({ full = false } = {}) => {
   applyServerState(state, { full });
 };
 
-// Loads the signed-in account — and the movie catalog it refers to — and
-// shows the loading screen until it's in.
+// Loads the signed-in account — with its movies, and candidates to choose
+// from (services/movieData) — and shows the loading screen until it's in.
 export const loadAccount = async () => {
   if (!signedIn()) return;
   useAuthStore.getState().setStatus("loading");
   try {
-    // The catalog goes in first: XP, collections and badges read it.
-    const [state] = await Promise.all([request("GET", "/me"), loadCatalog()]);
+    // Brings the account's own movies and collections too (services/api
+    // remembers them), and the filters candidates are picked with.
+    const state = await request("GET", "/me");
     applyServerState(state, { full: true });
+    await Promise.all([
+      loadMovieData(),
+      // A new account starts with onboarding, which asks about these films.
+      state.settings.hasCompletedOnboarding
+        ? null
+        : fetchMovies(ONBOARDING_MOVIE_IDS, { full: true }),
+    ]);
     useAuthStore.getState().setStatus("ready");
   } catch (error) {
     if (error.status !== 401)
       useAuthStore.getState().setStatus("error", error.message);
   }
-};
-
-// The account (and catalog) as last saved on the device, if they're
-// complete: open on them now, and check the server in the background.
-const openSavedAccount = async () => {
-  const hasCatalog = await restoreCatalog();
-  if (!hasCatalog || !hasAccountData()) return false;
-  resetShownLevel(
-    queryClient.getQueryData(queryKeys.profile)?.level ?? null,
-  );
-  useAuthStore.getState().setStatus("ready");
-  resumeQueue();
-  Promise.all([refreshAccount({ full: true }), loadCatalog()]).catch(() => {
-    // Offline: carry on with what's saved; the queue waits for the network.
-  });
-  return true;
 };
 
 // ---- Accounts --------------------------------------------------------------
@@ -141,13 +137,28 @@ export const register = async ({ displayName, email, password }) => {
   await loadAccount();
 };
 
-// Nothing of the account stays on the device after signing out — neither
-// its cached data nor changes still waiting to be sent.
+// Signing out: the account's data (all in memory) is dropped, along with
+// any change still on its way.
 const forgetAccount = () => {
   clearAccountCache();
+  forgetMovieData();
   resetShownLevel();
   useSessionStore.getState().endSession();
-  persister.removeClient();
+};
+
+// Earlier versions saved the account, its waiting changes and its movies
+// on the phone, for offline use. Nothing is kept any more: clear them.
+const OLD_SAVED_KEYS = ["board:query-cache", "board:catalog", "board:movie-data"];
+const forgetOldSavedData = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const old = keys.filter(
+      (key) => OLD_SAVED_KEYS.includes(key) || key.startsWith("board:movie-data:"),
+    );
+    if (old.length) await AsyncStorage.multiRemove(old);
+  } catch {
+    // Nothing to clear.
+  }
 };
 
 const endSession = () => {
@@ -183,7 +194,7 @@ export const reportAchievements = (rows) => {
       queueChange("POST", "/activity", {
         type: "set",
         set: row.collection.title,
-        count: row.collection.movies.length,
+        count: row.collection.movieIds.length,
       });
     }
   });
@@ -214,30 +225,26 @@ const watchDeviceSettings = () => {
   });
 };
 
-// Call once, after the session token and the saved query cache have loaded.
+// Call once, after the saved session token has loaded.
 export const startSync = async () => {
   if (started) return;
   started = true;
+  forgetOldSavedData();
   watchDeviceSettings();
+  startMovieData();
   // Session over (signed out, account deleted, or the server rejected the
   // token): wipe the account's data.
   useAuthStore.subscribe((state, prev) => {
     if (prev.token && !state.token) forgetAccount();
   });
-  // Coming back to the app: one request refreshes the whole account.
+  // Coming back to the app: one request refreshes the whole account (and
+  // services/movieData checks its candidates).
   AppState.addEventListener("change", (status) => {
     if (status === "active" && useAuthStore.getState().status === "ready") {
       refreshAccount().catch(() => {});
-      loadCatalog().catch(() => {});
     }
   });
-  if (!signedIn()) {
-    // A queue left by an account that's no longer signed in goes nowhere.
-    clearAccountCache();
-    return;
-  }
-  if (!(await openSavedAccount())) {
-    resumeQueue();
-    await loadAccount();
-  }
+  // Every launch loads the account from the server (the loading screen
+  // shows until it's in, with Retry if the server can't be reached).
+  if (signedIn()) await loadAccount();
 };

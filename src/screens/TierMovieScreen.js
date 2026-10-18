@@ -16,7 +16,7 @@ import { Text } from "../components/AppText";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { HeaderIconButton } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t, useIsRTL } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
@@ -112,6 +112,8 @@ const TierRow = ({ tier, index, chosen, onChoose, onLayout, styles }) => {
 };
 
 export const TierMovieScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const { movieId } = route.params;
   const colors = useColors();
   const styles = createStyles(colors);

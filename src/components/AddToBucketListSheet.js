@@ -10,7 +10,7 @@ import {
 import { Text } from "./AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MOVIES } from "../data/movies";
+import { useMovieSearch } from "../hooks/useMovieSearch";
 import { useMovieStore } from "../store/movieStore";
 import { useRecentSearchStore } from "../store/recentSearchStore";
 import { radius, spacing } from "../theme/spacing";
@@ -18,7 +18,6 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
-import { searchMovies } from "../utils/movieSearch";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
@@ -36,8 +35,8 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
   const clearSearches = useRecentSearchStore((state) => state.clearSearches);
 
   const trimmed = query.trim();
-  // Title, director or cast — see utils/movieSearch.
-  const results = searchMovies(MOVIES, query, RESULTS_LIMIT);
+  // Any movie — by title, director or cast (hooks/useMovieSearch).
+  const { results, searching, failed } = useMovieSearch(query, RESULTS_LIMIT);
 
   const handleClose = () => {
     setQuery("");
@@ -117,7 +116,13 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
             );
           })}
           {results.length === 0 && (
-            <Text style={styles.empty}>{t("No movies found.")}</Text>
+            <Text style={styles.empty}>
+              {searching
+                ? t("Searching…")
+                : failed
+                  ? t("Can't search right now — check your connection.")
+                  : t("No movies found.")}
+            </Text>
           )}
         </ScrollView>
       ) : (

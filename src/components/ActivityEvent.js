@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -110,6 +110,8 @@ const EventVisual = ({ event, onOpenMovie, styles }) => {
 // One row of a feed (Activity, a club's feed): who, what, when, and the
 // poster or medal. `onPress` opens the person; without it the row is plain.
 export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   return (

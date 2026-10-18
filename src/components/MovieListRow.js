@@ -33,7 +33,14 @@ export const MovieListRow = ({
           {movie.title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {movie.year} · {formatRuntime(movie.runtime)} · {movie.genres[0]}
+          {/* A search result from TMDB has no runtime until it's opened. */}
+          {[
+            movie.year,
+            movie.runtime ? formatRuntime(movie.runtime) : null,
+            movie.genres?.[0],
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </Text>
       </View>
       {onToggleQueue && (

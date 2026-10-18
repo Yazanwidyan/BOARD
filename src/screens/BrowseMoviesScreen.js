@@ -9,7 +9,7 @@ import {
 
 import { StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
-import { MOVIES } from "../data/movies";
+import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -61,14 +61,12 @@ export const BrowseMoviesScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const bucketList = useMovieStore((state) => state.bucketList);
 
+  // Any of the row's movies not on the phone are fetched; the list fills
+  // in as they arrive.
+  const moviesVersion = useMoviesVersion();
   const baseMovies = useMemo(
-    () =>
-      rowIds
-        ? rowIds
-            .map((id) => MOVIES.find((movie) => movie.id === id))
-            .filter(Boolean)
-        : MOVIES,
-    [rowIds],
+    () => (rowIds ? rowIds.map(getMovieById).filter(Boolean) : [...MOVIES]),
+    [rowIds, moviesVersion],
   );
 
   // The row's own order until you search; then best matches first (title,

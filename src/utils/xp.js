@@ -32,7 +32,7 @@ const XP_COLLECTIONS = () =>
   getCollectionSections()
     .filter((section) => XP_COLLECTION_TYPES.includes(section.type))
     .flatMap((section) => section.collections)
-    .filter((collection) => collection.movies.length >= XP_COLLECTION_MIN_SIZE);
+    .filter((collection) => collection.movieIds.length >= XP_COLLECTION_MIN_SIZE);
 
 export const getCompletedXPCollections = (watchedIds) =>
   XP_COLLECTIONS().filter(

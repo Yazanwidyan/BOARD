@@ -51,7 +51,7 @@ import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { getBadges } from "../utils/badges";
 import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
@@ -105,6 +105,8 @@ const getHandle = (name) =>
   }`;
 
 export const ProfileScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -240,7 +242,7 @@ export const ProfileScreen = ({ navigation, route }) => {
     if (pinA !== -1 || pinB !== -1) {
       return (pinA === -1 ? 99 : pinA) - (pinB === -1 ? 99 : pinB);
     }
-    return b.movies.length - a.movies.length;
+    return b.movieIds.length - a.movieIds.length;
   });
 
   const togglePin = (collection) => {
@@ -706,10 +708,10 @@ export const ProfileScreen = ({ navigation, route }) => {
                                   ]}
                                 >
                                   {[0, 1, 2, 3].map((index) => {
+                                    const movies = collection.movies;
                                     const movie =
-                                      collection.movies[
-                                        index % collection.movies.length
-                                      ];
+                                      movies[index % Math.max(1, movies.length)];
+                                    if (!movie) return null;
                                     return (
                                       <MoviePoster
                                         key={index}
@@ -734,7 +736,7 @@ export const ProfileScreen = ({ navigation, route }) => {
                                   {collection.title}
                                 </Text>
                                 <Text style={styles.showcaseMeta}>
-                                  {t("Seen all")} {collection.movies.length}{" "}
+                                  {t("Seen all")} {collection.movieIds.length}{" "}
                                   {unit}
                                 </Text>
                               </Pressable>

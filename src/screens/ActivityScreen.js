@@ -14,6 +14,7 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
+import { useMoviesVersion } from "../data/movies";
 
 const DAY = 24 * 60 * 60 * 1000;
 const AVATARS_SHOWN = 5;
@@ -22,6 +23,8 @@ const AVATARS_SHOWN = 5;
 // finishing, newest first, grouped by age (from the ReelBoard server).
 // Tap an event for that friend's page, a poster for the movie.
 export const ActivityScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);

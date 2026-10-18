@@ -29,6 +29,7 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { bucketListIds, formatRuntime } from "../utils/movieFilters";
+import { useMoviesVersion } from "../data/movies";
 
 // Spin as a full-screen slot machine reel: the candidates' posters run in a
 // vertical strip filling the whole screen under the header — the middle
@@ -75,6 +76,8 @@ const pickCandidates = (preferences, bucketList) =>
   );
 
 export const SpinScreen = ({ navigation }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

@@ -1,5 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
   focusManager,
   MutationObserver,
@@ -14,8 +12,9 @@ import { ApiError, request } from "./api";
 
 // TanStack Query is the app's data layer. Everything the account owns —
 // library, boards, profile, settings, taste, challenges, recent searches —
-// lives in its query cache, which is saved on the device, so the app opens
-// straight onto the last-known data and works offline.
+// lives in its query cache, in memory only: nothing is saved on the phone,
+// and every launch loads the account from the server. There's no offline
+// mode — without the server, loads fail and changes aren't kept.
 //
 // Reading: each part of the account is its own query (queryKeys below),
 // fetched from its own endpoint. GET /api/me fills them all in one request
@@ -23,13 +22,12 @@ import { ApiError, request } from "./api";
 //
 // Changing: a store action (store/accountStore.js) writes the change into
 // the cache straight away — screens stay instant — and queues the matching
-// API call with queueChange(). Queued calls run one at a time, in order
-// (one mutation scope), each with its own Idempotency-Key so a re-send is
-// harmless. Offline, they wait — saved on the device with the cache, so a
-// restart doesn't lose them — and go out when the server is reachable
-// again. Once the queue is empty, the queries it touched are refetched, so
-// the cache ends up exactly what the server has. A change the server
-// rejects shows a toast, and the refetch undoes it.
+// API call with queueChange(). Calls go out at once, one at a time and in
+// order (one mutation scope), each with its own Idempotency-Key so a retry
+// is harmless. Once they're done, the queries they touched are refetched,
+// so the cache ends up exactly what the server has. A change that fails —
+// rejected, or the server can't be reached — shows a toast, and the
+// refetch undoes it.
 
 export const queryKeys = {
   account: ["me"],
@@ -40,7 +38,6 @@ export const queryKeys = {
   taste: ["me", "taste"],
   challenges: ["me", "challenges"],
   searches: ["me", "searches"],
-  catalog: ["catalog"],
   friends: ["friends"],
   friendRequests: ["friends", "requests"],
   activity: ["activity"],
@@ -52,8 +49,6 @@ export const queryKeys = {
 };
 
 const SYNC_KEY = ["sync"];
-const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_AGE_MS = 30 * DAY_MS;
 const MERGE_DELAY_MS = 400;
 
 const isClientError = (error) =>
@@ -62,13 +57,16 @@ const isClientError = (error) =>
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Never dropped from memory while the app runs, or they'd drop out of
-      // the saved copy too. (Infinity rather than MAX_AGE_MS: a timer longer
-      // than ~24.8 days overflows and fires at once.)
+      // The account stays in memory while the app runs.
       gcTime: Infinity,
       staleTime: 30 * 1000,
-      // A 4xx won't change on a retry; offline, queries pause instead.
-      retry: (failureCount, error) => !isClientError(error) && failureCount < 3,
+      // Always ask the server — no waiting for a connection.
+      networkMode: "always",
+      // A 4xx won't change on a retry.
+      retry: (failureCount, error) => !isClientError(error) && failureCount < 2,
+    },
+    mutations: {
+      networkMode: "always",
     },
   },
 });
@@ -80,32 +78,6 @@ focusManager.setEventListener((setFocused) => {
   );
   return () => subscription.remove();
 });
-
-// ---- Saved on the device ---------------------------------------------------
-
-export const persister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: "board:query-cache",
-});
-
-export const persistOptions = {
-  persister,
-  maxAge: MAX_AGE_MS,
-  // Bump when the shape of cached data changes, to drop old saved copies.
-  buster: "1",
-  dehydrateOptions: {
-    // The catalog is saved on its own (services/catalog.js) — it's big and
-    // rarely changes, so it isn't rewritten with every small change.
-    shouldDehydrateQuery: (query) =>
-      query.state.status === "success" && query.meta?.persist !== false,
-    // Every change still waiting, including one mid-request: if the app is
-    // closed before the reply, it's sent again on the next launch (the
-    // Idempotency-Key makes that safe).
-    shouldDehydrateMutation: (mutation) =>
-      mutation.state.status === "pending" &&
-      mutation.options.mutationKey?.[0] === SYNC_KEY[0],
-  },
-};
 
 // ---- Account queries ---------------------------------------------------------
 
@@ -147,11 +119,6 @@ export const setAccountData = (state) => {
   });
 };
 
-export const hasAccountData = () =>
-  ACCOUNT_QUERIES.every(
-    ([queryKey]) => queryClient.getQueryData(queryKey) !== undefined,
-  );
-
 ACCOUNT_QUERIES.forEach(([queryKey, path, shape]) => {
   queryClient.setQueryDefaults(queryKey, {
     queryFn: async () => {
@@ -171,7 +138,7 @@ ACCOUNT_QUERIES.forEach(([queryKey, path, shape]) => {
   });
 });
 
-// ---- Queued changes ------------------------------------------------------------
+// ---- Changes ------------------------------------------------------------
 
 const newKey = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
@@ -195,7 +162,7 @@ const scheduleRefetch = () => {
   }, 0);
 };
 
-// Refetches these queries as soon as every waiting change has been sent
+// Refetches these queries as soon as every change on its way has been sent
 // (right away if none are waiting).
 export const refetchAfterQueue = (queryKeyList) => {
   touch(queryKeyList);
@@ -215,12 +182,13 @@ queryClient.setMutationDefaults(SYNC_KEY, {
   },
   // One queue: each change waits for the one before it.
   scope: { id: "account" },
-  // Unreachable: keep trying (paused while offline). Server errors: a few
-  // more tries. Anything the server rejected outright stays rejected.
+  // Unreachable or a server error: two quick retries, then it fails.
+  // Anything the server rejected outright stays rejected.
   retry: (failureCount, error) =>
     error instanceof ApiError &&
-    (error.status === 0 || (error.status >= 500 && failureCount < 5)),
-  retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30 * 1000),
+    (error.status === 0 || error.status >= 500) &&
+    failureCount < 2,
+  retryDelay: 1000,
   onError: (error) => {
     if (error instanceof OtherAccountError) return;
     // 401: the session is over — api.js has already signed out.
@@ -301,9 +269,9 @@ export const queueChange = (
   merging.set(merge, { change, timer });
 };
 
-// Queues the merged changes right away: before a change that isn't merged
+// Sends the merged changes right away: before a change that isn't merged
 // (so the order they were made in holds), and before the app goes to the
-// background (so they're saved with the queue).
+// background (so they go out while it still can).
 export const flushMerged = () => {
   merging.forEach(({ change, timer }) => {
     clearTimeout(timer);
@@ -316,24 +284,12 @@ AppState.addEventListener("change", (status) => {
   if (status !== "active") flushMerged();
 });
 
-// Picks up the saved queue after a restart: paused changes and any that
-// were mid-request when the app closed. Scope keeps them in order.
-export const resumeQueue = () => {
-  queryClient
-    .getMutationCache()
-    .getAll()
-    .filter((mutation) => mutation.state.status === "pending")
-    .forEach((mutation) => mutation.continue().catch(() => {}));
-};
-
-// Signing out: forget the account and its waiting changes. The catalog
-// isn't the account's, so it stays.
+// Signing out: forget the account and any change still on its way (its
+// movies go too — services/movieData).
 export const clearAccountCache = () => {
   merging.forEach(({ timer }) => clearTimeout(timer));
   merging.clear();
   touched.clear();
   queryClient.getMutationCache().clear();
-  queryClient.removeQueries({
-    predicate: (query) => query.queryKey[0] !== queryKeys.catalog[0],
-  });
+  queryClient.removeQueries();
 };

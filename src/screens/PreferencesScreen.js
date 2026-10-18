@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import {
@@ -7,10 +8,16 @@ import {
 
 import { StackHeader } from "../components/ScreenHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { MOVIES } from "../data/movies";
+import { useMoviesVersion } from "../data/movies";
+import {
+  currentFiltersKey,
+  loadCandidates,
+  useCandidatesStatus,
+} from "../services/movieData";
 import { generateRecommendations } from "../services/recommendations";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
+import { showToast } from "../store/toastStore";
 import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
 import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -18,7 +25,6 @@ import { useColors } from "../theme/useColors";
 import {
   DECADE_RANGES,
   RUNTIME_RANGES,
-  applyPreferenceFilters,
   bucketListIds,
 } from "../utils/movieFilters";
 import { t } from "../i18n";
@@ -83,12 +89,16 @@ export const PreferencesScreen = ({ navigation }) => {
   const watched = useMovieStore((state) => state.watched);
   const startSession = useSessionStore((state) => state.startSession);
 
+  const [starting, setStarting] = useState(false);
+  useMoviesVersion();
+
   const watchedIds = watched.map((entry) => entry.movieId);
-  const watchedSet = new Set(watchedIds);
-  const matchCount = applyPreferenceFilters(
-    MOVIES.filter((movie) => !watchedSet.has(movie.id)),
-    preferences,
-  ).length;
+  // These filters are applied to all of ReelBoard's movies on the server
+  // (services/movieData loads candidates for them as you choose), which
+  // also counts the matches.
+  const status = useCandidatesStatus();
+  const filtersKey = currentFiltersKey();
+  const matchCount = status.matchingKey === filtersKey ? status.matching : null;
   const ratingValue = preferences.minRating ?? null;
   const isDefault =
     preferences.genres.length === 0 &&
@@ -105,7 +115,17 @@ export const PreferencesScreen = ({ navigation }) => {
     });
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    // Candidates for exactly these filters first.
+    setStarting(true);
+    try {
+      await loadCandidates();
+    } catch {
+      showToast(t("Can't reach ReelBoard right now — check your connection."));
+      return;
+    } finally {
+      setStarting(false);
+    }
     const { bucketList } = useMovieStore.getState();
     const movies = generateRecommendations(
       preferences,
@@ -206,7 +226,11 @@ export const PreferencesScreen = ({ navigation }) => {
         style={[styles.footer, { paddingBottom: spacing.md + insets.bottom }]}
       >
         <Text style={styles.matchText}>
-          {matchCount === 0
+          {matchCount === null
+            ? status.failed
+              ? t("Can't reach ReelBoard right now — check your connection.")
+              : t("Finding movies…")
+            : matchCount === 0
             ? t("Nothing matches exactly — we'll loosen things up a little.")
             : matchCount < SWIPE_SIZE
               ? t("{matchCount} movies match — we'll add a few close ones.", {
@@ -216,7 +240,11 @@ export const PreferencesScreen = ({ navigation }) => {
                   matchCount: matchCount,
                 })}
         </Text>
-        <PrimaryButton label={t("Start swiping")} onPress={handleStart} />
+        <PrimaryButton
+          label={starting ? t("Finding movies…") : t("Start swiping")}
+          onPress={handleStart}
+          disabled={starting}
+        />
       </View>
     </SafeAreaView>
   );

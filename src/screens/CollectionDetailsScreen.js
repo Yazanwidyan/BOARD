@@ -1,7 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { Share2 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated, {
   Extrapolation,
@@ -19,6 +20,8 @@ import { BackButton } from "../components/BackButton";
 import { MovieGrid } from "../components/MovieGrid";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { useMoviesVersion } from "../data/movies";
+import { api } from "../services/api";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { openShareCard } from "../store/shareCardStore";
@@ -76,6 +79,15 @@ const formatShortDate = (timestamp) => {
 //   the posters edge to edge, watched ones checked.
 export const CollectionDetailsScreen = ({ route, navigation }) => {
   const { collectionId } = route.params;
+  // The whole collection, with every film in it (the phone may have only
+  // its first few, or not know it yet) — remembered by services/api, and
+  // this screen re-renders as it arrives.
+  useMoviesVersion();
+  const page = useQuery({
+    queryKey: ["collection", collectionId],
+    queryFn: () => api.get(`/collections/${collectionId}`),
+    staleTime: 60 * 60 * 1000,
+  });
   const collection = getCollectionById(collectionId);
   const colors = useColors();
   const styles = createStyles(colors);
@@ -121,7 +133,20 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   });
 
   if (!collection) {
-    return null;
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + spacing.sm, paddingHorizontal: spacing.md }]}>
+        <View style={{ flexDirection: "row" }}>
+          <BackButton onPress={() => navigation.goBack()} />
+        </View>
+        {page.isError ? (
+          <Text style={styles.loadingText}>
+            {t("Couldn't load this collection. Check your connection and try again.")}
+          </Text>
+        ) : (
+          <ActivityIndicator color={colors.textSecondary} style={{ marginTop: spacing.xl * 2 }} />
+        )}
+      </View>
+    );
   }
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
@@ -132,9 +157,9 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const isComplete = total > 0 && watchedCount === total;
   const minutesLeft = collection.movies
     .filter((movie) => !watchedIds.has(movie.id))
-    .reduce((sum, movie) => sum + movie.runtime, 0);
+    .reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
   const totalMinutes = collection.movies.reduce(
-    (sum, movie) => sum + movie.runtime,
+    (sum, movie) => sum + (movie.runtime ?? 0),
     0,
   );
 
@@ -326,6 +351,12 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    loadingText: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: spacing.xl * 2,
     },
     headerBar: {
       position: "absolute",

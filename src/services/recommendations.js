@@ -1,4 +1,4 @@
-import { MOVIES } from '../data/movies';
+import { MOVIES, getMovieById } from '../data/movies';
 import { shuffle } from '../utils/shuffle';
 import { applyPreferenceFilters } from '../utils/movieFilters';
 
@@ -45,9 +45,10 @@ export const generateRecommendations = (
   priorityIds = [],
   skipIds = [],
 ) => {
-  const priorityPool = priorityIds.length > 0
-    ? MOVIES.filter((movie) => priorityIds.includes(movie.id))
-    : [];
+  // The watchlist's movies come with the library, not the candidates.
+  const priorityPool = priorityIds
+    .map(getMovieById)
+    .filter((movie) => movie && !movie.partial);
   const priorityPicks = shuffle(priorityPool).slice(0, count);
 
   const remainingCount = count - priorityPicks.length;

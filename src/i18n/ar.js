@@ -657,8 +657,8 @@ const ar = {
   "Got it": "فهمت",
   "Tonight's pick, your dare, and what to watch next — all in one place.":
     "اختيار الليلة، وتحدّيك، وما تشاهده بعد ذلك — كلها في مكان واحد.",
-  "Watch trailer clips in Reels, or browse rails picked for your taste. Tap + to save a movie.":
-    "شاهد مقاطع الإعلانات في المقاطع، أو تصفّح قوائم مختارة لذوقك. اضغط + لحفظ فيلم.",
+  "Browse rails picked for your taste, or watch trailer clips in Reels. Tap + to save a movie.":
+    "تصفّح قوائم مختارة لذوقك، أو شاهد مقاطع الإعلانات في المقاطع. اضغط + لحفظ فيلم.",
   "Can't choose? Swipe, Spin, or get a taste pick — or take a dare.":
     "محتار؟ اسحب، أو دوّر، أو خذ اختياراً حسب ذوقك — أو خذ تحدّياً.",
   "Your watchlist, what you've watched, and collections. Tier what you watch from S to F.":
@@ -1337,6 +1337,18 @@ const ar = {
     "مفضّلات المجتمع",
   "Movie data and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.":
     "بيانات الأفلام وصورها من TMDB. يستخدم هذا المنتج واجهة TMDB البرمجية، لكنه غير معتمد أو مصدّق من TMDB.",
+
+  // Movies from the server (no catalog on the phone)
+  "Searching…": "جارٍ البحث…",
+  "Can't search right now — check your connection.": "تعذّر البحث الآن — تحقّق من اتصالك.",
+  "Couldn't load this collection. Check your connection and try again.":
+    "تعذّر تحميل هذه المجموعة. تحقّق من اتصالك وحاول مجددًا.",
+  "Couldn't load this movie. Check your connection and try again.":
+    "تعذّر تحميل هذا الفيلم. تحقّق من اتصالك وحاول مجددًا.",
+  "Finding movies…": "جارٍ إيجاد الأفلام…",
+  "Finding titles…": "جارٍ إيجاد العناوين…",
+  "Can't reach ReelBoard right now — check your connection.":
+    "تعذّر الوصول إلى ReelBoard الآن — تحقّق من اتصالك.",
 };
 
 export default ar;

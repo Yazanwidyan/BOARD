@@ -45,7 +45,7 @@ import {
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -262,6 +262,8 @@ const BoardsGrid = ({ boards, width, onOpen, onCreate, styles, colors }) => {
 };
 
 export const LibraryScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();

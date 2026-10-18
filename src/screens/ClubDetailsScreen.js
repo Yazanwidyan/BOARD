@@ -21,7 +21,7 @@ import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { getMovieById } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
 import { useClub, useClubActions, useClubActivity } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
@@ -54,6 +54,8 @@ const clubTier = (watches) => {
 // the club's movies. The owner also edits it, sets "now watching", resets
 // the code, removes members and can delete it; members can leave.
 export const ClubDetailsScreen = ({ navigation, route }) => {
+  // Re-render when movies this screen asked for arrive (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
