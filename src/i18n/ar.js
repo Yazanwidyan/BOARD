@@ -1379,6 +1379,24 @@ const ar = {
   "Your tier list, boards and taste. Pick your top ten and share your taste card.":
     "قائمة تصنيفك ولوحاتك وذوقك. اختر أفضل عشرة وشارك بطاقة ذوقك.",
   "{match}% your taste": "{match}% من ذوقك",
+  // ---- Sagas ----
+  "{count} more to {rank}": "{count} أخرى حتى {rank}",
+  "+{xp} XP a rank": "+{xp} نقطة لكل رتبة",
+  "{rank} · {saga}": "{rank} · {saga}",
+  "{rank} · {watchedCount} of {total}": "{rank} · {watchedCount} من {total}",
+  "Sagas": "السلاسل",
+  "Studios": "الاستوديوهات",
+  "Themes": "المواضيع",
+  "Saga": "سلسلة",
+  "Studio saga": "سلسلة استوديو",
+  "Director saga": "سلسلة مخرج",
+  "Actor saga": "سلسلة ممثل",
+  "New rank": "رتبة جديدة",
+  "Saga complete": "اكتملت السلسلة",
+  "Saga Complete!": "اكتملت السلسلة!",
+  "New Rank!": "رتبة جديدة!",
+  "Reach a saga rank": "بلوغ رتبة في سلسلة",
+  "Saga ranks reached": "رتب السلاسل التي بلغتها",
 };
 
 export default ar;

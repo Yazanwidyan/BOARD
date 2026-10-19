@@ -27,12 +27,12 @@ import { useColors } from "../theme/useColors";
 import { ALL_DECADES, ALL_GENRES } from "../utils/movieFilters";
 import { isRated } from "../utils/tiers";
 import {
-  COLLECTION_XP,
   DIRECTOR_DEPTH_FILMS,
   DIRECTOR_DEPTH_XP,
   LEVEL_NAMES,
   NEW_DECADE_XP,
   NEW_GENRE_XP,
+  RANK_XP,
   RATE_XP,
   WATCH_XP,
   getLevel,
@@ -81,7 +81,7 @@ const SOURCES = [
   },
   {
     key: "collections",
-    label: "Collections finished",
+    label: "Saga ranks reached",
     Icon: Layers,
     color: "#F6A0AC",
   },
@@ -97,7 +97,7 @@ const RULES = [
     xp: DIRECTOR_DEPTH_XP,
     Icon: Clapperboard,
   },
-  { label: "Finish a collection", xp: COLLECTION_XP, Icon: Layers },
+  { label: "Reach a saga rank", xp: RANK_XP, Icon: Layers },
   { label: "Tier a movie", xp: RATE_XP, Icon: Star },
 ];
 
@@ -247,7 +247,7 @@ export const WatcherProfileSheet = ({
     genres: breakdown.genres.length,
     decades: breakdown.decades.length,
     directors: breakdown.deepDirectors.length,
-    collections: breakdown.xp.collections / COLLECTION_XP,
+    collections: breakdown.xp.collections / RANK_XP,
     rated: breakdown.xp.rated / RATE_XP,
   };
   const parts = SOURCES.map((source) => ({

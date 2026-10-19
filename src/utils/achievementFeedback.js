@@ -8,19 +8,15 @@ import { useAchievementStore } from "../store/achievementStore";
 import { showToast } from "../store/toastStore";
 import { isRated } from "./tiers";
 import { getNewlyEarnedBadges } from "./badges";
+import { getCompletedCollectionsCount, getRanksReachedBy } from "./collections";
 import {
-  getCollectionsCompletedBy,
-  getCompletedCollectionsCount,
-} from "./collections";
-import {
-  COLLECTION_XP,
   DIRECTOR_DEPTH_XP,
   NEW_DECADE_XP,
   NEW_GENRE_XP,
+  RANK_XP,
   RATE_XP,
   WATCH_XP,
   getCompletedChallengesCount,
-  getCompletedXPCollections,
   getLevel,
   getUserXP,
   getXPBreakdown,
@@ -135,8 +131,10 @@ const showAchievement = (
     : kinds.length > 1
       ? "Big Night!"
       : kinds.includes("collection")
-        ? "Collection Complete!"
-        : kinds.includes("challenge")
+        ? "Saga Complete!"
+        : kinds.includes("rank")
+          ? "New Rank!"
+          : kinds.includes("challenge")
           ? "Dare Complete!"
           : kinds.includes("rewatch")
             ? "Rewatched!"
@@ -183,10 +181,9 @@ export const giveWatchedFeedback = (
   const historyAfter = useChallengeStore.getState().history;
 
   const watchedIdsBefore = new Set(watchedBefore.map((entry) => entry.movieId));
-  const completedCollections = getCollectionsCompletedBy(
-    movieId,
-    watchedIdsBefore,
-  );
+  // Saga ranks this watch reaches ("Prefect · Potterhead"); the top one
+  // finishes the saga.
+  const ranksReached = getRanksReachedBy(movieId, watchedIdsBefore);
 
   const newBadges = getNewlyEarnedBadges(
     badgeParams(watchedBefore, bucketListBefore, historyBefore),
@@ -196,21 +193,16 @@ export const giveWatchedFeedback = (
   const { rows, before, after } = xpRowsBetween(watchedBefore, watchedAfter);
   const kinds = [];
 
-  // Every finished collection is celebrated; only real bodies of work
-  // (franchise / director / actor, 3+ films) carry the XP.
-  const xpCollectionIds = new Set(
-    getCompletedXPCollections(
-      new Set(watchedAfter.map((entry) => entry.movieId)),
-    ).map((collection) => collection.id),
-  );
-  completedCollections.forEach((collection) => {
+  // Each rank is its own row, worth RANK_XP. A finished saga's row carries
+  // the collection, so it reaches friends' feeds (services/sync).
+  ranksReached.forEach(({ collection, rank, final }) => {
     rows.push({
-      label: "Collection complete",
-      detail: collection.title,
-      xp: xpCollectionIds.has(collection.id) ? COLLECTION_XP : null,
-      collection,
+      label: final ? "Saga complete" : "New rank",
+      detail: t("{rank} · {saga}", { rank: rank.title, saga: collection.title }),
+      xp: RANK_XP,
+      ...(final ? { collection } : {}),
     });
-    kinds.push("collection");
+    kinds.push(final ? "collection" : "rank");
   });
   if (completedChallenge) {
     rows.push({
@@ -224,19 +216,17 @@ export const giveWatchedFeedback = (
     rows.push(...badgeRows(newBadges));
     kinds.push("badge");
   }
-  // `after` already includes collection XP (it's derived from the whole
-  // watched list), so the level check sees everything this watch earned.
+  // `after` already includes rank XP (it's derived from the whole watched
+  // list), so the level check sees everything this watch earned.
   const levelUp = levelUpRow(before, after);
   if (levelUp) {
     rows.unshift(levelUp);
     kinds.push("level");
   }
 
-  // Finishing a director / actor / franchise set offers the brag card.
+  // Finishing a saga offers the brag card.
   const shareCollectionId =
-    completedCollections.find((collection) =>
-      xpCollectionIds.has(collection.id),
-    )?.id ?? null;
+    ranksReached.find((reached) => reached.final)?.collection.id ?? null;
   showAchievement(rows, kinds, shareCollectionId, movieId, { before, after });
 };
 

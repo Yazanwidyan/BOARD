@@ -48,6 +48,8 @@ import {
   getCollectionById,
   getCollectionCompletedAt,
   getCollectionProgress,
+  getSagaRank,
+  isSaga,
 } from "../utils/collections";
 import {
   byWeightedRating,
@@ -57,7 +59,7 @@ import {
 import { shuffle } from "../utils/shuffle";
 import { getTastePicks } from "../utils/tasteEngine";
 import { TIERS, getTier } from "../utils/tiers";
-import { COLLECTION_XP, isXPCollection } from "../utils/xp";
+import { RANK_XP } from "../utils/xp";
 import { t } from "../i18n";
 
 const TYPE_LABELS = {
@@ -66,6 +68,14 @@ const TYPE_LABELS = {
   actor: "Actor",
   decade: "Decade",
   genre: "Genre",
+};
+// A saga's eyebrow, by its kind.
+const SAGA_LABELS = {
+  franchise: "Saga",
+  studio: "Studio saga",
+  theme: "Saga",
+  director: "Director saga",
+  actor: "Actor saga",
 };
 
 const HEADER_BAR_HEIGHT = 40;
@@ -277,7 +287,8 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const isComplete = total > 0 && watchedCount === total;
   const minutesLeft = unwatched.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
   const totalMinutes = movies.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
-  const worthXP = isXPCollection(collection);
+  // A saga: the rank you've reached, the next one, and the XP so far.
+  const saga = isSaga(collection) ? getSagaRank(collection, watchedIds) : null;
   const completedAt = isComplete ? getCollectionCompletedAt(collection, watched) : null;
   const art = page.data?.art ?? null;
   const friends = page.data?.friends ?? [];
@@ -319,8 +330,16 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         completedAt ? t("finished {date}", { date: formatShortDate(completedAt) }) : null,
       ]
     : [
+        saga?.current ? saga.current.title : null,
         t("{watched} of {total} watched", { watched: watchedCount, total }),
-        minutesLeft > 0 ? t("{time} to go", { time: formatRuntime(minutesLeft) }) : null,
+        saga?.next
+          ? t("{count} more to {rank}", {
+              count: saga.next.at - watchedCount,
+              rank: saga.next.title,
+            })
+          : minutesLeft > 0
+            ? t("{time} to go", { time: formatRuntime(minutesLeft) })
+            : null,
       ];
 
   const tiersSection = watchedEntries.length > 0 && (
@@ -405,12 +424,20 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
 
           <Animated.View style={heroContentStyle}>
             <Text style={styles.eyebrow}>
-              {t(TYPE_LABELS[collection.type] ?? "Collection")}
+              {t(
+                (saga ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
+                  "Collection",
+              )}
               {isComplete ? t(" · Completed") : ""}
             </Text>
             <Text style={styles.title} numberOfLines={2}>
               {collection.title}
             </Text>
+            {!!collection.subtitle && (
+              <Text style={styles.subtitle} numberOfLines={2}>
+                {collection.subtitle}
+              </Text>
+            )}
 
             <FilmStrip
               movieIds={collection.movieIds}
@@ -422,16 +449,48 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.progressText} numberOfLines={1}>
                 {progressLine.filter(Boolean).join(" · ")}
               </Text>
-              {worthXP && (
+              {saga && (
                 <View style={[styles.xpChip, isComplete && styles.xpChipEarned]}>
                   <Text style={[styles.xpText, isComplete && styles.xpTextEarned]}>
                     {isComplete
-                      ? t("+{xp} XP earned", { xp: COLLECTION_XP })
-                      : t("+{xp} XP", { xp: COLLECTION_XP })}
+                      ? t("+{xp} XP earned", { xp: saga.reached.length * RANK_XP })
+                      : t("+{xp} XP a rank", { xp: RANK_XP })}
                   </Text>
                 </View>
               )}
             </View>
+
+            {/* The ranks you climb, in order — the ones you've reached lit. */}
+            {saga && collection.ranks.length > 0 && (
+              <View style={styles.ranks}>
+                {collection.ranks.map((rank) => {
+                  const reached = watchedCount >= rank.at;
+                  const isCurrent = saga.current?.title === rank.title;
+                  return (
+                    <View
+                      key={rank.title}
+                      style={[
+                        styles.rank,
+                        reached && styles.rankReached,
+                        isCurrent && styles.rankCurrent,
+                      ]}
+                    >
+                      <Text
+                        style={[styles.rankTitle, reached && styles.rankTitleReached]}
+                        numberOfLines={1}
+                      >
+                        {rank.title}
+                      </Text>
+                      <Text style={[styles.rankAt, reached && styles.rankAtReached]}>
+                        {rank.at === total
+                          ? t("All {total}", { total })
+                          : t("{count} films", { count: rank.at })}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </Animated.View>
         </View>
 
@@ -697,6 +756,45 @@ const createStyles = (colors) =>
       ...typography.display,
       color: colors.textPrimary,
       marginTop: spacing.xs,
+    },
+    subtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    // A saga's ranks: a step each, side by side; reached ones gold.
+    ranks: {
+      flexDirection: "row",
+      gap: 2,
+      marginTop: spacing.md,
+    },
+    rank: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      backgroundColor: colors.card,
+      gap: 2,
+    },
+    rankReached: {
+      backgroundColor: `${colors.rating}29`,
+    },
+    rankCurrent: {
+      backgroundColor: colors.rating,
+    },
+    rankTitle: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    rankTitleReached: {
+      color: colors.textPrimary,
+    },
+    rankAt: {
+      ...typography.micro,
+      color: colors.textMuted,
+    },
+    rankAtReached: {
+      color: colors.textSecondary,
     },
     // The film strip: a frame per film, 2px apart.
     strip: {

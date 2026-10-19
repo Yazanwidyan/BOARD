@@ -172,6 +172,7 @@ const WatchlistSuggestion = ({
       <HomeHero
         scrollY={scrollY}
         posterUri={movie.poster}
+        backdropUri={movie.backdrop}
         eyebrow={t("No pick for tonight yet")}
         title={movie.title}
         meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}

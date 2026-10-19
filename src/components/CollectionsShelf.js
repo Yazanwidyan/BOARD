@@ -16,6 +16,7 @@ import {
   getCollectionCompletedAt,
   getCollectionProgress,
   getCollectionSections,
+  getSagaRank,
   getSuggestedCollections,
 } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
@@ -25,13 +26,14 @@ import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 import { useMoviesVersion } from "../data/movies";
 
+// By saga kind.
 const TYPE_FILTERS = [
   { key: "all", label: "All" },
-  { key: "franchise", label: "Franchises" },
+  { key: "franchise", label: "Sagas" },
+  { key: "studio", label: "Studios" },
+  { key: "theme", label: "Themes" },
   { key: "director", label: "Directors" },
   { key: "actor", label: "Actors" },
-  { key: "decade", label: "Decades" },
-  { key: "genre", label: "Genres" },
 ];
 const MONTHS = [
   "Jan",
@@ -155,6 +157,8 @@ export const CollectionsShelf = ({
       return {
         collection,
         ...progressInfo,
+        // The saga rank reached so far ("Prefect"), or null.
+        rank: getSagaRank(collection, watchedIds).current,
         left: progressInfo.total - progressInfo.watchedCount,
         nextMovie: unwatched[0] ?? null,
         minutesLeft: unwatched.reduce((sum, movie) => sum + movie.runtime, 0),
@@ -167,10 +171,10 @@ export const CollectionsShelf = ({
   const tracked = all.filter((item) => item.tracked);
   const availableTypes = TYPE_FILTERS.filter(
     ({ key }) =>
-      key === "all" || tracked.some((item) => item.collection.type === key),
+      key === "all" || tracked.some((item) => item.collection.kind === key),
   );
   const matchesType = (item) =>
-    typeFilter === "all" || item.collection.type === typeFilter;
+    typeFilter === "all" || item.collection.kind === typeFilter;
 
   const visible = tracked.filter(matchesType);
   const inProgress = visible
@@ -249,11 +253,19 @@ export const CollectionsShelf = ({
                 key={item.collection.id}
                 item={item}
                 width={CAROUSEL_CARD}
-                meta={t("{watchedCount} of {total} · {minutesLeft} left", {
-                  watchedCount: item.watchedCount,
-                  total: item.total,
-                  minutesLeft: formatRuntime(item.minutesLeft),
-                })}
+                meta={
+                  item.rank
+                    ? t("{rank} · {watchedCount} of {total}", {
+                        rank: item.rank.title,
+                        watchedCount: item.watchedCount,
+                        total: item.total,
+                      })
+                    : t("{watchedCount} of {total} · {minutesLeft} left", {
+                        watchedCount: item.watchedCount,
+                        total: item.total,
+                        minutesLeft: formatRuntime(item.minutesLeft),
+                      })
+                }
                 watchedIds={watchedIds}
                 onPress={() => onOpen(item.collection.id)}
                 styles={styles}

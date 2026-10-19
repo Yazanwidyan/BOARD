@@ -1,26 +1,36 @@
 import { getMovieById } from "../data/movies";
 
-// Collections — a franchise, a director's films, an actor's films, the best
-// of a decade or a genre. They're worked out on the server from its 8,000
-// movies (the backend's lib/collections.js, which also counts them for XP),
-// and the app gets the ones it needs as definitions —
-//   { id, type, title, movieIds }
-// — with your library (the ones you've started or unlocked), from
-// GET /api/collections (the best-known ones, to browse), and with any movie
-// you open (the ones it's in). services/api.js remembers every response's
-// `collections` (in memory only).
+// Collections, from the server (the backend's lib/collections.js, which
+// also counts them for XP) as definitions — { id, type, title, movieIds } —
+// with your library (the ones you've started or unlocked), from
+// GET /api/collections (every saga, to browse), and with any movie you open
+// (the ones it's in). services/api.js remembers every response's
+// `collections` (in memory only). Two kinds:
+//
+//   sagas   THE collections (type "saga"): hand-made — "Potterhead",
+//           "Assembled", "King of the World" — with a `kind` (franchise,
+//           studio, theme, director, actor), a `subtitle`, `ranks`
+//           ([{ title, at }], `at` a film count: you climb them as you
+//           watch) and `art` ({ backdrop } or { photo }). Library, Home,
+//           badges, trophies, dares and XP count only these.
+//   lists   a director's or an actor's films, a franchise, a decade, a
+//           genre — for browsing ("More from Christopher Nolan"), never
+//           achievements.
 //
 // Counts and progress come from `movieIds`, so they're exact. `movies` is
 // the films the app has so far; any it doesn't have are fetched (see
 // data/movies.js), and screens showing them re-render when they arrive.
 
+// Library's sections: the sagas by kind (`type` is the kind).
 const SECTIONS = [
-  { type: "franchise", title: "Franchises" },
+  { type: "franchise", title: "Sagas" },
+  { type: "studio", title: "Studios" },
+  { type: "theme", title: "Themes" },
   { type: "director", title: "Directors" },
   { type: "actor", title: "Actors" },
-  { type: "decade", title: "Decades" },
-  { type: "genre", title: "Genres" },
 ];
+
+export const isSaga = (collection) => collection?.type === "saga";
 
 const registry = new Map();
 let version = 0;
@@ -28,7 +38,11 @@ let version = 0;
 const toCollection = (definition) => ({
   id: definition.id,
   type: definition.type,
+  kind: definition.kind ?? null,
   title: definition.title,
+  subtitle: definition.subtitle ?? null,
+  ranks: definition.ranks ?? [],
+  art: definition.art ?? null,
   movieIds: definition.movieIds,
   get movies() {
     return this.movieIds.map(getMovieById).filter(Boolean);
@@ -50,7 +64,8 @@ export const rememberCollections = (definitions) => {
     if (
       current &&
       current.title === definition.title &&
-      current.movieIds.join() === definition.movieIds.join()
+      current.movieIds.join() === definition.movieIds.join() &&
+      JSON.stringify(current.ranks) === JSON.stringify(definition.ranks ?? [])
     ) {
       return;
     }
@@ -82,13 +97,16 @@ const collectionsByMovie = () => {
   return index.byMovie;
 };
 
-const allCollections = () => [...registry.values()];
+// The sagas: everything below that counts (progress, completion, ranks,
+// suggestions) is about these.
+const allSagas = () => [...registry.values()].filter(isSaga);
+export const getSagas = allSagas;
 
 export const getCollectionSections = () =>
   SECTIONS.map((section) => ({
     ...section,
-    collections: allCollections().filter(
-      (collection) => collection.type === section.type,
+    collections: allSagas().filter(
+      (collection) => collection.kind === section.type,
     ),
   })).filter((section) => section.collections.length > 0);
 
@@ -115,14 +133,52 @@ export const getUnlockedCollectionSections = (watchedIds, unlockedCollectionIds)
 export const getCollectionsForMovie = (movieId) =>
   collectionsByMovie().get(movieId) ?? [];
 
-// Which of movieId's collections just became complete BY this watch —
-// every other movie in it was already in `watchedIdsBeforeAdd`.
+// Which of movieId's sagas just became complete BY this watch — every
+// other movie in it was already in `watchedIdsBeforeAdd`.
 export const getCollectionsCompletedBy = (movieId, watchedIdsBeforeAdd) =>
-  getCollectionsForMovie(movieId).filter((collection) =>
-    collection.movieIds.every(
-      (id) => id === movieId || watchedIdsBeforeAdd.has(id),
-    ),
+  getCollectionsForMovie(movieId).filter(
+    (collection) =>
+      isSaga(collection) &&
+      !watchedIdsBeforeAdd.has(movieId) &&
+      collection.movieIds.every(
+        (id) => id === movieId || watchedIdsBeforeAdd.has(id),
+      ),
   );
+
+// Where you are in a saga: the rank you've reached (null before the first),
+// the next one (null at the top), and the counts.
+export const getSagaRank = (collection, watchedIds) => {
+  const { watchedCount, total } = getCollectionProgress(collection, watchedIds);
+  const ranks = collection.ranks ?? [];
+  const reached = ranks.filter((rank) => watchedCount >= rank.at);
+  return {
+    current: reached[reached.length - 1] ?? null,
+    next: ranks.find((rank) => watchedCount < rank.at) ?? null,
+    reached,
+    watchedCount,
+    total,
+  };
+};
+
+// The saga ranks watching movieId reaches, given what was watched before:
+// [{ collection, rank, final }] — `final` is the top rank (the whole saga).
+export const getRanksReachedBy = (movieId, watchedIdsBeforeAdd) => {
+  if (watchedIdsBeforeAdd.has(movieId)) return [];
+  return getCollectionsForMovie(movieId)
+    .filter(isSaga)
+    .flatMap((collection) => {
+      const before = collection.movieIds.filter((id) =>
+        watchedIdsBeforeAdd.has(id),
+      ).length;
+      return (collection.ranks ?? [])
+        .filter((rank) => before < rank.at && before + 1 >= rank.at)
+        .map((rank) => ({
+          collection,
+          rank,
+          final: rank.at >= collection.movieIds.length,
+        }));
+    });
+};
 
 // `watchedIds` is a Set of movie ids, built once by the caller from the
 // real watched list, so progress is always derived live rather than stored.
@@ -138,18 +194,18 @@ export const getCollectionProgress = (collection, watchedIds) => {
   };
 };
 
-// How many collections are fully watched — feeds both the Collections
-// badge ladder and the league score's completion bonus.
+// How many sagas are fully watched — feeds both the Collections badge
+// ladder and the league score's completion bonus.
 export const getCompletedCollectionsCount = (watchedIds) =>
-  allCollections().filter(
+  allSagas().filter(
     (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
   ).length;
 
-// The collection that's furthest along without being finished.
+// The saga that's furthest along without being finished.
 export const getCurrentCollection = (watchedIds) => {
   let current = null;
   let bestProgress = 0;
-  allCollections().forEach((collection) => {
+  allSagas().forEach((collection) => {
     const { progress } = getCollectionProgress(collection, watchedIds);
     if (progress > 0 && progress < 1 && progress > bestProgress) {
       current = collection;
@@ -159,10 +215,10 @@ export const getCurrentCollection = (watchedIds) => {
   return current;
 };
 
-// Every collection that's been started but not finished, best progress
-// first — Home shows 2-4 of these under "Continue a Collection".
+// Every saga that's been started but not finished, best progress first —
+// Home shows 2-4 of these under "Continue a Collection".
 export const getInProgressCollections = (watchedIds, limit = 4) =>
-  allCollections()
+  allSagas()
     .map((collection) => ({ collection, ...getCollectionProgress(collection, watchedIds) }))
     .filter(({ progress }) => progress > 0 && progress < 1)
     .sort((a, b) => b.progress - a.progress)
@@ -180,10 +236,8 @@ export const getCollectionCompletedAt = (collection, watched) => {
   return latest > 0 ? latest : null;
 };
 
-// Untracked collections worth suggesting: none of their movies watched yet,
-// ranked by how much they overlap the genres the user watches most. Genre
-// and decade collections are left out — they're broad, and genres are
-// already the basis of the ranking.
+// Untracked sagas worth suggesting: none of their movies watched yet,
+// ranked by how much they overlap the genres the user watches most.
 const SUGGESTION_TOP_GENRES = 3;
 
 export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 3) => {
@@ -203,10 +257,9 @@ export const getSuggestedCollections = (watched, unlockedCollectionIds, limit = 
     .map(([genre]) => genre);
   if (topGenres.length === 0) return [];
 
-  return allCollections()
+  return allSagas()
     .filter(
       (collection) =>
-        ["franchise", "director", "actor"].includes(collection.type) &&
         !unlockedCollectionIds.includes(collection.id) &&
         getCollectionProgress(collection, watchedIds).watchedCount === 0,
     )

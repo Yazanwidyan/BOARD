@@ -179,9 +179,9 @@ const DockButton = ({ icon, label, active, onPress, styles }) => (
   </Pressable>
 );
 
-// Cinematic hero (the poster itself, full width, fading into the page,
-// with the title, facts and scores on it — the per-movie stock backdrops
-// are placeholders, so they're not used) → one primary "Mark as Watched"
+// Cinematic hero (the movie's backdrop — a still from the film — fading
+// into the page, with the poster, title, facts and scores on it) → one
+// primary "Mark as Watched"
 // plus an action dock for everything else → context that only shows when
 // it applies (active challenge, your rating) → overview → the collections
 // it's part of → more like this.
@@ -467,27 +467,39 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Backdrop: the movie's own poster, blurred, fading into the
-            page. Sized from the stage's measured height (not stretched to
-            fill it), with a plain Image. */}
+        {/* Backdrop: a still from the film (TMDB's, without text), fading
+            into the page — or, for a movie without one, its poster blurred.
+            Sized from the stage's measured height (not stretched to fill
+            it), with a plain Image. */}
         {stageHeight > 0 && (
           <Animated.View
             pointerEvents="none"
             style={[styles.backdrop, { height: stageHeight }, backdropStyle]}
           >
             <Image
-              source={{ uri: movie.poster }}
+              source={{ uri: movie.backdrop ?? movie.poster }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
-              blurRadius={14}
+              blurRadius={movie.backdrop ? 0 : 14}
             />
             <LinearGradient
-              colors={[
-                `${colors.background}14`,
-                `${colors.background}66`,
-                colors.background,
-              ]}
-              locations={[0, 0.55, 1]}
+              colors={
+                movie.backdrop
+                  ? [
+                      // A touch darker at the top for the header buttons,
+                      // clearer in the middle, solid at the bottom.
+                      `${colors.background}59`,
+                      `${colors.background}26`,
+                      `${colors.background}99`,
+                      colors.background,
+                    ]
+                  : [
+                      `${colors.background}14`,
+                      `${colors.background}66`,
+                      colors.background,
+                    ]
+              }
+              locations={movie.backdrop ? [0, 0.3, 0.7, 1] : [0, 0.55, 1]}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>

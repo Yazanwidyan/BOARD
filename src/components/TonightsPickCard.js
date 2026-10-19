@@ -132,6 +132,7 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   return (
     <HomeHero
       posterUri={pickedMovie.poster}
+      backdropUri={pickedMovie.backdrop}
       eyebrow={t("Tonight's pick")}
       title={pickedMovie.title}
       meta={`${pickedMovie.year} · ${pickedMovie.genres[0]} · ${formatRuntime(pickedMovie.runtime)}`}

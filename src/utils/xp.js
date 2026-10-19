@@ -1,10 +1,10 @@
 import { getMovieById } from "../data/movies";
 import { isRated } from "./tiers";
-import { getCollectionProgress, getCollectionSections } from "./collections";
+import { getCollectionProgress, getSagas, isSaga } from "./collections";
 
 // XP is a picture of what kind of movie watcher you are — earned only from
 // what you've actually watched, weighted toward range (new genres, new
-// decades) and depth (knowing a director, finishing a collection). It
+// decades) and depth (knowing a director, climbing a saga's ranks). It
 // never decays, doesn't care when you watched, and nothing rewards simply
 // opening the app. Badges and challenges are recognition / fun ways to
 // choose — they don't add XP of their own (a challenge's movie still
@@ -19,31 +19,29 @@ export const NEW_DECADE_XP = 50;
 // Awarded once per director, when you've seen 3 of their films.
 export const DIRECTOR_DEPTH_XP = 75;
 export const DIRECTOR_DEPTH_FILMS = 3;
-export const COLLECTION_XP = 200;
-// Only finishing a real body of work counts: a franchise, a director's or
-// an actor's films, with at least this many in the catalog. Genre/decade
-// "Best of" lists fill up as a side effect of watching anyway, and 2-film
-// sets are too small to be an achievement — counting them double-paid
-// for watching itself.
-const XP_COLLECTION_TYPES = ["franchise", "director", "actor"];
-const XP_COLLECTION_MIN_SIZE = 3;
+// Every saga rank you reach ("Prefect", then "Hogwarts Graduate") — the
+// same rule as the server's (lib/xp.js). Other collections (a director's
+// films, a decade) are for browsing and earn nothing.
+export const RANK_XP = 150;
 
-const XP_COLLECTIONS = () =>
-  getCollectionSections()
-    .filter((section) => XP_COLLECTION_TYPES.includes(section.type))
-    .flatMap((section) => section.collections)
-    .filter((collection) => collection.movieIds.length >= XP_COLLECTION_MIN_SIZE);
+// Whether this collection's ranks earn XP: it's a saga.
+export const isXPCollection = isSaga;
 
-// Whether finishing this collection earns COLLECTION_XP.
-export const isXPCollection = (collection) =>
-  XP_COLLECTION_TYPES.includes(collection.type) &&
-  collection.movieIds.length >= XP_COLLECTION_MIN_SIZE;
-
+// The sagas fully watched — your trophies.
 export const getCompletedXPCollections = (watchedIds) =>
-  XP_COLLECTIONS().filter(
+  getSagas().filter(
     (collection) =>
       getCollectionProgress(collection, watchedIds).progress === 1,
   );
+
+// How many saga ranks these watched movies reach, across every saga.
+export const getRanksReachedCount = (watchedIds) =>
+  getSagas().reduce((sum, collection) => {
+    const { watchedCount } = getCollectionProgress(collection, watchedIds);
+    return (
+      sum + (collection.ranks ?? []).filter((rank) => watchedCount >= rank.at).length
+    );
+  }, 0);
 export const RATE_XP = 10;
 
 export const decadeOf = (year) => `${Math.floor(year / 10) * 10}s`;
@@ -75,7 +73,7 @@ export const getXPBreakdown = (watched) => {
     genres: genres.size * NEW_GENRE_XP,
     decades: decades.size * NEW_DECADE_XP,
     directors: deepDirectors.length * DIRECTOR_DEPTH_XP,
-    collections: getCompletedXPCollections(watchedIds).length * COLLECTION_XP,
+    collections: getRanksReachedCount(watchedIds) * RANK_XP,
     rated: watched.filter(isRated).length * RATE_XP,
   };
   return {

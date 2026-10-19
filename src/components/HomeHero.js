@@ -17,8 +17,9 @@ import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 
-// Home's top banner, streaming-app style: full width, the movie's poster
-// blurred behind and fading into the page, the poster on the left, a
+// Home's top banner, streaming-app style: full width, the movie's backdrop
+// (a still from the film; or, without one, its poster blurred) behind and
+// fading into the page, the poster on the left, a
 // small label, a big title, one line of meta, an optional reason, and the
 // actions underneath. Without a poster (the welcome) it's just the text.
 //
@@ -36,6 +37,7 @@ const POSTER_PULL_DISTANCE = 140;
 
 export const HomeHero = ({
   posterUri,
+  backdropUri,
   eyebrow,
   title,
   meta,
@@ -85,17 +87,28 @@ export const HomeHero = ({
           style={[StyleSheet.absoluteFill, backdropStyle]}
         >
           <Image
-            source={{ uri: posterUri }}
-            blurRadius={22}
+            source={{ uri: backdropUri ?? posterUri }}
+            blurRadius={backdropUri ? 0 : 22}
+            resizeMode="cover"
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={[
-              `${colors.background}40`,
-              `${colors.background}B3`,
-              colors.background,
-            ]}
-            locations={[0, 0.65, 1]}
+            // A sharp still needs a little more shade than a blurred
+            // poster for the title and text on it to read.
+            colors={
+              backdropUri
+                ? [
+                    `${colors.background}59`,
+                    `${colors.background}A6`,
+                    colors.background,
+                  ]
+                : [
+                    `${colors.background}40`,
+                    `${colors.background}B3`,
+                    colors.background,
+                  ]
+            }
+            locations={backdropUri ? [0, 0.6, 1] : [0, 0.65, 1]}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
