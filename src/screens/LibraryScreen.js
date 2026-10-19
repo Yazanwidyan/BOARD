@@ -405,7 +405,7 @@ export const LibraryScreen = ({ navigation, route }) => {
     {
       key: "collections",
       Icon: Layers,
-      label: "Collections",
+      label: "Sagas",
       count: unlockedCount,
       subtitle: t("{count} tracked", { count: unlockedCount }),
     },
@@ -908,7 +908,7 @@ export const LibraryScreen = ({ navigation, route }) => {
       <BottomSheet
         visible={isAllCollectionsOpen}
         onClose={() => setIsAllCollectionsOpen(false)}
-        title={t("All Collections")}
+        title={t("All Sagas")}
         subtitle={t("Tap one to start or stop tracking it")}
       >
         <ScrollView

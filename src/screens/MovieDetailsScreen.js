@@ -56,9 +56,9 @@ import {
   toggleBucketListWithFeedback,
 } from "../utils/achievementFeedback";
 import {
-  getCollectionById,
   getCollectionProgress,
   getCollectionsForMovie,
+  getSagaForPerson,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
 import { getMovieMatch } from "../utils/tasteEngine";
@@ -107,12 +107,6 @@ const timeAgo = (timestamp) => {
   if (days < 60) return t("{count} weeks ago", { count: Math.round(days / 7) });
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
-
-const slugify = (value) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 
 const runtimeCategory = (minutes) =>
   minutes < 100
@@ -345,6 +339,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const collections = getCollectionsForMovie(movieId);
   const similarMovies = getSimilarMovies(movie);
   const directorMovies = getDirectorMovies(movie);
+  const directorSaga = getSagaForPerson(movie.director);
   const details = movie.details;
   // The cast with photos and characters comes with the movie's page — read
   // from the page itself, since other copies of the movie (in lists, the
@@ -362,10 +357,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       movieIds: movies.map((item) => item.id),
     });
 
+  // An actor: their saga ("Say Hello" for Al Pacino) if they have one, or
+  // else their films.
   const openActor = (actor) => {
-    const collection = getCollectionById(`actor-${slugify(actor)}`);
-    if (collection) {
-      navigation.push("CollectionDetails", { collectionId: collection.id });
+    const saga = getSagaForPerson(actor);
+    if (saga) {
+      navigation.push("CollectionDetails", { collectionId: saga.id });
     } else {
       openList(
         t("Starring {name}", { name: actor }),
@@ -773,9 +770,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.sectionLabel}>{t("Cast")}</Text>
               <View style={styles.castList}>
                 {castPeople.map(({ name: actor, character, photo }) => {
-                  const hasCollection = !!getCollectionById(
-                    `actor-${slugify(actor)}`,
-                  );
+                  const saga = getSagaForPerson(actor);
                   return (
                     <Pressable
                       key={actor}
@@ -803,10 +798,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                             {character}
                           </Text>
                         )}
-                        {/* Only actors with a collection say so — tapping
-                            opens it. */}
-                        {hasCollection && (
-                          <Text style={styles.castMeta}>{t("Collection")}</Text>
+                        {/* Actors with a saga name it — tapping opens it. */}
+                        {saga && (
+                          <Text style={styles.castSaga} numberOfLines={1}>
+                            {t("Saga · {title}", { title: saga.title })}
+                          </Text>
                         )}
                       </View>
                     </Pressable>
@@ -886,9 +882,23 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
         {directorMovies.length > 0 && (
           <>
-            <Text style={[styles.sectionLabel, styles.railLabel]}>
-              {t("Also by")} {movie.director}
-            </Text>
+            <View style={styles.railHeader}>
+              <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
+                {t("Also by")} {movie.director}
+              </Text>
+              {directorSaga && (
+                <Pressable
+                  hitSlop={8}
+                  onPress={() =>
+                    navigation.push("CollectionDetails", { collectionId: directorSaga.id })
+                  }
+                >
+                  <Text style={styles.railHeaderLink} numberOfLines={1}>
+                    {directorSaga.title} ›
+                  </Text>
+                </Pressable>
+              )}
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1156,6 +1166,10 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
+    castSaga: {
+      ...typography.caption,
+      color: colors.rating,
+    },
     factsCard: {
       marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
@@ -1365,6 +1379,26 @@ const createStyles = (colors) =>
     },
     railLabel: {
       paddingHorizontal: spacing.md,
+    },
+    // A rail's title with a link at the end (the director's saga).
+    railHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
+    },
+    railHeaderLabel: {
+      flexShrink: 1,
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    railHeaderLink: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.rating,
     },
     railContent: {
       paddingHorizontal: spacing.md,

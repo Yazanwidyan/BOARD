@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutGrid, ListOrdered, Users } from "lucide-react-native";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
@@ -8,10 +7,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
-import { ProfileBoards } from "../components/ProfileBoards";
+import {
+  BoardsRail,
+  ProfileSectionHeader,
+  SagaRanksRail,
+  TierSummary,
+} from "../components/ProfileSections";
 import { ProfileTopTen } from "../components/ProfileTopTen";
-import { TierListRows } from "../components/TierListRows";
-import { TrophyShelf } from "../components/TrophyShelf";
 import {
   StackHeader,
   useStackHeaderScroll,
@@ -19,12 +21,12 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
-import { getCollectionById } from "../utils/collections";
+import { getSagas } from "../utils/collections";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -47,15 +49,23 @@ const TierChip = ({ tier, styles }) => (
 );
 
 // A friend's page, laid out like your Profile: who they are, their top
-// ten and finished collections, then their tier list, their boards, and
-// "Together" — how close your taste is: what you both loved, what they
-// loved that you haven't seen (one tap to save it), and their recent
-// activity.
-const FRIEND_TABS = [
-  { key: "tiers", label: "Tier list", Icon: ListOrdered },
-  { key: "boards", label: "Boards", Icon: LayoutGrid },
-  { key: "together", label: "Together", Icon: Users },
-];
+// ten, the sagas they're climbing, their tiers and their boards; then the
+// two of you: what you both loved, what they loved
+// that you haven't seen (one tap to save it), and their recent activity.
+// Their sagas — the section only shows once they've started one.
+const SagaRanksRailSection = ({ watchedIds, onOpen }) => {
+  const started = getSagas().some((collection) =>
+    collection.movieIds.some((id) => watchedIds.has(id)),
+  );
+  if (!started) return null;
+  return (
+    <>
+      <ProfileSectionHeader title={t("Saga ranks")} />
+      <SagaRanksRail watchedIds={watchedIds} onOpen={onOpen} />
+    </>
+  );
+};
+
 export const FriendProfileScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -72,10 +82,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const friendId = route?.params?.friendId;
   const { friends, activity: allActivity, removeFriend } = useFriends();
   const friend = friends.find((item) => item.id === friendId);
-  const [tab, setTab] = useState("tiers");
-  // Their finished collections (and the definitions, remembered by
-  // services/api) and their boards.
-  const profile = useQuery({
+  // Their profile (with the definitions of the sagas they've finished,
+  // remembered by services/api) and their boards.
+  useQuery({
     queryKey: ["user", friendId],
     queryFn: () => api.get(`/users/${friendId}`),
     enabled: Boolean(friendId),
@@ -122,9 +131,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const bothLoved = getBothLoved(watched, friend.watched);
   const recommendations = getTheyLovedYouHavent(watched, friend.watched);
   const topTen = (friend.topTen ?? []).map(getMovieById).filter(Boolean);
-  const trophies = (profile.data?.user?.finishedCollections ?? [])
-    .map(getCollectionById)
-    .filter(Boolean);
+  const theirWatchedIds = new Set(friend.watched.map((entry) => entry.movieId));
+  const theirBoards = boards.data?.boards ?? [];
   const firstName = friend.name.split(" ")[0];
   const activity = allActivity.filter((event) => event.friendId === friend.id);
   const openMovie = (movieId) =>
@@ -186,64 +194,48 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           </View>
         </Animated.View>
 
-        <View style={styles.topTen}>
-          <ProfileTopTen movies={topTen} onOpen={openMovie} />
+        <View style={styles.sections}>
+          {topTen.length > 0 && (
+            <View style={styles.topTen}>
+              <ProfileTopTen movies={topTen} onOpen={openMovie} />
+            </View>
+          )}
+
+          <SagaRanksRailSection
+            watchedIds={theirWatchedIds}
+            onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
+          />
+
+          {friend.watched.length > 0 && (
+            <>
+              <ProfileSectionHeader
+                title={t("Tiers")}
+                actionLabel={t("Full list")}
+                onAction={() => navigation.push("TierList", { friendId: friend.id })}
+              />
+              <TierSummary
+                entries={friend.watched}
+                onPress={() => navigation.push("TierList", { friendId: friend.id })}
+              />
+            </>
+          )}
+
+          <ProfileSectionHeader title={t("Boards")} />
+          <BoardsRail
+            boards={theirBoards}
+            onOpen={(board) =>
+              navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
+            }
+            emptyText={
+              boards.isLoading
+                ? t("Loading…")
+                : t("{name} hasn't made any boards yet.", { name: firstName })
+            }
+          />
         </View>
-        <TrophyShelf
-          collections={trophies}
-          pinnedIds={profile.data?.user?.pinnedCollections ?? []}
-          onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
-        />
 
-        {/* Tabs, like Profile's: an icon per column over a hairline. */}
-        <View style={styles.tabTrack}>
-          {FRIEND_TABS.map(({ key, label, Icon }) => {
-            const active = tab === key;
-            return (
-              <Pressable
-                key={key}
-                style={[styles.tabOption, active && styles.tabOptionActive]}
-                onPress={() => setTab(key)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Icon
-                  size={22}
-                  color={active ? colors.textPrimary : colors.textMuted}
-                  strokeWidth={active ? 2.2 : 1.8}
-                />
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
-                  {t(label)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Text style={styles.togetherTitle}>{t("You and {name}", { name: firstName })}</Text>
 
-        {tab === "tiers" && (
-          <View style={styles.tabPage}>
-            <TierListRows entries={friend.watched} onOpen={openMovie} />
-          </View>
-        )}
-
-        {tab === "boards" && (
-          <View style={styles.tabPage}>
-            <ProfileBoards
-              boards={boards.data?.boards ?? []}
-              onOpen={(board) =>
-                navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
-              }
-              emptyText={
-                boards.isLoading
-                  ? t("Loading…")
-                  : t("{name} hasn't made any boards yet.", { name: firstName })
-              }
-            />
-          </View>
-        )}
-
-        {tab === "together" && (
-        <>
         {/* You both loved */}
         <Tag label={t("You both loved")} />
         {bothLoved.length > 0 ? (
@@ -355,9 +347,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           </>
         )}
 
-        </>
-        )}
-
         <Pressable onPress={confirmRemove} hitSlop={8} style={styles.remove}>
           <Text style={styles.removeText}>{t("Remove friend")}</Text>
         </Pressable>
@@ -368,45 +357,19 @@ export const FriendProfileScreen = ({ navigation, route }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // The profile sections run edge to edge inside this page padding.
+    sections: {
+      paddingHorizontal: spacing.md,
+    },
     topTen: {
-      paddingHorizontal: spacing.md,
       marginTop: spacing.md,
     },
-    tabTrack: {
-      flexDirection: "row",
-      marginTop: spacing.lg,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    tabOption: {
-      flex: 1,
-      alignItems: "center",
-      gap: 4,
-      paddingTop: spacing.sm + 2,
-      paddingBottom: spacing.sm,
-      borderBottomWidth: 1.5,
-      borderBottomColor: "transparent",
-      marginBottom: -StyleSheet.hairlineWidth,
-    },
-    tabOptionActive: {
-      borderBottomColor: colors.textPrimary,
-    },
-    tabLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      lineHeight: 14,
-      color: colors.textMuted,
-    },
-    tabLabelActive: {
-      ...typography.bodyBold,
-      fontSize: 11,
-      lineHeight: 14,
+    togetherTitle: {
+      ...typography.title,
+      fontSize: 17,
       color: colors.textPrimary,
-    },
-    // Tier list and boards run edge to edge inside this page padding.
-    tabPage: {
+      marginTop: spacing.xl,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
     },
     container: {
       flex: 1,

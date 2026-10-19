@@ -1,21 +1,23 @@
 import { getMovieById } from "../data/movies";
 
-// Collections, from the server (the backend's lib/collections.js, which
-// also counts them for XP) as definitions — { id, type, title, movieIds } —
+// Sagas, from the server (the backend's lib/collections.js, which also
+// counts them for XP) as definitions — { id, type, title, movieIds } —
 // with your library (the ones you've started or unlocked), from
 // GET /api/collections (every saga, to browse), and with any movie you open
-// (the ones it's in). services/api.js remembers every response's
-// `collections` (in memory only). Two kinds:
+// (the ones it's in, and its people's). services/api.js remembers every
+// response's `collections` (in memory only). Only sagas are kept:
 //
-//   sagas   THE collections (type "saga"): hand-made — "Potterhead",
+//   sagas   type "saga", hand-made — "Potterhead",
 //           "Assembled", "King of the World" — with a `kind` (franchise,
 //           studio, theme, director, actor), a `subtitle`, `ranks`
 //           ([{ title, at }], `at` a film count: you climb them as you
-//           watch) and `art` ({ backdrop } or { photo }). Library, Home,
-//           badges, trophies, dares and XP count only these.
-//   lists   a director's or an actor's films, a franchise, a decade, a
-//           genre — for browsing ("More from Christopher Nolan"), never
-//           achievements.
+//           watch), `art` ({ backdrop } or { photo }) and, for an actor's
+//           or a director's, `person` (their name). Library, Home,
+//           badges, dares and XP count these.
+//
+// The server also has automatic lists (an actor's or a director's films, a
+// franchise, a decade, a genre); the app leaves them out. A person without
+// a saga opens a plain list of their films instead.
 //
 // Counts and progress come from `movieIds`, so they're exact. `movies` is
 // the films the app has so far; any it doesn't have are fetched (see
@@ -43,6 +45,7 @@ const toCollection = (definition) => ({
   subtitle: definition.subtitle ?? null,
   ranks: definition.ranks ?? [],
   art: definition.art ?? null,
+  person: definition.person ?? null,
   movieIds: definition.movieIds,
   get movies() {
     return this.movieIds.map(getMovieById).filter(Boolean);
@@ -59,11 +62,12 @@ const isDefinition = (item) =>
 export const rememberCollections = (definitions) => {
   if (!Array.isArray(definitions)) return false;
   let any = false;
-  definitions.filter(isDefinition).forEach((definition) => {
+  definitions.filter((item) => isDefinition(item) && isSaga(item)).forEach((definition) => {
     const current = registry.get(definition.id);
     if (
       current &&
       current.title === definition.title &&
+      current.person === (definition.person ?? null) &&
       current.movieIds.join() === definition.movieIds.join() &&
       JSON.stringify(current.ranks) === JSON.stringify(definition.ranks ?? [])
     ) {
@@ -111,6 +115,11 @@ export const getCollectionSections = () =>
   })).filter((section) => section.collections.length > 0);
 
 export const getCollectionById = (id) => registry.get(id);
+
+// The saga about this actor or director ("Al Pacino" → "Say Hello"), if
+// there is one. A movie's page brings the sagas of the people in it.
+export const getSagaForPerson = (name) =>
+  (name && allSagas().find((collection) => collection.person === name)) || null;
 
 // Library's Collections tab: a collection is "unlocked" (visible there) once
 // you've watched something in it, or chosen to track it from the "See All

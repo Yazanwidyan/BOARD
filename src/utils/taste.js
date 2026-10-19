@@ -1,6 +1,6 @@
 import { getMovieById } from "../data/movies";
 import { TIERS, getTier, isRated, tierRank } from "./tiers";
-import { getCollectionById } from "./collections";
+import { getSagaForPerson } from "./collections";
 
 const TOP_GENRES = 3;
 export const FAVORITE_COUNT = 10;
@@ -27,12 +27,6 @@ const tierSpread = (entries) => {
     : null;
   return { tierCounts, tiered, typicalTier };
 };
-
-const slugify = (value) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 
 const countBy = (items, keyFn) => {
   const counts = new Map();
@@ -114,8 +108,8 @@ export const getTasteProfile = (watched) => {
     ? {
         name: topDirector[0],
         count: topDirector[1],
-        collectionId:
-          getCollectionById(`director-${slugify(topDirector[0])}`)?.id ?? null,
+        // Their saga, if they have one.
+        collectionId: getSagaForPerson(topDirector[0])?.id ?? null,
       }
     : null;
 
@@ -127,8 +121,7 @@ export const getTasteProfile = (watched) => {
     ? {
         label: topDecade[0],
         count: topDecade[1],
-        collectionId:
-          getCollectionById(`decade-${slugify(topDecade[0])}`)?.id ?? null,
+        collectionId: null,
       }
     : null;
 

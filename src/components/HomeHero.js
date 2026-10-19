@@ -20,8 +20,9 @@ import { t } from "../i18n";
 // Home's top banner, streaming-app style: full width, the movie's backdrop
 // (a still from the film; or, without one, its poster blurred) behind and
 // fading into the page, the poster on the left, a
-// small label, a big title, one line of meta, an optional reason, and the
-// actions underneath. Without a poster (the welcome) it's just the text.
+// small label, a big title, one line of meta, an optional reason, then
+// `details` across the full width (why it's the pick) and the actions
+// underneath. Without a poster (the welcome) it's just the text.
 //
 // Sits inside Home's padded section, so it cancels that padding to reach
 // the screen edges.
@@ -42,6 +43,7 @@ export const HomeHero = ({
   title,
   meta,
   reason,
+  details,
   actions,
   onPress,
   onDismiss,
@@ -144,6 +146,7 @@ export const HomeHero = ({
           {reason}
         </View>
       </View>
+      {details}
       {actions && <View style={styles.actions}>{actions}</View>}
     </Pressable>
   );

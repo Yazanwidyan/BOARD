@@ -274,7 +274,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         </View>
         {page.isError ? (
           <Text style={styles.loadingText}>
-            {t("Couldn't load this collection. Check your connection and try again.")}
+            {t("Couldn't load this saga. Check your connection and try again.")}
           </Text>
         ) : (
           <ActivityIndicator color={colors.textSecondary} style={{ marginTop: spacing.xl * 2 }} />
@@ -426,7 +426,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.eyebrow}>
               {t(
                 (saga ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
-                  "Collection",
+                  "Saga",
               )}
               {isComplete ? t(" · Completed") : ""}
             </Text>
@@ -652,7 +652,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           onPress={shareCollection}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel={t("Share this collection")}
+          accessibilityLabel={t("Share this saga")}
         >
           <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>

@@ -243,7 +243,7 @@ const directorChallenge = ({ watched }) => {
       type: "director",
       title: "Complete the Director",
       description: t(
-        "One movie left to complete your {title} collection: {title2}.",
+        "One movie left to finish {title}: {title2}.",
         { title: collection.title, title2: nextMovie.title },
       ),
       targetMovieId: nextMovie.id,
@@ -285,7 +285,7 @@ const completeTheCollection = ({ watched }) => {
   return makeChallenge({
     id: "complete-the-collection",
     type: "collection",
-    title: "Complete the Collection",
+    title: "Finish the Saga",
     description: t(
       "{title} is the last movie standing between you and finishing {title2}.",
       { title: nextMovie.title, title2: current.title },
@@ -313,7 +313,7 @@ const startSomethingNew = ({ watched }) => {
     type: "collection",
     title: "Start Something New",
     description: t(
-      "Kick off a new collection — watch {title} to begin {title2}.",
+      "Start a new saga — watch {title} to begin {title2}.",
       { title: movie.title, title2: collection.title },
     ),
     targetMovieId: movie.id,

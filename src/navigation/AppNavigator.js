@@ -17,6 +17,7 @@ import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
 import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
+import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
@@ -27,6 +28,8 @@ import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SpinScreen } from "../screens/SpinScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
+import { TasteScreen } from "../screens/TasteScreen";
+import { TierListScreen } from "../screens/TierListScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { AiPickScreen } from "../screens/AiPickScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
@@ -197,7 +200,10 @@ export const AppNavigator = () => {
               component={FriendProfileScreen}
             />
             <Stack.Screen name="Badges" component={BadgesScreen} />
+            <Stack.Screen name="TierList" component={TierListScreen} />
+            <Stack.Screen name="Taste" component={TasteScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="Account" component={AccountScreen} />
           </>
         )}

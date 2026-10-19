@@ -1,34 +1,31 @@
 import * as Haptics from "expo-haptics";
 import { Play, Shuffle } from "lucide-react-native";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
-import { Text } from "./AppText";
+import { Linking, Pressable, StyleSheet } from "react-native";
 
-import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
-import {
-  getCollectionProgress,
-  getCollectionsForMovie,
-} from "../utils/collections";
 import { getMood, pickMovieForMood } from "../utils/moods";
-import { formatRuntime, byWeightedRating } from "../utils/movieFilters";
+import { formatRuntime } from "../utils/movieFilters";
+import {
+  getEndTime,
+  getPickInsight,
+  getTonightSuggestions,
+} from "../utils/tonightPick";
 import { HomeHero } from "./HomeHero";
+import { PickInsight } from "./PickInsight";
 import { PrimaryButton } from "./PrimaryButton";
 import { t } from "../i18n";
 
-const SIMILAR_POOL = 20;
-
-const randomFrom = (items) => items[Math.floor(Math.random() * items.length)];
-
-// Tonight's Pick as Home's hero banner (see HomeHero): the poster over a
-// blur of itself, a big title, one line of meta and why it's the pick,
-// then Watched it plus Trailer and Swap; ✕ drops the pick. Tapping it
-// opens the movie. Renders nothing when there's no pick.
+// Tonight's Pick as Home's hero banner (see HomeHero): the backdrop, the
+// poster, a big title, one line of meta (with when it would end), then why
+// it's the pick (PickInsight: your taste match, where it came from, the
+// reason it fits, where it gets you in a saga), and Watched it plus
+// Trailer and Swap; ✕ drops the pick. Tapping it opens the movie. Renders
+// nothing when there's no pick.
 // `scrollY`: Home's scroll position, so the banner stretches on a pull.
 export const TonightsPickCard = ({ navigation, scrollY }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
@@ -48,35 +45,22 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   const pickedMovie = pickedMovieId ? getMovieById(pickedMovieId) : null;
   if (!pickedMovie) return null;
 
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
   // Only counts if it was made for this exact pick (see movieStore).
   const mood =
     pickMood?.movieId === pickedMovie.id ? getMood(pickMood.mood) : null;
 
-  // Why this movie — the most specific reason wins.
-  const inProgressCollection = getCollectionsForMovie(pickedMovie.id).find(
-    (collection) => {
-      const { progress } = getCollectionProgress(collection, watchedIds);
-      return progress > 0 && progress < 1;
-    },
-  );
-  const reason =
+  // Where it came from — the most specific wins. The saga it moves along
+  // has its own line (PickInsight).
+  const tag =
     activeChallenge?.targetMovieId === pickedMovie.id
-      ? {
-          text: "Your active dare",
-          color: colors.textPrimary,
-        }
-      : inProgressCollection
-        ? {
-            text: t("Next in {title}", { title: inProgressCollection.title }),
-            color: colors.success,
-          }
+      ? { text: t("Your active dare"), color: colors.textPrimary }
+      : mood
+        ? { text: `${mood.emoji} ${t(mood.label)}` }
         : bucketList.some((entry) => entry.movieId === pickedMovie.id)
-          ? {
-              text: "From your watchlist",
-              color: colors.textSecondary,
-            }
+          ? { text: t("From your watchlist") }
           : null;
+  const insight = getPickInsight(pickedMovie, watched);
+  const endsAt = getEndTime(pickedMovie);
 
   const openDetails = () =>
     navigation.navigate("MovieDetails", { movieId: pickedMovie.id });
@@ -98,8 +82,9 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   };
 
   // Swap for something in the same spirit: another movie for the same
-  // mood; otherwise another unwatched watchlist movie; otherwise a
-  // well-rated unwatched movie sharing this one's main genre.
+  // mood; otherwise the next of tonight's suggestions (your taste, your
+  // watchlist and your sagas — see utils/tonightPick), so each swap steps
+  // down the list.
   const swap = () => {
     Haptics.selectionAsync();
     if (mood) {
@@ -107,26 +92,16 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       if (next) setMoodPick(next.id, mood.key);
       return;
     }
-    const fromWatchlist = bucketList
-      .map((entry) => entry.movieId)
-      .filter((id) => id !== pickedMovie.id && !watchedIds.has(id));
-    if (fromWatchlist.length > 0) {
-      togglePickedMovie(randomFrom(fromWatchlist));
+    const suggestions = getTonightSuggestions(watched, bucketList).map(
+      ({ movie }) => movie.id,
+    );
+    const others = suggestions.filter((id) => id !== pickedMovie.id);
+    if (others.length === 0) {
+      showToast(t("Nothing else to swap to right now"));
       return;
     }
-    const similar = MOVIES.filter(
-      (movie) =>
-        movie.id !== pickedMovie.id &&
-        !watchedIds.has(movie.id) &&
-        movie.genres[0] === pickedMovie.genres[0],
-    )
-      .sort(byWeightedRating)
-      .slice(0, SIMILAR_POOL);
-    if (similar.length > 0) {
-      togglePickedMovie(randomFrom(similar).id);
-    } else {
-      showToast(t("Nothing else to swap to right now"));
-    }
+    const at = suggestions.indexOf(pickedMovie.id);
+    togglePickedMovie(at === -1 ? others[0] : others[at % others.length]);
   };
 
   return (
@@ -135,17 +110,15 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       backdropUri={pickedMovie.backdrop}
       eyebrow={t("Tonight's pick")}
       title={pickedMovie.title}
-      meta={`${pickedMovie.year} · ${pickedMovie.genres[0]} · ${formatRuntime(pickedMovie.runtime)}`}
-      reason={
-        reason && (
-          <Text
-            style={[styles.reasonText, { color: reason.color }]}
-            numberOfLines={1}
-          >
-            {reason.text}
-          </Text>
-        )
-      }
+      meta={[
+        pickedMovie.year,
+        pickedMovie.genres[0],
+        formatRuntime(pickedMovie.runtime),
+        endsAt && t("ends {time}", { time: endsAt }),
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+      details={<PickInsight insight={insight} tag={tag} />}
       onPress={openDetails}
       onDismiss={clearPickedMovie}
       scrollY={scrollY}
@@ -181,10 +154,6 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    reasonText: {
-      ...typography.caption,
-      marginTop: spacing.xs,
-    },
     mainButton: {
       flex: 1,
     },

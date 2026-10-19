@@ -1,56 +1,45 @@
 import {
   Bell,
-  LayoutGrid,
-  ListOrdered,
   Settings as SettingsIcon,
   Share2,
-  Sparkles,
   Users,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { Text } from "../components/AppText";
+import { StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
-import { ProfileBoards } from "../components/ProfileBoards";
+import {
+  BoardsRail,
+  ProfileSectionHeader,
+  RecapCard,
+  SagaRanksRail,
+  TasteSnapshot,
+  TierSummary,
+} from "../components/ProfileSections";
 import { ProfileTopTen } from "../components/ProfileTopTen";
-import { TierListRows } from "../components/TierListRows";
 import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
-  HEADER_BAR_HEIGHT,
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { TasteDnaCard } from "../components/TasteDnaCard";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
 import { WatcherProfileSheet } from "../components/WatcherProfileSheet";
+import { useAuthStore } from "../store/authStore";
 import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
-import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { getBadges } from "../utils/badges";
@@ -58,10 +47,7 @@ import { getShowcaseBadges } from "../components/BadgeMedal";
 import { getCompletedCollectionsCount } from "../utils/collections";
 import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
-import {
-  useStickyStyle,
-  useStretchyBackdropStyle,
-} from "../utils/scrollEffects";
+import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { isRated } from "../utils/tiers";
 import {
   getCompletedChallengesCount,
@@ -69,7 +55,7 @@ import {
   getCompletedXPCollections,
   getXPBreakdown,
 } from "../utils/xp";
-import { isRTL, t } from "../i18n";
+import { t } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
@@ -78,14 +64,10 @@ const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 const BACKDROP_POSTERS = 5;
 const BACKDROP_HEIGHT = 190;
 
-// Who you are as a watcher, in three pages: your tier list (the heart of
-// ReelBoard, so it opens first), the boards you've made, and your Taste
-// DNA. Your top ten and finished collections sit above them, always.
-const PROFILE_TABS = [
-  { key: "tiers", label: "Tier list", Icon: ListOrdered },
-  { key: "boards", label: "Boards", Icon: LayoutGrid },
-  { key: "taste", label: "Taste", Icon: Sparkles },
-];
+// Who you are as a watcher, top to bottom, one short section each: your
+// top ten, your Taste DNA, the sagas you're climbing, your tiers, what you
+// watched last and your boards (each a preview that opens the whole
+// thing), and this month's recap at the end.
 
 const getHandle = (name) =>
   `@${
@@ -101,10 +83,8 @@ export const ProfileScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
   const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [profileTab, setProfileTab] = useState("tiers");
   const boards = useBoardStore((state) => state.boards);
 
   // "View Details" on the watched/challenge XP alert deep-links straight
@@ -124,6 +104,7 @@ export const ProfileScreen = ({ navigation, route }) => {
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
+  const accountHandle = useAuthStore((state) => state.user?.handle);
   const challengeHistory = useChallengeStore((state) => state.history);
 
   const queuedCount = bucketListEntries.length;
@@ -162,20 +143,6 @@ export const ProfileScreen = ({ navigation, route }) => {
     Math.ceil(level.requiredXP - level.currentXP),
   );
   const header = useDockHeader({ hideOnScroll: true });
-  // The tab row pins under the header once it reaches it (and follows the
-  // header as it slides away), so you can always switch tabs. Its place
-  // in the scroll content is the wrapper's offset plus its own.
-  const [profileWrapY, setProfileWrapY] = useState(null);
-  const [tabTrackY, setTabTrackY] = useState(null);
-  const tabTrackStyle = useStickyStyle({
-    scrollY: header.scrollY,
-    contentY:
-      profileWrapY != null && tabTrackY != null
-        ? profileWrapY + tabTrackY
-        : null,
-    stickTop: insets.top + HEADER_BAR_HEIGHT,
-    headerOffset: header.offset,
-  });
   const backdropStyle = useStretchyBackdropStyle(
     header.scrollY,
     header.contentInset + BACKDROP_HEIGHT,
@@ -215,7 +182,7 @@ export const ProfileScreen = ({ navigation, route }) => {
       genres && t("Into: {genres}", { genres }),
       favorites && t("Favorites: {favorites}", { favorites }),
       completedSets.length > 0 &&
-        t("Collections: {list}", {
+        t("Sagas: {list}", {
           list: completedSets
             .slice(0, 3)
             .map((collection) => collection.title)
@@ -232,7 +199,8 @@ export const ProfileScreen = ({ navigation, route }) => {
 
   const watcherCardProps = {
     displayName,
-    handle: getHandle(displayName),
+    // Your real handle; made up from the name only until the account loads.
+    handle: accountHandle ?? getHandle(displayName),
     bio,
     avatarSource: avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE,
     level,
@@ -246,74 +214,16 @@ export const ProfileScreen = ({ navigation, route }) => {
     },
   };
 
-  // ---- Swipeable profile pages ----
-  // Swipe sideways over the page (or tap an icon) to switch tabs. While you
-  // drag, the page follows your finger and the underline slides with it;
-  // let go past a quarter of the screen (or flick) and the next page slides
-  // in from that side.
-  const tabIndex = PROFILE_TABS.findIndex(({ key }) => key === profileTab);
-  const lastTabIndex = PROFILE_TABS.length - 1;
-  const tabWidth = windowWidth / PROFILE_TABS.length;
-  const tabPosition = useSharedValue(tabIndex);
-  const pageShift = useSharedValue(0);
-  // In Arabic (RTL) the tabs run right to left, so "next" is a swipe to
-  // the right and the underline slides the other way. Movement is worked
-  // out in reading direction, then flipped back for the screen.
-  const flow = isRTL() ? -1 : 1;
-
-  // direction: 1 = the next page (it comes in from the reading-end side).
-  const showTab = (nextIndex, direction) => {
-    setProfileTab(PROFILE_TABS[nextIndex].key);
-    tabPosition.value = withTiming(nextIndex, { duration: 220 });
-    pageShift.value = direction * flow * windowWidth * 0.35;
-    pageShift.value = withTiming(0, { duration: 220 });
-  };
-
-  const pageSwipe = Gesture.Pan()
-    .activeOffsetX([-16, 16])
-    .failOffsetY([-12, 12])
-    .onUpdate((event) => {
-      const along = event.translationX * flow;
-      const pastEdge =
-        (tabIndex === 0 && along > 0) ||
-        (tabIndex === lastTabIndex && along < 0);
-      // Rubber-band at the first and last page.
-      const shift = pastEdge ? along * 0.2 : along;
-      pageShift.value = shift * flow;
-      tabPosition.value = Math.min(
-        lastTabIndex,
-        Math.max(0, tabIndex - shift / windowWidth),
-      );
-    })
-    .onEnd((event) => {
-      const direction = event.translationX * flow < 0 ? 1 : -1;
-      const nextIndex = tabIndex + direction;
-      const committed =
-        Math.abs(event.translationX) > windowWidth * 0.22 ||
-        Math.abs(event.velocityX) > 700;
-      if (committed && nextIndex >= 0 && nextIndex <= lastTabIndex) {
-        pageShift.value = withTiming(
-          -direction * flow * windowWidth * 0.5,
-          { duration: 120 },
-          (finished) => {
-            if (finished) runOnJS(showTab)(nextIndex, direction);
-          },
-        );
-      } else {
-        pageShift.value = withTiming(0, { duration: 180 });
-        tabPosition.value = withTiming(tabIndex, { duration: 180 });
-      }
-    });
-
-  const pageStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: pageShift.value }],
-    opacity: 1 - Math.min(Math.abs(pageShift.value) / windowWidth, 1) * 0.7,
-  }));
-  const underlineStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tabPosition.value * tabWidth * flow }],
-  }));
-
   const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
+  // `openedAt` makes a repeat tap switch Library back even when it was left
+  // on another tab.
+  const openLibraryTab = (initialTab) =>
+    navigation.navigate("Library", { initialTab, openedAt: Date.now() });
+  const openSagas = () => openLibraryTab("collections");
+  const openBoards = () => openLibraryTab("boards");
+  const openUntiered = () => navigation.navigate("Library", { showUntiered: true });
+  const openTaste = () => navigation.navigate("Taste");
+  const openTierList = () => navigation.navigate("TierList");
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -349,41 +259,19 @@ export const ProfileScreen = ({ navigation, route }) => {
           </Animated.View>
         )}
 
-        <View
-          style={styles.profileWrap}
-          onLayout={(event) => setProfileWrapY(event.nativeEvent.layout.y)}
-        >
-          {/* Watcher card — avatar beside the numbers (badges included),
+        <View style={styles.profileWrap}>
+          {/* Watcher card: avatar beside the numbers (badges included),
               name and level, bio as a quote. */}
           <WatcherCard
             {...watcherCardProps}
             xpToNextLevel={xpToNextLevel}
             onPressAvatar={() => setIsLeagueSheetOpen(true)}
-            onPressBio={() => navigation.navigate("Settings")}
+            onPressBio={() => navigation.navigate("EditProfile")}
             onPressBadges={() => navigation.navigate("Badges")}
-            // `openedAt` makes a repeat tap switch Library back even when
-            // it was left on another tab.
-            onPressCollections={() =>
-              navigation.navigate("Library", {
-                initialTab: "collections",
-                openedAt: Date.now(),
-              })
-            }
+            onPressCollections={openSagas}
           />
 
-          {/* Your month (or year) on ReelBoard — the shareable recap. */}
-          <Pressable
-            style={({ pressed }) => [styles.recapRow, pressed && { opacity: 0.8 }]}
-            onPress={() => navigation.navigate("Recap")}
-            accessibilityRole="button"
-          >
-            <Text style={styles.recapTitle}>{t("Your recap")}</Text>
-            <Text style={styles.recapHint} numberOfLines={1}>
-              {t("Your month on ReelBoard, ready to share")} ›
-            </Text>
-          </Pressable>
-
-          {/* Your top ten — the signature, always here. */}
+          {/* Your top ten: the signature, always first. */}
           <View style={styles.topTen}>
             <ProfileTopTen
               movies={topTenMovies}
@@ -397,91 +285,38 @@ export const ProfileScreen = ({ navigation, route }) => {
             />
           </View>
 
-          {/* Profile tabs, Instagram-style: an icon per column over a
-              hairline, the open one white with a thin underline. Swipe the
-              page below to switch too. */}
-          <Animated.View
-            style={[styles.tabTrack, tabTrackStyle]}
-            onLayout={(event) => setTabTrackY(event.nativeEvent.layout.y)}
-          >
-            {PROFILE_TABS.map(({ key, label, Icon }, index) => {
-              const isActive = profileTab === key;
-              return (
-                <Pressable
-                  key={key}
-                  style={styles.tabOption}
-                  onPress={() => {
-                    if (index !== tabIndex) {
-                      showTab(index, index > tabIndex ? 1 : -1);
-                    }
-                  }}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: isActive }}
-                >
-                  <Icon
-                    size={22}
-                    color={isActive ? colors.textPrimary : colors.textMuted}
-                    strokeWidth={isActive ? 2.2 : 1.8}
-                  />
-                  <Text
-                    style={[styles.tabLabel, isActive && styles.tabLabelActive]}
-                    numberOfLines={1}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-            <Animated.View
-              pointerEvents="none"
-              style={[styles.tabUnderline, { width: tabWidth }, underlineStyle]}
-            />
-          </Animated.View>
+          <ProfileSectionHeader
+            title={t("Taste DNA")}
+            onAction={tasteDna.hasDna ? openTaste : undefined}
+          />
+          <TasteSnapshot dna={tasteDna} onOpen={tasteDna.hasDna ? openTaste : openUntiered} />
 
-          <GestureDetector gesture={pageSwipe}>
-            <Animated.View style={pageStyle}>
-              {profileTab === "tiers" && (
-                <TierListRows
-                  entries={watched}
-                  onOpen={openMovie}
-                  onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
-                />
-              )}
+          <ProfileSectionHeader title={t("Saga ranks")} onAction={openSagas} />
+          <SagaRanksRail
+            watchedIds={watchedIds}
+            onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
+            onBrowse={openSagas}
+          />
 
-              {profileTab === "boards" && (
-                <View style={styles.tabPage}>
-                  <ProfileBoards
-                    boards={boards}
-                    onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
-                    onCreate={() => navigation.navigate("Library", { initialTab: "boards" })}
-                  />
-                </View>
-              )}
+          <ProfileSectionHeader
+            title={t("Your tiers")}
+            actionLabel={t("Full list")}
+            onAction={ratedCount > 0 ? openTierList : undefined}
+          />
+          <TierSummary entries={watched} onPress={openTierList} onSeeUntiered={openUntiered} />
 
-              {profileTab === "taste" &&
-                (watched.length > 0 ? (
-                  <View style={styles.tabPage}>
-                    <TasteDnaCard
-                      dna={tasteDna}
-                      director={taste.director}
-                      decade={taste.decade}
-                      topGenres={taste.topGenres}
-                      onOpenMovie={openMovie}
-                      onOpenCollection={(collectionId) =>
-                        navigation.navigate("CollectionDetails", { collectionId })
-                      }
-                      onSeeUntiered={() =>
-                        navigation.navigate("Library", { showUntiered: true })
-                      }
-                    />
-                  </View>
-                ) : (
-                  <Text style={styles.tabEmpty}>
-                    {t("Watch and tier a few movies — your Taste DNA shows up here.")}
-                  </Text>
-                ))}
-            </Animated.View>
-          </GestureDetector>
+          <ProfileSectionHeader
+            title={t("Boards")}
+            onAction={boards.length > 0 ? openBoards : undefined}
+          />
+          <BoardsRail
+            boards={boards}
+            onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
+            onCreate={openBoards}
+          />
+
+          {/* This month: the shareable recap. */}
+          <RecapCard watched={watched} onOpen={() => navigation.navigate("Recap")} />
         </View>
 
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
@@ -568,78 +403,8 @@ const createStyles = (colors) =>
       height: "100%",
       opacity: 0.55,
     },
-    // Instagram-style: three equal columns edge to edge, a hairline under
-    // the bar, and a thin white underline across the open tab's column.
     topTen: {
       marginTop: spacing.md,
-    },
-    tabPage: {
-      marginTop: spacing.md,
-    },
-    tabEmpty: {
-      ...typography.body,
-      color: colors.textSecondary,
-      textAlign: "center",
-      paddingVertical: spacing.xl,
-    },
-    recapRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.card,
-    },
-    recapTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    recapHint: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      flexShrink: 1,
-    },
-    // Solid and above the page below it, since it pins over the content
-    // as you scroll.
-    tabTrack: {
-      flexDirection: "row",
-      marginTop: spacing.md,
-      marginHorizontal: -spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.background,
-      zIndex: 10,
-      elevation: 4,
-    },
-    tabOption: {
-      flex: 1,
-      alignItems: "center",
-      gap: 4,
-      paddingTop: spacing.sm + 2,
-      paddingBottom: spacing.sm,
-    },
-    tabLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      lineHeight: 14,
-      color: colors.textMuted,
-    },
-    tabLabelActive: {
-      ...typography.bodyBold,
-      fontSize: 11,
-      lineHeight: 14,
-      color: colors.textPrimary,
-    },
-    // One underline for the bar, slid under the open tab (and along with
-    // a swipe).
-    tabUnderline: {
-      position: "absolute",
-      start: 0,
-      bottom: -StyleSheet.hairlineWidth,
-      height: 1.5,
-      backgroundColor: colors.textPrimary,
     },
   });
 

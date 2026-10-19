@@ -1397,6 +1397,94 @@ const ar = {
   "New Rank!": "رتبة جديدة!",
   "Reach a saga rank": "بلوغ رتبة في سلسلة",
   "Saga ranks reached": "رتب السلاسل التي بلغتها",
+
+  // Profile sections
+  "Saga ranks": "رتب السلاسل",
+  "Tiers": "التصنيفات",
+  "Full list": "القائمة كاملة",
+  "Complete": "مكتملة",
+  "Browse sagas": "تصفّح السلاسل",
+  "Watch a film from a saga to start climbing its ranks.":
+    "شاهد فيلمًا من سلسلة لتبدأ صعود رتبها.",
+  "Tier what you watch and the tier list builds here.":
+    "صنّف ما تشاهده وستُبنى قائمة تصنيفك هنا.",
+  "{count} movies this month · {hours}h — ready to share":
+    "{count} أفلام هذا الشهر · {hours} س — جاهز للمشاركة",
+  "You and {name}": "أنت و{name}",
+  "{name}'s tier list": "قائمة تصنيف {name}",
+  "Your tier list": "قائمة تصنيفك",
+  "Saga · {title}": "سلسلة · {title}",
+  // Tonight's pick
+  "Suggested for tonight": "مقترح لليلة",
+  "ends {time}": "ينتهي {time}",
+  "Finishes {saga} · +{xp} XP": "يُكمل {saga} · +{xp} XP",
+  "Makes you {rank} in {saga} · +{xp} XP": "يجعلك {rank} في {saga} · +{xp} XP",
+  "{count} of {total} in {saga} · {left} more to {rank}":
+    "{count} من {total} في {saga} · {left} للوصول إلى {rank}",
+  "{count} of {total} in {saga}": "{count} من {total} في {saga}",
+  "Starts {saga} · {total} films": "يبدأ {saga} · {total} أفلام",
+  // Settings, profile and account
+  "I'm picking movies on ReelBoard. Add me: {handle}":
+    "أختار أفلامي على ReelBoard. أضفني: {handle}",
+  "I'm picking movies on ReelBoard. Come tier with me.":
+    "أختار أفلامي على ReelBoard. تعال صنّف معي.",
+  "Your library stays saved to your account.": "تبقى مكتبتك محفوظة في حسابك.",
+  "Edit profile": "تعديل الملف الشخصي",
+  "Your taste": "ذوقك",
+  "Discovery preferences": "تفضيلات الاكتشاف",
+  "Genres, decades and runtimes you'd rather see":
+    "الأنواع والعقود والمدد التي تفضّل رؤيتها",
+  "Help": "المساعدة",
+  "Share your handle so they can add you": "شارك اسم المستخدم ليضيفوك",
+  "About ReelBoard": "عن ReelBoard",
+  "Version {version}": "الإصدار {version}",
+  "3–20 letters, numbers, dots or underscores":
+    "من 3 إلى 20 حرفًا أو رقمًا أو نقطة أو شرطة سفلية",
+  "You're {handle} now": "أصبحت {handle} الآن",
+  "Change photo": "تغيير الصورة",
+  "Username": "اسم المستخدم",
+  "Checking…": "جارٍ التحقق…",
+  "Friends find you by it.": "يجدك أصدقاؤك به.",
+  "Shown on your profile, as a quote.": "يظهر في ملفك الشخصي كاقتباس.",
+  "Sign-in": "تسجيل الدخول",
+  "Email and password": "البريد الإلكتروني وكلمة المرور",
+  "Google or Apple": "Google أو Apple",
+  "Danger zone": "منطقة الخطر",
+  // Signing in
+  "Show password": "إظهار كلمة المرور",
+  "Hide password": "إخفاء كلمة المرور",
+  "Create your account": "أنشئ حسابك",
+  "Welcome back": "مرحبًا بعودتك",
+  "Your library, tiers, boards and saga ranks are saved to it — on any phone.":
+    "تُحفظ فيه مكتبتك وتصنيفاتك ولوحاتك ورتب سلاسلك — على أي هاتف.",
+  "Sign in to pick up where you left off.": "سجّل الدخول لتكمل من حيث توقفت.",
+  "What friends call you": "الاسم الذي يناديك به أصدقاؤك",
+  "That doesn't look like an email address": "هذا لا يبدو بريدًا إلكترونيًا",
+  "Your password": "كلمة المرور",
+  "Already have an account?": "لديك حساب بالفعل؟",
+  "New to ReelBoard?": "جديد على ReelBoard؟",
+  "Create an account": "أنشئ حسابًا",
+  "Sign up with email": "التسجيل بالبريد الإلكتروني",
+  "Tier what you watch": "صنّف ما تشاهده",
+  "Climb sagas": "اصعد رتب السلاسل",
+  "Get tonight's pick": "احصل على اختيار الليلة",
+  // Sagas, everywhere
+  "Continue a saga": "تابع سلسلة",
+  "sagas": "سلاسل",
+  "No sagas yet": "لا توجد سلاسل بعد",
+  "Watch a film from one and its ranks start here, or pick some to track below.": "شاهد فيلمًا من إحداها لتبدأ رتبها هنا، أو اختر بعضها لتتابعها أدناه.",
+  "Browse all sagas": "تصفّح كل السلاسل",
+  "this saga": "هذه السلسلة",
+  "Open saga": "افتح السلسلة",
+  "Couldn't load this saga. Check your connection and try again.": "تعذّر تحميل هذه السلسلة. تحقّق من اتصالك وحاول مجددًا.",
+  "Share this saga": "شارك هذه السلسلة",
+  "All Sagas": "كل السلاسل",
+  "Sagas: {list}": "السلاسل: {list}",
+  "ReelBoard turns deciding what to watch into a game — discover, climb saga ranks, and complete challenges as you go.": "يحوّل ReelBoard اختيار ما تشاهده إلى لعبة — اكتشف، واصعد رتب السلاسل، وأكمل التحديات.",
+  "One movie left to finish {title}: {title2}.": "بقي فيلم واحد لإكمال {title}: {title2}.",
+  "Start a new saga — watch {title} to begin {title2}.": "ابدأ سلسلة جديدة — شاهد {title} لتبدأ {title2}.",
+  "Finish the Saga": "أكمل السلسلة",
+  "Your watchlist, what you've watched, and your sagas. Tier what you watch from S to F.": "قائمة مشاهدتك، وما شاهدته، وسلاسلك. صنّف ما تشاهده من S إلى F.",
 };
 
 export default ar;

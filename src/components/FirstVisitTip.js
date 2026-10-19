@@ -27,7 +27,7 @@ const TIPS = {
   },
   library: {
     title: "Library",
-    body: "Your watchlist, what you've watched, and collections. Tier what you watch from S to F.",
+    body: "Your watchlist, what you've watched, and your sagas. Tier what you watch from S to F.",
   },
   profile: {
     title: "Profile",

@@ -1,11 +1,13 @@
+import { AtSign, KeyRound, Mail, Trash2 } from "lucide-react-native";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Alert, StyleSheet, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { SettingsGroup, SettingsRow } from "../components/SettingsList";
 import {
   StackHeader,
   useStackHeaderScroll,
@@ -17,24 +19,10 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
-const Row = ({ label, value, onPress, destructive, styles }) => (
-  <Pressable
-    style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    onPress={onPress}
-    disabled={!onPress}
-    accessibilityRole={onPress ? "button" : undefined}
-  >
-    <Text style={[styles.rowLabel, destructive && styles.rowLabelDestructive]}>
-      {label}
-    </Text>
-    {!!value && <Text style={styles.rowValue}>{value}</Text>}
-  </Pressable>
-);
-
-// The signed-in account: who you are, and deleting it (asks for the
-// password — or, for an account made with Google / Apple, which has none,
-// for the word DELETE). Signing out is on the Settings screen, kept apart
-// from this.
+// The signed-in account: its email, username and how you sign in, then
+// deleting it, on its own (asks for the password — or, for an account made
+// with Google / Apple, which has none, for the word DELETE). Signing out
+// is on the Settings screen, kept apart from this.
 export const AccountScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
@@ -105,17 +93,32 @@ export const AccountScreen = ({ navigation }) => {
           </Text>
         </View>
 
-        <View style={[styles.section, styles.gap]}>
-          <Row
+        <SettingsGroup title={t("Details")}>
+          <SettingsRow Icon={Mail} label={t("Email")} value={user.email} />
+          <SettingsRow
+            Icon={AtSign}
+            label={t("Username")}
+            value={user.handle}
+            onPress={() => navigation.navigate("EditProfile")}
+          />
+          <SettingsRow
+            Icon={KeyRound}
+            label={t("Sign-in")}
+            value={hasPassword ? t("Email and password") : t("Google or Apple")}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup
+          title={t("Danger zone")}
+          footnote={t("Permanently deletes your account and everything in it.")}
+        >
+          <SettingsRow
+            Icon={Trash2}
             label={t("Delete account")}
             destructive
             onPress={() => setDeleting((open) => !open)}
-            styles={styles}
           />
-        </View>
-        <Text style={styles.footnote}>
-          {t("Permanently deletes your account and everything in it.")}
-        </Text>
+        </SettingsGroup>
         {deleting && (
           <>
             <Text style={styles.fieldLabel}>
@@ -174,43 +177,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
       marginTop: 2,
-    },
-    section: {
-      backgroundColor: colors.card,
-    },
-    gap: {
-      marginTop: spacing.lg,
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.background,
-    },
-    rowPressed: {
-      backgroundColor: colors.cardElevated,
-    },
-    rowLabel: {
-      ...typography.body,
-      color: colors.textPrimary,
-      flex: 1,
-    },
-    rowLabelDestructive: {
-      color: colors.danger,
-    },
-    rowValue: {
-      ...typography.caption,
-      color: colors.textMuted,
-      flexShrink: 1,
-    },
-    footnote: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.sm,
-      paddingHorizontal: spacing.md,
     },
     fieldLabel: {
       ...typography.caption,

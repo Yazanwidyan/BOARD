@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { Bell, Search, Shuffle } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -18,6 +18,7 @@ import {
 import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
+import { PickInsight } from "../components/PickInsight";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -30,7 +31,7 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { SPIN_STOP_MS } from "../components/RefreshSpin";
 import { TonightsPickCard } from "../components/TonightsPickCard";
-import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useMovieStore } from "../store/movieStore";
@@ -38,8 +39,9 @@ import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
-import { formatRuntime, byWeightedRating } from "../utils/movieFilters";
+import { formatRuntime } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
+import { getEndTime, getTonightSuggestions } from "../utils/tonightPick";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { getLevel, getUserXP } from "../utils/xp";
 import { t } from "../i18n";
@@ -107,7 +109,6 @@ const DecideHeroCard = ({
   );
 };
 
-const SUGGESTION_FALLBACK_POOL = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const timeAgo = (timestamp) => {
@@ -119,11 +120,10 @@ const timeAgo = (timestamp) => {
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
-// Home's slot when there's no Tonight's Pick: one concrete suggestion from
-// the user's own watchlist — oldest saves first, so things saved long ago
-// finally get watched — with a one-tap "make it tonight's pick" and ⇄ to
-// step to the next one. With nothing (unwatched) saved, it suggests
-// well-rated movies they haven't seen instead.
+// Home's slot when there's no Tonight's Pick: one concrete suggestion for
+// tonight (utils/tonightPick) — the best fit for your taste, lifted when
+// it's on your watchlist or moves a saga along — with why (PickInsight),
+// a one-tap "make it tonight's pick" and ⇄ to step to the next one.
 // `scrollY`: Home's scroll position, so the banner stretches on a pull.
 const WatchlistSuggestion = ({
   navigation,
@@ -145,25 +145,30 @@ const WatchlistSuggestion = ({
     }
   }, [refreshCount]);
 
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const saved = [...bucketList]
-    .filter((entry) => !watchedIds.has(entry.movieId))
-    .sort((a, b) => (a.addedAt ?? 0) - (b.addedAt ?? 0))
-    .map((entry) => ({
-      movie: getMovieById(entry.movieId),
-      addedAt: entry.addedAt,
-    }))
-    .filter((item) => item.movie);
-  const fromWatchlist = saved.length > 0;
-  const candidates = fromWatchlist
-    ? saved
-    : MOVIES.filter((movie) => !watchedIds.has(movie.id))
-        .sort(byWeightedRating)
-        .slice(0, SUGGESTION_FALLBACK_POOL)
-        .map((movie) => ({ movie, addedAt: null }));
+  const candidates = useMemo(
+    () => getTonightSuggestions(watched, bucketList),
+    [watched, bucketList],
+  );
   if (candidates.length === 0) return null;
 
-  const { movie, addedAt } = candidates[offset % candidates.length];
+  const suggestion = candidates[offset % candidates.length];
+  const { movie, savedAt } = suggestion;
+  const isSaved = bucketList.some((entry) => entry.movieId === movie.id);
+  const endsAt = getEndTime(movie);
+  const tag = isSaved
+    ? {
+        text: savedAt
+          ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
+          : t("On your watchlist"),
+      }
+    : null;
+  const insight = {
+    ...suggestion,
+    // With too little history there's no taste to explain it.
+    reason:
+      suggestion.reason ??
+      (suggestion.match == null && !isSaved ? t("Highly rated, and you haven't seen it") : null),
+  };
 
   // Keyed on the movie, so each new suggestion fades in rather than
   // popping in place.
@@ -173,20 +178,17 @@ const WatchlistSuggestion = ({
         scrollY={scrollY}
         posterUri={movie.poster}
         backdropUri={movie.backdrop}
-        eyebrow={t("No pick for tonight yet")}
+        eyebrow={t("Suggested for tonight")}
         title={movie.title}
-        meta={`${movie.year} · ${movie.genres[0]} · ${formatRuntime(movie.runtime)}`}
-        reason={
-          <Text style={styles.suggestReason} numberOfLines={1}>
-            {fromWatchlist
-              ? addedAt
-                ? t("On your watchlist · saved {addedAt}", {
-                    addedAt: timeAgo(addedAt),
-                  })
-                : t("On your watchlist")
-              : t("Highly rated, and you haven't seen it")}
-          </Text>
-        }
+        meta={[
+          movie.year,
+          movie.genres[0],
+          formatRuntime(movie.runtime),
+          endsAt && t("ends {time}", { time: endsAt }),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        details={<PickInsight insight={insight} tag={tag} />}
         onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
         actions={
           <>
@@ -441,7 +443,7 @@ export const HomeScreen = ({ navigation }) => {
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
             <ShelfTag
-              label={t("Continue a collection")}
+              label={t("Continue a saga")}
               styles={styles}
               right={
                 <Pressable
@@ -595,11 +597,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
-    },
-    suggestReason: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.xs,
     },
   });
 

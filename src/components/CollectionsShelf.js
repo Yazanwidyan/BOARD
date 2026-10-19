@@ -228,9 +228,9 @@ export const CollectionsShelf = ({
       {tracked.length === 0 && (
         <EmptyState
           art="noCollections"
-          title={t("No collections yet")}
+          title={t("No sagas yet")}
           subtitle={t(
-            "Watch a movie that belongs to one, or pick some to track below.",
+            "Watch a film from one and its ranks start here, or pick some to track below.",
           )}
         />
       )}
@@ -445,7 +445,7 @@ export const CollectionsShelf = ({
 
       <Pressable style={styles.seeAll} onPress={onSeeAll}>
         <ListPlus size={16} color={colors.textSecondary} strokeWidth={2.2} />
-        <Text style={styles.seeAllText}>{t("Browse all collections")}</Text>
+        <Text style={styles.seeAllText}>{t("Browse all sagas")}</Text>
       </Pressable>
     </View>
   );

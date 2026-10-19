@@ -125,7 +125,7 @@ export const BadgesScreen = ({ navigation }) => {
     if (badge.category === "marquee") {
       const collection = getCollectionById(badge.collectionId);
       return t("Watch every movie in {title}", {
-        title: collection?.title ?? t("this collection"),
+        title: collection?.title ?? t("this saga"),
       });
     }
     const category = CATEGORY_BY_KEY[badge.category];
@@ -423,7 +423,7 @@ export const BadgesScreen = ({ navigation }) => {
               <PrimaryButton
                 label={
                   selected.badge.category === "marquee"
-                    ? t("Open collection")
+                    ? t("Open saga")
                     : selectedCategory.cta.label
                 }
                 onPress={() => goToEarn(selected.badge)}

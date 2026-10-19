@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { Mail } from "lucide-react-native";
+import { Crown, ListOrdered, Mail, Sparkles } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -45,7 +45,15 @@ const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, 
 );
 
 // The way in — the first thing anyone sees: the poster wall from
-// onboarding, and Continue with Google / Apple (iPhone) / email.
+// onboarding, what ReelBoard does in three words, and Continue with
+// Google / Apple (iPhone), Sign up with email — and, for anyone coming
+// back, "I already have an account", straight to signing in.
+const FEATURES = [
+  { key: "tier", label: "Tier what you watch", Icon: ListOrdered },
+  { key: "sagas", label: "Climb sagas", Icon: Crown },
+  { key: "pick", label: "Get tonight's pick", Icon: Sparkles },
+];
+
 export const WelcomeScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -116,6 +124,14 @@ export const WelcomeScreen = ({ navigation }) => {
           <Text style={styles.subtitle}>
             {t("Track what you watch, tier it with friends, and let ReelBoard pick tonight's movie.")}
           </Text>
+          <View style={styles.features}>
+            {FEATURES.map(({ key, label, Icon }) => (
+              <View key={key} style={styles.feature}>
+                <Icon size={14} color={colors.rating} strokeWidth={2.2} />
+                <Text style={styles.featureText}>{t(label)}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -149,14 +165,26 @@ export const WelcomeScreen = ({ navigation }) => {
           />
         )}
         <SignInButton
-          label={t("Continue with email")}
+          label={t("Sign up with email")}
           icon={<Mail size={18} color={colors.textPrimary} strokeWidth={2.2} />}
-          onPress={() => navigation.navigate("EmailAuth")}
+          onPress={() => navigation.navigate("EmailAuth", { mode: "register" })}
           disabled={!!busy}
           style={styles.outlined}
           colors={colors}
           styles={styles}
         />
+        <Pressable
+          onPress={() => navigation.navigate("EmailAuth", { mode: "signIn" })}
+          disabled={!!busy}
+          hitSlop={6}
+          style={styles.signInLink}
+          accessibilityRole="button"
+        >
+          <Text style={styles.signInText}>
+            {t("Already have an account?")}{" "}
+            <Text style={styles.signInStrong}>{t("Sign in")}</Text>
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -231,6 +259,36 @@ const createStyles = (colors) =>
     },
     dimmed: {
       opacity: 0.5,
+    },
+    features: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    feature: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      backgroundColor: colors.surfaceSoft,
+    },
+    featureText: {
+      ...typography.caption,
+      color: colors.textPrimary,
+    },
+    signInLink: {
+      alignSelf: "center",
+      paddingVertical: spacing.sm,
+    },
+    signInText: {
+      ...typography.body,
+      color: colors.textSecondary,
+    },
+    signInStrong: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
     },
     message: {
       ...typography.caption,

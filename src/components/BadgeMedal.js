@@ -53,12 +53,12 @@ export const BADGE_CATEGORIES = [
   },
   {
     key: "collections",
-    title: "Collections",
+    title: "Sagas",
     Icon: Layers,
     verb: "Complete",
-    unit: "collections",
+    unit: "sagas",
     cta: {
-      label: "Continue a collection",
+      label: "Continue a saga",
       route: "Library",
       params: { initialTab: "collections" },
     },
