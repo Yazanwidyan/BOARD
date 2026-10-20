@@ -12,7 +12,6 @@ import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { AccountScreen } from "../screens/AccountScreen";
 import { ActivityScreen } from "../screens/ActivityScreen";
-import { BadgesScreen } from "../screens/BadgesScreen";
 import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
@@ -21,6 +20,7 @@ import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
+import { RanksScreen } from "../screens/RanksScreen";
 import { RecapScreen } from "../screens/RecapScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
@@ -199,7 +199,7 @@ export const AppNavigator = () => {
               name="FriendProfile"
               component={FriendProfileScreen}
             />
-            <Stack.Screen name="Badges" component={BadgesScreen} />
+            <Stack.Screen name="Ranks" component={RanksScreen} />
             <Stack.Screen name="TierList" component={TierListScreen} />
             <Stack.Screen name="Taste" component={TasteScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />

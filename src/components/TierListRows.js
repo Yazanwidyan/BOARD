@@ -1,10 +1,11 @@
+import { ArrowUpDown } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { TIERS, getTier } from "../utils/tiers";
+import { TIERS, getTier, orderSTier } from "../utils/tiers";
 import { t } from "../i18n";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
@@ -12,17 +13,21 @@ import { MoviePoster } from "./MoviePoster";
 const POSTER_WIDTH = 64;
 
 // A profile's tier list — a real tier-list maker: S → F rows edge to edge,
-// the letter at the screen's edge, most recently watched first in each row.
+// the letter at the screen's edge, most recently watched first in each row
+// — except S, your favourites, in your order (`sOrder`, movie ids #1 first).
 // `entries`: watched entries ({ movieId, tier | rating, timestamp }).
-// `onSeeUntiered` (yours) adds a link to the ones not tiered yet.
-export const TierListRows = ({ entries, onOpen, onSeeUntiered }) => {
+// Yours: `onOrderS` puts an order button on the S letter, and
+// `onSeeUntiered` adds a link to the ones not tiered yet.
+export const TierListRows = ({ entries, onOpen, onSeeUntiered, sOrder = [], onOrderS }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const byRecent = [...entries].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
   const rows = TIERS.map((tier) => ({
     ...tier,
-    movies: byRecent
-      .filter((entry) => getTier(entry) === tier.key)
+    movies: (tier.key === "S"
+      ? orderSTier(entries, sOrder)
+      : byRecent.filter((entry) => getTier(entry) === tier.key)
+    )
       .map((entry) => getMovieById(entry.movieId))
       .filter(Boolean),
   }));
@@ -32,9 +37,21 @@ export const TierListRows = ({ entries, onOpen, onSeeUntiered }) => {
     <View style={styles.list}>
       {rows.map(({ key, meaning, color, movies }) => (
         <View key={key} style={styles.row}>
-          <View style={[styles.letter, { backgroundColor: color }]}>
-            <Text style={styles.letterText}>{key}</Text>
-          </View>
+          {key === "S" && onOrderS && movies.length > 1 ? (
+            <Pressable
+              onPress={onOrderS}
+              style={({ pressed }) => [styles.letter, { backgroundColor: color }, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t("Order your S tier")}
+            >
+              <Text style={styles.letterText}>{key}</Text>
+              <ArrowUpDown size={14} color={colors.background} strokeWidth={2.4} />
+            </Pressable>
+          ) : (
+            <View style={[styles.letter, { backgroundColor: color }]}>
+              <Text style={styles.letterText}>{key}</Text>
+            </View>
+          )}
           {movies.length > 0 ? (
             <ScrollView
               horizontal
@@ -85,6 +102,10 @@ const createStyles = (colors) =>
       width: 48,
       alignItems: "center",
       justifyContent: "center",
+      gap: 2,
+    },
+    pressed: {
+      opacity: 0.8,
     },
     letterText: {
       ...typography.hero,

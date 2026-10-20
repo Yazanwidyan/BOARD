@@ -58,4 +58,19 @@ export const tierRank = (entry) => {
   return index === -1 ? TIERS.length : index;
 };
 
+// Your S tier is your favourites, in the order you set: `order` (movie
+// ids, #1 first — the profile's `topTen`) first, then any other S films,
+// most recently watched first. → the S entries, in that order.
+export const orderSTier = (entries, order = []) => {
+  const position = new Map(order.map((id, index) => [id, index]));
+  return entries
+    .filter((entry) => getTier(entry) === "S")
+    .sort(
+      (a, b) =>
+        (position.get(a.movieId) ?? Number.MAX_SAFE_INTEGER) -
+          (position.get(b.movieId) ?? Number.MAX_SAFE_INTEGER) ||
+        (b.timestamp ?? 0) - (a.timestamp ?? 0),
+    );
+};
+
 export default TIERS;

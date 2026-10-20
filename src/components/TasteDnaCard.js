@@ -6,12 +6,12 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
-import { TasteDnaRadar } from "./TasteDnaRadar";
+import { TasteDnaBars } from "./TasteDnaBars";
 
 const SIGNATURE_GAP = 2;
 
-// Profile's taste card, built on Taste DNA (see utils/tasteDna): your
-// watcher type, the six sliders, the themes you love, the films that sum
+// Profile's taste card, built on Taste DNA (see utils/tasteDna): the six
+// sliders, the themes you love, the films that sum
 // your taste up, then the plain facts (director, decade, genres) — genre
 // is one line at the bottom now, not the headline.
 export const TasteDnaCard = ({
@@ -53,16 +53,9 @@ export const TasteDnaCard = ({
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>{t("Your taste DNA")}</Text>
-      <Text style={[styles.archetype, { color: colors.rating }]}>
-        {t(dna.archetype.name)}
-      </Text>
-      <Text style={styles.line}>{t(dna.archetype.line)}</Text>
 
       <View style={styles.section}>
-        <TasteDnaRadar
-          fingerprint={dna.fingerprint}
-          size={Math.min(300, inner)}
-        />
+        <TasteDnaBars fingerprint={dna.fingerprint} />
       </View>
 
       {dna.themes.length > 0 && (
@@ -149,12 +142,6 @@ const createStyles = (colors) =>
     eyebrow: {
       ...typography.caption,
       color: colors.textMuted,
-    },
-    archetype: {
-      ...typography.display,
-      fontSize: 26,
-      lineHeight: 32,
-      marginTop: spacing.xs,
     },
     emptyTitle: {
       ...typography.title,

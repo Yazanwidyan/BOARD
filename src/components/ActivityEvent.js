@@ -1,3 +1,4 @@
+import { Crown } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -8,16 +9,8 @@ import { timeAgo } from "../utils/friends";
 import { getTierInfo } from "../utils/tiers";
 import { t } from "../i18n";
 import { Text } from "./AppText";
-import { BadgeArt } from "./BadgeArt";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
-
-// Badge names in the feed → which medal to draw.
-const BADGE_EMBLEM = {
-  "Front Row": { emblem: "watched", tier: 3, metal: "#7FE0D6" },
-  "Season Pass": { emblem: "watched", tier: 2, metal: "#E8B94E" },
-  "Rising Critic": { emblem: "critic", tier: 1, metal: "#B9BBD2" },
-};
 
 // What happened, as a sentence with the important bits in bold.
 const EventText = ({ event, styles }) => {
@@ -53,6 +46,17 @@ const EventText = ({ event, styles }) => {
           {name} saved {title} {t("for later")}
         </Text>
       );
+    case "rank":
+      return (
+        <Text style={styles.eventText}>
+          {name} {t("is now")} <Text style={styles.strong}>{t(event.rank)}</Text>
+          <Text style={styles.muted}>
+            {" · "}
+            {t(event.track)}
+          </Text>
+        </Text>
+      );
+    // From before ranks: a badge, a finished collection.
     case "badge":
       return (
         <Text style={styles.eventText}>
@@ -75,9 +79,9 @@ const EventText = ({ event, styles }) => {
   }
 };
 
-// The thing on the right of an event: the poster, the badge medal, or a
-// gold box-set mark for a finished collection.
-const EventVisual = ({ event, onOpenMovie, styles }) => {
+// The thing on the right of an event: the poster, or a gold crown tile for
+// a rank (or, from before ranks, a badge or a finished collection).
+const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   if (event.movieId) {
     const movie = getMovieById(event.movieId);
     return (
@@ -86,23 +90,12 @@ const EventVisual = ({ event, onOpenMovie, styles }) => {
       </Pressable>
     );
   }
-  if (event.type === "badge") {
-    const look = BADGE_EMBLEM[event.badge] ?? {
-      emblem: "watched",
-      tier: 1,
-      metal: "#B9BBD2",
-    };
+  if (["rank", "badge", "set"].includes(event.type)) {
     return (
-      <BadgeArt
-        emblem={look.emblem}
-        tier={look.tier}
-        metal={look.metal}
-        size={44}
-      />
+      <View style={styles.rankTile}>
+        <Crown size={22} color={colors.rating} strokeWidth={2.1} />
+      </View>
     );
-  }
-  if (event.type === "set") {
-    return <BadgeArt emblem="marquee" tier={2} metal="#E8B94E" size={44} />;
   }
   return null;
 };
@@ -129,7 +122,7 @@ export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => 
         <EventText event={event} styles={styles} />
         <Text style={styles.eventTime}>{timeAgo(event.timestamp, now)}</Text>
       </View>
-      <EventVisual event={event} onOpenMovie={onOpenMovie} styles={styles} />
+      <EventVisual event={event} onOpenMovie={onOpenMovie} styles={styles} colors={colors} />
     </Pressable>
   );
 };
@@ -180,6 +173,13 @@ const createStyles = (colors) =>
     eventPoster: {
       width: 44,
       height: 66,
+    },
+    rankTile: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: `${colors.rating}29`,
     },
   });
 

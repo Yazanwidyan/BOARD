@@ -9,7 +9,11 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Text } from "./AppText";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
   Easing,
   Extrapolation,
@@ -161,8 +165,11 @@ export const BottomSheet = ({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      {/* Modals are their own layer: carry the language's direction. */}
-      <View style={{ flex: 1, direction }}>
+      {/* Modals are their own layer: carry the language's direction, and
+          their own gesture root — without it, drags inside a Modal (the
+          header's swipe-down, a list's drag to reorder) don't work on
+          Android. */}
+      <GestureHandlerRootView style={{ flex: 1, direction }}>
         {/* Padding on both platforms: with Android's edge-to-edge window
           (Expo's default) the keyboard no longer resizes the app, so the
           sheet has to make room itself there too. */}
@@ -227,7 +234,7 @@ export const BottomSheet = ({
             )}
           </Animated.View>
         </KeyboardAvoidingView>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 };

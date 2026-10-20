@@ -19,7 +19,7 @@ import { captureRef } from "react-native-view-shot";
 import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { TasteDnaRadar } from "../components/TasteDnaRadar";
+import { TasteDnaBars } from "../components/TasteDnaBars";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { DIMENSIONS } from "../data/vibes";
 import { useMovieStore } from "../store/movieStore";
@@ -30,13 +30,12 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
-  getArchetype,
   pickMoreMovies,
   pickQuestions,
   pickSpreadMovies,
 } from "../utils/onboardingTaste";
 import { buildMyTasteModel, getTastePicks } from "../utils/tasteEngine";
-import { getUserXP } from "../utils/xp";
+import { getRankCount } from "../utils/ranks";
 import { t } from "../i18n";
 
 // "Play, don't tell", built around Taste DNA (data/vibes.js). In about a
@@ -49,7 +48,7 @@ import { t } from "../i18n";
 //   quick tier   up to six of those, one at a time: Loved / Liked / Not
 //                for me — real tiers from minute one
 //   this or that five pairs on the dimensions we know least about yet
-//   your DNA     the payoff: your leanings, your watcher type, XP — and
+//   your DNA     the payoff: your leanings, your watcher type, ranks — and
 //                your name on a card you can share
 //   tonight      three picks from the real taste engine, with reasons
 //
@@ -251,8 +250,7 @@ const VersusStep = ({ question, position, total, onAnswer, styles }) => {
 // ---------- Your Taste DNA ----------
 const DnaStep = ({
   fingerprint,
-  archetype,
-  xp,
+  ranks,
   seenCount,
   name,
   onChangeName,
@@ -271,19 +269,13 @@ const DnaStep = ({
           ? t("{name}'s taste DNA", { name: name.trim() })
           : t("Your taste DNA")}
       </Text>
-      <Animated.View
-        entering={FadeInDown.duration(380).easing(Easing.out(Easing.cubic))}
-      >
-        <Text style={styles.dnaName}>{t(archetype.name)}</Text>
-      </Animated.View>
-      <Text style={styles.dnaLine}>{t(archetype.line)}</Text>
       <View style={styles.dnaBars}>
-        <TasteDnaRadar fingerprint={fingerprint} size={280} />
+        <TasteDnaBars fingerprint={fingerprint} />
       </View>
       <View style={styles.dnaFooter}>
-        {xp > 0 ? (
+        {ranks > 0 ? (
           <Text style={styles.dnaXP}>
-            +{xp} {t("XP")}
+            +{ranks} {ranks === 1 ? t("rank") : t("ranks")}
             <Text style={styles.dnaXPDetail}>
               {"  "}
               {t("from {count} movies", { count: seenCount })}
@@ -401,7 +393,7 @@ export const OnboardingScreen = () => {
   // Ids already written to the stores, so Back + Continue never toggles
   // the same movie twice.
   const [appliedIds, setAppliedIds] = useState([]);
-  const [xpGained, setXpGained] = useState(0);
+  const [ranksGained, setRanksGained] = useState(0);
 
   // Quick tier: the seen ones, in order.
   const [tierQueue, setTierQueue] = useState([]);
@@ -456,7 +448,7 @@ export const OnboardingScreen = () => {
   // Seen → watched, want → watchlist, in the real stores.
   const applyMarks = () => {
     const { toggleWatched, toggleBucketList } = useMovieStore.getState();
-    const xpBefore = getUserXP(useMovieStore.getState().watched);
+    const ranksBefore = getRankCount(useMovieStore.getState().watched);
     const applied = [];
     Object.entries(marks).forEach(([movieId, mark]) => {
       if (appliedIds.includes(movieId)) return;
@@ -465,9 +457,9 @@ export const OnboardingScreen = () => {
       applied.push(movieId);
     });
     setAppliedIds((current) => [...current, ...applied]);
-    setXpGained(
+    setRanksGained(
       (current) =>
-        current + getUserXP(useMovieStore.getState().watched) - xpBefore,
+        current + getRankCount(useMovieStore.getState().watched) - ranksBefore,
     );
   };
 
@@ -514,8 +506,7 @@ export const OnboardingScreen = () => {
   const shareCard = async () => {
     if (isSharing) return;
     setIsSharing(true);
-    const archetype = getArchetype(fingerprint);
-    const fallback = `${t(archetype.name)} — ${t(archetype.line)} ${t("on ReelBoard")}`;
+    const fallback = `${t("My taste DNA")} ${t("on ReelBoard")}`;
     try {
       const uri = await captureRef(cardRef, {
         format: "png",
@@ -629,8 +620,7 @@ export const OnboardingScreen = () => {
           {step === STEP.dna && (
             <DnaStep
               fingerprint={fingerprint}
-              archetype={getArchetype(fingerprint)}
-              xp={xpGained}
+              ranks={ranksGained}
               seenCount={seenIds.length}
               name={name}
               onChangeName={setName}
@@ -757,8 +747,7 @@ const createStyles = (colors) =>
     posterMarked: {
       opacity: 0.55,
     },
-    // Marked: a white frame and a small white square badge — like the
-    // top-ten picker.
+    // Marked: a white frame and a small white square badge.
     markOverlay: {
       ...StyleSheet.absoluteFill,
       borderWidth: 2,
@@ -845,18 +834,6 @@ const createStyles = (colors) =>
     dnaEyebrow: {
       ...typography.caption,
       color: colors.textMuted,
-    },
-    dnaName: {
-      ...typography.display,
-      fontSize: 30,
-      lineHeight: 36,
-      color: colors.rating,
-      marginTop: spacing.xs,
-    },
-    dnaLine: {
-      ...typography.body,
-      color: colors.textSecondary,
-      marginTop: spacing.xs,
     },
     dnaBars: {
       marginTop: spacing.lg,

@@ -12,7 +12,7 @@ import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
-import { TasteDnaRadar } from "./TasteDnaRadar";
+import { TasteDnaBars } from "./TasteDnaBars";
 import { WatcherCard } from "./WatcherCard";
 import { t } from "../i18n";
 
@@ -125,15 +125,9 @@ export const TasteShareSheet = ({
               {dna?.hasDna && (
                 <>
                   <Text style={styles.sectionLabel}>{t("Taste DNA")}</Text>
-                  <Text style={styles.archetype}>{t(dna.archetype.name)}</Text>
-                  <Text style={styles.insight}>{t(dna.archetype.line)}</Text>
                   {/* Still, not animated — this is captured as an image. */}
                   <View style={styles.bars}>
-                    <TasteDnaRadar
-                      fingerprint={dna.fingerprint}
-                      size={CARD_WIDTH - spacing.md * 4}
-                      animate={false}
-                    />
+                    <TasteDnaBars fingerprint={dna.fingerprint} />
                   </View>
                   {dna.themes.length > 0 && (
                     <View style={styles.genreRow}>
@@ -216,11 +210,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    insight: {
-      ...typography.body,
-      color: colors.textPrimary,
-      marginTop: spacing.xs,
-    },
     genreRow: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -238,12 +227,6 @@ const createStyles = (colors) =>
     genreText: {
       ...typography.caption,
       color: colors.textPrimary,
-    },
-    archetype: {
-      ...typography.title,
-      fontSize: 22,
-      color: colors.rating,
-      marginTop: spacing.xs,
     },
     bars: {
       marginTop: spacing.md,

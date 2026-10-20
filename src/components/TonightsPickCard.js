@@ -15,6 +15,7 @@ import {
   getPickInsight,
   getTonightSuggestions,
 } from "../utils/tonightPick";
+import { countFinishedDares } from "../utils/useRanks";
 import { HomeHero } from "./HomeHero";
 import { PickInsight } from "./PickInsight";
 import { PrimaryButton } from "./PrimaryButton";
@@ -41,6 +42,8 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
+  const history = useChallengeStore((state) => state.history);
+  const dares = countFinishedDares(history);
 
   const pickedMovie = pickedMovieId ? getMovieById(pickedMovieId) : null;
   if (!pickedMovie) return null;
@@ -59,7 +62,7 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
         : bucketList.some((entry) => entry.movieId === pickedMovie.id)
           ? { text: t("From your watchlist") }
           : null;
-  const insight = getPickInsight(pickedMovie, watched);
+  const insight = getPickInsight(pickedMovie, watched, dares);
   const endsAt = getEndTime(pickedMovie);
 
   const openDetails = () =>
@@ -82,9 +85,9 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   };
 
   // Swap for something in the same spirit: another movie for the same
-  // mood; otherwise the next of tonight's suggestions (your taste, your
-  // watchlist and your sagas — see utils/tonightPick), so each swap steps
-  // down the list.
+  // mood; otherwise the next of tonight's suggestions — they take turns
+  // (your taste, a rank tonight, a saga, your watchlist, a rank moved
+  // along: see utils/tonightPick), so each swap brings a different kind.
   const swap = () => {
     Haptics.selectionAsync();
     if (mood) {
@@ -92,7 +95,7 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       if (next) setMoodPick(next.id, mood.key);
       return;
     }
-    const suggestions = getTonightSuggestions(watched, bucketList).map(
+    const suggestions = getTonightSuggestions(watched, bucketList, dares).map(
       ({ movie }) => movie.id,
     );
     const others = suggestions.filter((id) => id !== pickedMovie.id);

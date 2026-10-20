@@ -5,7 +5,7 @@ import {
   Users,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
@@ -15,14 +15,13 @@ import Animated from "react-native-reanimated";
 
 import {
   BoardsRail,
-  ProfileSectionHeader,
-  RecapCard,
-  SagaRanksRail,
+  FinishedSagasRail,
+  ProfileSection,
+  RecapBanner,
+  SectionEmpty,
   TasteSnapshot,
   TierSummary,
 } from "../components/ProfileSections";
-import { ProfileTopTen } from "../components/ProfileTopTen";
-import { TopTenPicker } from "../components/TopTenPicker";
 import {
   DockHeader,
   HeaderIconButton,
@@ -32,29 +31,19 @@ import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
-import { WatcherProfileSheet } from "../components/WatcherProfileSheet";
 import { useAuthStore } from "../store/authStore";
 import { useBoardStore } from "../store/boardStore";
-import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
-import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { getBadges } from "../utils/badges";
-import { getShowcaseBadges } from "../components/BadgeMedal";
-import { getCompletedCollectionsCount } from "../utils/collections";
+import { getCollectionProgress, getSagas } from "../utils/collections";
 import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
 import { useStretchyBackdropStyle } from "../utils/scrollEffects";
-import { isRated } from "../utils/tiers";
-import {
-  getCompletedChallengesCount,
-  getLevel,
-  getCompletedXPCollections,
-  getXPBreakdown,
-} from "../utils/xp";
+import { isRated, orderSTier } from "../utils/tiers";
+import { useRankSummary } from "../utils/useRanks";
 import { t } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
@@ -64,10 +53,12 @@ const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 const BACKDROP_POSTERS = 5;
 const BACKDROP_HEIGHT = 190;
 
-// Who you are as a watcher, top to bottom, one short section each: your
-// top ten, your Taste DNA, the sagas you're climbing, your tiers, what you
-// watched last and your boards (each a preview that opens the whole
-// thing), and this month's recap at the end.
+// Who you are as a watcher, top to bottom, one short section each: the
+// card, your tiers (S is your favourites, in your order), your Taste DNA,
+// the sagas you've finished and your boards (each a preview that opens the whole thing),
+// and this month's recap at the end. Of your ranks, the avatar's ring (to
+// your next title) and the count are here — tap either for the Ranks
+// screen.
 
 const getHandle = (name) =>
   `@${
@@ -77,71 +68,30 @@ const getHandle = (name) =>
       .replace(/[^a-z0-9]+/g, "") || "you"
   }`;
 
-export const ProfileScreen = ({ navigation, route }) => {
+export const ProfileScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const [isLeagueSheetOpen, setIsLeagueSheetOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const ranks = useRankSummary();
   const boards = useBoardStore((state) => state.boards);
 
-  // "View Details" on the watched/challenge XP alert deep-links straight
-  // into this sheet instead of just landing on the plain profile page.
-  useEffect(() => {
-    if (!route?.params?.openLeagueSheet) return undefined;
-    navigation.setParams({ openLeagueSheet: undefined });
-    // Arriving from the reward dialog: let its Modal finish closing first —
-    // on iOS, presenting a Modal while another is still dismissing can
-    // leave the new one stuck invisibly on top of everything.
-    const timer = setTimeout(() => setIsLeagueSheetOpen(true), 350);
-    return () => clearTimeout(timer);
-  }, [route?.params?.openLeagueSheet, navigation]);
-
-  const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const accountHandle = useAuthStore((state) => state.user?.handle);
-  const challengeHistory = useChallengeStore((state) => state.history);
 
-  const queuedCount = bucketListEntries.length;
   const watchedCount = watched.length;
   const ratedCount = watched.filter(isRated).length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  // Your hand-picked top ten, in rank order (only movies still watched).
-  const topTenIds = useProfileStore((state) => state.topTen) ?? [];
-  const toggleTopTen = useProfileStore((state) => state.toggleTopTen);
-  const topTenMovies = topTenIds
-    .filter((id) => watchedIds.has(id))
-    .map((id) => getMovieById(id))
+  // Your favourites: your S tier, in your order (set on the tier list).
+  const sOrder = useProfileStore((state) => state.topTen) ?? [];
+  const favoriteMovies = orderSTier(watched, sOrder)
+    .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean);
-  const [isTopTenOpen, setIsTopTenOpen] = useState(false);
-  const completedCollectionsCount = getCompletedCollectionsCount(watchedIds);
-  const completedChallengesCount =
-    getCompletedChallengesCount(challengeHistory);
-  const rewatchedCount = watched.filter(
-    (entry) => (entry.watchCount ?? 1) > 1,
-  ).length;
-  const badges = getBadges({
-    watchedCount,
-    ratedCount,
-    queuedCount,
-    completedCollectionsCount,
-    completedChallengesCount,
-    rewatchedCount,
-    watchedIds,
-  });
-  const earnedBadgeCount = badges.filter((badge) => badge.earned).length;
-  const xpBreakdown = getXPBreakdown(watched);
-  const xp = xpBreakdown.total;
-  const level = getLevel(xp);
-  const xpToNextLevel = Math.max(
-    0,
-    Math.ceil(level.requiredXP - level.currentXP),
-  );
   const header = useDockHeader({ hideOnScroll: true });
   const backdropStyle = useStretchyBackdropStyle(
     header.scrollY,
@@ -157,23 +107,25 @@ export const ProfileScreen = ({ navigation, route }) => {
     (a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0),
   );
 
-  // Backdrop: your top ten (or, before you've picked any, what you watched
-  // last).
+  // Backdrop: your favourites (or, before you've tiered any S, what you
+  // watched last).
   const backdropPosters = (
-    topTenMovies.length > 0
-      ? topTenMovies
+    favoriteMovies.length > 0
+      ? favoriteMovies
       : watchedByRecent
           .map((entry) => getMovieById(entry.movieId))
           .filter(Boolean)
   ).slice(0, BACKDROP_POSTERS);
 
-  // Fully finished director / actor / franchise sets — counted in the
-  // stats (tap it for Library → Collections) and named in the share text.
-  const completedSets = getCompletedXPCollections(watchedIds);
+  // Fully watched sagas — counted in the stats (tap it for Library →
+  // Sagas) and named in the share text.
+  const completedSets = getSagas().filter(
+    (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
+  );
 
   const getShareText = () => {
     const genres = taste.topGenres.map(({ genre }) => genre).join(" · ");
-    const favorites = topTenMovies
+    const favorites = favoriteMovies
       .slice(0, 5)
       .map((movie) => movie.title)
       .join(", ");
@@ -192,7 +144,6 @@ export const ProfileScreen = ({ navigation, route }) => {
         count: watchedCount,
         hours: Math.round(taste.minutesWatched / 60),
       }),
-      t("Level {level} · {name}", { level: level.level, name: t(level.name) }),
     ].filter(Boolean);
     return lines.join("\n");
   };
@@ -203,10 +154,9 @@ export const ProfileScreen = ({ navigation, route }) => {
     handle: accountHandle ?? getHandle(displayName),
     bio,
     avatarSource: avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE,
-    level,
-    earnedBadgeCount,
-    showcase: getShowcaseBadges(badges),
-    allBadges: badges,
+    ring: ranks.title,
+    rankCount: ranks.count,
+    nameTitle: ranks.title,
     stats: {
       movies: watchedCount,
       hours: Math.round(taste.minutesWatched / 60),
@@ -214,7 +164,6 @@ export const ProfileScreen = ({ navigation, route }) => {
     },
   };
 
-  const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
   // `openedAt` makes a repeat tap switch Library back even when it was left
   // on another tab.
   const openLibraryTab = (initialTab) =>
@@ -224,6 +173,8 @@ export const ProfileScreen = ({ navigation, route }) => {
   const openUntiered = () => navigation.navigate("Library", { showUntiered: true });
   const openTaste = () => navigation.navigate("Taste");
   const openTierList = () => navigation.navigate("TierList");
+  const openSaga = (collectionId) => navigation.navigate("CollectionDetails", { collectionId });
+  const openRecap = () => navigation.navigate("Recap");
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -260,63 +211,72 @@ export const ProfileScreen = ({ navigation, route }) => {
         )}
 
         <View style={styles.profileWrap}>
-          {/* Watcher card: avatar beside the numbers (badges included),
-              name and level, bio as a quote. */}
+          {/* Watcher card: avatar in its ring beside the numbers (ranks among
+              them), bio as a quote. */}
           <WatcherCard
             {...watcherCardProps}
-            xpToNextLevel={xpToNextLevel}
-            onPressAvatar={() => setIsLeagueSheetOpen(true)}
+            onPressAvatar={() => navigation.navigate("Ranks")}
             onPressBio={() => navigation.navigate("EditProfile")}
-            onPressBadges={() => navigation.navigate("Badges")}
+            onPressRanks={() => navigation.navigate("Ranks")}
             onPressCollections={openSagas}
           />
 
-          {/* Your top ten: the signature, always first. */}
-          <View style={styles.topTen}>
-            <ProfileTopTen
-              movies={topTenMovies}
-              editable
-              onOpen={openMovie}
-              onRemove={(movie) => {
-                toggleTopTen(movie.id);
-                showToast(t("{title} taken out of your top ten", { title: movie.title }));
-              }}
-              onPick={() => setIsTopTenOpen(true)}
-            />
-          </View>
+          {/* How you rate. Your S tier is your favourites — in your order,
+              set on the tier list. */}
+          <ProfileSection
+            title={t("Your tiers")}
+            onAction={ratedCount > 0 ? openTierList : undefined}
+            onPress={ratedCount > 0 ? openTierList : undefined}
+          >
+            <TierSummary entries={watched} onSeeUntiered={openUntiered} />
+          </ProfileSection>
 
-          <ProfileSectionHeader
+          <ProfileSection
             title={t("Taste DNA")}
             onAction={tasteDna.hasDna ? openTaste : undefined}
-          />
-          <TasteSnapshot dna={tasteDna} onOpen={tasteDna.hasDna ? openTaste : openUntiered} />
+            onPress={tasteDna.hasDna ? openTaste : undefined}
+          >
+            <TasteSnapshot dna={tasteDna} onSeeUntiered={openUntiered} />
+          </ProfileSection>
 
-          <ProfileSectionHeader title={t("Saga ranks")} onAction={openSagas} />
-          <SagaRanksRail
-            watchedIds={watchedIds}
-            onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
-            onBrowse={openSagas}
-          />
+          <ProfileSection
+            title={t("Sagas")}
+            onAction={openSagas}
+            rail={completedSets.length > 0}
+          >
+            {completedSets.length > 0 ? (
+              <FinishedSagasRail watched={watched} onOpen={openSaga} />
+            ) : (
+              <SectionEmpty
+                line={t("Finish every film in a saga and it shows here.")}
+                actionLabel={t("Browse sagas")}
+                onPress={openSagas}
+              />
+            )}
+          </ProfileSection>
 
-          <ProfileSectionHeader
-            title={t("Your tiers")}
-            actionLabel={t("Full list")}
-            onAction={ratedCount > 0 ? openTierList : undefined}
-          />
-          <TierSummary entries={watched} onPress={openTierList} onSeeUntiered={openUntiered} />
-
-          <ProfileSectionHeader
+          <ProfileSection
             title={t("Boards")}
             onAction={boards.length > 0 ? openBoards : undefined}
-          />
-          <BoardsRail
-            boards={boards}
-            onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
-            onCreate={openBoards}
-          />
+            rail={boards.length > 0}
+          >
+            {boards.length > 0 ? (
+              <BoardsRail
+                boards={boards}
+                onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
+                onCreate={openBoards}
+              />
+            ) : (
+              <SectionEmpty
+                line={t("Group films your way — rainy day, date night, comfort picks.")}
+                actionLabel={t("New board")}
+                onPress={openBoards}
+              />
+            )}
+          </ProfileSection>
 
-          {/* This month: the shareable recap. */}
-          <RecapCard watched={watched} onOpen={() => navigation.navigate("Recap")} />
+          {/* This month: the shareable recap, as on Home. */}
+          <RecapBanner watched={watched} onOpen={openRecap} />
         </View>
 
         <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
@@ -348,33 +308,18 @@ export const ProfileScreen = ({ navigation, route }) => {
         }
       />
 
-      <TopTenPicker
-        visible={isTopTenOpen}
-        onClose={() => setIsTopTenOpen(false)}
-        watched={watched}
-      />
-
       <TasteShareSheet
         visible={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         cardProps={watcherCardProps}
         taste={{
           ...taste,
-          favorites: topTenMovies.map((movie) => ({ movie })),
+          favorites: favoriteMovies.slice(0, 10).map((movie) => ({ movie })),
         }}
         dna={tasteDna}
         fallbackMessage={getShareText()}
       />
 
-      <WatcherProfileSheet
-        visible={isLeagueSheetOpen}
-        onClose={() => setIsLeagueSheetOpen(false)}
-        watched={watched}
-        avatarSource={
-          avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE
-        }
-        displayName={displayName}
-      />
     </SafeAreaView>
   );
 };
@@ -402,9 +347,6 @@ const createStyles = (colors) =>
       flex: 1,
       height: "100%",
       opacity: 0.55,
-    },
-    topTen: {
-      marginTop: spacing.md,
     },
   });
 

@@ -1,10 +1,10 @@
 import { getMovieById } from "../data/movies";
 import { tierRank } from "./tiers";
-import { getUserXP } from "./xp";
+import { getRankCount } from "./ranks";
 
 // The recap — "your month (or year) on ReelBoard" — worked out from the
 // watch history, like a little Wrapped: how much you watched, what kind of
-// things, your favourites from that stretch and the XP it earned.
+// things, your favourites from that stretch and the ranks it earned.
 
 const MONTH = "month";
 const YEAR = "year";
@@ -60,9 +60,9 @@ export const buildRecap = (watched, period) => {
     topDirector: topBy(movies, (movie) => movie.director, 1).find(({ count }) => count > 1) ?? null,
     favourites,
     longest,
-    // XP from this stretch: everything up to its end, minus what was
+    // Ranks from this stretch: everything up to its end, minus what was
     // already earned before it began.
-    xp: getUserXP(upToEnd) - getUserXP(before),
+    ranks: getRankCount(upToEnd) - getRankCount(before),
     decades: topBy(movies, (movie) => `${Math.floor(movie.year / 10) * 10}s`, 1)[0] ?? null,
   };
 };

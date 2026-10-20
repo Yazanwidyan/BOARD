@@ -1,24 +1,29 @@
-import { Crown, Layers } from "lucide-react-native";
+import { Crown, Layers, TrendingUp } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 import { t } from "../i18n";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { describeForecast } from "../utils/ranks";
 import { describeSagaStep } from "../utils/tonightPick";
 import { Text } from "./AppText";
 
 // Why a movie is (or could be) tonight's pick, under Home's banner: how
 // well it fits your taste and a tag for where it came from (your
 // watchlist, a dare, a mood), the main reason it fits, and where it gets
-// you in a saga ("Makes you Capo in Say Hello · +150 XP").
+// you in a saga ("Makes you Capo in Say Hello"), and what it does for your
+// ranks — one it earns tonight, or one it moves along.
 // `insight`: from utils/tonightPick's getPickInsight. `tag`: { text, color }.
 export const PickInsight = ({ insight, tag }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const sagaLine = describeSagaStep(insight.saga);
   const isRank = insight.saga?.type === "rank";
-  if (insight.match == null && !tag && !insight.reason && !sagaLine) return null;
+  const rankLine = insight.forecast ? describeForecast(insight.forecast) : null;
+  const earnsRank = (insight.forecast?.gained.length ?? 0) > 0;
+  const RankIcon = earnsRank ? Crown : TrendingUp;
+  if (insight.match == null && !tag && !insight.reason && !sagaLine && !rankLine) return null;
   const SagaIcon = isRank ? Crown : Layers;
 
   return (
@@ -54,6 +59,14 @@ export const PickInsight = ({ insight, tag }) => {
             numberOfLines={2}
           >
             {sagaLine}
+          </Text>
+        </View>
+      )}
+      {!!rankLine && (
+        <View style={styles.saga}>
+          <RankIcon size={14} color={colors.rating} strokeWidth={2} />
+          <Text style={[styles.sagaText, earnsRank && styles.sagaTextRank]} numberOfLines={2}>
+            {rankLine}
           </Text>
         </View>
       )}

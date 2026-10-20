@@ -1,18 +1,22 @@
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
+import { STierOrderSheet } from "../components/STierOrderSheet";
 import { TierListRows } from "../components/TierListRows";
 import { useMoviesVersion } from "../data/movies";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
+import { useProfileStore } from "../store/profileStore";
 import { spacing } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
 
 // A whole tier list, S to F — yours, or a friend's (`friendId`). Opened
-// from the tier summary on a profile.
+// from the tier summary on a profile. S, the favourites, is in its owner's
+// order; on yours its letter opens the sheet that sets it.
 export const TierListScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -24,6 +28,9 @@ export const TierListScreen = ({ navigation, route }) => {
   const { friends } = useFriends();
   const friend = friendId ? friends.find((item) => item.id === friendId) : null;
   const entries = friendId ? friend?.watched ?? [] : ownWatched;
+  const ownOrder = useProfileStore((state) => state.topTen) ?? [];
+  const sOrder = friendId ? friend?.topTen ?? [] : ownOrder;
+  const [isOrdering, setIsOrdering] = useState(false);
   const openMovie = (movieId) => navigation.push("MovieDetails", { movieId });
 
   return (
@@ -49,8 +56,11 @@ export const TierListScreen = ({ navigation, route }) => {
           onSeeUntiered={
             friendId ? undefined : () => navigation.navigate("Library", { showUntiered: true })
           }
+          sOrder={sOrder}
+          onOrderS={friendId ? undefined : () => setIsOrdering(true)}
         />
       </Animated.ScrollView>
+      {!friendId && <STierOrderSheet visible={isOrdering} onClose={() => setIsOrdering(false)} />}
     </View>
   );
 };

@@ -18,8 +18,9 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
+import { getRanksFromWatching } from "../utils/ranks";
+import { countFinishedDares } from "../utils/useRanks";
 import { formatRuntime } from "../utils/movieFilters";
-import { getWatchXPGain } from "../utils/xp";
 
 const HAND_SIZE = 3;
 
@@ -34,7 +35,7 @@ const difficultyColor = (difficulty, colors) =>
 // How dares work, always on screen — so it's clear before you pick.
 const HowItWorks = ({ styles }) => (
   <View style={styles.steps}>
-    {[t("Pick a dare"), t("Watch the movie"), t("Earn XP")].map(
+    {[t("Pick a dare"), t("Watch the movie"), t("Earn ranks")].map(
       (label, index) => (
         <View key={label} style={styles.step}>
           <Text style={styles.stepNumber}>{index + 1}</Text>
@@ -65,9 +66,13 @@ const DareCard = ({ challenge, selected, onPress, index, styles, colors }) => {
           <Text style={styles.dareName} numberOfLines={1}>
             {t(challenge.title)}
           </Text>
-          <Text style={styles.reward}>
-            {t("+{xp} XP", { xp: challenge.xpReward })}
-          </Text>
+          {challenge.rankReward > 0 && (
+            <Text style={styles.reward}>
+              {challenge.rankReward === 1
+                ? t("+1 rank")
+                : t("+{count} ranks", { count: challenge.rankReward })}
+            </Text>
+          )}
         </View>
         <Text style={styles.why}>{challenge.description}</Text>
 
@@ -105,15 +110,17 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
   const styles = createStyles(colors);
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);
 
-  // Each dare's reward is the XP its movie would really add for you — the
-  // watch plus any new genre / decade / director / collection — since dares
-  // give no XP of their own.
+  // Each dare's reward is the ranks it would really earn you — its film's
+  // (a saga's next rank, a new decade…) plus finishing a dare (Dare Devil).
   const deal = () => {
     const { watched, bucketList } = useMovieStore.getState();
+    const dares = countFinishedDares(useChallengeStore.getState().history);
     return generateChallengeOptions({ watched, bucketList }, HAND_SIZE).map(
       (challenge) => ({
         ...challenge,
-        xpReward: getWatchXPGain(watched, challenge.targetMovieId),
+        rankReward: getRanksFromWatching(watched, challenge.targetMovieId, dares, {
+          finishesDare: true,
+        }).length,
       }),
     );
   };
@@ -141,10 +148,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
     acceptChallenge(selected);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(
-      t("Dare on: watch {title} to earn {xp} XP", {
-        title: selectedMovie?.title ?? "",
-        xp: selected.xpReward,
-      }),
+      t("Dare on: watch {title}", { title: selectedMovie?.title ?? "" }),
       { tone: "success" },
     );
     navigation.goBack();
@@ -202,10 +206,12 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
         <PrimaryButton
           label={
             selected
-              ? t('Take "{name}" · +{xp} XP', {
-                  name: t(selected.title),
-                  xp: selected.xpReward,
-                })
+              ? selected.rankReward > 0
+                ? t('Take "{name}" · +{count} ranks', {
+                    name: t(selected.title),
+                    count: selected.rankReward,
+                  })
+                : t('Take "{name}"', { name: t(selected.title) })
               : t("Pick a dare above")
           }
           variant={selected ? "primary" : "secondary"}

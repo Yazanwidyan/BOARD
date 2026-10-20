@@ -21,9 +21,9 @@ import { fonts } from "../theme/typography";
 //   rewatch    two tickets — the same movie again
 //   collection a box set, every spine lit gold, with a seal
 //   challenge  a clapperboard snapping shut
-//   level      a gold star with the new level number
+//   level      a gold star with a number — a new title, by its step
 //   multi      a popcorn bucket ("Big Night!")
-// (A badge moment shows the real badge medal instead — see BadgeArt.)
+// (A new rank without a movie shows the rank's own tile — see RankBadge.)
 
 // Highlight → base → shade of the gold (matches `rating`).
 const GOLD = ["#FFF0C2", "#F2C14E", "#B68A1F"];

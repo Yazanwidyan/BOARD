@@ -1,12 +1,13 @@
 import { queryClient, queryKeys, queueChange } from "../services/queryClient";
-import { getLevel, getUserXP } from "../utils/xp";
+import { getRankCount, getTitle } from "../utils/ranks";
 import { createAccountStore } from "./accountStore";
+import { useChallengeStore } from "./challengeStore";
 
 // Your library: watchlist, watched + tiers, tonight's pick and manually
 // unlocked collections. Server data, cached by TanStack Query (see
 // store/accountStore.js) under queryKeys.library = GET /api/me/library.
 const LIBRARY = { invalidate: [queryKeys.library] };
-// Changes to the watch history also change XP and level, which the server
+// Changes to the watch history also change your ranks, which the server
 // works out — so the profile is re-read afterwards too.
 const WATCHED = { invalidate: [queryKeys.library, queryKeys.profile] };
 // …and the movie's community tiers (if its page is open, it updates).
@@ -14,26 +15,30 @@ const watchedChange = (movieId) => ({
   invalidate: [...WATCHED.invalidate, queryKeys.communityMovie(movieId)],
 });
 
-// XP and level are worked out by the server from the watch history (its
-// lib/xp.js — the same rules as utils/xp.js), so nobody can claim a level
-// they haven't earned. The app doesn't send them; it only updates the
-// cached profile straight away with the same formula, so the number moves
+// Ranks are worked out by the server from the watch history (its
+// lib/ranks.js — the same rules as utils/ranks.js), so nobody can claim
+// ranks they haven't earned. The app doesn't send them; it only updates
+// the cached profile straight away with the same rules, so the count moves
 // the moment you watch something, and the server's copy replaces it on the
 // next refresh.
-let lastShownLevel = null;
+let lastShownRanks = null;
 
-export const resetShownLevel = (level = null) => {
-  lastShownLevel = level;
+export const resetShownRanks = (ranks = null) => {
+  lastShownRanks = ranks;
 };
 
-export const refreshLevel = () => {
-  const xp = getUserXP(useMovieStore.getState().watched);
-  const { level } = getLevel(xp);
-  if (level === lastShownLevel) return;
-  lastShownLevel = level;
+export const refreshRanks = () => {
+  const dares = useChallengeStore
+    .getState()
+    .history.filter((entry) => entry.status === "completed").length;
+  const ranks = getRankCount(useMovieStore.getState().watched, dares);
+  if (ranks === lastShownRanks) return;
+  lastShownRanks = ranks;
+  const title = getTitle(ranks);
   queryClient.setQueryData(
     queryKeys.profile,
-    (profile) => profile && { ...profile, xp: Math.round(xp), level },
+    (profile) =>
+      profile && { ...profile, ranks, level: title.step, title: title.name },
   );
 };
 
@@ -91,8 +96,8 @@ export const useMovieStore = createAccountStore({
         merge: `watched:${movieId}`,
         ...watchedChange(movieId),
       });
-      // Rating a movie earns XP too.
-      refreshLevel();
+      // A tier can earn a rank too (Films tiered, Tough Critic).
+      refreshRanks();
     };
 
     return {
@@ -187,7 +192,7 @@ export const useMovieStore = createAccountStore({
             },
           );
         }
-        refreshLevel();
+        refreshRanks();
       },
 
       // ReelBoard's rating: a tier (S–F), or null to clear it. Drops any old
@@ -209,7 +214,7 @@ export const useMovieStore = createAccountStore({
             entry.movieId === movieId ? { ...entry, rating } : entry,
           ),
         }));
-        refreshLevel();
+        refreshRanks();
       },
 
       // Distinct from toggleWatched on purpose — a rewatch of something
@@ -238,7 +243,7 @@ export const useMovieStore = createAccountStore({
           undefined,
           LIBRARY,
         );
-        refreshLevel();
+        refreshRanks();
       },
 
       // Set (not toggle) tonight's pick — e.g. a Movie night match.
@@ -253,7 +258,7 @@ export const useMovieStore = createAccountStore({
       clearWatched: () => {
         set({ watched: [] });
         queueChange("DELETE", "/me/watched", undefined, WATCHED);
-        refreshLevel();
+        refreshRanks();
       },
       clearUnlockedCollections: () => {
         const ids = get().unlockedCollections;

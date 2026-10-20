@@ -15,7 +15,7 @@ import {
   getCollectionById,
   getCollectionCompletedAt,
 } from "../utils/collections";
-import { getLevel, getUserXP } from "../utils/xp";
+import { useRankSummary } from "../utils/useRanks";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
@@ -68,7 +68,7 @@ export const bragHeadline = (collection) => {
 };
 
 // The brag card: the collection's posters in a grid, the headline, when it
-// was finished, and the watcher's level — rendered as a real view so it
+// was finished, and the watcher's title — rendered as a real view so it
 // can be captured to an image and shared (Instagram, WhatsApp…). Mounted
 // once at the root; open it with openShareCard(collectionId).
 export const CompletionShareSheet = () => {
@@ -87,7 +87,7 @@ export const CompletionShareSheet = () => {
   const completedAt = collection
     ? getCollectionCompletedAt(collection, watched)
     : null;
-  const level = getLevel(getUserXP(watched));
+  const ranks = useRankSummary();
   const cell =
     (CARD_WIDTH - spacing.md * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
     GRID_COLUMNS;
@@ -170,7 +170,7 @@ export const CompletionShareSheet = () => {
                   })
                 : t("Every one, start to finish")}
               {"  ·  "}
-              {t("Level")} {level.level} · {level.name}
+              {t(ranks.title.name)} · {t("{count} ranks", { count: ranks.count })}
             </Text>
             <Text style={styles.brand}>{t("on ReelBoard")}</Text>
           </View>

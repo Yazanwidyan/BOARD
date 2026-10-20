@@ -28,7 +28,7 @@ import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
-import { getLevelName } from "../utils/xp";
+import { getTitleName } from "../utils/ranks";
 import { t } from "../i18n";
 
 const POSTERS_SHOWN = 5;
@@ -271,8 +271,8 @@ export const FriendsScreen = ({ navigation }) => {
                   {friend.name}
                 </Text>
                 <Text style={styles.friendMeta} numberOfLines={1}>
-                  {friend.handle} {t("· Lv")} {friend.level}{" "}
-                  {getLevelName(friend.level)}
+                  {friend.handle} · {t(friend.title ?? getTitleName(friend.level))}
+                  {friend.ranks != null && ` · ${t("{count} ranks", { count: friend.ranks })}`}
                 </Text>
               </View>
               <View style={styles.matchPill}>

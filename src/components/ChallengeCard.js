@@ -2,8 +2,10 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
+import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { getWatchXPGain } from "../utils/xp";
+import { getRanksFromWatching } from "../utils/ranks";
+import { countFinishedDares } from "../utils/useRanks";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -27,10 +29,16 @@ export const ChallengeCard = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const movie = getMovieById(challenge.targetMovieId);
-  // What watching it would really earn you now (dares add no XP of their
-  // own) — worked out live, so it stays true as your history changes.
+  // The ranks watching it (and so finishing the dare) would really earn
+  // you now — worked out live, so it stays true as your history changes.
   const watched = useMovieStore((state) => state.watched);
-  const xpGain = getWatchXPGain(watched, challenge.targetMovieId);
+  const history = useChallengeStore((state) => state.history);
+  const rankGain = getRanksFromWatching(
+    watched,
+    challenge.targetMovieId,
+    countFinishedDares(history),
+    { finishesDare: true },
+  ).length;
   const difficultyColor =
     {
       EASY: colors.success,
@@ -59,9 +67,11 @@ export const ChallengeCard = ({
               {t(challenge.difficultyLabel)}
             </Text>
             <View style={styles.spacer} />
-            <Text style={styles.reward}>
-              {t("+{xp} XP", { xp: xpGain })}
-            </Text>
+            {rankGain > 0 && (
+              <Text style={styles.reward}>
+                {rankGain === 1 ? t("+1 rank") : t("+{count} ranks", { count: rankGain })}
+              </Text>
+            )}
           </View>
           <Text style={styles.dare} numberOfLines={3}>
             {challenge.description}
@@ -123,7 +133,7 @@ export const ChallengePrompt = ({ onStart }) => {
           <Text style={styles.eyebrow}>{t("Tonight's dare")}</Text>
           <Text style={styles.dare}>{t("No dare yet")}</Text>
           <Text style={styles.movie}>
-            {t("Three dares are waiting — pick one, watch it, earn XP.")}
+            {t("Three dares are waiting — pick one, watch it, earn ranks.")}
           </Text>
         </View>
       </View>

@@ -22,7 +22,7 @@ import { useMoviesVersion } from "../data/movies";
 
 // "Your month on ReelBoard": a recap of a month or the year so far — how
 // much you watched, your top genres and director, your favourites and the
-// XP it earned — as a card you can share. Opened from Profile, from Home at
+// ranks it earned — as a card you can share. Opened from Profile, from Home at
 // the start of a month, and from the monthly notification.
 export const RecapScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
@@ -123,7 +123,7 @@ export const RecapScreen = ({ navigation, route }) => {
                 {[
                   [recap.count, recap.count === 1 ? t("movie") : t("movies")],
                   [`${hours}h`, t("watched")],
-                  [`+${recap.xp}`, "XP"],
+                  [`+${recap.ranks}`, recap.ranks === 1 ? t("rank") : t("ranks")],
                 ].map(([value, label]) => (
                   <View key={label} style={styles.stat}>
                     <Text style={styles.statValue}>{value}</Text>

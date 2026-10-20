@@ -1,5 +1,4 @@
 import { THEMES, getVibe } from "../data/vibes";
-import { getArchetype } from "./onboardingTaste";
 import { buildMyTasteModel } from "./tasteEngine";
 
 const TOP_THEMES = 3;
@@ -7,7 +6,6 @@ const SIGNATURE_COUNT = 4;
 
 // Everything the Taste DNA card shows, from your own taste model:
 //   fingerprint  six 1–5 values (null before there's anything to go on)
-//   archetype    your watcher type ({ name, line })
 //   themes       the themes you love most, with how many loved films each
 //   signature    the loved films that sit closest to your fingerprint —
 //                the ones that sum your taste up
@@ -40,7 +38,6 @@ export const getTasteDna = (watched) => {
 
   return {
     fingerprint,
-    archetype: getArchetype(fingerprint),
     themes,
     signature,
     hasDna: !!fingerprint,

@@ -9,11 +9,12 @@ import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import {
   BoardsRail,
-  ProfileSectionHeader,
-  SagaRanksRail,
+  FinishedSagasRail,
+  ProfileSection,
+  SectionEmpty,
   TierSummary,
+  getFinishedSagas,
 } from "../components/ProfileSections";
-import { ProfileTopTen } from "../components/ProfileTopTen";
 import {
   StackHeader,
   useStackHeaderScroll,
@@ -21,7 +22,6 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
-import { getSagas } from "../utils/collections";
 import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
@@ -37,7 +37,7 @@ import {
   timeAgo,
 } from "../utils/friends";
 import { getTierInfo } from "../utils/tiers";
-import { getLevelName } from "../utils/xp";
+import { getTitleName } from "../utils/ranks";
 import { t } from "../i18n";
 
 const POSTER_ITEM = 122;
@@ -48,24 +48,10 @@ const TierChip = ({ tier, styles }) => (
   </View>
 );
 
-// A friend's page, laid out like your Profile: who they are, their top
-// ten, the sagas they're climbing, their tiers and their boards; then the
-// two of you: what you both loved, what they loved
+// A friend's page, laid out like your Profile: who they are, their tiers
+// (S in their order), the sagas they've finished and their boards — the same
+// sections as yours — then the two of you: what you both loved, what they loved
 // that you haven't seen (one tap to save it), and their recent activity.
-// Their sagas — the section only shows once they've started one.
-const SagaRanksRailSection = ({ watchedIds, onOpen }) => {
-  const started = getSagas().some((collection) =>
-    collection.movieIds.some((id) => watchedIds.has(id)),
-  );
-  if (!started) return null;
-  return (
-    <>
-      <ProfileSectionHeader title={t("Saga ranks")} />
-      <SagaRanksRail watchedIds={watchedIds} onOpen={onOpen} />
-    </>
-  );
-};
-
 export const FriendProfileScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -130,9 +116,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const match = getTasteMatch(watched, friend.watched);
   const bothLoved = getBothLoved(watched, friend.watched);
   const recommendations = getTheyLovedYouHavent(watched, friend.watched);
-  const topTen = (friend.topTen ?? []).map(getMovieById).filter(Boolean);
-  const theirWatchedIds = new Set(friend.watched.map((entry) => entry.movieId));
   const theirBoards = boards.data?.boards ?? [];
+  const finishedSagas = getFinishedSagas(friend.watched);
+  const openTierList = () => navigation.push("TierList", { friendId: friend.id });
   const firstName = friend.name.split(" ")[0];
   const activity = allActivity.filter((event) => event.friendId === friend.id);
   const openMovie = (movieId) =>
@@ -171,8 +157,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             {friend.name}
           </Text>
           <Text style={styles.handle}>
-            {friend.handle} {t("· Level")} {friend.level} ·{" "}
-            {getLevelName(friend.level)}
+            {friend.handle} · {t(friend.title ?? getTitleName(friend.level))}
+            {friend.ranks != null && ` · ${t("{count} ranks", { count: friend.ranks })}`}
           </Text>
           <View style={styles.stats}>
             {[
@@ -195,46 +181,43 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         </Animated.View>
 
         <View style={styles.sections}>
-          {topTen.length > 0 && (
-            <View style={styles.topTen}>
-              <ProfileTopTen movies={topTen} onOpen={openMovie} />
-            </View>
-          )}
-
-          <SagaRanksRailSection
-            watchedIds={theirWatchedIds}
-            onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
-          />
-
           {friend.watched.length > 0 && (
-            <>
-              <ProfileSectionHeader
-                title={t("Tiers")}
-                actionLabel={t("Full list")}
-                onAction={() => navigation.push("TierList", { friendId: friend.id })}
-              />
-              <TierSummary
-                entries={friend.watched}
-                onPress={() => navigation.push("TierList", { friendId: friend.id })}
-              />
-            </>
+            <ProfileSection title={t("Tiers")} onAction={openTierList} onPress={openTierList}>
+              <TierSummary entries={friend.watched} />
+            </ProfileSection>
           )}
 
-          <ProfileSectionHeader title={t("Boards")} />
-          <BoardsRail
-            boards={theirBoards}
-            onOpen={(board) =>
-              navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
-            }
-            emptyText={
-              boards.isLoading
-                ? t("Loading…")
-                : t("{name} hasn't made any boards yet.", { name: firstName })
-            }
-          />
-        </View>
+          {finishedSagas.length > 0 && (
+            <ProfileSection title={t("Sagas")} rail>
+              <FinishedSagasRail
+                watched={friend.watched}
+                onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
+              />
+            </ProfileSection>
+          )}
 
-        <Text style={styles.togetherTitle}>{t("You and {name}", { name: firstName })}</Text>
+          <ProfileSection title={t("Boards")} rail={theirBoards.length > 0}>
+            {theirBoards.length > 0 ? (
+              <BoardsRail
+                boards={theirBoards}
+                onOpen={(board) =>
+                  navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
+                }
+              />
+            ) : (
+              <SectionEmpty
+                line={
+                  boards.isLoading
+                    ? t("Loading…")
+                    : t("{name} hasn't made any boards yet.", { name: firstName })
+                }
+              />
+            )}
+          </ProfileSection>
+
+          {/* The two of you */}
+          <ProfileSection title={t("You and {name}", { name: firstName })} />
+        </View>
 
         {/* You both loved */}
         <Tag label={t("You both loved")} />
@@ -333,6 +316,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
                       t("Saved {title}", {
                         title: getMovieById(event.movieId)?.title,
                       })}
+                    {event.type === "rank" &&
+                      t("Became {rank} · {track}", { rank: t(event.rank), track: t(event.track) })}
                     {event.type === "badge" &&
                       t("Earned the {badge} badge", { badge: event.badge })}
                     {event.type === "set" &&
@@ -359,16 +344,6 @@ const createStyles = (colors) =>
   StyleSheet.create({
     // The profile sections run edge to edge inside this page padding.
     sections: {
-      paddingHorizontal: spacing.md,
-    },
-    topTen: {
-      marginTop: spacing.md,
-    },
-    togetherTitle: {
-      ...typography.title,
-      fontSize: 17,
-      color: colors.textPrimary,
-      marginTop: spacing.xl,
       paddingHorizontal: spacing.md,
     },
     container: {

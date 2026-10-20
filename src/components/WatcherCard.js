@@ -1,46 +1,50 @@
-import { Plus } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Plus, Star } from "lucide-react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { AvatarLevelRing } from "./AvatarLevelRing";
-import { Medal, getBadgeLook } from "./BadgeMedal";
+import { AvatarRankRing } from "./AvatarRankRing";
+import { RankBadge } from "./RankBadge";
 import { t } from "../i18n";
 
-// Top badges shown under the bio.
-const TOP_BADGES = 6;
-const TOP_BADGE_SIZE = 34;
+// Your rarest ranks, shown under the bio.
+const TOP_RANKS = 6;
+const TOP_RANK_SIZE = 34;
 
 // The top of Profile — and the header of the shared taste image: who you
 // are as a watcher at a glance, laid out like a social profile.
 //
-//   avatar (with level ring)   name
-//                              movies · hours · collections · badges
-//                              rank · XP to the next level
+//   avatar (ring to your next title)   name
+//                                      movies · hours · ranks · sagas
+//                                      TITLE · ranks to the next one
 //   "bio, as a quote"
-//   top badges — your best from each track, most valuable first
+//   your rarest ranks
 //
-// Badges are just a number here; tapping it opens the Badges screen.
-//
-// mode "profile" is interactive (open watcher sheet, edit bio, open badges);
+// mode "profile" is interactive (edit the photo and bio, open sagas);
 // mode "share" drops every control so it reads cleanly as an image.
+// `title` (getTitle() from utils/ranks) and `showcase` (ranks, rarest
+// first) are optional: without them it's a plain avatar, no title line and
+// no rank tiles. `ring` (getTitle()) alone draws the avatar's ring to the
+// next title; `rankCount` alone shows the ranks number in the stats;
+// `nameTitle` (getTitle()) puts your title in a small gold tag after your
+// name.
 export const WatcherCard = ({
   mode = "profile",
   displayName,
   handle,
   bio,
   avatarSource,
-  level,
-  xpToNextLevel,
-  earnedBadgeCount,
+  title,
+  ring = title,
+  rankCount = title?.count,
+  nameTitle,
   showcase = [],
-  allBadges = [],
   stats,
   onPressAvatar,
   onPressBio,
-  onPressBadges,
+  onPressRanks,
   onPressCollections,
 }) => {
   const colors = useColors();
@@ -51,13 +55,13 @@ export const WatcherCard = ({
   const statItems = [
     { value: stats.movies, label: stats.movies === 1 ? "movie" : "movies" },
     { value: `${stats.hours}h`, label: "watched" },
-    { value: stats.completed, label: "sagas", onPress: onPressCollections },
-    {
-      value: earnedBadgeCount,
-      label: earnedBadgeCount === 1 ? "badge" : "badges",
-      onPress: onPressBadges,
+    rankCount != null && {
+      value: rankCount,
+      label: rankCount === 1 ? "rank" : "ranks",
+      onPress: onPressRanks,
     },
-  ];
+    { value: stats.completed, label: "sagas", onPress: onPressCollections },
+  ].filter(Boolean);
 
   return (
     <View>
@@ -65,19 +69,34 @@ export const WatcherCard = ({
       <View style={styles.topRow}>
         <Touch
           onPress={onPressAvatar}
-          accessibilityLabel={t("Your watcher profile")}
+          accessibilityLabel={ring ? t("Your ranks") : t("Change profile photo")}
         >
-          <AvatarLevelRing
-            source={avatarSource}
-            level={level}
-            avatarSize={76}
-          />
+          {ring ? (
+            <AvatarRankRing source={avatarSource} title={ring} avatarSize={76} />
+          ) : (
+            <Image source={avatarSource} style={styles.avatar} />
+          )}
         </Touch>
         <View style={styles.side}>
-          {/* Just the name, over the numbers */}
-          <Text style={styles.name} numberOfLines={1}>
-            {displayName}
-          </Text>
+          {/* The name (and your title in a gold tag), over the numbers */}
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {nameTitle && (
+              <Touch
+                onPress={onPressRanks}
+                hitSlop={6}
+                style={styles.titleTag}
+                accessibilityLabel={t(nameTitle.name)}
+              >
+                <Star size={11} color={colors.rating} fill={colors.rating} strokeWidth={2} />
+                <Text style={styles.titleTagText} numberOfLines={1}>
+                  {t(nameTitle.name)}
+                </Text>
+              </Touch>
+            )}
+          </View>
           {isShare && <Text style={styles.handle}>{handle}</Text>}
           <View style={styles.stats}>
             {statItems.map(({ value, label, onPress }) => {
@@ -95,33 +114,37 @@ export const WatcherCard = ({
                   <Text style={styles.statValue}>{value}</Text>
                   <View style={styles.statLabelRow}>
                     <Text style={styles.statLabel} numberOfLines={1}>
-                      {label}
+                      {t(label)}
                     </Text>
                   </View>
                 </Item>
               );
             })}
           </View>
-          {/* Rank, and how far to the next level — under the numbers */}
+          {/* Your title, and how far to the next — under the numbers */}
+          {title && (
           <Touch
             onPress={onPressAvatar}
             hitSlop={6}
             style={styles.rankRow}
-            accessibilityLabel={t("Your watcher profile")}
+            accessibilityLabel={t("Your ranks")}
           >
             <Text style={styles.rankName} numberOfLines={1}>
-              {t(level.name)}
-              {xpToNextLevel != null && (
+              {t(title.name)}
+              {!isShare && (
                 <Text style={styles.rankNext}>
                   {" · "}
-                  {t("{count} XP to level {level}", {
-                    count: xpToNextLevel,
-                    level: level.level + 1,
-                  })}
+                  {title.next
+                    ? t("{count} ranks to {title}", {
+                        count: title.toNext,
+                        title: t(title.next.name),
+                      })
+                    : t("The top title")}
                 </Text>
               )}
             </Text>
           </Touch>
+          )}
         </View>
       </View>
 
@@ -156,29 +179,24 @@ export const WatcherCard = ({
         </Pressable>
       )}
 
-      {/* Top badges — tap to see them all */}
+      {/* Your rarest ranks — tap to see them all */}
       {showcase.length > 0 && (
         <Touch
           style={styles.topBadges}
-          onPress={onPressBadges}
-          accessibilityLabel={t("Your badges")}
+          onPress={onPressRanks}
+          accessibilityLabel={t("Your ranks")}
         >
-          {showcase.slice(0, TOP_BADGES).map((badge) => {
-            const { metal, tierIndex } = getBadgeLook(badge, allBadges);
-            return (
-              <Medal
-                key={badge.id}
-                badge={badge}
-                metal={metal}
-                tierIndex={tierIndex}
-                size={TOP_BADGE_SIZE}
-                showCheck={false}
-              />
-            );
-          })}
-          {showcase.length > TOP_BADGES && (
+          {showcase.slice(0, TOP_RANKS).map((rank) => (
+            <RankBadge
+              key={rank.id}
+              track={rank.track}
+              step={rank}
+              size={TOP_RANK_SIZE}
+            />
+          ))}
+          {showcase.length > TOP_RANKS && (
             <Text style={styles.moreBadges}>
-              +{showcase.length - TOP_BADGES}
+              +{showcase.length - TOP_RANKS}
             </Text>
           )}
         </Touch>
@@ -189,6 +207,12 @@ export const WatcherCard = ({
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    avatar: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: colors.card,
+    },
     topRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -224,10 +248,32 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
+    nameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
     name: {
       ...typography.title,
       fontSize: 18,
       color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    // Your title after your name: gold on a tint of it.
+    titleTag: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      flexShrink: 0,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      backgroundColor: `${colors.rating}24`,
+    },
+    titleTagText: {
+      ...typography.bodyBold,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.rating,
     },
     rankRow: {
       marginTop: spacing.sm,
@@ -235,8 +281,8 @@ const createStyles = (colors) =>
     },
     rankName: {
       ...typography.bodyBold,
-      fontSize: 12,
-      color: colors.textSecondary,
+      fontSize: 13,
+      color: colors.rating,
     },
     rankNext: {
       ...typography.caption,

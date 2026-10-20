@@ -1,5 +1,4 @@
 import { MOVIES, getMovieById } from "../data/movies";
-import { DIFFICULTY } from "./xp";
 import {
   getCollectionProgress,
   getCollectionsForMovie,
@@ -17,9 +16,12 @@ import { t } from "../i18n";
 // the spec aren't implemented; Revisit isn't either, since this app has no
 // rewatch concept (marking watched is a one-time, not-undo-able event).
 
-const randomXP = (difficultyKey) => {
-  const { min, max } = DIFFICULTY[difficultyKey];
-  return Math.round((min + Math.random() * (max - min)) / 10) * 10;
+// How hard a dare is — the label on its card.
+export const DIFFICULTY = {
+  EASY: { label: "Easy" },
+  MEDIUM: { label: "Medium" },
+  HARD: { label: "Hard" },
+  EXTREME: { label: "Extreme" },
 };
 
 const makeChallenge = ({
@@ -37,7 +39,6 @@ const makeChallenge = ({
   targetMovieId,
   difficulty,
   difficultyLabel: DIFFICULTY[difficulty].label,
-  xpReward: randomXP(difficulty),
 });
 
 const DAY_MS = 24 * 60 * 60 * 1000;

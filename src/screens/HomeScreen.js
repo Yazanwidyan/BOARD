@@ -42,8 +42,8 @@ import { getInProgressCollections } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getEndTime, getTonightSuggestions } from "../utils/tonightPick";
+import { countFinishedDares } from "../utils/useRanks";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
-import { getLevel, getUserXP } from "../utils/xp";
 import { t } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
@@ -135,6 +135,7 @@ const WatchlistSuggestion = ({
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
+  const dares = countFinishedDares(useChallengeStore((state) => state.history));
   const [offset, setOffset] = useState(0);
   // Pull to refresh on Home steps to the next suggestion.
   const lastRefresh = useRef(refreshCount);
@@ -146,28 +147,31 @@ const WatchlistSuggestion = ({
   }, [refreshCount]);
 
   const candidates = useMemo(
-    () => getTonightSuggestions(watched, bucketList),
-    [watched, bucketList],
+    () => getTonightSuggestions(watched, bucketList, dares),
+    [watched, bucketList, dares],
   );
   if (candidates.length === 0) return null;
 
   const suggestion = candidates[offset % candidates.length];
-  const { movie, savedAt } = suggestion;
-  const isSaved = bucketList.some((entry) => entry.movieId === movie.id);
+  const { movie, savedAt, angle } = suggestion;
   const endsAt = getEndTime(movie);
-  const tag = isSaved
-    ? {
-        text: savedAt
-          ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
-          : t("On your watchlist"),
-      }
-    : null;
+  // Why it's here (its angle) — a watchlist save says when it was saved.
+  const tag =
+    angle.key === "saved"
+      ? {
+          text: savedAt
+            ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
+            : t("On your watchlist"),
+        }
+      : { text: t(angle.label), color: angle.key === "rank" ? colors.rating : undefined };
   const insight = {
     ...suggestion,
     // With too little history there's no taste to explain it.
     reason:
       suggestion.reason ??
-      (suggestion.match == null && !isSaved ? t("Highly rated, and you haven't seen it") : null),
+      (suggestion.match == null && !suggestion.saved
+        ? t("Highly rated, and you haven't seen it")
+        : null),
   };
 
   // Keyed on the movie, so each new suggestion fades in rather than
@@ -318,7 +322,6 @@ export const HomeScreen = ({ navigation }) => {
   const queuedCount = bucketList.length;
   const watchedCount = watched.length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const level = getLevel(getUserXP(watched));
   const inProgressCollections = getInProgressCollections(watchedIds, 4);
   const isFreshAccount =
     !pickedMovieId &&

@@ -1,293 +1,103 @@
 import * as Haptics from "expo-haptics";
 
 import { useChallengeStore } from "../store/challengeStore";
-import { useMovieStore } from "../store/movieStore";
+import { refreshRanks, useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
 import { reportAchievements } from "../services/sync";
 import { useAchievementStore } from "../store/achievementStore";
 import { showToast } from "../store/toastStore";
-import { isRated } from "./tiers";
-import { getNewlyEarnedBadges } from "./badges";
-import { getCompletedCollectionsCount, getRanksReachedBy } from "./collections";
-import {
-  DIRECTOR_DEPTH_XP,
-  NEW_DECADE_XP,
-  NEW_GENRE_XP,
-  RANK_XP,
-  RATE_XP,
-  WATCH_XP,
-  getCompletedChallengesCount,
-  getLevel,
-  getUserXP,
-  getXPBreakdown,
-} from "./xp";
+import { getEarnedRanks, getNewRanks, getRankTracks, getSagaTracks } from "./ranks";
+import { countFinishedDares } from "./useRanks";
 import { t } from "../i18n";
 
-// The one place that turns "something in the XP economy just changed" into
-// a real in-app achievement popup (see AchievementModal, mounted once at
-// the navigation root) — a button silently changing label, or a badge you
-// only discover later by opening Profile, isn't a moment at all. A single
-// action can trigger more than one kind of reward at once (finishes a
-// collection, completes a challenge, crosses a badge threshold); all of it
-// shows in the same popup rather than several stacked ones.
-export const badgeParams = (watched, bucketList, challengeHistory) => {
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  return {
-    watchedCount: watched.length,
-    ratedCount: watched.filter(isRated).length,
-    queuedCount: bucketList.length,
-    completedCollectionsCount: getCompletedCollectionsCount(watchedIds),
-    completedChallengesCount: getCompletedChallengesCount(challengeHistory),
-    rewatchedCount: watched.filter((entry) => (entry.watchCount ?? 1) > 1)
-      .length,
-    watchedIds,
-  };
-};
+// The one place that turns "you just earned something" into a real in-app
+// moment (see AchievementModal, mounted once at the navigation root). There
+// is one thing to earn — ranks (utils/ranks) — so every action is checked
+// the same way: your ranks before it against your ranks after. A watch can
+// reach several at once (Time Traveler, First Watch…), and a step on a
+// saga's own ladder (not counted as a rank) or a finished dare can come
+// with it; all of it is one moment, and the dialog decides what leads.
 
-// Badges and challenges are recognition — they show in the dialog but add
-// no XP (xp: null renders as a ✓ instead of a number).
-const badgeRows = (badges) =>
-  badges.map((badge) => ({
-    label: "Badge earned",
-    detail: badge.label,
-    xp: null,
-    // So the dialog can show the real medal.
-    badge,
-  }));
+const snapshot = (watched, history) =>
+  getRankTracks(watched, countFinishedDares(history));
 
-// The XP rows for what changed between two watched lists: each new genre /
-// decade / director milestone / finished collection named, so the dialog
-// says *why* (e.g. "New genre · Horror +50").
-const xpRowsBetween = (watchedBefore, watchedAfter) => {
-  const before = getXPBreakdown(watchedBefore);
-  const after = getXPBreakdown(watchedAfter);
-  const rows = [];
-  const added = (list, previous) =>
-    list.filter((item) => !previous.includes(item));
-  if (after.xp.watched > before.xp.watched) {
-    rows.push({ label: "Watched", xp: WATCH_XP });
-  }
-  added(after.genres, before.genres).forEach((genre) =>
-    rows.push({ label: "New genre", detail: genre, xp: NEW_GENRE_XP }),
-  );
-  added(after.decades, before.decades).forEach((decade) =>
-    rows.push({
-      label: "New decade",
-      detail: t("The {decade}", { decade: decade }),
-      xp: NEW_DECADE_XP,
-    }),
-  );
-  added(after.deepDirectors, before.deepDirectors).forEach((director) =>
-    rows.push({
-      label: "Director depth",
-      detail: t("3 films by {director}", { director: director }),
-      xp: DIRECTOR_DEPTH_XP,
-    }),
-  );
-  if (after.xp.rated > before.xp.rated) {
-    rows.push({ label: "Rated", xp: RATE_XP });
-  }
-  return { rows, before: before.total, after: after.total };
-};
-
-// "Level up!" row when the change crossed a level boundary.
-const levelUpRow = (xpBefore, xpAfter) => {
-  const levelBefore = getLevel(xpBefore).level;
-  const next = getLevel(xpAfter);
-  return next.level > levelBefore
-    ? {
-        label: "Level up",
-        detail: t("Level {level} · {name}", {
-          level: next.level,
-          name: next.name,
-        }),
-        xp: null,
-      }
-    : null;
-};
-
-// `tierMovieId`: a just-watched movie — the dialog shows its poster. `xp`: { before, after } totals,
-// so the dialog's level bar can fill from where you were to where you are
-// (left out when the action added no XP — the bar then just shows now).
-const showAchievement = (
-  rows,
-  kinds,
-  shareCollectionId = null,
-  tierMovieId = null,
-  xp = null,
-) => {
-  if (rows.length === 0) return;
-  // Badges and finished collections go to friends' activity feeds.
-  reportAchievements(rows);
-  const xpNow = xp ?? {
-    before: getUserXP(useMovieStore.getState().watched),
-    after: getUserXP(useMovieStore.getState().watched),
-  };
+// A moment: { reason: "watched" | "rewatch" | "tier", movieId, ranks (new,
+// counted), sagaSteps (new, on sagas' own ladders), dare ({ title } |
+// null), ranksBefore, ranksAfter, shareCollectionId (a saga just finished,
+// for the brag card) }.
+const showMoment = ({ reason, movieId = null, ranks = [], sagaSteps = [], dare = null, counts }) => {
+  // New ranks and saga steps go to friends' activity feeds.
+  reportAchievements([...ranks, ...sagaSteps].map((rank) => ({ rank })));
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  const total = rows.reduce((sum, row) => sum + (row.xp ?? 0), 0);
-
-  const title = kinds.includes("level")
-    ? "Level Up!"
-    : kinds.length > 1
-      ? "Big Night!"
-      : kinds.includes("collection")
-        ? "Saga Complete!"
-        : kinds.includes("rank")
-          ? "New Rank!"
-          : kinds.includes("challenge")
-          ? "Dare Complete!"
-          : kinds.includes("rewatch")
-            ? "Rewatched!"
-            : kinds.includes("badge")
-              ? rows.length > 1
-                ? "Badges Earned!"
-                : "Badge Earned!"
-              : "Marked as Watched";
-
-  const kind = kinds.includes("level")
-    ? "level"
-    : kinds.length > 1
-      ? "multi"
-      : (kinds[0] ?? "watched");
-
   useAchievementStore.getState().showAchievement({
-    title,
-    kind,
-    rows,
-    total,
-    shareCollectionId,
-    tierMovieId,
-    xpBefore: xpNow.before,
-    xpAfter: xpNow.after,
+    reason,
+    movieId,
+    ranks,
+    sagaSteps,
+    dare,
+    ranksBefore: counts.before,
+    ranksAfter: counts.after,
+    shareCollectionId: sagaSteps.find((step) => step.top)?.track.collectionId ?? null,
   });
 };
 
-// Call right after toggleWatched(movieId), passing the watched/bucketList
-// arrays as they were the instant BEFORE that call — every count this
-// checks (watch tally, collections, badges) is read fresh from the store
-// AFTER, so the diff is always against the real transition, not a guess.
-export const giveWatchedFeedback = (
-  movieId,
-  watchedBefore,
-  bucketListBefore,
-) => {
+const countsBetween = (before, after) => ({
+  before: getEarnedRanks(before).length,
+  after: getEarnedRanks(after).length,
+});
+
+// Call right after toggleWatched(movieId), passing the watched array as it
+// was the instant BEFORE that call — everything is read fresh from the
+// stores AFTER, so the diff is the real transition. Always shows (it's the
+// moment to tier it).
+export const giveWatchedFeedback = (movieId, watchedBefore) => {
   const challengeStore = useChallengeStore.getState();
   const historyBefore = challengeStore.history;
   const completedChallenge = challengeStore.checkAutoCompletion(movieId);
+  // A finished dare is a rank of its own (Dare Devil).
+  if (completedChallenge) refreshRanks();
 
-  const movieState = useMovieStore.getState();
-  const watchedAfter = movieState.watched;
-  const bucketListAfter = movieState.bucketList;
-  const historyAfter = useChallengeStore.getState().history;
-
-  const watchedIdsBefore = new Set(watchedBefore.map((entry) => entry.movieId));
-  // Saga ranks this watch reaches ("Prefect · Potterhead"); the top one
-  // finishes the saga.
-  const ranksReached = getRanksReachedBy(movieId, watchedIdsBefore);
-
-  const newBadges = getNewlyEarnedBadges(
-    badgeParams(watchedBefore, bucketListBefore, historyBefore),
-    badgeParams(watchedAfter, bucketListAfter, historyAfter),
-  );
-
-  const { rows, before, after } = xpRowsBetween(watchedBefore, watchedAfter);
-  const kinds = [];
-
-  // Each rank is its own row, worth RANK_XP. A finished saga's row carries
-  // the collection, so it reaches friends' feeds (services/sync).
-  ranksReached.forEach(({ collection, rank, final }) => {
-    rows.push({
-      label: final ? "Saga complete" : "New rank",
-      detail: t("{rank} · {saga}", { rank: rank.title, saga: collection.title }),
-      xp: RANK_XP,
-      ...(final ? { collection } : {}),
-    });
-    kinds.push(final ? "collection" : "rank");
+  const watchedAfter = useMovieStore.getState().watched;
+  const before = snapshot(watchedBefore, historyBefore);
+  const after = snapshot(watchedAfter, useChallengeStore.getState().history);
+  showMoment({
+    reason: "watched",
+    movieId,
+    ranks: getNewRanks(before, after),
+    sagaSteps: getNewRanks(getSagaTracks(watchedBefore), getSagaTracks(watchedAfter)),
+    dare: completedChallenge ? { title: completedChallenge.title } : null,
+    counts: countsBetween(before, after),
   });
-  if (completedChallenge) {
-    rows.push({
-      label: "Dare complete",
-      detail: completedChallenge.title,
-      xp: null,
-    });
-    kinds.push("challenge");
-  }
-  if (newBadges.length > 0) {
-    rows.push(...badgeRows(newBadges));
-    kinds.push("badge");
-  }
-  // `after` already includes rank XP (it's derived from the whole watched
-  // list), so the level check sees everything this watch earned.
-  const levelUp = levelUpRow(before, after);
-  if (levelUp) {
-    rows.unshift(levelUp);
-    kinds.push("level");
-  }
-
-  // Finishing a saga offers the brag card.
-  const shareCollectionId =
-    ranksReached.find((reached) => reached.final)?.collection.id ?? null;
-  showAchievement(rows, kinds, shareCollectionId, movieId, { before, after });
 };
 
 // Call right after setWatchedRating(movieId, rating), passing the watched
-// array as it was the instant BEFORE that call. Rating can only ever move
-// the Critic badge ladder, but it's run through the same general diff so a
-// crossed threshold is never missed — that's the exact gap that prompted
-// this (rating a 5th movie earned "Amateur Critic" with nothing to show
-// for it until Profile was opened later).
+// array as it was the instant BEFORE that call. A tier can earn a rank
+// (Films tiered, Tough Critic) — the dialog only shows when it did;
+// otherwise the tier lighting up is feedback enough.
 export const giveRatingFeedback = (watchedBefore) => {
-  const { watched: watchedAfter, bucketList } = useMovieStore.getState();
   const { history } = useChallengeStore.getState();
-
-  const newBadges = getNewlyEarnedBadges(
-    badgeParams(watchedBefore, bucketList, history),
-    badgeParams(watchedAfter, bucketList, history),
-  );
-
-  // Rating adds a little XP — only worth a dialog when it also earned a
-  // badge or crossed a level; otherwise the tier lighting up is feedback
-  // enough.
-  const { rows, before, after } = xpRowsBetween(watchedBefore, watchedAfter);
-  const levelUp = levelUpRow(before, after);
-  if (newBadges.length === 0 && !levelUp) return;
-  const kinds = [];
-  if (levelUp) {
-    rows.unshift(levelUp);
-    kinds.push("level");
-  }
-  if (newBadges.length > 0) {
-    rows.push(...badgeRows(newBadges));
-    kinds.push("badge");
-  }
-  showAchievement(rows, kinds, null, null, { before, after });
+  const before = snapshot(watchedBefore, history);
+  const after = snapshot(useMovieStore.getState().watched, history);
+  const ranks = getNewRanks(before, after);
+  if (ranks.length === 0) return;
+  showMoment({ reason: "tier", ranks, counts: countsBetween(before, after) });
 };
 
 // A drop-in replacement for calling movieStore's rewatchMovie directly —
-// owns the whole thing (the store call, the before/after snapshot, the
-// popup) so every call site is just this one function. Always shows a
-// confirmation: a toast normally, the achievement dialog when it earned a
-// Rewatch-tier badge.
+// owns the whole thing (the store call, the before/after, the popup).
+// Always confirms: a toast normally, the dialog when it earned a rank
+// (Comfort Watcher, or a third film that day for Marathoner).
 export const rewatchMovieWithFeedback = (movieId) => {
-  const {
-    watched: watchedBefore,
-    bucketList,
-    rewatchMovie,
-  } = useMovieStore.getState();
+  const { watched: watchedBefore, rewatchMovie } = useMovieStore.getState();
   const { history } = useChallengeStore.getState();
 
   rewatchMovie(movieId);
 
-  const { watched: watchedAfter } = useMovieStore.getState();
-  const newBadges = getNewlyEarnedBadges(
-    badgeParams(watchedBefore, bucketList, history),
-    badgeParams(watchedAfter, bucketList, history),
-  );
-
-  // Rewatches add no XP (they're history, not more range) — a toast logs
-  // it, unless it earned a Rewatch badge, which gets the dialog.
-  if (newBadges.length > 0) {
-    showAchievement(badgeRows(newBadges), ["badge"]);
+  const before = snapshot(watchedBefore, history);
+  const after = snapshot(useMovieStore.getState().watched, history);
+  const ranks = getNewRanks(before, after);
+  if (ranks.length > 0) {
+    showMoment({ reason: "rewatch", movieId, ranks, counts: countsBetween(before, after) });
   } else {
     const title = getMovieById(movieId)?.title ?? "Movie";
     showToast(t("Rewatch of {title} logged", { title: title }), {
@@ -296,42 +106,22 @@ export const rewatchMovieWithFeedback = (movieId) => {
   }
 };
 
-// A drop-in replacement for calling movieStore's toggleBucketList directly
-// — every call site just swaps the import, no before/after snapshotting of
-// its own to get wrong. Only the Curator badge (10+ on the watchlist) can
-// possibly move here, but it goes through the same general diff as
-// everything else so every badge category gets the exact same feedback
-// once earned, not just the ones someone remembered to wire up.
+// A drop-in replacement for calling movieStore's toggleBucketList directly,
+// so every add or remove says so with a quick toast. (Saving earns no rank —
+// watching does.)
 export const toggleBucketListWithFeedback = (movieId) => {
-  const {
-    watched,
-    bucketList: bucketListBefore,
-    toggleBucketList,
-  } = useMovieStore.getState();
-  const { history } = useChallengeStore.getState();
-
+  const { toggleBucketList } = useMovieStore.getState();
   toggleBucketList(movieId);
-
-  const bucketListAfter = useMovieStore.getState().bucketList;
-  const added = bucketListAfter.some((entry) => entry.movieId === movieId);
+  const added = useMovieStore
+    .getState()
+    .bucketList.some((entry) => entry.movieId === movieId);
   const title = getMovieById(movieId)?.title ?? "Movie";
-  const newBadges = getNewlyEarnedBadges(
-    badgeParams(watched, bucketListBefore, history),
-    badgeParams(watched, bucketListAfter, history),
+  showToast(
+    added
+      ? t("{title} added to your watchlist", { title: title })
+      : t("{title} removed from your watchlist", { title: title }),
+    { tone: added ? "success" : "info" },
   );
-
-  // A badge earned by this save gets the full achievement dialog; every
-  // other add/remove gets a quick toast so the tap is never silent.
-  if (newBadges.length > 0) {
-    showAchievement(badgeRows(newBadges), ["badge"]);
-  } else {
-    showToast(
-      added
-        ? t("{title} added to your watchlist", { title: title })
-        : t("{title} removed from your watchlist", { title: title }),
-      { tone: added ? "success" : "info" },
-    );
-  }
 };
 
 export default giveWatchedFeedback;

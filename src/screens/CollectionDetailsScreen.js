@@ -59,7 +59,6 @@ import {
 import { shuffle } from "../utils/shuffle";
 import { getTastePicks } from "../utils/tasteEngine";
 import { TIERS, getTier } from "../utils/tiers";
-import { RANK_XP } from "../utils/xp";
 import { t } from "../i18n";
 
 const TYPE_LABELS = {
@@ -287,7 +286,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const isComplete = total > 0 && watchedCount === total;
   const minutesLeft = unwatched.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
   const totalMinutes = movies.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
-  // A saga: the rank you've reached, the next one, and the XP so far.
+  // A saga: the rank you've reached, the next one, and how many so far.
   const saga = isSaga(collection) ? getSagaRank(collection, watchedIds) : null;
   const completedAt = isComplete ? getCollectionCompletedAt(collection, watched) : null;
   const art = page.data?.art ?? null;
@@ -453,8 +452,11 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                 <View style={[styles.xpChip, isComplete && styles.xpChipEarned]}>
                   <Text style={[styles.xpText, isComplete && styles.xpTextEarned]}>
                     {isComplete
-                      ? t("+{xp} XP earned", { xp: saga.reached.length * RANK_XP })
-                      : t("+{xp} XP a rank", { xp: RANK_XP })}
+                      ? t("{count} ranks earned", { count: saga.reached.length })
+                      : t("{count} of {total} ranks", {
+                          count: saga.reached.length,
+                          total: collection.ranks.length,
+                        })}
                   </Text>
                 </View>
               )}
