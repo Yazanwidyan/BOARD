@@ -1,6 +1,16 @@
 import * as Clipboard from "expo-clipboard";
+import {
+  Activity,
+  Check,
+  ChevronRight,
+  Copy,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react-native";
 import { useState } from "react";
 import {
+  Image,
   Pressable,
   Share,
   StyleSheet,
@@ -12,30 +22,49 @@ import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
-import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
-import { getMovieById, useMoviesVersion } from "../data/movies";
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { SettingsGroup, SettingsRow } from "../components/SettingsList";
+import { useMoviesVersion } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
 import { useClubs } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
+import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
 import { getTitleName } from "../utils/ranks";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 
-const POSTERS_SHOWN = 5;
+const AVATAR = 44;
+const SMALL_AVATAR = 40;
+const MY_AVATAR = 60;
+const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
+// Hairlines in a list of people start after the avatar.
+const PEOPLE_INSET = spacing.md + AVATAR + spacing.md;
+const HANDLE_PATTERN = /^[a-zA-Z0-9_.]{3,20}$/;
 
-// Friends: your handle to share, adding by handle, requests waiting on
-// you (or on them), and your friends with how close their taste is to
-// yours and their top-tiered posters. Tap one for their page.
+// "@sam · Critic · 15 ranks" — who they are, under their name.
+const describe = (person) =>
+  [
+    person.handle,
+    person.title || person.level != null ? t(person.title ?? getTitleName(person.level)) : null,
+    person.ranks != null ? t("{count} ranks", { count: person.ranks }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+// Friends, laid out like Settings: you (your handle to copy or share),
+// adding someone, requests waiting on you and on them, where to go
+// together (Activity, Clubs), then your friends, closest taste first.
+// Tap a friend for their page.
 export const FriendsScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -43,8 +72,11 @@ export const FriendsScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const rtl = useIsRTL();
   const watched = useMovieStore((state) => state.watched);
   const account = useAuthStore((state) => state.user);
+  const displayName = useProfileStore((state) => state.displayName);
+  const avatarUri = useProfileStore((state) => state.avatarUri);
   const {
     friends: friendList,
     incoming,
@@ -62,20 +94,26 @@ export const FriendsScreen = ({ navigation }) => {
 
   const myHandle = account?.handle;
   const friends = friendList
-    .map((friend) => ({
-      ...friend,
-      match: getTasteMatch(watched, friend.watched),
-      topPosters: [...friend.watched]
-        .sort((a, b) => (a.tier === "S" ? 0 : 1) - (b.tier === "S" ? 0 : 1))
-        .slice(0, POSTERS_SHOWN)
-        .map((entry) => getMovieById(entry.movieId))
-        .filter(Boolean),
-    }))
-    .sort((a, b) => (b.match ?? 0) - (a.match ?? 0));
+    .map((friend) => ({ ...friend, match: getTasteMatch(watched, friend.watched) }))
+    .sort((a, b) => (b.match ?? -1) - (a.match ?? -1));
+  const canSend = handleInput.trim().length > 0 && !sending;
+
+  const copyHandle = async () => {
+    if (!myHandle) return;
+    await Clipboard.setStringAsync(myHandle);
+    showToast(t("Handle copied"), { tone: "success" });
+  };
+  const invite = () =>
+    Share.share({
+      message: t(
+        "Join me on ReelBoard — I'm {myHandle}. Let's compare tier lists.",
+        { myHandle },
+      ),
+    }).catch(() => {});
 
   const send = async () => {
     const raw = handleInput.trim().replace(/^@/, "");
-    if (!/^[a-zA-Z0-9_.]{3,20}$/.test(raw)) {
+    if (!HANDLE_PATTERN.test(raw)) {
       showToast(t("Enter a handle like @sam"));
       return;
     }
@@ -115,191 +153,217 @@ export const FriendsScreen = ({ navigation }) => {
       <Animated.ScrollView
         onScroll={headerScroll.onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + spacing.xl },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Invite */}
-        <View style={styles.inviteCard}>
-          <Text style={styles.inviteLabel}>{t("Your handle")}</Text>
-          <Pressable
-            onPress={async () => {
-              await Clipboard.setStringAsync(myHandle);
-              showToast(t("Handle copied"), { tone: "success" });
-            }}
-            hitSlop={6}
-          >
-            <Text style={styles.inviteHandle}>{myHandle}</Text>
-          </Pressable>
-          <Text style={styles.inviteHint}>
-            {t("Friends add you by this — tap it to copy.")}
-          </Text>
-          <PrimaryButton
-            label={t("Invite a friend")}
-            onPress={() =>
-              Share.share({
-                message: t(
-                  "Join me on ReelBoard — I'm {myHandle}. Let's compare tier lists.",
-                  { myHandle: myHandle },
-                ),
-              })
-            }
-            style={styles.inviteButton}
-          />
-        </View>
-
-        {/* Add by handle */}
-        <View style={styles.addRow}>
-          <TextInput
-            value={handleInput}
-            onChangeText={setHandleInput}
-            placeholder={t("Add by handle, e.g. @sam")}
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="send"
-            onSubmitEditing={send}
-            editable={!sending}
-            style={styles.addInput}
-          />
-          <Pressable
-            style={({ pressed }) => [
-              styles.addButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={send}
-            disabled={sending}
-          >
-            <Text style={styles.addButtonText}>
-              {sending ? t("Sending…") : t("Add")}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Clubs */}
-        <Pressable
-          style={({ pressed }) => [styles.clubsRow, pressed && styles.pressed]}
-          onPress={() => navigation.navigate("Clubs")}
-        >
-          <View style={styles.friendText}>
-            <Text style={styles.friendName}>{t("Clubs")}</Text>
-            <Text style={styles.friendMeta} numberOfLines={1}>
-              {clubs.length > 0
-                ? t("{count} clubs · watch together", { count: clubs.length })
-                : t("Watch together — start a club or join one")}
-            </Text>
+        {/* You: the handle friends add you by — copy it (the icon by it)
+            or send it (the one button). */}
+        <View style={styles.meCard}>
+          <View style={styles.meTop}>
+            <Image
+              source={avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE}
+              style={styles.meAvatar}
+            />
+            <View style={styles.meText}>
+              <Text style={styles.meLabel}>{t("Your handle")}</Text>
+              <Text style={styles.meHandle} numberOfLines={1}>
+                {myHandle ?? displayName}
+              </Text>
+              <Text style={styles.meHint} numberOfLines={1}>
+                {t("Friends add you by this")}
+              </Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.copyButton, pressed && styles.rowPressed]}
+              onPress={copyHandle}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={t("Copy handle")}
+            >
+              <Copy size={18} color={colors.textPrimary} strokeWidth={1.9} />
+            </Pressable>
           </View>
-          <Text style={styles.addButtonText}>{t("Open")}</Text>
-        </Pressable>
+          <PrimaryButton label={t("Invite a friend")} onPress={invite} />
+        </View>
 
-        {/* Requests to you */}
+        {/* Add by handle: a Settings row with the field in it. */}
+        <SettingsGroup title={t("Add a friend")}>
+          <View style={styles.addRow}>
+            <UserPlus size={20} color={colors.textSecondary} strokeWidth={1.9} />
+            <TextInput
+              value={handleInput}
+              onChangeText={setHandleInput}
+              placeholder={t("Their handle, e.g. @sam")}
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="send"
+              onSubmitEditing={send}
+              editable={!sending}
+              style={styles.addInput}
+            />
+            <Pressable
+              onPress={send}
+              disabled={!canSend}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.addText, !canSend && styles.addTextOff]}>
+                {sending ? t("Sending…") : t("Add")}
+              </Text>
+            </Pressable>
+          </View>
+        </SettingsGroup>
+
+        {/* Requests to you: accept or decline in place. */}
         {incoming.length > 0 && (
-          <>
-            <Text style={styles.tagText}>
-              {t("Requests ·")} {incoming.length}
-            </Text>
+          <SettingsGroup
+            title={t("Requests · {count}", { count: incoming.length })}
+            inset={spacing.md + SMALL_AVATAR + spacing.md}
+          >
             {incoming.map(({ user }) => (
-              <View key={user.id} style={styles.requestRow}>
-                <FriendAvatar friend={user} size={38} />
-                <View style={styles.friendText}>
-                  <Text style={styles.friendName} numberOfLines={1}>
+              <View key={user.id} style={styles.personRow}>
+                <FriendAvatar friend={user} size={SMALL_AVATAR} />
+                <View style={styles.personText}>
+                  <Text style={styles.personName} numberOfLines={1}>
                     {user.name}
                   </Text>
-                  <Text style={styles.friendMeta} numberOfLines={1}>
-                    {user.handle}
+                  <Text style={styles.personMeta} numberOfLines={1}>
+                    {describe(user)}
+                  </Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+                  onPress={() => act(() => dropRequest(user.id))}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("Decline")}
+                >
+                  <X size={18} color={colors.textSecondary} strokeWidth={2.2} />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.acceptButton, pressed && styles.pressed]}
+                  onPress={() =>
+                    act(
+                      () => acceptRequest(user.id),
+                      t("You're now friends with {handle}", { handle: user.handle }),
+                    )
+                  }
+                  hitSlop={4}
+                  accessibilityRole="button"
+                >
+                  <Check size={16} color={colors.selectedText} strokeWidth={2.4} />
+                  <Text style={styles.acceptText}>{t("Accept")}</Text>
+                </Pressable>
+              </View>
+            ))}
+          </SettingsGroup>
+        )}
+
+        {/* Requests you sent, until they answer. */}
+        {outgoing.length > 0 && (
+          <SettingsGroup
+            title={t("Sent")}
+            inset={spacing.md + SMALL_AVATAR + spacing.md}
+          >
+            {outgoing.map(({ user }) => (
+              <View key={user.id} style={styles.personRow}>
+                <FriendAvatar friend={user} size={SMALL_AVATAR} />
+                <View style={styles.personText}>
+                  <Text style={styles.personName} numberOfLines={1}>
+                    {user.name ?? user.handle}
+                  </Text>
+                  <Text style={styles.personMeta} numberOfLines={1}>
+                    {t("Waiting for them to accept")}
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => act(() => dropRequest(user.id))}
-                  hitSlop={6}
-                  style={styles.requestAction}
+                  hitSlop={8}
+                  accessibilityRole="button"
                 >
-                  <Text style={styles.pendingState}>{t("Decline")}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    act(
-                      () => acceptRequest(user.id),
-                      t("You're now friends with {handle}", {
-                        handle: user.handle,
-                      }),
-                    )
-                  }
-                  hitSlop={6}
-                  style={styles.requestAction}
-                >
-                  <Text style={styles.addButtonText}>{t("Accept")}</Text>
+                  <Text style={styles.cancelText}>{t("Cancel")}</Text>
                 </Pressable>
               </View>
             ))}
-          </>
+          </SettingsGroup>
         )}
 
-        {/* Requests you sent */}
-        {outgoing.map(({ user }) => (
-          <View key={user.id} style={styles.pendingRow}>
-            <Text style={styles.pendingHandle}>{user.handle}</Text>
-            <Text style={styles.pendingState}>{t("Request sent")}</Text>
-            <Pressable onPress={() => act(() => dropRequest(user.id))} hitSlop={6}>
-              <Text style={styles.cancelText}>{t("Cancel")}</Text>
+        <SettingsGroup title={t("Together")}>
+          <SettingsRow
+            Icon={Activity}
+            label={t("Activity")}
+            hint={t("What your friends are watching and tiering")}
+            onPress={() => navigation.navigate("Activity")}
+          />
+          <SettingsRow
+            Icon={Users}
+            label={t("Clubs")}
+            hint={
+              clubs.length > 0
+                ? t("{count} clubs · watch together", { count: clubs.length })
+                : t("Watch together — start a club or join one")
+            }
+            onPress={() => navigation.navigate("Clubs")}
+          />
+        </SettingsGroup>
+
+        {/* Your friends, closest taste first. */}
+        {friends.length > 0 && (
+          <SettingsGroup
+            title={t("Friends · {count}", { count: friends.length })}
+            inset={PEOPLE_INSET}
+          >
+            {friends.map((friend) => (
+              <Pressable
+                key={friend.id}
+                style={({ pressed }) => [styles.personRow, pressed && styles.rowPressed]}
+                onPress={() => navigation.navigate("FriendProfile", { friendId: friend.id })}
+                accessibilityRole="button"
+              >
+                <FriendAvatar friend={friend} size={AVATAR} />
+                <View style={styles.personText}>
+                  <Text style={styles.personName} numberOfLines={1}>
+                    {friend.name}
+                  </Text>
+                  <Text style={styles.personMeta} numberOfLines={1}>
+                    {describe(friend)}
+                  </Text>
+                </View>
+                <View style={styles.match}>
+                  <Text style={[styles.matchValue, friend.match == null && styles.matchNone]}>
+                    {friend.match != null ? `${friend.match}%` : "—"}
+                  </Text>
+                  <View style={styles.matchTrack}>
+                    <View style={[styles.matchFill, { width: `${friend.match ?? 0}%` }]} />
+                  </View>
+                  <Text style={styles.matchLabel}>{t("match")}</Text>
+                </View>
+                <ChevronRight
+                  size={18}
+                  color={colors.textMuted}
+                  style={rtl && styles.flipped}
+                />
+              </Pressable>
+            ))}
+          </SettingsGroup>
+        )}
+
+        {/* No friends yet: one way forward. */}
+        {loaded && friends.length === 0 && (
+          <View style={styles.empty}>
+            <View style={styles.emptyRing}>
+              <Users size={28} color={colors.textPrimary} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>{t("No friends yet")}</Text>
+            <Text style={styles.emptyText}>
+              {t("Share your handle — once they add you, you can compare tiers and see what they're watching.")}
+            </Text>
+            <Pressable onPress={invite} hitSlop={10} accessibilityRole="button">
+              <Text style={styles.emptyAction}>{t("Invite a friend")}</Text>
             </Pressable>
           </View>
-        ))}
-
-        {/* Friends */}
-        <Text style={styles.tagText}>
-          {t("Friends ·")} {friends.length}
-        </Text>
-        {friends.map((friend) => (
-          <Pressable
-            key={friend.id}
-            style={({ pressed }) => [
-              styles.friendCard,
-              pressed && styles.pressed,
-            ]}
-            onPress={() =>
-              navigation.navigate("FriendProfile", { friendId: friend.id })
-            }
-          >
-            <View style={styles.friendTop}>
-              <FriendAvatar friend={friend} size={46} />
-              <View style={styles.friendText}>
-                <Text style={styles.friendName} numberOfLines={1}>
-                  {friend.name}
-                </Text>
-                <Text style={styles.friendMeta} numberOfLines={1}>
-                  {friend.handle} · {t(friend.title ?? getTitleName(friend.level))}
-                  {friend.ranks != null && ` · ${t("{count} ranks", { count: friend.ranks })}`}
-                </Text>
-              </View>
-              <View style={styles.matchPill}>
-                <Text style={styles.matchValue}>
-                  {friend.match != null ? `${friend.match}%` : "—"}
-                </Text>
-                <Text style={styles.matchLabel}>{t("taste match")}</Text>
-              </View>
-            </View>
-            {friend.topPosters.length > 0 && (
-              <View style={styles.posterRow}>
-                {friend.topPosters.map((movie) => (
-                  <MoviePoster
-                    key={movie.id}
-                    uri={movie.poster}
-                    style={styles.miniPoster}
-                  />
-                ))}
-              </View>
-            )}
-          </Pressable>
-        ))}
-
-        {loaded && friends.length === 0 && (
-          <Text style={styles.footnote}>
-            {t("No friends yet — share your handle to get started.")}
-          </Text>
         )}
         {!loaded && loading && (
           <Text style={styles.footnote}>{t("Loading…")}</Text>
@@ -310,6 +374,7 @@ export const FriendsScreen = ({ navigation }) => {
           </Text>
         )}
       </Animated.ScrollView>
+      <ScreenBottomFade />
     </View>
   );
 };
@@ -320,160 +385,193 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    // Bands run edge to edge; text and controls keep the inset.
-    // The handle box sits flush under the header.
-    content: {
-      paddingBottom: spacing.md,
-    },
     pressed: {
-      opacity: 0.8,
+      opacity: 0.85,
     },
-    inviteCard: {
-      alignItems: "center",
-      padding: spacing.lg,
+    rowPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    // Like Settings' profile card, with copy beside the handle and the
+    // invite button under it.
+    meCard: {
+      marginTop: spacing.md,
+      padding: spacing.md,
+      gap: spacing.md,
       backgroundColor: colors.card,
     },
-    inviteLabel: {
+    meTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    meAvatar: {
+      width: MY_AVATAR,
+      height: MY_AVATAR,
+      borderRadius: MY_AVATAR / 2,
+      backgroundColor: colors.cardElevated,
+    },
+    meText: {
+      flex: 1,
+      gap: 1,
+    },
+    meLabel: {
       ...typography.caption,
       color: colors.textMuted,
     },
-    inviteHandle: {
-      ...typography.hero,
-      fontSize: 28,
-      lineHeight: 34,
+    meHandle: {
+      ...typography.title,
       color: colors.textPrimary,
-      marginTop: spacing.xs,
     },
-    inviteHint: {
+    meHint: {
       ...typography.caption,
-      color: colors.textMuted,
-      marginTop: 2,
-      textAlign: "center",
+      color: colors.textSecondary,
     },
-    inviteButton: {
-      alignSelf: "stretch",
-      marginTop: spacing.md,
+    copyButton: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
-    // A filled box edge to edge, like Settings' fields, with "Add" as a
-    // plain text action inside it.
     addRow: {
       flexDirection: "row",
       alignItems: "center",
-      marginTop: spacing.md,
+      gap: spacing.md,
+      minHeight: 52,
       paddingHorizontal: spacing.md,
-      minHeight: 48,
-      backgroundColor: colors.card,
     },
     addInput: {
       ...typography.body,
+      fontSize: 15,
       flex: 1,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.sm + 2,
       color: colors.textPrimary,
     },
-    addButton: {
-      paddingStart: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    addButtonText: {
+    addText: {
       ...typography.bodyBold,
       color: colors.textPrimary,
     },
-    clubsRow: {
+    addTextOff: {
+      color: colors.textMuted,
+    },
+    personRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm,
-      marginTop: 2,
-      padding: spacing.md,
-      backgroundColor: colors.card,
+      gap: spacing.md,
+      minHeight: 64,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
     },
-    requestRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm + 2,
-      padding: spacing.md,
-      marginBottom: 2,
-      backgroundColor: colors.card,
-    },
-    requestAction: {
-      paddingStart: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    pendingRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md + spacing.sm,
-      paddingTop: spacing.sm,
-    },
-    pendingHandle: {
-      ...typography.bodyBold,
+    personText: {
       flex: 1,
+      gap: 2,
+    },
+    personName: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.textPrimary,
+    },
+    personMeta: {
+      ...typography.caption,
       color: colors.textSecondary,
     },
-    pendingState: {
-      ...typography.caption,
-      color: colors.textMuted,
+    iconButton: {
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    acceptButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      height: 34,
+      paddingHorizontal: spacing.sm + 2,
+      backgroundColor: colors.selected,
+    },
+    acceptText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.selectedText,
     },
     cancelText: {
-      ...typography.caption,
-      color: colors.textPrimary,
-    },
-    // Section caption, like Settings.
-    tagText: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    friendCard: {
-      padding: spacing.md,
-      marginBottom: 2,
-      backgroundColor: colors.card,
-    },
-    friendTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm + 2,
-    },
-    friendText: {
-      flex: 1,
-    },
-    friendName: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    friendMeta: {
-      ...typography.caption,
+      ...typography.bodyBold,
+      fontSize: 13,
       color: colors.textSecondary,
-      marginTop: 1,
     },
-    matchPill: {
+    // Taste match: the number, a thin green bar under it, "match".
+    match: {
       alignItems: "flex-end",
+      gap: 3,
+      minWidth: 48,
     },
     matchValue: {
       ...typography.bodyBold,
       color: colors.success,
+      fontVariant: ["tabular-nums"],
+    },
+    matchNone: {
+      color: colors.textMuted,
+    },
+    matchTrack: {
+      width: 48,
+      height: 3,
+      backgroundColor: colors.border,
+    },
+    matchFill: {
+      height: 3,
+      backgroundColor: colors.success,
     },
     matchLabel: {
       ...typography.caption,
       fontSize: 10,
       color: colors.textMuted,
     },
-    posterRow: {
-      flexDirection: "row",
-      gap: 2,
-      marginTop: spacing.sm + 2,
+    empty: {
+      alignItems: "center",
+      marginTop: spacing.xl,
+      paddingHorizontal: spacing.xl,
     },
-    miniPoster: {
-      width: 52,
-      height: 78,
+    emptyRing: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      borderWidth: 1.5,
+      borderColor: colors.textPrimary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyTitle: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+    },
+    emptyText: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.xs,
+      maxWidth: 290,
+    },
+    emptyAction: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
     },
     footnote: {
       ...typography.caption,
       color: colors.textMuted,
       textAlign: "center",
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
       paddingHorizontal: spacing.md,
     },
   });

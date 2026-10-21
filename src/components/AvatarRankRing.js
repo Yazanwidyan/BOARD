@@ -3,14 +3,15 @@ import Svg, { Circle } from "react-native-svg";
 
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { t } from "../i18n";
 import { Text } from "./AppText";
 
 const RING_STROKE = 5;
 const RING_GAP = 4;
 
 // The avatar wrapped in a ring that fills toward your next title, gold,
-// with your rank count on a tag at its bottom edge. `title`: getTitle()
-// from utils/ranks.
+// with your rank count and title ("23 · Star") on a tag at its bottom
+// edge. `title`: getTitle() from utils/ranks.
 export const AvatarRankRing = ({ source, title, avatarSize = 88 }) => {
   const colors = useColors();
   const size = avatarSize + 2 * (RING_GAP + RING_STROKE);
@@ -46,7 +47,9 @@ export const AvatarRankRing = ({ source, title, avatarSize = 88 }) => {
         <Image source={source} style={styles.avatarImage} />
       </View>
       <View style={styles.pill}>
-        <Text style={styles.pillText}>{title.count}</Text>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {title.count} · {t(title.name)}
+        </Text>
       </View>
     </View>
   );

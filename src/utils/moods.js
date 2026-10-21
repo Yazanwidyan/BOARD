@@ -53,7 +53,7 @@ const DIM_INDEX = Object.fromEntries(
 // How well a movie fits a mood: closeness on the mood's dimensions (0 is a
 // perfect fit, more negative is further), plus a little for quality, plus
 // a little for fitting your own taste — so two people's "Funny" differ.
-const moodScore = (movie, mood, fingerprint) => {
+export const moodScore = (movie, mood, fingerprint) => {
   const { dims } = getVibe(movie.id);
   const targets = Object.entries(mood.target);
   const miss =

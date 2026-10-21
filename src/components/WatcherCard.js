@@ -17,7 +17,7 @@ const TOP_RANK_SIZE = 34;
 // are as a watcher at a glance, laid out like a social profile.
 //
 //   avatar (ring to your next title)   name
-//                                      movies · hours · ranks · sagas
+//                                      movies · hours · collections · friends
 //                                      TITLE · ranks to the next one
 //   "bio, as a quote"
 //   your rarest ranks
@@ -28,6 +28,7 @@ const TOP_RANK_SIZE = 34;
 // first) are optional: without them it's a plain avatar, no title line and
 // no rank tiles. `ring` (getTitle()) alone draws the avatar's ring to the
 // next title; `rankCount` alone shows the ranks number in the stats;
+// `stats.friends`, when given, shows how many friends (tap: `onPressFriends`);
 // `nameTitle` (getTitle()) puts your title in a small gold tag after your
 // name.
 export const WatcherCard = ({
@@ -45,6 +46,7 @@ export const WatcherCard = ({
   onPressAvatar,
   onPressBio,
   onPressRanks,
+  onPressFriends,
   onPressCollections,
 }) => {
   const colors = useColors();
@@ -60,7 +62,12 @@ export const WatcherCard = ({
       label: rankCount === 1 ? "rank" : "ranks",
       onPress: onPressRanks,
     },
-    { value: stats.completed, label: "sagas", onPress: onPressCollections },
+    { value: stats.completed, label: "collections", onPress: onPressCollections },
+    stats.friends != null && {
+      value: stats.friends,
+      label: stats.friends === 1 ? "friend" : "friends",
+      onPress: onPressFriends,
+    },
   ].filter(Boolean);
 
   return (

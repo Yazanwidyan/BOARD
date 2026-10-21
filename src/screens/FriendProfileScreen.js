@@ -188,7 +188,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           )}
 
           {finishedSagas.length > 0 && (
-            <ProfileSection title={t("Sagas")} rail>
+            <ProfileSection title={t("Collections")} rail>
               <FinishedSagasRail
                 watched={friend.watched}
                 onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}

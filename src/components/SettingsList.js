@@ -17,7 +17,9 @@ import { Text } from "./AppText";
 const ICON = 20;
 const ICON_GAP = spacing.md;
 
-export const SettingsGroup = ({ title, footnote, children }) => {
+// `inset`: where the hairlines start, for rows that lead with something
+// wider than an icon (an avatar).
+export const SettingsGroup = ({ title, footnote, inset, children }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const rows = Children.toArray(children).filter(Boolean);
@@ -27,7 +29,9 @@ export const SettingsGroup = ({ title, footnote, children }) => {
       <View style={styles.groupBody}>
         {rows.map((row, index) => (
           <Fragment key={row.key ?? index}>
-            {index > 0 && <View style={styles.separator} />}
+            {index > 0 && (
+              <View style={[styles.separator, inset != null && { marginStart: inset }]} />
+            )}
             {row}
           </Fragment>
         ))}
@@ -40,6 +44,8 @@ export const SettingsGroup = ({ title, footnote, children }) => {
 // `Icon`: a lucide icon. `value`: what it's set to, shown at the end.
 // `right`: a control in place of the value (a switch). Rows with
 // `onPress` and no `right` get a chevron, unless `destructive`.
+const SEPARATOR_START = spacing.md + ICON + ICON_GAP;
+
 export const SettingsRow = ({ Icon, label, hint, value, right, onPress, destructive, accessibilityLabel }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -147,7 +153,7 @@ const createStyles = (colors) =>
     separator: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
-      marginStart: spacing.md + ICON + ICON_GAP,
+      marginStart: SEPARATOR_START,
     },
     row: {
       flexDirection: "row",

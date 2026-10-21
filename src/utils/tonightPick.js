@@ -31,7 +31,7 @@ export const ANGLES = [
   { key: "rank", label: "Earns a rank tonight", fits: (item) => item.forecast.gained.length > 0 },
   {
     key: "saga",
-    label: "Next in a saga",
+    label: "Next in a collection",
     fits: (item) => item.saga?.type === "rank" || item.saga?.type === "progress",
   },
   { key: "saved", label: "From your watchlist", fits: (item) => item.saved },

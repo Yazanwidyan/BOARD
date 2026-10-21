@@ -26,12 +26,13 @@ import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
-import { SpinScreen } from "../screens/SpinScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
 import { TasteScreen } from "../screens/TasteScreen";
 import { TierListScreen } from "../screens/TierListScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { AiPickScreen } from "../screens/AiPickScreen";
+import { WildcardScreen } from "../screens/WildcardScreen";
+import { SimilarScreen } from "../screens/SimilarScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
 import { ClubDetailsScreen } from "../screens/ClubDetailsScreen";
 import { ClubsScreen } from "../screens/ClubsScreen";
@@ -152,12 +153,14 @@ export const AppNavigator = () => {
               component={SwipeScreen}
               options={{ gestureEnabled: false }}
             />
-            <Stack.Screen
-              name="Spin"
-              component={SpinScreen}
-              options={{ gestureEnabled: false }}
-            />
             <Stack.Screen name="AiPick" component={AiPickScreen} />
+            <Stack.Screen name="Similar" component={SimilarScreen} />
+            {/* Scratching shouldn't swipe the screen away. */}
+            <Stack.Screen
+              name="Wildcard"
+              component={WildcardScreen}
+              options={{ gestureEnabled: false, animation: "slide_from_bottom" }}
+            />
             <Stack.Screen
               name="MovieNight"
               component={MovieNightScreen}

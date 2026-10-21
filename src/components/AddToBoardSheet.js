@@ -56,6 +56,7 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
       onClose={onClose}
       size="half"
       title={t("Add to board")}
+      flush
     >
       <View style={styles.newRow}>
         <Plus size={18} color={colors.textSecondary} />
@@ -175,6 +176,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.md,
       paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     pressed: {
       opacity: 0.7,
@@ -196,12 +198,14 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       marginTop: spacing.lg,
       marginBottom: spacing.xs,
+      paddingHorizontal: spacing.md,
     },
     empty: {
       ...typography.body,
       color: colors.textMuted,
       textAlign: "center",
       paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.md,
     },
   });
 

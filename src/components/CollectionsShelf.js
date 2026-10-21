@@ -29,7 +29,7 @@ import { useMoviesVersion } from "../data/movies";
 // By saga kind.
 const TYPE_FILTERS = [
   { key: "all", label: "All" },
-  { key: "franchise", label: "Sagas" },
+  { key: "franchise", label: "Franchises" },
   { key: "studio", label: "Studios" },
   { key: "theme", label: "Themes" },
   { key: "director", label: "Directors" },
@@ -228,7 +228,7 @@ export const CollectionsShelf = ({
       {tracked.length === 0 && (
         <EmptyState
           art="noCollections"
-          title={t("No sagas yet")}
+          title={t("No collections yet")}
           subtitle={t(
             "Watch a film from one and its ranks start here, or pick some to track below.",
           )}
@@ -445,7 +445,7 @@ export const CollectionsShelf = ({
 
       <Pressable style={styles.seeAll} onPress={onSeeAll}>
         <ListPlus size={16} color={colors.textSecondary} strokeWidth={2.2} />
-        <Text style={styles.seeAllText}>{t("Browse all sagas")}</Text>
+        <Text style={styles.seeAllText}>{t("Browse all collections")}</Text>
       </Pressable>
     </View>
   );

@@ -12,8 +12,8 @@ import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 import { byWeightedRating } from "../utils/movieFilters";
 
-// The Spin tile's mini slot reel (matches the Spin screen): a window with
-// three posters — the middle one framed — and a marker either side.
+// The Wildcard tile's mini slot reel — a random draw: a window with three
+// posters — the middle one framed — and a marker either side.
 const REEL_POSTER_WIDTH = 54;
 const REEL_POSTER_HEIGHT = REEL_POSTER_WIDTH * 1.5;
 const REEL_WINDOW_HEIGHT = 124;
@@ -76,12 +76,13 @@ const MiniReel = ({ colors, styles }) => {
   );
 };
 
-// Decide's Quick Pick as a bento: AI as the full-width hero — a filled
-// tile with real posters bleeding in from the right — and Swipe / Spin as
-// tall tiles that each preview what they do (a fanned poster stack, a
-// wheel), then Movie night across the bottom — two posters leaning into a
-// heart where they meet. Square, edge to edge, 2px apart.
-export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
+// Decide's Quick Pick as a bento: the taste pick as the full-width hero —
+// a filled tile with real posters bleeding in from the right — and Swipe /
+// Wildcard as tall tiles that each preview what they do (a fanned poster
+// stack, a slot reel), then Movie night across the bottom — two posters
+// leaning into a heart where they meet, and More like… under it. Square,
+// edge to edge, 2px apart.
+export const QuickPickBento = ({ onAI, onSwipe, onWildcard, onMovieNight, onSimilar }) => {
   const colors = useColors();
   const styles = createStyles(colors);
 
@@ -130,15 +131,15 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
             ))}
           </View>
           <Text style={styles.halfTitle}>{t("Swipe")}</Text>
-          <Text style={styles.halfSubtitle}>{t("10 at a time")}</Text>
+          <Text style={styles.halfSubtitle}>{t("Ten to narrow down")}</Text>
         </Pressable>
 
-        <Pressable style={styles.halfTile} onPress={onSpin}>
+        <Pressable style={styles.halfTile} onPress={onWildcard}>
           <View style={styles.preview}>
             <MiniReel colors={colors} styles={styles} />
           </View>
-          <Text style={styles.halfTitle}>{t("Spin")}</Text>
-          <Text style={styles.halfSubtitle}>{t("Let fate decide")}</Text>
+          <Text style={styles.halfTitle}>{t("Wildcard")}</Text>
+          <Text style={styles.halfSubtitle}>{t("One film, dealt at random")}</Text>
         </Pressable>
       </View>
 
@@ -164,6 +165,34 @@ export const QuickPickBento = ({ onAI, onSwipe, onSpin, onMovieNight }) => {
             ))}
             <View style={styles.nightHeart}>
               <Heart size={14} color="#FFFFFF" fill="#FFFFFF" />
+            </View>
+          </View>
+        </Pressable>
+      )}
+
+      {/* More like…: one poster, and how alike the next one is. */}
+      {onSimilar && (
+        <Pressable style={styles.nightTile} onPress={onSimilar}>
+          <View style={styles.nightText}>
+            <Text style={styles.aiEyebrow}>{t("Find similar")}</Text>
+            <Text style={styles.halfTitle}>{t("More like…")}</Text>
+            <Text style={styles.halfSubtitle}>
+              {t("Pick one you loved — see how alike, and why")}
+            </Text>
+          </View>
+          <View style={styles.nightPreview} pointerEvents="none">
+            {getShowcase().swipe.slice(0, 2).map((uri, index) => (
+              <MoviePoster
+                key={uri}
+                uri={uri}
+                style={[
+                  styles.nightPoster,
+                  index === 0 ? styles.nightPosterLeft : styles.nightPosterRight,
+                ]}
+              />
+            ))}
+            <View style={styles.likeBadge}>
+              <Text style={styles.likeBadgeText}>92%</Text>
             </View>
           </View>
         </Pressable>
@@ -328,6 +357,17 @@ const createStyles = (colors) =>
     },
     nightPosterRight: {
       transform: [{ translateX: 20 }, { rotate: "10deg" }],
+    },
+    likeBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      backgroundColor: colors.rating,
+    },
+    likeBadgeText: {
+      ...typography.bodyBold,
+      fontSize: 11,
+      color: "#0C1014",
+      fontVariant: ["tabular-nums"],
     },
     nightHeart: {
       width: 28,

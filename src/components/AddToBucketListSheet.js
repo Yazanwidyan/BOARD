@@ -53,6 +53,7 @@ export const AddToBucketListSheet = ({ visible, onClose }) => {
       visible={visible}
       onClose={handleClose}
       title={t("Add to Watchlist")}
+      flush
     >
       <View style={styles.searchBar}>
         <Search size={16} color={colors.textSecondary} />
@@ -181,7 +182,8 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.background,
-      padding: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       marginBottom: 2,
     },
     rowPoster: {
@@ -220,12 +222,14 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       textAlign: "center",
       paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.md,
     },
     recentHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     recentTitle: {
       ...typography.bodyBold,
@@ -240,6 +244,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
     recentTerm: {
       ...typography.body,

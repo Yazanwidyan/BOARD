@@ -25,7 +25,7 @@ import { getMovieById } from "../data/movies";
 
 // Library's sections: the sagas by kind (`type` is the kind).
 const SECTIONS = [
-  { type: "franchise", title: "Sagas" },
+  { type: "franchise", title: "Franchises" },
   { type: "studio", title: "Studios" },
   { type: "theme", title: "Themes" },
   { type: "director", title: "Directors" },

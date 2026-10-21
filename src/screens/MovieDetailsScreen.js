@@ -61,13 +61,14 @@ import {
   getSagaForPerson,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
-import { getMovieMatch } from "../utils/tasteEngine";
+import { getMovieMatch, getTastePicks } from "../utils/tasteEngine";
 import { getAverageTier, getTier } from "../utils/tiers";
 import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
 import { formatRuntime, isInBucketList, byWeightedRating } from "../utils/movieFilters";
+import { THEMES } from "../data/vibes";
 import { t } from "../i18n";
 
 const HEADER_BAR_HEIGHT = 40;
@@ -126,8 +127,9 @@ const initials = (name) =>
     .join("")
     .toUpperCase();
 
-// The director's other films get their own "Also by" row, so "More like
-// this" is purely the same lead genre (best-rated first) — no overlap.
+// Until the server's "More like this" arrives (or without a connection):
+// the same lead genre, best-rated first. The director's other films get
+// their own "Also by" row, so they're left out.
 const getSimilarMovies = (movie) =>
   getKnownMovies().filter(
     (other) =>
@@ -137,6 +139,70 @@ const getSimilarMovies = (movie) =>
   )
     .sort(byWeightedRating)
     .slice(0, SIMILAR_COUNT);
+
+// "More like this": the server's picks (GET /api/movies/:id/like — feel,
+// story, themes, genres, cast, era and TMDB's recommendations, backend
+// lib/similar.js), nudged a little by your taste, films you've watched
+// moved to the end. → [{ movie, reason, seen }]; `reason` one short line.
+const TASTE_NUDGE = 0.5;
+const getMoreLikeThis = (movie, similar, watched) => {
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  if (!similar?.length) {
+    return getSimilarMovies(movie).map((other) => ({
+      movie: other,
+      reason: null,
+      seen: watchedIds.has(other.id),
+    }));
+  }
+  const items = similar
+    .map((item) => ({ ...item, movie: getMovieById(item.id) }))
+    .filter((item) => item.movie);
+  const matches = new Map(
+    getTastePicks(watched, {
+      from: items.map((item) => item.movie).filter((other) => !other.partial),
+      count: items.length,
+      random: () => 0,
+    }).map((pick) => [pick.movie.id, pick.match]),
+  );
+  return items
+    .map((item) => {
+      const match = matches.get(item.movie.id);
+      const nudge = match == null ? 0 : ((match - 75) / 25) * TASTE_NUDGE;
+      return {
+        movie: item.movie,
+        reason: describeLike(item.reasons?.[0]),
+        seen: watchedIds.has(item.movie.id),
+        score: item.score + nudge,
+      };
+    })
+    .sort((a, b) => a.seen - b.seen || b.score - a.score)
+    .slice(0, SIMILAR_COUNT);
+};
+
+// Why a film is in "More like this", as a card's one line.
+const describeLike = (reason) => {
+  if (!reason) return null;
+  switch (reason.key) {
+    case "feel":
+      return t("Same feel");
+    case "story":
+      return t("Similar story");
+    case "themes":
+      return THEMES[reason.value?.[0]]
+        ? t("Also: {theme}", { theme: t(THEMES[reason.value[0]]) })
+        : t("Similar themes");
+    case "genres":
+      return (reason.value ?? []).slice(0, 2).map((genre) => t(genre)).join(" · ");
+    case "tmdb":
+      return t("Fans of it love this");
+    case "cast":
+      return t("With {name}", { name: reason.value?.[0] ?? "" });
+    case "era":
+      return t("Same era");
+    default:
+      return null;
+  }
+};
 
 const getDirectorMovies = (movie) =>
   getKnownMovies().filter(
@@ -189,6 +255,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const page = useQuery({
     queryKey: ["movie", movieId],
     queryFn: () => api.get(`/movies/${movieId}`),
+    staleTime: 60 * 60 * 1000,
+  });
+  // "More like this", from the server (see getMoreLikeThis).
+  const like = useQuery({
+    queryKey: ["movie", movieId, "like"],
+    queryFn: () => api.get(`/movies/${movieId}/like`),
     staleTime: 60 * 60 * 1000,
   });
   // Everyone's tiers, for the ReelBoard score (and the community bars).
@@ -337,7 +409,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const isChallengeTarget = activeChallenge?.targetMovieId === movieId;
   const collections = getCollectionsForMovie(movieId);
-  const similarMovies = getSimilarMovies(movie);
+  const similarMovies = getMoreLikeThis(movie, like.data?.similar, watched);
   const directorMovies = getDirectorMovies(movie);
   const directorSaga = getSagaForPerson(movie.director);
   const details = movie.details;
@@ -801,7 +873,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                         {/* Actors with a saga name it — tapping opens it. */}
                         {saga && (
                           <Text style={styles.castSaga} numberOfLines={1}>
-                            {t("Saga · {title}", { title: saga.title })}
+                            {t("Collection · {title}", { title: saga.title })}
                           </Text>
                         )}
                       </View>
@@ -933,15 +1005,24 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
         {similarMovies.length > 0 && (
           <>
-            <Text style={[styles.sectionLabel, styles.railLabel]}>
-              {t("More like this")}
-            </Text>
+            {/* "See all" opens Decide's "More like…" for this movie: how
+                similar each is, and why. */}
+            <View style={styles.railHeader}>
+              <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
+                {t("More like this")}
+              </Text>
+              <Pressable hitSlop={8} onPress={() => navigation.push("Similar", { movieId })}>
+                <Text style={styles.railHeaderLink} numberOfLines={1}>
+                  {t("See why")} ›
+                </Text>
+              </Pressable>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.posterRailContent}
             >
-              {similarMovies.map((similar) => (
+              {similarMovies.map(({ movie: similar, reason, seen }) => (
                 <Pressable
                   key={similar.id}
                   style={styles.similarCard}
@@ -951,12 +1032,19 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 >
                   <MoviePoster
                     uri={similar.poster}
-                    style={styles.similarPoster}
+                    style={[styles.similarPoster, seen && styles.similarSeen]}
                   />
                   <Text style={styles.similarTitle} numberOfLines={1}>
                     {similar.title}
                   </Text>
-                  <Text style={styles.similarYear}>{similar.year}</Text>
+                  <Text style={styles.similarYear} numberOfLines={1}>
+                    {seen ? t("Watched") : similar.year}
+                  </Text>
+                  {!!reason && (
+                    <Text style={styles.similarReason} numberOfLines={1}>
+                      {reason}
+                    </Text>
+                  )}
                 </Pressable>
               ))}
             </ScrollView>
@@ -1457,6 +1545,16 @@ const createStyles = (colors) =>
     similarYear: {
       ...typography.caption,
       color: colors.textSecondary,
+    },
+    // Why it's here, in gold — "Same feel", "With Al Pacino".
+    similarReason: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.rating,
+      marginTop: 1,
+    },
+    similarSeen: {
+      opacity: 0.5,
     },
     stickyBar: {
       position: "absolute",

@@ -1,9 +1,10 @@
-import { Crown } from "lucide-react-native";
+import { Bookmark, Crown, Eye } from "lucide-react-native";
+import { Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { timeAgo } from "../utils/friends";
 import { getTierInfo } from "../utils/tiers";
@@ -12,66 +13,76 @@ import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
 
-// What happened, as a sentence with the important bits in bold.
+const AVATAR = 40;
+const BADGE = 18;
+// Where a feed's hairlines start: after the avatar.
+export const EVENT_INSET = spacing.md + AVATAR + spacing.md;
+
+// A translated sentence with its {placeholders} swapped for bold pieces —
+// so word order follows the language, not the code.
+const sentence = (template, parts) => {
+  const text = t(template);
+  const out = [];
+  let last = 0;
+  text.replace(/\{(\w+)\}/g, (match, key, offset) => {
+    if (offset > last) out.push(text.slice(last, offset));
+    out.push(<Fragment key={`${key}${offset}`}>{parts[key] ?? null}</Fragment>);
+    last = offset + match.length;
+    return match;
+  });
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+};
+
+// What happened, as a sentence with who and what in bold.
 const EventText = ({ event, styles }) => {
   const movie = event.movieId ? getMovieById(event.movieId) : null;
-  const name = (
-    <Text style={styles.strong}>{event.friend.name.split(" ")[0]}</Text>
-  );
-  const title = movie ? <Text style={styles.strong}>{movie.title}</Text> : null;
+  const strong = (text) => <Text style={styles.strong}>{text}</Text>;
+  const parts = {
+    name: strong(event.friend.name.split(" ")[0]),
+    title: movie ? strong(movie.title) : null,
+  };
   switch (event.type) {
     case "tier":
       return (
         <Text style={styles.eventText}>
-          {name} tiered {title}{" "}
-          <Text
-            style={[
-              styles.tierLetter,
-              { color: getTierInfo(event.tier).color },
-            ]}
-          >
-            {event.tier}
-          </Text>
+          {sentence("{name} tiered {title} {tier}", {
+            ...parts,
+            tier: (
+              <Text style={[styles.tierLetter, { color: getTierInfo(event.tier).color }]}>
+                {event.tier}
+              </Text>
+            ),
+          })}
         </Text>
       );
     case "watched":
-      return (
-        <Text style={styles.eventText}>
-          {name} watched {title}
-        </Text>
-      );
+      return <Text style={styles.eventText}>{sentence("{name} watched {title}", parts)}</Text>;
     case "watchlist":
       return (
         <Text style={styles.eventText}>
-          {name} saved {title} {t("for later")}
+          {sentence("{name} saved {title} for later", parts)}
         </Text>
       );
     case "rank":
       return (
         <Text style={styles.eventText}>
-          {name} {t("is now")} <Text style={styles.strong}>{t(event.rank)}</Text>
-          <Text style={styles.muted}>
-            {" · "}
-            {t(event.track)}
-          </Text>
+          {sentence("{name} is now {rank}", { ...parts, rank: strong(t(event.rank)) })}
+          <Text style={styles.muted}>{` · ${t(event.track)}`}</Text>
         </Text>
       );
     // From before ranks: a badge, a finished collection.
     case "badge":
       return (
         <Text style={styles.eventText}>
-          {name} earned <Text style={styles.strong}>{event.badge}</Text>
+          {sentence("{name} earned {badge}", { ...parts, badge: strong(event.badge) })}
         </Text>
       );
     case "set":
       return (
         <Text style={styles.eventText}>
-          {name} {t("finished every")}{" "}
-          <Text style={styles.strong}>{event.set}</Text> movie
-          <Text style={styles.muted}>
-            {" "}
-            {t("· all")} {event.count}
-          </Text>
+          {sentence("{name} finished every {set} movie", { ...parts, set: strong(event.set) })}
+          <Text style={styles.muted}>{` · ${event.count}`}</Text>
         </Text>
       );
     default:
@@ -79,7 +90,27 @@ const EventText = ({ event, styles }) => {
   }
 };
 
-// The thing on the right of an event: the poster, or a gold crown tile for
+// The small mark on the avatar's corner saying what kind of thing it was:
+// the tier letter, an eye, a bookmark, a crown.
+const EventBadge = ({ event, styles, colors }) => {
+  let content = null;
+  if (event.type === "tier") {
+    const info = getTierInfo(event.tier);
+    return (
+      <View style={[styles.badge, { backgroundColor: info.color }]}>
+        <Text style={styles.badgeLetter}>{event.tier}</Text>
+      </View>
+    );
+  }
+  if (event.type === "watched") content = <Eye size={10} color={colors.success} strokeWidth={2.6} />;
+  else if (event.type === "watchlist") content = <Bookmark size={10} color={colors.textPrimary} strokeWidth={2.6} />;
+  else if (["rank", "badge", "set"].includes(event.type)) {
+    content = <Crown size={10} color={colors.rating} strokeWidth={2.6} />;
+  }
+  return content ? <View style={styles.badge}>{content}</View> : null;
+};
+
+// The thing on the end of an event: the poster, or a gold crown tile for
 // a rank (or, from before ranks, a badge or a finished collection).
 const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   if (event.movieId) {
@@ -93,7 +124,7 @@ const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   if (["rank", "badge", "set"].includes(event.type)) {
     return (
       <View style={styles.rankTile}>
-        <Crown size={22} color={colors.rating} strokeWidth={2.1} />
+        <Crown size={20} color={colors.rating} strokeWidth={2.1} />
       </View>
     );
   }
@@ -101,7 +132,8 @@ const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
 };
 
 // One row of a feed (Activity, a club's feed): who, what, when, and the
-// poster or medal. `onPress` opens the person; without it the row is plain.
+// poster or crown. `onPress` opens the person; without it the row is plain.
+// `divider`: a line above it, for feeds not inside a SettingsGroup.
 export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -117,7 +149,10 @@ export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => 
       onPress={onPress}
       disabled={!onPress}
     >
-      <FriendAvatar friend={event.friend} size={38} />
+      <View>
+        <FriendAvatar friend={event.friend} size={AVATAR} />
+        <EventBadge event={event} styles={styles} colors={colors} />
+      </View>
       <View style={styles.eventBody}>
         <EventText event={event} styles={styles} />
         <Text style={styles.eventTime}>{timeAgo(event.timestamp, now)}</Text>
@@ -130,21 +165,23 @@ export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => 
 const createStyles = (colors) =>
   StyleSheet.create({
     pressed: {
-      opacity: 0.8,
+      backgroundColor: colors.cardElevated,
     },
     event: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm + 2,
+      gap: spacing.md,
+      minHeight: 64,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
     },
     eventDivider: {
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.background,
+      borderTopColor: colors.border,
     },
     eventBody: {
       flex: 1,
+      gap: 3,
     },
     eventText: {
       ...typography.body,
@@ -168,15 +205,33 @@ const createStyles = (colors) =>
       ...typography.caption,
       fontSize: 11,
       color: colors.textMuted,
-      marginTop: 2,
+    },
+    badge: {
+      position: "absolute",
+      end: -3,
+      bottom: -3,
+      width: BADGE,
+      height: BADGE,
+      borderRadius: BADGE / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevated,
+      borderWidth: 2,
+      borderColor: colors.card,
+    },
+    badgeLetter: {
+      fontFamily: fonts.extraBold,
+      fontSize: 9,
+      lineHeight: 11,
+      color: "#0C1014",
     },
     eventPoster: {
-      width: 44,
-      height: 66,
+      width: 40,
+      height: 60,
     },
     rankTile: {
-      width: 44,
-      height: 44,
+      width: 40,
+      height: 40,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: `${colors.rating}29`,

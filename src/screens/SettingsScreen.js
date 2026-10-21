@@ -234,7 +234,7 @@ export const SettingsScreen = ({ navigation }) => {
               Alert.alert(
                 t("ReelBoard"),
                 t(
-                  "ReelBoard turns deciding what to watch into a game — discover, climb saga ranks, and complete challenges as you go.",
+                  "ReelBoard turns deciding what to watch into a game — discover, climb collection ranks, and complete challenges as you go.",
                 ),
               )
             }

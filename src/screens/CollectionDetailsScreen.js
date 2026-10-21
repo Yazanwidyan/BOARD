@@ -70,11 +70,11 @@ const TYPE_LABELS = {
 };
 // A saga's eyebrow, by its kind.
 const SAGA_LABELS = {
-  franchise: "Saga",
-  studio: "Studio saga",
-  theme: "Saga",
-  director: "Director saga",
-  actor: "Actor saga",
+  franchise: "Collection",
+  studio: "Studio collection",
+  theme: "Collection",
+  director: "Director collection",
+  actor: "Actor collection",
 };
 
 const HEADER_BAR_HEIGHT = 40;
@@ -273,7 +273,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         </View>
         {page.isError ? (
           <Text style={styles.loadingText}>
-            {t("Couldn't load this saga. Check your connection and try again.")}
+            {t("Couldn't load this collection. Check your connection and try again.")}
           </Text>
         ) : (
           <ActivityIndicator color={colors.textSecondary} style={{ marginTop: spacing.xl * 2 }} />
@@ -425,7 +425,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.eyebrow}>
               {t(
                 (saga ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
-                  "Saga",
+                  "Collection",
               )}
               {isComplete ? t(" · Completed") : ""}
             </Text>
@@ -654,7 +654,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           onPress={shareCollection}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel={t("Share this saga")}
+          accessibilityLabel={t("Share this collection")}
         >
           <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>

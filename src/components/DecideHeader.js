@@ -1,6 +1,5 @@
-import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import Animated, {
   Easing,
@@ -27,9 +26,9 @@ const MARQUEE_COUNT = 18;
 // Per poster, so the drift speed stays the same whatever the count.
 const MS_PER_POSTER = 1400;
 
-// Decide's own header — the other tabs' plain bar, plus a "Surprise me"
-// text action (one tap to a pick) and a slim marquee of posters drifting
-// along the bottom edge, 2px apart, like a cinema sign full of options.
+// Decide's own header — the other tabs' plain bar, plus a slim marquee of
+// posters drifting along the bottom edge, 2px apart, like a cinema sign
+// full of options.
 //
 // The strip is the list drawn twice side by side and slid left by exactly
 // one copy's width on a linear loop, so the jump back to the start lands
@@ -72,7 +71,7 @@ const Marquee = ({ movies, styles }) => {
   );
 };
 
-export const DecideHeader = ({ onSurprise, onMeasure }) => {
+export const DecideHeader = ({ onMeasure }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -90,20 +89,6 @@ export const DecideHeader = ({ onSurprise, onMeasure }) => {
         <View style={styles.titleBlock}>
           <Text style={styles.title}>{t("Decide")}</Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.surprise,
-            pressed && styles.surprisePressed,
-          ]}
-          hitSlop={8}
-          accessibilityRole="button"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onSurprise();
-          }}
-        >
-          <Text style={styles.surpriseText}>{t("Surprise me")}</Text>
-        </Pressable>
       </View>
       <Marquee movies={movies} styles={styles} />
     </View>
@@ -126,10 +111,12 @@ const createStyles = (colors) =>
       borderBottomColor: colors.border,
       paddingBottom: spacing.sm,
     },
+    // The same height as the other tabs' bars.
     topRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
+      minHeight: 36,
       paddingHorizontal: spacing.md,
     },
     titleBlock: {
@@ -140,18 +127,6 @@ const createStyles = (colors) =>
       fontSize: 24,
       lineHeight: 30,
       letterSpacing: -0.6,
-      color: colors.textPrimary,
-    },
-    // A plain text action, like the app's other header actions.
-    surprise: {
-      paddingVertical: spacing.sm,
-    },
-    surprisePressed: {
-      opacity: 0.6,
-    },
-    surpriseText: {
-      ...typography.bodyBold,
-      fontSize: 15,
       color: colors.textPrimary,
     },
     marqueeClip: {

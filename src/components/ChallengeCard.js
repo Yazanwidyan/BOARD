@@ -15,7 +15,7 @@ import { t } from "../i18n";
 // The challenge as a smooth, simple card: dotted lines top and bottom, the
 // dare and the movie it points at, and quiet text actions — no big button.
 // Two modes: "reveal" (fresh from the generator — Accept / another) and
-// "active" (accepted — View details / change). Used on Home and Decide.
+// "active" (accepted — View details / change). Used on Decide.
 export const ChallengeCard = ({
   challenge,
   mode = "active",

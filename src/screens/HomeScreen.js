@@ -15,7 +15,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
 import { PickInsight } from "../components/PickInsight";
@@ -40,11 +39,11 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
-import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getEndTime, getTonightSuggestions } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { t } from "../i18n";
+import { useNotificationCount } from "../store/friendsStore";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const RECENT_COUNT = 10;
@@ -310,6 +309,7 @@ export const HomeScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
+  const notificationCount = useNotificationCount();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
 
@@ -317,7 +317,6 @@ export const HomeScreen = ({ navigation }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
-  const skipChallenge = useChallengeStore((state) => state.skipChallenge);
 
   const queuedCount = bucketList.length;
   const watchedCount = watched.length;
@@ -358,11 +357,6 @@ export const HomeScreen = ({ navigation }) => {
       () => setRefreshCount((value) => value + 1),
       (REFRESH_MS + SPIN_STOP_MS) / 2,
     );
-  };
-
-  const handleCreateChallenge = () => {
-    if (activeChallenge) skipChallenge();
-    openChallengeGenerator(navigation);
   };
 
   return (
@@ -424,29 +418,12 @@ export const HomeScreen = ({ navigation }) => {
           </Pressable>
         )}
 
-        <View style={styles.section}>
-          {activeChallenge ? (
-            <ChallengeCard
-              challenge={activeChallenge}
-              mode="active"
-              onContinue={() =>
-                navigation.navigate("MovieDetails", {
-                  movieId: activeChallenge.targetMovieId,
-                })
-              }
-              onNewChallenge={handleCreateChallenge}
-            />
-          ) : (
-            <ChallengePrompt onStart={handleCreateChallenge} />
-          )}
-        </View>
-
         <WatchlistRail bucketList={bucketList} navigation={navigation} />
 
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
             <ShelfTag
-              label={t("Continue a saga")}
+              label={t("Continue a collection")}
               styles={styles}
               right={
                 <Pressable
@@ -506,6 +483,7 @@ export const HomeScreen = ({ navigation }) => {
             <HeaderIconButton
               onPress={() => navigation.navigate("Activity")}
               accessibilityLabel={t("Activity")}
+              badge={notificationCount}
             >
               <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />
             </HeaderIconButton>

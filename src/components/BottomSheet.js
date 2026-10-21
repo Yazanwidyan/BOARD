@@ -49,6 +49,8 @@ const MAX_AUTO_FRACTION = 0.9;
 //   whole header is the drag handle, not just the grabber.
 // - footer is pinned under the content, above the home indicator — for a
 //   sheet's main action ("Apply", "Done").
+// - flush drops the content's side padding, so filled rows and bands run
+//   edge to edge (like Settings); the sheet's text then pads itself.
 //
 // Slides in on an eased timing; the backdrop's opacity follows the sheet's position,
 // so dragging it down fades the backdrop with it instead of the backdrop
@@ -61,6 +63,7 @@ export const BottomSheet = ({
   subtitle,
   footer,
   size = "full",
+  flush = false,
 }) => {
   const colors = useColors();
   const direction = useLayoutDirection();
@@ -216,7 +219,7 @@ export const BottomSheet = ({
               </View>
             </GestureDetector>
 
-            <View style={[styles.content, isFixed && styles.contentFill]}>
+            <View style={[styles.content, flush && styles.contentFlush, isFixed && styles.contentFill]}>
               {children}
             </View>
 
@@ -302,9 +305,16 @@ const createStyles = (colors) =>
       justifyContent: "center",
       backgroundColor: colors.surfaceSoft,
     },
+    // Shrinks (and a ScrollView inside scrolls) when an "auto" sheet's
+    // content is taller than the 90% it can have.
     content: {
+      flexShrink: 1,
+      minHeight: 0,
       paddingTop: spacing.md,
       paddingHorizontal: spacing.md,
+    },
+    contentFlush: {
+      paddingHorizontal: 0,
     },
     contentFill: {
       flex: 1,

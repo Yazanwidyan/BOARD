@@ -23,11 +23,11 @@ const TIPS = {
   },
   decide: {
     title: "Decide",
-    body: "Can't choose? Swipe, Spin, or get a taste pick — or take a dare.",
+    body: "Can't choose? Get a taste pick, roll a wildcard, swipe a pile down — or take a dare.",
   },
   library: {
     title: "Library",
-    body: "Your watchlist, what you've watched, and your sagas. Tier what you watch from S to F.",
+    body: "Your watchlist, what you've watched, and your collections. Tier what you watch from S to F.",
   },
   profile: {
     title: "Profile",

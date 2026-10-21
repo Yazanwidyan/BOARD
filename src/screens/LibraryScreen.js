@@ -393,28 +393,24 @@ export const LibraryScreen = ({ navigation, route }) => {
       Icon: Bookmark,
       label: "Watchlist",
       count: bucketListMovies.length,
-      subtitle: t("{count} saved", { count: bucketListMovies.length }),
     },
     {
       key: "boards",
       Icon: LayoutGrid,
       label: "Boards",
       count: boards.length,
-      subtitle: t("{count} boards", { count: boards.length }),
     },
     {
       key: "collections",
       Icon: Layers,
-      label: "Sagas",
+      label: "Collections",
       count: unlockedCount,
-      subtitle: t("{count} tracked", { count: unlockedCount }),
     },
     {
       key: "watched",
       Icon: Disc3,
       label: "Watched",
       count: watchedMovies.length,
-      subtitle: `${watchedMovies.length} ${watchedMovies.length === 1 ? "movie" : "movies"}`,
     },
   ];
   const currentTab =
@@ -422,6 +418,14 @@ export const LibraryScreen = ({ navigation, route }) => {
 
   // Only Watchlist and Watched have the search / filter chip bar.
   const hasToolBar = tab === "bucketlist" || tab === "watched";
+  // How many, as the first chip in the filter row — what's showing out of
+  // all ("8 of 48") while a filter or search narrows the list.
+  const shownCount =
+    tab === "watched" ? visibleWatchedMovies.length : visibleBucketListMovies.length;
+  const countLabel =
+    shownCount === currentTab.count
+      ? t("{count} movies", { count: currentTab.count })
+      : t("{shown} of {count}", { shown: shownCount, count: currentTab.count });
 
   const openBoard = (boardId) =>
     navigation.navigate("BoardDetails", { boardId });
@@ -614,7 +618,8 @@ export const LibraryScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* One chip row: what's sorted / filtered, and the shortcuts. */}
+          {/* One chip row: how many, what's sorted / filtered, and the
+              shortcuts. */}
           {
             <ScrollView
               horizontal
@@ -623,6 +628,9 @@ export const LibraryScreen = ({ navigation, route }) => {
               contentContainerStyle={styles.toolRowContent}
               keyboardShouldPersistTaps="handled"
             >
+              <View style={[styles.toolChip, styles.countChip]}>
+                <Text style={styles.countChipText}>{countLabel}</Text>
+              </View>
               {tab === "watched" && (
                 <Pressable
                   ref={sortButtonRef}
@@ -713,7 +721,6 @@ export const LibraryScreen = ({ navigation, route }) => {
       <DockHeader
         {...header.props}
         title={currentTab.label}
-        subtitle={currentTab.subtitle}
         onPressTitle={() => setIsSectionMenuOpen(true)}
         right={
           tab === "boards" ? (
@@ -908,7 +915,7 @@ export const LibraryScreen = ({ navigation, route }) => {
       <BottomSheet
         visible={isAllCollectionsOpen}
         onClose={() => setIsAllCollectionsOpen(false)}
-        title={t("All Sagas")}
+        title={t("All Collections")}
         subtitle={t("Tap one to start or stop tracking it")}
       >
         <ScrollView
@@ -1032,6 +1039,19 @@ const createStyles = (colors) =>
     },
     toolChipActive: {
       backgroundColor: colors.selected,
+    },
+    // The count: shaped like a chip, but only an outline — it's not a
+    // button.
+    countChip: {
+      backgroundColor: "transparent",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    countChipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontVariant: ["tabular-nums"],
     },
     toolChipText: {
       ...typography.bodyBold,

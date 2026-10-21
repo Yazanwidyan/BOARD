@@ -45,6 +45,7 @@ import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { isRated, orderSTier } from "../utils/tiers";
 import { useRankSummary } from "../utils/useRanks";
 import { t } from "../i18n";
+import { useFriends, useNotificationCount } from "../store/friendsStore";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
@@ -55,10 +56,10 @@ const BACKDROP_HEIGHT = 190;
 
 // Who you are as a watcher, top to bottom, one short section each: the
 // card, your tiers (S is your favourites, in your order), your Taste DNA,
-// the sagas you've finished and your boards (each a preview that opens the whole thing),
-// and this month's recap at the end. Of your ranks, the avatar's ring (to
-// your next title) and the count are here — tap either for the Ranks
-// screen.
+// the collections you've finished and your boards (each a preview that
+// opens the whole thing), and this month's recap at the end. Of your
+// ranks, only the avatar's ring is here (to your next title, with the
+// count and title in its pill) — tap it for the Ranks screen.
 
 const getHandle = (name) =>
   `@${
@@ -72,6 +73,8 @@ export const ProfileScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
+  const notificationCount = useNotificationCount();
+  const { friends } = useFriends();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -134,7 +137,7 @@ export const ProfileScreen = ({ navigation }) => {
       genres && t("Into: {genres}", { genres }),
       favorites && t("Favorites: {favorites}", { favorites }),
       completedSets.length > 0 &&
-        t("Sagas: {list}", {
+        t("Collections: {list}", {
           list: completedSets
             .slice(0, 3)
             .map((collection) => collection.title)
@@ -154,12 +157,12 @@ export const ProfileScreen = ({ navigation }) => {
     handle: accountHandle ?? getHandle(displayName),
     bio,
     avatarSource: avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE,
+    // The ring's pill already says how many ranks, so the stats don't.
     ring: ranks.title,
-    rankCount: ranks.count,
-    nameTitle: ranks.title,
     stats: {
       movies: watchedCount,
       hours: Math.round(taste.minutesWatched / 60),
+      friends: friends.length,
       completed: completedSets.length,
     },
   };
@@ -211,13 +214,14 @@ export const ProfileScreen = ({ navigation }) => {
         )}
 
         <View style={styles.profileWrap}>
-          {/* Watcher card: avatar in its ring beside the numbers (ranks among
-              them), bio as a quote. */}
+          {/* Watcher card: avatar in its ring (your ranks and title) beside
+              the numbers, bio as a quote. */}
           <WatcherCard
             {...watcherCardProps}
             onPressAvatar={() => navigation.navigate("Ranks")}
             onPressBio={() => navigation.navigate("EditProfile")}
             onPressRanks={() => navigation.navigate("Ranks")}
+            onPressFriends={() => navigation.navigate("Friends")}
             onPressCollections={openSagas}
           />
 
@@ -240,7 +244,7 @@ export const ProfileScreen = ({ navigation }) => {
           </ProfileSection>
 
           <ProfileSection
-            title={t("Sagas")}
+            title={t("Collections")}
             onAction={openSagas}
             rail={completedSets.length > 0}
           >
@@ -248,8 +252,8 @@ export const ProfileScreen = ({ navigation }) => {
               <FinishedSagasRail watched={watched} onOpen={openSaga} />
             ) : (
               <SectionEmpty
-                line={t("Finish every film in a saga and it shows here.")}
-                actionLabel={t("Browse sagas")}
+                line={t("Finish every film in a collection and it shows here.")}
+                actionLabel={t("Browse collections")}
                 onPress={openSagas}
               />
             )}
@@ -294,7 +298,10 @@ export const ProfileScreen = ({ navigation }) => {
             <HeaderIconButton onPress={() => navigation.navigate("Friends")}>
               <Users size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
-            <HeaderIconButton onPress={() => navigation.navigate("Activity")}>
+            <HeaderIconButton
+              onPress={() => navigation.navigate("Activity")}
+              badge={notificationCount}
+            >
               <Bell size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
             <HeaderIconButton onPress={() => navigation.navigate("Settings")}>

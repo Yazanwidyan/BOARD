@@ -32,6 +32,7 @@ import { StampCheck } from "../components/DialogArt";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
+import { useDecideStore } from "../store/decideStore";
 import { useMovieStore } from "../store/movieStore";
 import { recordPass } from "../store/tasteStore";
 import { showToast } from "../store/toastStore";
@@ -40,10 +41,12 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 import {
-  getTastePicks,
-  getThinkingSteps,
-  isColdStart,
-} from "../utils/tasteEngine";
+  DEFAULT_ANSWERS,
+  QUESTIONS,
+  describeAnswers,
+  getGuidedPick,
+} from "../utils/guidedPick";
+import { getThinkingSteps, isColdStart } from "../utils/tasteEngine";
 import { tierRank } from "../utils/tiers";
 import { t } from "../i18n";
 
@@ -243,9 +246,55 @@ const ThinkingLine = ({ text, active, dwell, onDone, colors, styles }) => {
   );
 };
 
-// ReelBoard's Taste pick: the local taste engine (utils/tasteEngine) thinks
-// for a moment — showing what it's actually reading — then shows one pick
-// with how well it matches, why, and the full signal breakdown on demand.
+// The quick taps before a pick: each question a row of chips, one chosen,
+// then "Find my movie". Your last answers come back next time.
+const Questions = ({ answers, onChange, onFind, styles, insets }) => (
+  <View style={styles.askWrap}>
+    <ScrollView
+      contentContainerStyle={styles.ask}
+      showsVerticalScrollIndicator={false}
+    >
+      {QUESTIONS.map((question, index) => (
+        <Animated.View
+          key={question.key}
+          entering={FadeInDown.delay(index * 60).duration(240)}
+          style={styles.question}
+        >
+          <Text style={styles.questionTitle}>{t(question.title)}</Text>
+          <View style={styles.answerChips}>
+            {question.options.map((option) => {
+              const selected = answers[question.key] === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  style={[styles.answerChip, selected && styles.answerChipOn]}
+                  onPress={() => onChange({ ...answers, [question.key]: option.key })}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={styles.answerEmoji}>{option.emoji}</Text>
+                  <Text style={[styles.answerText, selected && styles.answerTextOn]}>
+                    {t(option.label)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Animated.View>
+      ))}
+    </ScrollView>
+    <View style={[styles.askFooter, { paddingBottom: insets.bottom + spacing.md }]}>
+      <PrimaryButton label={t("Find my movie")} onPress={onFind} />
+    </View>
+  </View>
+);
+
+// ReelBoard's Taste pick, no language model: a few quick taps (the mood,
+// how long you've got, who's watching, familiar or new — utils/
+// guidedPick), then the local taste engine thinks for a moment — showing
+// what it's actually reading — and shows one pick with how well it
+// matches, why (your answers first), and the full signal breakdown on
+// demand.
 export const AiPickScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -258,6 +307,11 @@ export const AiPickScreen = ({ navigation }) => {
   const pickedMovie = useMovieStore((state) => state.pickedMovie);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
 
+  const savedAnswers = useDecideStore((state) => state.guided);
+  const setGuided = useDecideStore((state) => state.setGuided);
+  // Asking first; the answers are a draft until "Find my movie".
+  const [asking, setAsking] = useState(true);
+  const [answers, setAnswers] = useState(() => ({ ...DEFAULT_ANSWERS, ...savedAnswers }));
   const [rejected, setRejected] = useState([]);
   const [run, setRun] = useState(0); // bumps for "Not this one"
   // Which thinking line is working (lines before it are done).
@@ -273,14 +327,12 @@ export const AiPickScreen = ({ navigation }) => {
   );
   const pick = useMemo(
     () =>
-      getTastePicks(watched, {
-        watchlist: watchlistIds,
-        rejected,
-        count: 1,
-      })[0] ?? null,
+      asking
+        ? null
+        : getGuidedPick(watched, answers, { watchlist: watchlistIds, rejected }),
     // A fresh roll per run.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [run, rejected],
+    [asking, run, rejected],
   );
   const coldStart = isColdStart(watched);
 
@@ -300,8 +352,13 @@ export const AiPickScreen = ({ navigation }) => {
   // a "Not this one" re-roll is quicker.
   // The first run walks every line; a "Not this one" re-think, the last
   // three.
-  const lines = run === 0 ? steps : steps.slice(-3);
-  const isThinking = activeLine < lines.length;
+  // What you asked for leads, then what it's reading.
+  const asked = describeAnswers(answers);
+  const lines = [
+    ...(asked ? [t("Looking for: {what}", { what: asked })] : []),
+    ...(run === 0 ? steps : steps.slice(-3)),
+  ];
+  const isThinking = !asking && activeLine < lines.length;
   // Fixed per run, so a line's time doesn't change while it's on screen.
   const dwells = useMemo(
     () =>
@@ -324,6 +381,18 @@ export const AiPickScreen = ({ navigation }) => {
     showToast(t("{title} is tonight's pick", { title: pick.movie.title }), {
       tone: "success",
     });
+  };
+
+  const handleFind = () => {
+    setGuided(answers);
+    setActiveLine(0);
+    setShowWhy(false);
+    setAsking(false);
+  };
+
+  const handleChangeAnswers = () => {
+    setRejected([]);
+    setAsking(true);
   };
 
   const handleNotThis = () => {
@@ -349,13 +418,21 @@ export const AiPickScreen = ({ navigation }) => {
         <View style={styles.headerText} pointerEvents="none">
           <Text style={styles.headerTitle}>{t("ReelBoard picks")}</Text>
           <Text style={styles.headerSubtitle}>
-            {t("From your tiers & taste")}
+            {asking ? t("A few quick taps") : t("From your tiers & taste")}
           </Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
 
-      {isThinking ? (
+      {asking ? (
+        <Questions
+          answers={answers}
+          onChange={setAnswers}
+          onFind={handleFind}
+          styles={styles}
+          insets={insets}
+        />
+      ) : isThinking ? (
         <View style={styles.thinking}>
           <Projector posters={reelPosters} colors={colors} styles={styles} />
           <View style={styles.steps}>
@@ -505,6 +582,14 @@ export const AiPickScreen = ({ navigation }) => {
                 style={styles.actionHalf}
               />
             </View>
+            <Pressable
+              onPress={handleChangeAnswers}
+              hitSlop={8}
+              style={styles.changeAnswers}
+              accessibilityRole="button"
+            >
+              <Text style={styles.changeAnswersText}>{t("Change my answers")}</Text>
+            </Pressable>
           </View>
         </ScrollView>
       ) : (
@@ -548,6 +633,70 @@ const createStyles = (colors) =>
     },
     headerSpacer: {
       width: 40,
+    },
+
+    // The questions
+    askWrap: {
+      flex: 1,
+    },
+    ask: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
+      gap: spacing.lg,
+    },
+    question: {
+      gap: spacing.sm + 2,
+    },
+    questionTitle: {
+      ...typography.title,
+      fontSize: 18,
+      lineHeight: 24,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
+    },
+    answerChips: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    answerChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+      backgroundColor: colors.card,
+    },
+    answerChipOn: {
+      backgroundColor: colors.selected,
+    },
+    answerEmoji: {
+      fontSize: 15,
+    },
+    answerText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    answerTextOn: {
+      color: colors.selectedText,
+    },
+    askFooter: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    changeAnswers: {
+      alignSelf: "center",
+      paddingVertical: spacing.sm,
+    },
+    changeAnswersText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textSecondary,
     },
 
     // Thinking

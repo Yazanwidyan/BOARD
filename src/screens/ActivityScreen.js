@@ -1,27 +1,61 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Activity as ActivityIcon, ChevronRight, UserPlus } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ActivityEvent } from "../components/ActivityEvent";
+import { ActivityEvent, EVENT_INSET } from "../components/ActivityEvent";
 import { FriendAvatar } from "../components/FriendAvatar";
 import {
   StackHeader,
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { SettingsGroup } from "../components/SettingsList";
+import { useActivitySeenStore } from "../store/activitySeenStore";
+import { useAuthStore } from "../store/authStore";
 import { useFriends } from "../store/friendsStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { useMoviesVersion } from "../data/movies";
 
 const DAY = 24 * 60 * 60 * 1000;
-const AVATARS_SHOWN = 5;
+const AVATARS_SHOWN = 4;
 
-// Activity: what your friends have been watching, tiering, saving and
-// finishing, newest first, grouped by age (from the ReelBoard server).
-// Tap an event for that friend's page, a poster for the movie.
+// What the chips narrow the feed to, by event type. Only the kinds that
+// are in the feed get a chip.
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "watched", label: "Watched", types: ["watched"] },
+  { key: "tier", label: "Tiers", types: ["tier"] },
+  { key: "watchlist", label: "Saved", types: ["watchlist"] },
+  { key: "rank", label: "Ranks", types: ["rank", "badge", "set"] },
+];
+
+// Events (newest first) in three buckets by how long ago they happened —
+// today, this week, earlier — leaving out the empty ones.
+const groupByAge = (events, now) => {
+  const groups = [
+    { key: "today", label: "Today", items: [] },
+    { key: "week", label: "This week", items: [] },
+    { key: "earlier", label: "Earlier", items: [] },
+  ];
+  events.forEach((event) => {
+    const age = now - event.timestamp;
+    const group = age < DAY ? groups[0] : age < 7 * DAY ? groups[1] : groups[2];
+    group.items.push(event);
+  });
+  return groups.filter((group) => group.items.length > 0);
+};
+
+// Activity, laid out like Settings: your friends (and requests waiting on
+// you) up top, chips for the kind of thing, then what your friends have
+// been watching, tiering, saving and earning, newest first, grouped by age
+// (from the ReelBoard server). Tap an event for that friend's page, a
+// poster for the movie.
 export const ActivityScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -29,11 +63,26 @@ export const ActivityScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const { friends, activity, loaded, loading, error } = useFriends();
+  const rtl = useIsRTL();
+  const { friends, incoming, activity, loaded, loading, error } = useFriends();
+  const [filter, setFilter] = useState("all");
+  const userId = useAuthStore((state) => state.user?.id);
+  const markSeen = useActivitySeenStore((state) => state.markSeen);
+
+  // Looking here clears the bell — again whenever new events arrive while
+  // you're on it.
+  useEffect(() => {
+    if (userId) markSeen(userId);
+  }, [userId, activity, markSeen]);
 
   const now = Date.now();
+  const sorted = [...activity].sort((a, b) => b.timestamp - a.timestamp);
+  const filters = FILTERS.filter(
+    (option) => !option.types || sorted.some((event) => option.types.includes(event.type)),
+  );
+  const chosen = filters.find((option) => option.key === filter) ?? filters[0];
   const groups = groupByAge(
-    [...activity].sort((a, b) => b.timestamp - a.timestamp),
+    chosen.types ? sorted.filter((event) => chosen.types.includes(event.type)) : sorted,
     now,
   );
   const openMovie = (movieId) =>
@@ -52,63 +101,119 @@ export const ActivityScreen = ({ navigation }) => {
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Your friends */}
+        {/* Your friends — and requests waiting on you. */}
         <Pressable
-          style={({ pressed }) => [
-            styles.friendsStrip,
-            pressed && styles.pressed,
-          ]}
+          style={({ pressed }) => [styles.friendsCard, pressed && styles.rowPressed]}
           onPress={() => navigation.navigate("Friends")}
+          accessibilityRole="button"
         >
-          <View style={styles.avatarStack}>
-            {friends.slice(0, AVATARS_SHOWN).map((friend, index) => (
-              <FriendAvatar
-                key={friend.id}
-                friend={friend}
-                size={34}
-                style={index > 0 && styles.avatarOverlap}
-              />
-            ))}
-          </View>
-          <View style={styles.friendsText}>
-            <Text style={styles.friendsTitle}>
-              {t("{count} friends", { count: friends.length })}
-            </Text>
-            <Text style={styles.friendsSubtitle}>
-              {t("Compare tiers · invite more")}
-            </Text>
-          </View>
-          <Text style={styles.friendsLink}>{t("See all")}</Text>
-        </Pressable>
-
-        {groups.map((group) => (
-          <View key={group.key}>
-            <Text style={styles.tagText}>{group.label}</Text>
-            <View style={styles.feed}>
-              {group.items.map((event, index) => (
-                <ActivityEvent
-                  key={event.id}
-                  event={event}
-                  now={now}
-                  divider={index > 0}
-                  onPress={() =>
-                    navigation.navigate("FriendProfile", {
-                      friendId: event.friendId,
-                    })
-                  }
-                  onOpenMovie={openMovie}
+          {friends.length > 0 ? (
+            <View style={styles.avatarStack}>
+              {friends.slice(0, AVATARS_SHOWN).map((friend, index) => (
+                <FriendAvatar
+                  key={friend.id}
+                  friend={friend}
+                  size={36}
+                  style={[index > 0 && styles.avatarOverlap, { borderColor: colors.card }]}
                 />
               ))}
             </View>
+          ) : (
+            <UserPlus size={20} color={colors.textSecondary} strokeWidth={1.9} />
+          )}
+          <View style={styles.friendsText}>
+            <Text style={styles.friendsTitle}>
+              {friends.length > 0
+                ? t("{count} friends", { count: friends.length })
+                : t("Add friends")}
+            </Text>
+            <Text style={styles.friendsSubtitle} numberOfLines={1}>
+              {t("Compare tiers · invite more")}
+            </Text>
           </View>
+          {incoming.length > 0 && (
+            <View style={styles.requestsPill}>
+              <Text style={styles.requestsText}>
+                {t("{count} requests", { count: incoming.length })}
+              </Text>
+            </View>
+          )}
+          <ChevronRight
+            size={18}
+            color={colors.textMuted}
+            style={rtl && styles.flipped}
+          />
+        </Pressable>
+
+        {/* What kind of thing: only when there's more than one kind. */}
+        {filters.length > 2 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipRow}
+            contentContainerStyle={styles.chipRowContent}
+          >
+            {filters.map((option) => {
+              const selected = option.key === chosen.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  style={[styles.chip, selected && styles.chipOn]}
+                  onPress={() => setFilter(option.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextOn]}>
+                    {t(option.label)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {groups.map((group) => (
+          <SettingsGroup key={group.key} title={t(group.label)} inset={EVENT_INSET}>
+            {group.items.map((event) => (
+              <ActivityEvent
+                key={event.id}
+                event={event}
+                now={now}
+                onPress={() =>
+                  navigation.navigate("FriendProfile", {
+                    friendId: event.friendId,
+                  })
+                }
+                onOpenMovie={openMovie}
+              />
+            ))}
+          </SettingsGroup>
         ))}
 
+        {/* Nothing in the feed yet: one way forward. */}
         {loaded && activity.length === 0 && (
-          <Text style={styles.footnote}>
-            {friends.length === 0
-              ? t("Add friends to see what they're watching.")
-              : t("Nothing yet — your friends' watches and tiers show up here.")}
-          </Text>
+          <View style={styles.empty}>
+            <View style={styles.emptyRing}>
+              <ActivityIcon size={28} color={colors.textPrimary} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {friends.length === 0 ? t("No friends yet") : t("All quiet")}
+            </Text>
+            <Text style={styles.emptyText}>
+              {friends.length === 0
+                ? t("Add friends to see what they're watching.")
+                : t("Nothing yet — your friends' watches and tiers show up here.")}
+            </Text>
+            {friends.length === 0 && (
+              <Pressable
+                onPress={() => navigation.navigate("Friends")}
+                hitSlop={10}
+                accessibilityRole="button"
+              >
+                <Text style={styles.emptyAction}>{t("Find friends")}</Text>
+              </Pressable>
+            )}
+          </View>
         )}
         {!loaded && loading && (
           <Text style={styles.footnote}>{t("Loading…")}</Text>
@@ -119,6 +224,7 @@ export const ActivityScreen = ({ navigation }) => {
           </Text>
         )}
       </Animated.ScrollView>
+      <ScreenBottomFade />
     </View>
   );
 };
@@ -129,49 +235,108 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    pressed: {
-      opacity: 0.8,
+    rowPressed: {
+      backgroundColor: colors.cardElevated,
     },
-    friendsStrip: {
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    friendsCard: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm + 2,
-      padding: spacing.md,
+      gap: spacing.md,
+      minHeight: 64,
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
       backgroundColor: colors.card,
     },
     avatarStack: {
       flexDirection: "row",
     },
     avatarOverlap: {
-      marginStart: -10,
+      marginStart: -12,
     },
     friendsText: {
       flex: 1,
+      gap: 2,
     },
     friendsTitle: {
       ...typography.bodyBold,
+      fontSize: 15,
       color: colors.textPrimary,
     },
     friendsSubtitle: {
       ...typography.caption,
       color: colors.textSecondary,
     },
-    friendsLink: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      color: colors.textPrimary,
+    requestsPill: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      backgroundColor: colors.selected,
     },
-    // Section caption, like Settings.
-    tagText: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
+    requestsText: {
+      ...typography.bodyBold,
+      fontSize: 11,
+      color: colors.selectedText,
+    },
+    chipRow: {
+      flexGrow: 0,
+      marginTop: spacing.md,
+    },
+    chipRowContent: {
+      gap: 6,
       paddingHorizontal: spacing.md,
     },
-    // Edge to edge, square corners.
-    feed: {
+    chip: {
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+    },
+    chipOn: {
+      backgroundColor: colors.selected,
+    },
+    chipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    chipTextOn: {
+      color: colors.selectedText,
+    },
+    empty: {
+      alignItems: "center",
+      marginTop: spacing.xl,
+      paddingHorizontal: spacing.xl,
+    },
+    emptyRing: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      borderWidth: 1.5,
+      borderColor: colors.textPrimary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyTitle: {
+      ...typography.title,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+    },
+    emptyText: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: spacing.xs,
+      maxWidth: 290,
+    },
+    emptyAction: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.textPrimary,
+      marginTop: spacing.md,
     },
     footnote: {
       ...typography.caption,

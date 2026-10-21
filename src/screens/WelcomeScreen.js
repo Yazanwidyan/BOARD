@@ -50,7 +50,7 @@ const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, 
 // back, "I already have an account", straight to signing in.
 const FEATURES = [
   { key: "tier", label: "Tier what you watch", Icon: ListOrdered },
-  { key: "sagas", label: "Climb sagas", Icon: Crown },
+  { key: "collections", label: "Climb collections", Icon: Crown },
   { key: "pick", label: "Get tonight's pick", Icon: Sparkles },
 ];
 

@@ -23,20 +23,21 @@ import { getTier } from "./tiers";
 // step (getSagaTracks, below, shapes them like tracks for that) — but they
 // don't count toward your ranks or your title.
 
-// Your title, by how many ranks you have — there are 39 in all, so Legend
-// needs nearly every one.
+// Your title, by how many ranks you have — a night at the theatre, from
+// walking in to keeping the archive. There are 39 ranks in all, so
+// Archivist needs nearly every one.
 export const TITLES = [
-  { at: 0, name: "Extra" },
-  { at: 3, name: "Supporting Role" },
-  { at: 8, name: "Lead" },
-  { at: 14, name: "Star" },
-  { at: 20, name: "Auteur" },
-  { at: 27, name: "Icon" },
-  { at: 34, name: "Legend" },
+  { at: 0, name: "Walk-in" },
+  { at: 3, name: "Regular" },
+  { at: 8, name: "Front Row" },
+  { at: 14, name: "Critic" },
+  { at: 20, name: "Curator" },
+  { at: 27, name: "Cinephile" },
+  { at: 34, name: "Archivist" },
 ];
 
-// Where `count` ranks put you: the title, its step (1 = Extra … 7 =
-// Legend, what the server stores as `level`), the next title and how far
+// Where `count` ranks put you: the title, its step (1 = Walk-in … 7 =
+// Archivist, what the server stores as `level`), the next title and how far
 // to it.
 export const getTitle = (count) => {
   const index = TITLES.reduce((found, title, i) => (count >= title.at ? i : found), 0);
@@ -76,11 +77,11 @@ export const TRACKS = [
     stat: "watched",
     steps: [
       [1, "First Watch"],
-      [10, "Regular"],
+      [10, "Ticket Stub"],
       [50, "Season Pass"],
-      [100, "Front Row"],
-      [250, "Archivist"],
-      [500, "Cinephile"],
+      [100, "Centurion"],
+      [250, "Reel Collector"],
+      [500, "Film Buff"],
       [1000, "Hall of Fame"],
     ],
   },
@@ -94,10 +95,10 @@ export const TRACKS = [
     stat: "tiered",
     steps: [
       [10, "Opinionated"],
-      [50, "Critic"],
-      [100, "Trusted Critic"],
-      [250, "Veteran Critic"],
-      [500, "Master Critic"],
+      [50, "Reviewer"],
+      [100, "Trusted Voice"],
+      [250, "Seasoned Reviewer"],
+      [500, "Master Reviewer"],
     ],
   },
   {

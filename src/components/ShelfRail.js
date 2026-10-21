@@ -8,7 +8,7 @@ import { useColors } from "../theme/useColors";
 // A sideways-scrolling row of posters (or collages), each with an
 // optional caption underneath. Plain — no shelf ledge.
 //
-// items: [{ key, onPress, content, title?, meta?, metaColor? }]
+// items: [{ key, onPress, content, title?, titleColor?, meta?, metaColor? }]
 export const ShelfRail = ({ items, itemWidth }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -20,7 +20,7 @@ export const ShelfRail = ({ items, itemWidth }) => {
       style={styles.rail}
       contentContainerStyle={styles.content}
     >
-      {items.map(({ key, onPress, content, title, meta, metaColor }) => (
+      {items.map(({ key, onPress, content, title, titleColor, meta, metaColor }) => (
         <Pressable
           key={key}
           onPress={onPress}
@@ -33,7 +33,7 @@ export const ShelfRail = ({ items, itemWidth }) => {
           {(title || meta) && (
             <View style={styles.caption}>
               {!!title && (
-                <Text style={styles.title} numberOfLines={1}>
+                <Text style={[styles.title, titleColor && { color: titleColor }]} numberOfLines={1}>
                   {title}
                 </Text>
               )}

@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { api } from "../services/api";
 import { queryKeys } from "../services/queryClient";
 import { useRefetchOnFocus } from "../utils/useRefetchOnFocus";
+import { useActivitySeenStore } from "./activitySeenStore";
 import { useAuthStore } from "./authStore";
 
 // Friends, requests and the activity feed — other people's data, so plain
@@ -84,6 +85,15 @@ export const useFriends = () => {
     dropRequest: drop.mutateAsync,
     removeFriend: remove.mutateAsync,
   };
+};
+
+// What the bell counts: friend requests waiting on you, plus friends'
+// activity since you last opened Activity.
+export const useNotificationCount = () => {
+  const userId = useAuthStore((state) => state.user?.id);
+  const seenAt = useActivitySeenStore((state) => state.seenAt[userId] ?? 0);
+  const { incoming, activity } = useFriends();
+  return incoming.length + activity.filter((event) => event.timestamp > seenAt).length;
 };
 
 export default useFriends;

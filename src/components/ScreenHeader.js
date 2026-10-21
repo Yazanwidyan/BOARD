@@ -127,12 +127,14 @@ const HeaderHairline = ({ scrollY, styles }) => {
   return <Animated.View pointerEvents="none" style={[styles.hairline, style]} />;
 };
 
-// The round icon button every tab's header actions use.
+// The round icon button every tab's header actions use. `badge`: a count
+// for a red dot on its corner (nothing when 0; "9+" past 9).
 export const HeaderIconButton = ({
   onPress,
   children,
   style,
   accessibilityLabel,
+  badge = 0,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -145,6 +147,11 @@ export const HeaderIconButton = ({
       accessibilityLabel={accessibilityLabel}
     >
       {children}
+      {badge > 0 && (
+        <View style={styles.badge} pointerEvents="none">
+          <Text style={styles.badgeText}>{badge > 9 ? "9+" : `${badge}`}</Text>
+        </View>
+      )}
     </Pressable>
   );
 };
@@ -152,7 +159,7 @@ export const HeaderIconButton = ({
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
 // greeting) on the left, actions on the right — no centered title.
 // `onPressTitle` turns the title into a switcher (with a ▾), and
-// `subtitle` adds a small line under it — Library uses both.
+// `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
 // `refreshing` (on a page with pull-to-refresh) and the logo, if there is
 // one, spins while it refreshes — see RefreshSpin.
@@ -456,6 +463,28 @@ const createStyles = (colors) =>
       height: 40,
       alignItems: "center",
       justifyContent: "center",
+    },
+    // Ringed in the page colour so it stands off the icon.
+    badge: {
+      position: "absolute",
+      top: 3,
+      end: 2,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.danger,
+      borderWidth: 2,
+      borderColor: colors.background,
+    },
+    badgeText: {
+      ...typography.bodyBold,
+      fontSize: 10,
+      lineHeight: 12,
+      color: "#FFFFFF",
+      fontVariant: ["tabular-nums"],
     },
     intro: {
       paddingHorizontal: spacing.md,

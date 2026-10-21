@@ -1,5 +1,5 @@
-import { Crown, Plus } from "lucide-react-native";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Plus } from "lucide-react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { t } from "../i18n";
@@ -11,6 +11,7 @@ import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { TIERS, getTier } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
+import { CollectionCollage } from "./CollectionCollage";
 import { MoviePoster } from "./MoviePoster";
 import { ShelfRail } from "./ShelfRail";
 import { TasteDnaBars } from "./TasteDnaBars";
@@ -115,20 +116,17 @@ export const getFinishedSagas = (watched) => {
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 };
 
-// Finished sagas as a shelf: each a gold-framed square with the saga's own
-// picture (the actor's or director's photo, or its backdrop; else its
-// first film's) and a crown, then its top rank and the saga — or, when the
-// top rank shares the saga's name ("Goodfellas"), who it's about.
+// Finished sagas as a shelf of box sets, like Home's sagas: each its cover
+// (four of its posters, 2 × 2, with the gold "Complete" corner), then its
+// top rank in gold and the saga — or, when the top rank shares the saga's
+// name ("Goodfellas"), who it's about.
 export const FinishedSagasRail = ({ watched, onOpen }) => {
   const colors = useColors();
-  const styles = createStyles(colors);
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
   return (
     <ShelfRail
       itemWidth={BOX_ITEM}
       items={getFinishedSagas(watched).map(({ collection, top }) => {
-        const first = getMovieById(collection.movieIds[0]);
-        const picture =
-          collection.art?.photo ?? collection.art?.backdrop ?? first?.poster ?? first?.backdrop ?? null;
         // Under the rank: the saga, unless the rank already says it.
         const sameName =
           !!top && top.title.trim().toLowerCase() === collection.title.trim().toLowerCase();
@@ -136,17 +134,9 @@ export const FinishedSagasRail = ({ watched, onOpen }) => {
           key: collection.id,
           onPress: () => onOpen(collection.id),
           title: top ? t(top.title) : t("Complete"),
-          meta: sameName ? collection.person ?? undefined : t(collection.title),
-          content: (
-            <View style={styles.medalFrame}>
-              <View style={styles.medalFace}>
-                {picture ? <Image source={{ uri: picture }} style={styles.fill} resizeMode="cover" /> : null}
-              </View>
-              <View style={styles.medalCrown}>
-                <Crown size={14} color="#111214" strokeWidth={2.6} />
-              </View>
-            </View>
-          ),
+          titleColor: colors.rating,
+          meta: sameName ? collection.person ?? t(collection.title) : t(collection.title),
+          content: <CollectionCollage collection={collection} watchedIds={watchedIds} size={TILE} />,
         };
       })}
     />
@@ -334,33 +324,6 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
 
-    // A finished saga: a square medal — the picture in a gold frame, a
-    // crown tag on it.
-    medalFrame: {
-      width: TILE,
-      height: TILE,
-      padding: 3,
-      backgroundColor: colors.rating,
-    },
-    medalFace: {
-      flex: 1,
-      overflow: "hidden",
-      backgroundColor: colors.card,
-      borderWidth: 2,
-      borderColor: colors.background,
-    },
-    medalCrown: {
-      position: "absolute",
-      bottom: -4,
-      alignSelf: "center",
-      width: 28,
-      height: 28,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.rating,
-      borderWidth: 2,
-      borderColor: colors.background,
-    },
     newTile: {
       width: TILE,
       height: TILE,

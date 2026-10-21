@@ -159,7 +159,7 @@ export const EmailAuthScreen = ({ navigation, route }) => {
           </Text>
           <Text style={styles.intro}>
             {isRegister
-              ? t("Your library, tiers, boards and saga ranks are saved to it — on any phone.")
+              ? t("Your library, tiers, boards and collection ranks are saved to it — on any phone.")
               : t("Sign in to pick up where you left off.")}
           </Text>
         </View>
