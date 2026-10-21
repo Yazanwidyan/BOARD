@@ -193,7 +193,7 @@ const createStyles = (colors) =>
     },
     // On a poster, so fixed dark + white.
     moreOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(0, 0, 0, 0.6)",

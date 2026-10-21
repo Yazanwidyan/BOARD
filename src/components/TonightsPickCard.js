@@ -6,6 +6,7 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
+import { shape } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
 import { getMood, pickMovieForMood } from "../utils/moods";
@@ -27,7 +28,7 @@ import { t } from "../i18n";
 // reason it fits, where it gets you in a saga), and Watched it plus
 // Trailer and Swap; ✕ drops the pick. Tapping it opens the movie. Renders
 // nothing when there's no pick.
-// `scrollY`: Home's scroll position, so the banner stretches on a pull.
+// `scrollY`: Home's scroll position, so the backdrop stretches on a pull.
 export const TonightsPickCard = ({ navigation, scrollY }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -109,8 +110,11 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
 
   return (
     <HomeHero
+      // A fresh banner per film (its logo loads, or falls back, anew).
+      key={pickedMovie.id}
       posterUri={pickedMovie.poster}
       backdropUri={pickedMovie.backdrop}
+      logo={pickedMovie.details?.logo}
       eyebrow={t("Tonight's pick")}
       title={pickedMovie.title}
       meta={[
@@ -160,9 +164,10 @@ const createStyles = (colors) =>
     mainButton: {
       flex: 1,
     },
-    // Square filled boxes, the same height as the main button.
+    // Rounded, the same height as the main button; the small ones a step
+    // lighter than the card they sit on.
     square: {
-      borderRadius: 0,
+      borderRadius: shape.control,
       minHeight: 48,
     },
     roundButton: {
@@ -170,7 +175,8 @@ const createStyles = (colors) =>
       height: 48,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.card,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.control,
     },
   });
 

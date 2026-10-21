@@ -14,7 +14,6 @@ import Animated from "react-native-reanimated";
 
 import {
   BoardsRail,
-  FriendsRail,
   FinishedSagasRail,
   ProfileSection,
   RecapBanner,
@@ -74,8 +73,7 @@ export const ProfileScreen = ({ navigation }) => {
   useMoviesVersion();
   const colors = useColors();
   const notificationCount = useNotificationCount();
-  const { friends, incoming } = useFriends();
-  const openFriends = () => navigation.navigate("Friends");
+  const { friends } = useFriends();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -226,31 +224,6 @@ export const ProfileScreen = ({ navigation }) => {
             onPressFriends={() => navigation.navigate("Friends")}
             onPressCollections={openSagas}
           />
-
-          {/* Your friends, right on your profile: tap one for theirs. */}
-          <ProfileSection
-            title={t("Friends")}
-            actionLabel={
-              incoming.length > 0 ? t("{count} requests", { count: incoming.length }) : undefined
-            }
-            onAction={friends.length > 0 || incoming.length > 0 ? openFriends : undefined}
-            rail={friends.length > 0}
-          >
-            {friends.length > 0 ? (
-              <FriendsRail
-                friends={friends}
-                myWatched={watched}
-                onOpen={(friend) => navigation.navigate("FriendProfile", { friendId: friend.id })}
-                onAdd={openFriends}
-              />
-            ) : (
-              <SectionEmpty
-                line={t("Add friends to compare taste and see what they're watching.")}
-                actionLabel={t("Add friends")}
-                onPress={openFriends}
-              />
-            )}
-          </ProfileSection>
 
           {/* How you rate. Your S tier is your favourites — in your order,
               set on the tier list. */}

@@ -21,6 +21,7 @@ import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
 import { RanksScreen } from "../screens/RanksScreen";
+import { QuickLogScreen } from "../screens/QuickLogScreen";
 import { RecapScreen } from "../screens/RecapScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
@@ -30,7 +31,6 @@ import { SwipeScreen } from "../screens/SwipeScreen";
 import { TasteScreen } from "../screens/TasteScreen";
 import { TierListScreen } from "../screens/TierListScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
-import { AiPickScreen } from "../screens/AiPickScreen";
 import { WildcardScreen } from "../screens/WildcardScreen";
 import { SimilarScreen } from "../screens/SimilarScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
@@ -62,7 +62,8 @@ const LINKING = {
       GroupNight: "night/:code",
       Friends: "friends",
       Recap: "recap",
-      Main: { screens: { Decide: "decide" } },
+      // Old "decide" links land on Home, where deciding lives now.
+      Main: { screens: { Home: "decide" } },
     },
   },
 };
@@ -153,7 +154,11 @@ export const AppNavigator = () => {
               component={SwipeScreen}
               options={{ gestureEnabled: false }}
             />
-            <Stack.Screen name="AiPick" component={AiPickScreen} />
+            <Stack.Screen
+              name="QuickLog"
+              component={QuickLogScreen}
+              options={{ animation: "slide_from_bottom" }}
+            />
             <Stack.Screen name="Similar" component={SimilarScreen} />
             {/* Scratching shouldn't swipe the screen away. */}
             <Stack.Screen

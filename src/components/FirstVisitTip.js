@@ -15,15 +15,11 @@ import { Text } from "./AppText";
 const TIPS = {
   home: {
     title: "Home",
-    body: "Tonight's pick, your dare, and what to watch next — all in one place.",
+    body: "Tonight's pick, other ways to decide, your dare, and what to watch next — all in one place. Tap ＋ to log a film.",
   },
   discover: {
     title: "Discover",
     body: "Browse rails picked for your taste, or watch trailer clips in Reels. Tap + to save a movie.",
-  },
-  decide: {
-    title: "Decide",
-    body: "Can't choose? Get a taste pick, roll a wildcard, swipe a pile down — or take a dare.",
   },
   library: {
     title: "Library",

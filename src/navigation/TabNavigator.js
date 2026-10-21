@@ -1,6 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-import { DecideScreen } from "../screens/DecideScreen";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
@@ -9,6 +8,9 @@ import { GlassTabBar } from "./tabBars/GlassTabBar";
 
 const Tab = createBottomTabNavigator();
 
+// The ＋ tab never shows a page of its own — pressing it opens Log.
+const LogTab = () => null;
+
 export const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={{ headerShown: false, animation: "fade" }}
@@ -16,7 +18,16 @@ export const TabNavigator = () => (
   >
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Discover" component={DiscoverScreen} />
-    <Tab.Screen name="Decide" component={DecideScreen} />
+    <Tab.Screen
+      name="Log"
+      component={LogTab}
+      listeners={({ navigation }) => ({
+        tabPress: (event) => {
+          event.preventDefault();
+          navigation.navigate("QuickLog");
+        },
+      })}
+    />
     <Tab.Screen name="Library" component={LibraryScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>

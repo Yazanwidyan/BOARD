@@ -477,7 +477,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
     },
     ringText: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
     },

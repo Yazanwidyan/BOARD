@@ -105,7 +105,7 @@ export const RecapScreen = ({ navigation, route }) => {
             </Text>
             <PrimaryButton
               label={t("Find something to watch")}
-              onPress={() => navigation.navigate("Main", { screen: "Decide" })}
+              onPress={() => navigation.navigate("Main", { screen: "Home" })}
               style={styles.fullButton}
             />
           </View>

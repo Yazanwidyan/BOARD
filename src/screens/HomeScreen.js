@@ -15,12 +15,14 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { PickInsight } from "../components/PickInsight";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { QuickPickBento } from "../components/QuickPickBento";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
   DockHeader,
@@ -28,25 +30,28 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
+import { SwipeSheet } from "../components/SwipeSheet";
+import { WildcardSheet } from "../components/WildcardSheet";
 import { SPIN_STOP_MS } from "../components/RefreshSpin";
 import { TonightsPickCard } from "../components/TonightsPickCard";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
+import { useSessionStore } from "../store/sessionStore";
 import { useMovieStore } from "../store/movieStore";
-import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
+import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getInProgressCollections } from "../utils/collections";
+import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { formatRuntime } from "../utils/movieFilters";
 import { getEndTime, getTonightSuggestions } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { t } from "../i18n";
-import { useNotificationCount } from "../store/friendsStore";
+import { useFriends, useNotificationCount } from "../store/friendsStore";
 import { FirstVisitTip } from "../components/FirstVisitTip";
-
-const RECENT_COUNT = 10;
+import { HomeFriends } from "../components/HomeFriends";
 
 const WATCHLIST_COUNT = 10;
 // Shelf rail item widths (each includes its own side padding).
@@ -79,7 +84,6 @@ const DecideHeroCard = ({
   if (isFreshAccount) {
     return (
       <HomeHero
-        scrollY={scrollY}
         eyebrow={t("Welcome")}
         title={t("Find your first movie")}
         meta={t(
@@ -123,7 +127,6 @@ const timeAgo = (timestamp) => {
 // tonight (utils/tonightPick) — the best fit for your taste, lifted when
 // it's on your watchlist or moves a saga along — with why (PickInsight),
 // a one-tap "make it tonight's pick" and ⇄ to step to the next one.
-// `scrollY`: Home's scroll position, so the banner stretches on a pull.
 const WatchlistSuggestion = ({
   navigation,
   styles,
@@ -181,6 +184,7 @@ const WatchlistSuggestion = ({
         scrollY={scrollY}
         posterUri={movie.poster}
         backdropUri={movie.backdrop}
+        logo={movie.details?.logo}
         eyebrow={t("Suggested for tonight")}
         title={movie.title}
         meta={[
@@ -270,41 +274,6 @@ const WatchlistRail = ({ bucketList, navigation }) => {
   );
 };
 
-const RecentlyWatchedRail = ({ watched, navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  if (watched.length === 0) return null;
-
-  return (
-    <View style={styles.railSection}>
-      <ShelfTag label={t("Recently watched")} styles={styles} />
-      <ShelfRail
-        itemWidth={POSTER_ITEM}
-        items={[...watched]
-          // Newest watch date first (dates can be changed after the fact).
-          .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
-          .slice(0, RECENT_COUNT)
-          .map((entry) => ({ entry, movie: getMovieById(entry.movieId) }))
-          .filter(({ movie }) => movie)
-          .map(({ entry, movie }) => ({
-            key: entry.movieId,
-            title: movie.title,
-            meta: String(movie.year),
-            onPress: () =>
-              navigation.navigate("MovieDetails", { movieId: movie.id }),
-            content: (
-              <MoviePoster
-                uri={movie.poster}
-                shadow
-                style={styles.railPoster}
-              />
-            ),
-          }))}
-      />
-    </View>
-  );
-};
-
 export const HomeScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -317,6 +286,24 @@ export const HomeScreen = ({ navigation }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
+  const skipChallenge = useChallengeStore((state) => state.skipChallenge);
+  const startSession = useSessionStore((state) => state.startSession);
+  const [isSwipeOpen, setIsSwipeOpen] = useState(false);
+  // Home's two sides: what's for you tonight, and your friends.
+  const [homeTab, setHomeTab] = useState("you");
+  const { refresh: refreshFriends } = useFriends();
+  const [isWildcardOpen, setIsWildcardOpen] = useState(false);
+
+  const startSwiping = (movies) => {
+    setIsSwipeOpen(false);
+    startSession(movies);
+    navigation.navigate("Swipe");
+  };
+  // A new dare replaces the one you have.
+  const startDare = () => {
+    if (activeChallenge) skipChallenge();
+    openChallengeGenerator(navigation);
+  };
 
   const queuedCount = bucketList.length;
   const watchedCount = watched.length;
@@ -351,6 +338,7 @@ export const HomeScreen = ({ navigation }) => {
   const REFRESH_MS = 1100;
   const onRefresh = () => {
     setRefreshing(true);
+    if (homeTab === "friends") refreshFriends();
     Haptics.selectionAsync();
     setTimeout(() => setRefreshing(false), REFRESH_MS);
     setTimeout(
@@ -361,6 +349,33 @@ export const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
+      {/* For you / Friends: pinned under the header, outside the scroll,
+          so pulling to refresh moves only the page below them. */}
+      <View style={[styles.tabsBar, { paddingTop: header.barBottom }]}>
+        <View style={styles.tabs} accessibilityRole="tablist">
+          {[
+            { key: "you", label: t("For you") },
+            { key: "friends", label: t("Friends") },
+          ].map((tab) => {
+            const selected = tab.key === homeTab;
+            return (
+              <Pressable
+                key={tab.key}
+                style={[styles.tab, selected && styles.tabOn]}
+                onPress={() => {
+                  if (selected) return;
+                  Haptics.selectionAsync();
+                  setHomeTab(tab.key);
+                }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+              >
+                <Text style={[styles.tabText, selected && styles.tabTextOn]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       <Animated.ScrollView
         onScroll={header.onScroll}
         scrollEventThrottle={16}
@@ -369,9 +384,8 @@ export const HomeScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // The page runs up under the header; Android's spinner comes
-            // down below it.
-            progressViewOffset={header.barBottom}
+            // The page starts under the tabs, so the spinner does too.
+            progressViewOffset={0}
             // iOS: no spinner — the header logo spins instead.
             // Android can't report the pull, so it keeps its spinner.
             tintColor={
@@ -382,10 +396,13 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={{
-          paddingTop: header.contentInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
+        {homeTab === "friends" ? (
+          <HomeFriends navigation={navigation} />
+        ) : (
+        <>
         <View style={[styles.section, styles.firstSection]}>
           {pickedMovieId ? (
             <TonightsPickCard
@@ -403,6 +420,40 @@ export const HomeScreen = ({ navigation }) => {
             />
           )}
         </View>
+
+        {/* Not that one? The other ways to choose. */}
+        {!isFreshAccount && (
+          <View style={styles.railSection}>
+            <ShelfTag label={t("Decide another way")} styles={styles} />
+            <View style={styles.bento}>
+              <QuickPickBento
+                onSwipe={() => setIsSwipeOpen(true)}
+                onWildcard={() => setIsWildcardOpen(true)}
+                onSimilar={() => navigation.navigate("Similar")}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Your dare — or the way to get one. */}
+        {!isFreshAccount && (
+          <View style={styles.section}>
+            {activeChallenge ? (
+              <ChallengeCard
+                challenge={activeChallenge}
+                mode="active"
+                onContinue={() =>
+                  navigation.navigate("MovieDetails", {
+                    movieId: activeChallenge.targetMovieId,
+                  })
+                }
+                onNewChallenge={startDare}
+              />
+            ) : (
+              <ChallengePrompt onStart={startDare} />
+            )}
+          </View>
+        )}
 
         {/* First week of the month: last month's recap is ready. */}
         {lastMonthRecap && (
@@ -469,11 +520,25 @@ export const HomeScreen = ({ navigation }) => {
             />
           </View>
         )}
-
-        <RecentlyWatchedRail watched={watched} navigation={navigation} />
+        </>
+        )}
       </Animated.ScrollView>
       <ScreenBottomFade />
       <FirstVisitTip id="home" />
+
+      <SwipeSheet
+        visible={isSwipeOpen}
+        onClose={() => setIsSwipeOpen(false)}
+        onStart={startSwiping}
+      />
+      <WildcardSheet
+        visible={isWildcardOpen}
+        onClose={() => setIsWildcardOpen(false)}
+        onGo={() => {
+          setIsWildcardOpen(false);
+          navigation.navigate("Wildcard");
+        }}
+      />
       <DockHeader
         {...header.props}
         refreshing={refreshing}
@@ -518,6 +583,42 @@ const createStyles = (colors) =>
     // margin, via railLabelPadding.
     railSection: {
       marginTop: spacing.xl,
+    },
+    // The cards sit inside the page's margins.
+    bento: {
+      paddingHorizontal: spacing.md,
+    },
+    tabsBar: {
+      zIndex: 1,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.background,
+    },
+    // For you / Friends: the chosen one filled, like Settings' choices.
+    tabs: {
+      flexDirection: "row",
+      gap: 2,
+      padding: 3,
+      marginHorizontal: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: shape.chip,
+    },
+    tab: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      borderRadius: shape.chip,
+    },
+    tabOn: {
+      backgroundColor: colors.selected,
+    },
+    tabText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+    },
+    tabTextOn: {
+      color: colors.selectedText,
     },
     // The header inset already leaves the gap under the header.
     firstSection: {
@@ -572,15 +673,17 @@ const createStyles = (colors) =>
     },
     // Square filled boxes, like Tonight's pick.
     heroSquare: {
-      borderRadius: 0,
+      borderRadius: shape.control,
       minHeight: 48,
     },
+    // A step lighter than the hero card it sits on.
     heroRound: {
       width: 48,
       height: 48,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.card,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.control,
     },
   });
 

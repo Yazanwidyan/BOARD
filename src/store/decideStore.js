@@ -11,11 +11,8 @@ export const useDecideStore = create(
     (set) => ({
       swipe: { source: "taste", boardId: null },
       wildcard: { source: "anything", boardId: null },
-      // "Let ReelBoard choose": your last answers (utils/guidedPick).
-      guided: null,
       setSwipe: (changes) => set((state) => ({ swipe: { ...state.swipe, ...changes } })),
       setWildcard: (changes) => set((state) => ({ wildcard: { ...state.wildcard, ...changes } })),
-      setGuided: (guided) => set({ guided }),
     }),
     {
       name: "board:decide-store",
