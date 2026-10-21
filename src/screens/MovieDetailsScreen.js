@@ -40,7 +40,6 @@ import { ScoreRings } from "../components/ScoreRings";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { TierPicker } from "../components/TierPicker";
 import { getKnownMovies, getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
 import { useBoardStore } from "../store/boardStore";
@@ -50,7 +49,6 @@ import { radius, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
-  giveRatingFeedback,
   giveWatchedFeedback,
   rewatchMovieWithFeedback,
   toggleBucketListWithFeedback,
@@ -62,13 +60,12 @@ import {
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
 import { getMovieMatch, getTastePicks } from "../utils/tasteEngine";
-import { getAverageTier, getTier } from "../utils/tiers";
+import { getAverageTier, getTier, getTierInfo } from "../utils/tiers";
 import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
 import { formatRuntime, isInBucketList, byWeightedRating } from "../utils/movieFilters";
-import { THEMES } from "../data/vibes";
 import { t } from "../i18n";
 
 const HEADER_BAR_HEIGHT = 40;
@@ -78,6 +75,8 @@ const DESCRIPTION_LINES = 4;
 const LOGO_MAX_HEIGHT = 96;
 const LOGO_MAX_WIDTH = 300;
 const SIMILAR_COUNT = 10;
+// A cast card's width; its photo is a portrait under the name.
+const CAST_CARD = 112;
 
 const MONTHS = [
   "Jan",
@@ -140,10 +139,11 @@ const getSimilarMovies = (movie) =>
     .sort(byWeightedRating)
     .slice(0, SIMILAR_COUNT);
 
-// "More like this": the server's picks (GET /api/movies/:id/like — feel,
-// story, themes, genres, cast, era and TMDB's recommendations, backend
-// lib/similar.js), nudged a little by your taste, films you've watched
-// moved to the end. → [{ movie, reason, seen }]; `reason` one short line.
+// "More like this": the server's picks (GET /api/movies/:id/like — what
+// its fans went on to like and what it's about, with feel, genres, story,
+// cast and era behind them, backend lib/similar.js), nudged a little by
+// your taste, films you've watched moved to the end. → [{ movie, reason,
+// seen }]; `reason` one short line.
 const TASTE_NUDGE = 0.5;
 const getMoreLikeThis = (movie, similar, watched) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
@@ -187,13 +187,11 @@ const describeLike = (reason) => {
       return t("Same feel");
     case "story":
       return t("Similar story");
-    case "themes":
-      return THEMES[reason.value?.[0]]
-        ? t("Also: {theme}", { theme: t(THEMES[reason.value[0]]) })
-        : t("Similar themes");
+    case "topics":
+      return t("About: {topics}", { topics: (reason.value ?? []).slice(0, 2).join(", ") });
     case "genres":
       return (reason.value ?? []).slice(0, 2).map((genre) => t(genre)).join(" · ");
-    case "tmdb":
+    case "fans":
       return t("Fans of it love this");
     case "cast":
       return t("With {name}", { name: reason.value?.[0] ?? "" });
@@ -285,7 +283,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     state.bucketList.find((entry) => entry.movieId === movieId),
   );
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
-  const setWatchedTier = useMovieStore((state) => state.setWatchedTier);
   const setWatchedDate = useMovieStore((state) => state.setWatchedDate);
   const isPicked = useMovieStore((state) => state.pickedMovie === movieId);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
@@ -496,12 +493,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     if (!wasWatched) {
       giveWatchedFeedback(movieId, watchedBefore, bucketListBefore);
     }
-  };
-
-  const handleTier = (tier) => {
-    const { watched: watchedBefore } = useMovieStore.getState();
-    setWatchedTier(movieId, tier);
-    giveRatingFeedback(watchedBefore);
   };
 
   // The movie's own trailer (from TMDB), or a YouTube search without one.
@@ -742,8 +733,41 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   </Text>
                 </Pressable>
               </View>
-              <Text style={styles.tierPrompt}>{t("Your ReelBoard tier")}</Text>
-              <TierPicker tier={getTier(watchedEntry)} onChange={handleTier} />
+              {/* Your tier: one button that opens the tiering screen (the
+                  face and the slider), as everywhere else. */}
+              {(() => {
+                const tierInfo = getTierInfo(getTier(watchedEntry));
+                return (
+                  <Pressable
+                    style={({ pressed }) => [styles.tierButton, pressed && styles.tierButtonPressed]}
+                    onPress={() => navigation.navigate("TierMovie", { movieId })}
+                    accessibilityRole="button"
+                    accessibilityLabel={tierInfo ? t("Change your tier") : t("Tier it")}
+                  >
+                    <View
+                      style={[
+                        styles.tierTile,
+                        tierInfo ? { backgroundColor: tierInfo.color } : styles.tierTileEmpty,
+                      ]}
+                    >
+                      <Text style={[styles.tierTileLetter, !tierInfo && styles.tierTileLetterEmpty]}>
+                        {tierInfo ? tierInfo.key : "?"}
+                      </Text>
+                    </View>
+                    <View style={styles.tierButtonText}>
+                      <Text style={styles.tierButtonTitle}>
+                        {tierInfo ? t("{tier} tier", { tier: tierInfo.key }) : t("Tier it")}
+                      </Text>
+                      <Text style={styles.tierButtonHint} numberOfLines={1}>
+                        {tierInfo ? t(tierInfo.meaning) : t("How was it? Slide from F to S")}
+                      </Text>
+                    </View>
+                    <Text style={styles.tierButtonAction}>
+                      {tierInfo ? t("Change") : t("Tier")} ›
+                    </Text>
+                  </Pressable>
+                );
+              })()}
             </View>
           ) : (
             bucketEntry && (
@@ -840,14 +864,23 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           {castPeople.length > 0 && (
             <>
               <Text style={styles.sectionLabel}>{t("Cast")}</Text>
-              <View style={styles.castList}>
+              {/* A rail of big photo cards, edge to edge: who, who they
+                  play, and their collection if they have one. */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.castRail}
+                contentContainerStyle={styles.castRailContent}
+              >
                 {castPeople.map(({ name: actor, character, photo }) => {
                   const saga = getSagaForPerson(actor);
                   return (
                     <Pressable
                       key={actor}
-                      style={styles.castRow}
+                      style={({ pressed }) => [styles.castCard, pressed && styles.castCardPressed]}
                       onPress={() => openActor(actor)}
+                      accessibilityRole="button"
+                      accessibilityLabel={character ? `${actor}, ${character}` : actor}
                     >
                       <View style={styles.castAvatar}>
                         {photo ? (
@@ -861,26 +894,24 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                           </Text>
                         )}
                       </View>
-                      <View style={styles.castInfo}>
-                        <Text style={styles.castName} numberOfLines={1}>
-                          {actor}
+                      <Text style={styles.castName} numberOfLines={2}>
+                        {actor}
+                      </Text>
+                      {!!character && (
+                        <Text style={styles.castCharacter} numberOfLines={1}>
+                          {character}
                         </Text>
-                        {!!character && (
-                          <Text style={styles.castCharacter} numberOfLines={1}>
-                            {character}
-                          </Text>
-                        )}
-                        {/* Actors with a saga name it — tapping opens it. */}
-                        {saga && (
-                          <Text style={styles.castSaga} numberOfLines={1}>
-                            {t("Collection · {title}", { title: saga.title })}
-                          </Text>
-                        )}
-                      </View>
+                      )}
+                      {/* Actors with a collection name it — tapping opens it. */}
+                      {saga && (
+                        <Text style={styles.castSaga} numberOfLines={1}>
+                          {saga.title}
+                        </Text>
+                      )}
                     </Pressable>
                   );
                 })}
-              </View>
+              </ScrollView>
             </>
           )}
 
@@ -1161,10 +1192,55 @@ const createStyles = (colors) =>
       letterSpacing: 0.3,
       color: colors.textSecondary,
     },
-    tierPrompt: {
+    // Your tier, as one button: the tile in its colour, what it means,
+    // and "Change" — it opens the tiering screen.
+    tierButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.sm + 2,
+      backgroundColor: colors.card,
+    },
+    tierButtonPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    tierTile: {
+      width: 52,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    tierTileEmpty: {
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: colors.textMuted,
+    },
+    tierTileLetter: {
+      ...typography.hero,
+      fontSize: 28,
+      lineHeight: 34,
+      color: "#0C1014",
+    },
+    tierTileLetterEmpty: {
+      color: colors.textMuted,
+    },
+    tierButtonText: {
+      flex: 1,
+      gap: 2,
+    },
+    tierButtonTitle: {
+      ...typography.bodyBold,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    tierButtonHint: {
       ...typography.caption,
       color: colors.textSecondary,
-      marginBottom: spacing.xs + 2,
+    },
+    tierButtonAction: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.textPrimary,
     },
     savedRow: {
       flexDirection: "row",
@@ -1209,46 +1285,49 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textPrimary,
     },
-    castList: {
+    // The cast rail cancels the page's side padding, so it reaches both
+    // screen edges; each card is a tall photo with the name under it.
+    castRail: {
       marginHorizontal: -spacing.md,
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.card,
     },
-    castRow: {
-      flexDirection: "row",
-      alignItems: "center",
+    castRailContent: {
       gap: spacing.sm + 2,
-      paddingVertical: spacing.sm + 2,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.background,
+      paddingHorizontal: spacing.md,
+    },
+    castCard: {
+      width: CAST_CARD,
+    },
+    castCardPressed: {
+      opacity: 0.8,
     },
     castAvatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: CAST_CARD,
+      height: CAST_CARD * 1.3,
       overflow: "hidden",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.cardElevatedLight,
+      marginBottom: spacing.xs + 2,
     },
     castPhoto: {
-      width: 40,
-      height: 40,
+      width: CAST_CARD,
+      height: CAST_CARD * 1.3,
+    },
+    castInitials: {
+      ...typography.title,
+      fontSize: 28,
+      color: colors.textPrimary,
+    },
+    castName: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      lineHeight: 18,
+      color: colors.textPrimary,
     },
     castCharacter: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    castInitials: {
-      ...typography.label,
-      color: colors.textPrimary,
-    },
-    castInfo: {
-      flex: 1,
-    },
-    castName: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
+      marginTop: 1,
     },
     castMeta: {
       ...typography.caption,

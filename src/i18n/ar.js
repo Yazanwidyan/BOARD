@@ -1451,6 +1451,19 @@ const ar = {
   "Your watchlist, what you've watched, and your collections. Tier what you watch from S to F.": "قائمة مشاهدتك، وما شاهدته، ومجموعاتك. صنّف ما تشاهده من S إلى F.",
   "My taste DNA": "حمضي الذوقي",
   // Ranks
+  "From your taste": "من ذوقك",
+  "Narrow it down": "صفِّ الخيارات",
+  "Watch it, earn ranks": "شاهده واكسب رتباً",
+  "AI pick": "اختيار الذكاء الاصطناعي",
+  "Ask AI": "اسأل الذكاء الاصطناعي",
+  "About: {topics}": "عن: {topics}",
+  "Both about: {topics}": "كلاهما عن: {topics}",
+  "About similar things": "عن أشياء متشابهة",
+  "People who liked {title} went on to like it": "من أحبّوا {title} أحبّوه أيضاً",
+  "Change your tier": "غيّر تصنيفك",
+  "How was it? Slide from F to S": "كيف كان؟ اسحب من F إلى S",
+  "Tier": "صنّف",
+  "Now: {tier} tier": "الآن: {tier}",
   "{percent}% similar to {title}": "يشبه {title} بنسبة {percent}%",
   "More like…": "أفلام مثل…",
   "Pick a movie you loved — see what's like it, how much, and why.": "اختر فيلماً أحببته — وشاهد ما يشبهه، وبأي قدر، ولماذا.",
@@ -1788,6 +1801,11 @@ const ar = {
   "Fearless": "لا يخاف",
   "New Ranks!": "رتب جديدة!",
   "New Title!": "لقب جديد!",
+
+  // Tiering with the slider
+  "How was {title}?": "كيف كان {title}؟",
+  "{tier} tier": "تصنيف {tier}",
+  "Slide to tier it": "اسحب لتصنّفه",
 };
 
 export default ar;

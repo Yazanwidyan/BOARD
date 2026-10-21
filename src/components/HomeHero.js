@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
@@ -36,6 +36,12 @@ const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
 const POSTER_PULL_SCALE = 0.14; // the most the poster grows on a full pull
 const POSTER_PULL_DISTANCE = 140;
 
+// Home puts the hero at the very top of the page, under its see-through
+// header: the backdrop then reaches up behind the header bar and the status
+// bar by this much (the hero's distance from the top of the page), with a
+// shade at the top so the header's title and icons read on it.
+export const HomeHeroBleed = createContext(0);
+
 export const HomeHero = ({
   posterUri,
   backdropUri,
@@ -52,10 +58,11 @@ export const HomeHero = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const [height, setHeight] = useState(0);
+  const bleed = useContext(HomeHeroBleed);
   const stillScroll = useSharedValue(0);
   const backdropStyle = useStretchyBackdropStyle(
     scrollY ?? stillScroll,
-    scrollY ? height : 0,
+    scrollY ? height + bleed : 0,
   );
   const posterStyle = useAnimatedStyle(() => {
     const pull = scrollY ? Math.max(0, -scrollY.value) : 0;
@@ -86,7 +93,7 @@ export const HomeHero = ({
       {posterUri && (
         <Animated.View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, backdropStyle]}
+          style={[styles.backdrop, { top: -bleed }, backdropStyle]}
         >
           <Image
             source={{ uri: backdropUri ?? posterUri }}
@@ -113,6 +120,12 @@ export const HomeHero = ({
             locations={backdropUri ? [0, 0.6, 1] : [0, 0.65, 1]}
             style={StyleSheet.absoluteFill}
           />
+          {bleed > 0 && (
+            <LinearGradient
+              colors={[`${colors.background}CC`, `${colors.background}00`]}
+              style={[styles.topShade, { height: bleed + spacing.xl }]}
+            />
+          )}
         </Animated.View>
       )}
 
@@ -160,6 +173,18 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.lg,
       paddingBottom: spacing.md,
+    },
+    backdrop: {
+      position: "absolute",
+      start: 0,
+      end: 0,
+      bottom: 0,
+    },
+    topShade: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
     },
     // Without the pull effect, keep the backdrop inside the banner. With
     // it, the backdrop has to be free to stretch past the top.

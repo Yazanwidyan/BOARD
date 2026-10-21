@@ -176,7 +176,8 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="TierMovie"
               component={TierMovieScreen}
-              options={{ animation: "slide_from_bottom" }}
+              // A quick rise and fade — tiering is a one-thumb moment.
+              options={{ animation: "fade_from_bottom", animationDuration: 200 }}
             />
             <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} />
             <Stack.Screen

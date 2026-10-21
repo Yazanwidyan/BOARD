@@ -30,6 +30,9 @@ const LETTER_MIN_SHARE = 0.07;
 // One section: its title and action, then its content. `onPress` makes
 // the content a button (it opens the full view, like the action). `rail`:
 // the content is a sideways row that runs to the screen's edges.
+// The space between a profile's sections.
+const SECTION_GAP = spacing.md + 4;
+
 export const ProfileSection = ({ title, actionLabel, onAction, onPress, rail = false, children }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -282,16 +285,17 @@ const createStyles = (colors) =>
       height: "100%",
     },
 
-    // A section — Home's shelves: 32 apart, a bold title, "See all".
+    // A section: a bold title and "See all", 20 apart — tighter than
+    // Home's shelves, so a profile reads as one page.
     section: {
-      marginTop: spacing.xl,
+      marginTop: SECTION_GAP,
     },
     tagRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: spacing.sm,
-      marginBottom: spacing.sm + 2,
+      marginBottom: spacing.sm,
     },
     tagText: {
       ...typography.title,
@@ -378,7 +382,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
-      marginTop: spacing.xl,
+      marginTop: SECTION_GAP,
       padding: spacing.md,
       backgroundColor: colors.card,
     },

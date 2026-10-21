@@ -22,6 +22,9 @@ export const HEADER_BAR_HEIGHT = 52;
 // The hairline under a header fades in over this much scroll — at the very
 // top the bar melts into the page; once anything goes under it, it's a bar.
 const BORDER_FADE_DISTANCE = 16;
+// An `overlay` header (over Home's backdrop) turns solid over this much
+// scroll.
+const OVERLAY_FADE_DISTANCE = 90;
 const SNAP_DURATION = 200;
 
 // Every tab's header: a fixed-height bar in the page colour, the title on
@@ -127,6 +130,20 @@ const HeaderHairline = ({ scrollY, styles }) => {
   return <Animated.View pointerEvents="none" style={[styles.hairline, style]} />;
 };
 
+// An overlay header's background: none at the top of the page — the
+// backdrop under it shows — fading in to the page colour as you scroll.
+const OverlayFill = ({ scrollY, styles }) => {
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY?.value ?? 0,
+      [0, OVERLAY_FADE_DISTANCE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+  }));
+  return <Animated.View pointerEvents="none" style={[styles.overlayFill, style]} />;
+};
+
 // The round icon button every tab's header actions use. `badge`: a count
 // for a red dot on its corner (nothing when 0; "9+" past 9).
 export const HeaderIconButton = ({
@@ -162,7 +179,9 @@ export const HeaderIconButton = ({
 // `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
 // `refreshing` (on a page with pull-to-refresh) and the logo, if there is
-// one, spins while it refreshes — see RefreshSpin.
+// one, spins while it refreshes — see RefreshSpin. `overlay`: see-through
+// at the top of the page (for a backdrop that reaches up under it), solid
+// once you scroll.
 export const DockHeader = ({
   title,
   logo,
@@ -174,6 +193,7 @@ export const DockHeader = ({
   scrollY,
   offset,
   refreshing,
+  overlay = false,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -200,10 +220,12 @@ export const DockHeader = ({
     <Animated.View
       style={[
         styles.bar,
+        overlay && styles.barOverlay,
         { paddingTop: insets.top, height: insets.top + HEADER_BAR_HEIGHT },
         barStyle,
       ]}
     >
+      {overlay && <OverlayFill scrollY={scrollY} styles={styles} />}
       <Animated.View style={[styles.barRow, rowStyle]}>
         <View style={styles.leftTitleBlock}>
           {!!eyebrow && (
@@ -358,6 +380,13 @@ const createStyles = (colors) =>
       zIndex: 100,
       elevation: 16,
       // Instagram-style: the page's own colour, a hairline underneath.
+      backgroundColor: colors.background,
+    },
+    barOverlay: {
+      backgroundColor: "transparent",
+    },
+    overlayFill: {
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.background,
     },
     barRow: {

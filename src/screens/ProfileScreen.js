@@ -187,7 +187,9 @@ export const ProfileScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: header.contentInset }}
       >
-        {/* Backdrop — your favorites, blurred, fading into the page. */}
+        {/* Backdrop — your favorites, blurred, fading into the page. It
+            starts at the top of the screen, behind the see-through header,
+            with a shade at the top so the header reads on it. */}
         {backdropPosters.length > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -209,6 +211,10 @@ export const ProfileScreen = ({ navigation }) => {
               colors={[`${colors.background}8C`, colors.background]}
               locations={[0, 0.95]}
               style={StyleSheet.absoluteFill}
+            />
+            <LinearGradient
+              colors={[`${colors.background}CC`, `${colors.background}00`]}
+              style={[styles.backdropTopShade, { height: header.barBottom + spacing.xl }]}
             />
           </Animated.View>
         )}
@@ -289,6 +295,7 @@ export const ProfileScreen = ({ navigation }) => {
       <FirstVisitTip id="profile" />
       <DockHeader
         {...header.props}
+        overlay={backdropPosters.length > 0}
         title={t("Profile")}
         right={
           <>
@@ -349,6 +356,12 @@ const createStyles = (colors) =>
       end: 0,
       flexDirection: "row",
       overflow: "hidden",
+    },
+    backdropTopShade: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
     },
     backdropPoster: {
       flex: 1,

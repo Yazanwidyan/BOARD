@@ -16,7 +16,7 @@ import {
 } from "react-native-safe-area-context";
 
 import { CollectionCollage } from "../components/CollectionCollage";
-import { HomeHero } from "../components/HomeHero";
+import { HomeHero, HomeHeroBleed } from "../components/HomeHero";
 import { PickInsight } from "../components/PickInsight";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
@@ -365,11 +365,13 @@ export const HomeScreen = ({ navigation }) => {
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        style={{ marginTop: header.barBottom }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            // The page runs up under the header; Android's spinner comes
+            // down below it.
+            progressViewOffset={header.barBottom}
             // iOS: no spinner — the header logo spins instead.
             // Android can't report the pull, so it keeps its spinner.
             tintColor={
@@ -380,10 +382,13 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={{
-          paddingTop: header.contentInset - header.barBottom,
+          paddingTop: header.contentInset,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
+        {/* The hero's backdrop reaches the top of the screen, behind the
+            see-through header. */}
+        <HomeHeroBleed.Provider value={header.barBottom}>
         <View style={[styles.section, styles.firstSection]}>
           {pickedMovieId ? (
             <TonightsPickCard
@@ -401,6 +406,8 @@ export const HomeScreen = ({ navigation }) => {
             />
           )}
         </View>
+
+        </HomeHeroBleed.Provider>
 
         {/* First week of the month: last month's recap is ready. */}
         {lastMonthRecap && (
@@ -475,6 +482,7 @@ export const HomeScreen = ({ navigation }) => {
       <DockHeader
         {...header.props}
         refreshing={refreshing}
+        overlay
         title={t("ReelBoard")}
         italicTitle
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}

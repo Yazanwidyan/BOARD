@@ -81,12 +81,6 @@ export const ChallengeCard = ({
               {movie.title} · {movie.year}
             </Text>
           )}
-          {/* How to finish it, in plain words. */}
-          {!isReveal && (
-            <Text style={styles.howTo} numberOfLines={1}>
-              {t("Watch it, then mark it watched")}
-            </Text>
-          )}
         </View>
       </View>
 
@@ -132,9 +126,7 @@ export const ChallengePrompt = ({ onStart }) => {
         <View style={styles.text}>
           <Text style={styles.eyebrow}>{t("Tonight's dare")}</Text>
           <Text style={styles.dare}>{t("No dare yet")}</Text>
-          <Text style={styles.movie}>
-            {t("Three dares are waiting — pick one, watch it, earn ranks.")}
-          </Text>
+          <Text style={styles.movie}>{t("Watch it, earn ranks")}</Text>
         </View>
       </View>
       <View style={styles.actions}>
@@ -195,11 +187,6 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 12,
       color: colors.rating,
-    },
-    howTo: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 4,
     },
     difficulty: {
       ...typography.caption,

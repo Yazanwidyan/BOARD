@@ -144,8 +144,8 @@ const SimilarRow = ({ target, item, open, onToggle, onOpen, styles, colors }) =>
 
 // Decide's "More like…": pick a movie — search, or one of your favourites
 // — and see the films most like it (GET /api/movies/:id/like), each with
-// how similar it is and, tapped, why: its feel, story, genres, themes,
-// cast, era and whether TMDB's fans pick it.
+// how similar it is and, tapped, why: whether its fans went on to like it,
+// what they're both about, their feel, genres, story, cast and era.
 export const SimilarScreen = ({ navigation, route }) => {
   useMoviesVersion();
   const colors = useColors();
@@ -160,8 +160,10 @@ export const SimilarScreen = ({ navigation, route }) => {
   const search = useMovieSearch(query, 20);
 
   const like = useQuery({
-    queryKey: ["movie", targetId, "like", LIKE_COUNT],
-    queryFn: () => api.get(`/movies/${targetId}/like?count=${LIKE_COUNT}`),
+    // The director's own films belong here too (the movie page leaves them
+    // to its "Also by" row).
+    queryKey: ["movie", targetId, "like", LIKE_COUNT, "director"],
+    queryFn: () => api.get(`/movies/${targetId}/like?count=${LIKE_COUNT}&sameDirector=true`),
     enabled: !!targetId,
     staleTime: 60 * 60 * 1000,
   });

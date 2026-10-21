@@ -416,7 +416,7 @@ export const AiPickScreen = ({ navigation }) => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <BackButton onPress={() => navigation.goBack()} />
         <View style={styles.headerText} pointerEvents="none">
-          <Text style={styles.headerTitle}>{t("ReelBoard picks")}</Text>
+          <Text style={styles.headerTitle}>{t("Ask AI")}</Text>
           <Text style={styles.headerSubtitle}>
             {asking ? t("A few quick taps") : t("From your tiers & taste")}
           </Text>

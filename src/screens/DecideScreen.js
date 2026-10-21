@@ -1,3 +1,4 @@
+import { ChevronRight, History } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
@@ -20,11 +21,9 @@ import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
-// Past dares shown on the page; the rest behind "See all".
-const HISTORY_SHOWN = 3;
 const MONTHS = [
   "Jan",
   "Feb",
@@ -39,19 +38,6 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
-
-// Section titles: bold, sentence case — the same as Home — with an
-// optional "See all" at the end.
-const SectionLabel = ({ label, onSeeAll, styles }) => (
-  <View style={styles.sectionHead}>
-    <Text style={styles.sectionLabel}>{label}</Text>
-    {onSeeAll && (
-      <Pressable onPress={onSeeAll} hitSlop={8} accessibilityRole="button">
-        <Text style={styles.seeAll}>{t("See all")}</Text>
-      </Pressable>
-    )}
-  </View>
-);
 
 // One row of history: the challenge's poster, what it was, the movie and
 // when, and Done / Skipped as plain text.
@@ -105,6 +91,7 @@ export const DecideScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const rtl = useIsRTL();
   const startSession = useSessionStore((state) => state.startSession);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
   const skipChallenge = useChallengeStore((state) => state.skipChallenge);
@@ -139,7 +126,6 @@ export const DecideScreen = ({ navigation }) => {
         }}
       >
         <View style={[styles.section, styles.firstSection]}>
-          <SectionLabel label={t("Quick pick")} styles={styles} />
           <QuickPickBento
             onAI={() => navigation.navigate("AiPick")}
             onSwipe={() => setIsSwipeOpen(true)}
@@ -150,7 +136,6 @@ export const DecideScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.section}>
-          <SectionLabel label={t("Your dare")} styles={styles} />
           {activeChallenge ? (
             <ChallengeCard
               challenge={activeChallenge}
@@ -167,24 +152,18 @@ export const DecideScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* Past dares: one row; the list opens in a sheet. */}
         {history.length > 0 && (
-          <View style={styles.section}>
-            <SectionLabel
-              label={t("Past dares")}
-              onSeeAll={history.length > HISTORY_SHOWN ? () => setIsHistoryOpen(true) : null}
-              styles={styles}
-            />
-            <View style={styles.historyList}>
-              {history.slice(0, HISTORY_SHOWN).map((entry, index, shown) => (
-                <HistoryRow
-                  key={`${entry.id}-${entry.resolvedAt ?? index}`}
-                  entry={entry}
-                  isLast={index === shown.length - 1}
-                  styles={styles}
-                />
-              ))}
-            </View>
-          </View>
+          <Pressable
+            style={({ pressed }) => [styles.pastRow, pressed && styles.pastRowPressed]}
+            onPress={() => setIsHistoryOpen(true)}
+            accessibilityRole="button"
+          >
+            <History size={18} color={colors.textSecondary} strokeWidth={1.9} />
+            <Text style={styles.pastLabel}>{t("Past dares")}</Text>
+            <Text style={styles.pastCount}>{history.length}</Text>
+            <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+          </Pressable>
         )}
       </ScrollView>
       <DecideHeader onMeasure={setHeaderHeight} />
@@ -235,29 +214,31 @@ export const DecideScreen = ({ navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    sectionHead: {
+    pastRow: {
       flexDirection: "row",
-      alignItems: "baseline",
-      justifyContent: "space-between",
-      marginBottom: spacing.sm + 2,
-    },
-    sectionLabel: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
-    },
-    seeAll: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      color: colors.textPrimary,
-    },
-    // Filled rows edge to edge (cancels the section padding), split by a
-    // hairline — like Settings.
-    historyList: {
-      marginHorizontal: -spacing.md,
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 52,
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+    },
+    pastRowPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    pastLabel: {
+      ...typography.body,
+      fontSize: 15,
+      flex: 1,
+      color: colors.textPrimary,
+    },
+    pastCount: {
+      ...typography.body,
+      color: colors.textMuted,
+      fontVariant: ["tabular-nums"],
+    },
+    flipped: {
+      transform: [{ scaleX: -1 }],
     },
     sheetHistory: {
       backgroundColor: colors.card,
