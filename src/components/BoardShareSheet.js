@@ -181,6 +181,7 @@ const createStyles = (colors) =>
     count: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
       marginTop: spacing.xs,
     },
@@ -200,11 +201,13 @@ const createStyles = (colors) =>
     moreText: {
       ...typography.title,
       fontSize: 22,
+      lineHeight: 30,
       color: "#FFFFFF",
     },
     brand: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textMuted,
       marginTop: spacing.md,
       alignSelf: "flex-end",

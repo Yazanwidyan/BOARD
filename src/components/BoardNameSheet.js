@@ -96,6 +96,7 @@ const createStyles = (colors) =>
     input: {
       ...typography.title,
       fontSize: 20,
+      lineHeight: 27,
       color: colors.textPrimary,
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
@@ -119,6 +120,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     chipTextSelected: {

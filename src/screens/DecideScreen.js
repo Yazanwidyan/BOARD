@@ -229,6 +229,7 @@ const createStyles = (colors) =>
     pastLabel: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       flex: 1,
       color: colors.textPrimary,
     },
@@ -273,6 +274,7 @@ const createStyles = (colors) =>
     statusText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
     },
     statusTextDone: {
       color: colors.success,

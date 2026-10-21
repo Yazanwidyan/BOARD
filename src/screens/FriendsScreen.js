@@ -447,6 +447,7 @@ const createStyles = (colors) =>
     addInput: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       flex: 1,
       paddingVertical: spacing.sm + 2,
       color: colors.textPrimary,
@@ -473,6 +474,7 @@ const createStyles = (colors) =>
     personName: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     personMeta: {
@@ -498,11 +500,13 @@ const createStyles = (colors) =>
     acceptText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.selectedText,
     },
     cancelText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     // Taste match: the number, a thin green bar under it, "match".
@@ -564,6 +568,7 @@ const createStyles = (colors) =>
     emptyAction: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
       marginTop: spacing.md,
     },

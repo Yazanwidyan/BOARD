@@ -1,17 +1,19 @@
-import { Plus } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Plus, UserPlus } from "lucide-react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionCompletedAt, getSagas } from "../utils/collections";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
+import { getTasteMatch } from "../utils/friends";
 import { TIERS, getTier } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
 import { CollectionCollage } from "./CollectionCollage";
+import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
 import { ShelfRail } from "./ShelfRail";
 import { TasteDnaBars } from "./TasteDnaBars";
@@ -236,6 +238,59 @@ export const BoardsRail = ({ boards, onOpen, onCreate }) => {
   return <ShelfRail itemWidth={BOX_ITEM} items={items} />;
 };
 
+// Your friends as a row of faces, most like you first — each with their
+// first name and how alike your taste is — ending with an Add tile.
+const FRIEND_AVATAR = 60;
+export const FriendsRail = ({ friends, myWatched, onOpen, onAdd }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  const ranked = friends
+    .map((friend) => ({ friend, match: getTasteMatch(myWatched, friend.watched ?? []) }))
+    .sort((a, b) => (b.match ?? -1) - (a.match ?? -1));
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.friendsRow}
+    >
+      {ranked.map(({ friend, match }) => (
+        <Pressable
+          key={friend.id}
+          onPress={() => onOpen(friend)}
+          style={({ pressed }) => [styles.friendTile, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            match != null ? `${friend.name}, ${t("{match}% match", { match })}` : friend.name
+          }
+        >
+          <FriendAvatar friend={friend} size={FRIEND_AVATAR} />
+          <Text style={styles.friendName} numberOfLines={1}>
+            {friend.name.split(" ")[0]}
+          </Text>
+          {match != null && (
+            <View style={styles.friendMatch}>
+              <Text style={styles.friendMatchText}>{match}%</Text>
+            </View>
+          )}
+        </Pressable>
+      ))}
+      <Pressable
+        onPress={onAdd}
+        style={({ pressed }) => [styles.friendTile, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel={t("Add friends")}
+      >
+        <View style={styles.friendAdd}>
+          <UserPlus size={22} color={colors.textSecondary} strokeWidth={1.8} />
+        </View>
+        <Text style={styles.friendName} numberOfLines={1}>
+          {t("Add")}
+        </Text>
+      </Pressable>
+    </ScrollView>
+  );
+};
+
 // This month on ReelBoard, as Home's recap banner: how much you've watched
 // so far, its best films at the end. Opens the recap.
 export const RecapBanner = ({ watched, onOpen }) => {
@@ -308,6 +363,7 @@ const createStyles = (colors) =>
     seeAllText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     // A row of tiles cancels the page's side padding, so it reaches both
@@ -325,9 +381,47 @@ const createStyles = (colors) =>
     emptyAction: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
 
+    // Friends
+    friendsRow: {
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    friendTile: {
+      width: FRIEND_AVATAR + 8,
+      alignItems: "center",
+      gap: 6,
+    },
+    friendName: {
+      ...typography.caption,
+      lineHeight: 16,
+      color: colors.textPrimary,
+    },
+    friendMatch: {
+      marginTop: -2,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      backgroundColor: colors.successSoft,
+      borderRadius: shape.chip,
+    },
+    friendMatchText: {
+      ...typography.micro,
+      color: colors.success,
+      fontVariant: ["tabular-nums"],
+    },
+    friendAdd: {
+      width: FRIEND_AVATAR,
+      height: FRIEND_AVATAR,
+      borderRadius: FRIEND_AVATAR / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: colors.border,
+    },
     newTile: {
       width: TILE,
       height: TILE,

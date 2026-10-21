@@ -135,6 +135,7 @@ const createStyles = (colors) =>
     ringValue: {
       ...typography.bodyBold,
       fontSize: 16,
+      lineHeight: 22,
     },
     tierTile: {
       width: SIZE,

@@ -106,6 +106,7 @@ const createStyles = (colors) =>
     title: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     body: {
@@ -117,6 +118,7 @@ const createStyles = (colors) =>
     action: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
     },
   });

@@ -112,6 +112,7 @@ const createStyles = (colors) =>
     headerText: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
     },
     headerCount: {

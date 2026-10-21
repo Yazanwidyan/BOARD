@@ -469,6 +469,7 @@ const createStyles = (colors) =>
     saveButtonText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     saveButtonTextSaved: {
@@ -499,6 +500,7 @@ const createStyles = (colors) =>
     removeText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.danger,
     },
   });

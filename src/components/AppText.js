@@ -12,17 +12,17 @@ import { useLanguageStore } from "../store/languageStore";
 //    level names — without wrapping every use. Strings already passed
 //    through t() (or with no translation, like movie titles) show as they
 //    are.
-// 2. In Arabic, Inter is swapped for IBM Plex Sans Arabic at the matching
+// 2. In Arabic, Roboto is swapped for IBM Plex Sans Arabic at the matching
 //    weight, and letter spacing / uppercase are dropped (they break joined
 //    Arabic letters). This follows the language itself, so it works even
 //    where the layout can't flip right-to-left (Expo Go).
 const ARABIC_FONT = {
-  Inter_400Regular: "IBMPlexSansArabic_400Regular",
-  Inter_500Medium: "IBMPlexSansArabic_500Medium",
-  Inter_600SemiBold: "IBMPlexSansArabic_600SemiBold",
-  Inter_700Bold: "IBMPlexSansArabic_700Bold",
+  Roboto_400Regular: "IBMPlexSansArabic_400Regular",
+  Roboto_500Medium: "IBMPlexSansArabic_500Medium",
+  Roboto_600SemiBold: "IBMPlexSansArabic_600SemiBold",
+  Roboto_700Bold: "IBMPlexSansArabic_700Bold",
   // Plex Arabic tops out at bold.
-  Inter_800ExtraBold: "IBMPlexSansArabic_700Bold",
+  Roboto_800ExtraBold: "IBMPlexSansArabic_700Bold",
 };
 
 // Only overrides what the style actually sets, so nested text without its

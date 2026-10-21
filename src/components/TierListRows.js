@@ -137,6 +137,7 @@ const createStyles = (colors) =>
     untieredText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
   });

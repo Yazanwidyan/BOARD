@@ -264,6 +264,7 @@ const createStyles = (colors) =>
     rank: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       width: 26,
       textAlign: "center",
       color: colors.textMuted,

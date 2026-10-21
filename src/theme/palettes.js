@@ -1,5 +1,6 @@
-// Two Instagram-style palettes — dark is a cool blue-black (#0C1014) with
-// greys tinted to match, light is neutral. Main actions are white / black;
+// Two palettes — dark is a slate blue-grey (#202A30) with white as the
+// secondary (main actions, selected states); its cards, sheets, borders and
+// greys are lighter steps of the same cool hue. Light is neutral. Main actions are white / black;
 // colour carries meaning: `rating` gold for XP, levels and scores,
 // `success` green for done / saved / matched, `danger` red for hard dares,
 // poor scores and destructive actions. Main actions use `accent` (white in
@@ -9,36 +10,37 @@
 export const darkColors = {
   isDark: true,
 
-  background: "#0C1014",
+  background: "#202A30",
 
-  card: "#161B21",
+  card: "#2A353C",
 
-  cardElevated: "#1D232A",
+  cardElevated: "#313D45",
 
-  cardElevatedLight: "#2B323A",
+  cardElevatedLight: "#3D4A53",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#C2C8CF",
+  textSecondary: "#C9D2D8",
 
-  textMuted: "#89919B",
+  // At least 4.5:1 on every surface up to sheets.
+  textMuted: "#A0ACB4",
 
   accent: "#FFFFFF",
-  accentLight: "#C2C8CF",
+  accentLight: "#C9D2D8",
 
-  accentContrast: "#0C1014",
+  accentContrast: "#202A30",
 
   success: "#5BD08A",
 
   rating: "#F2C14E",
 
-  danger: "#F26D6D",
+  danger: "#FF8585",
 
-  border: "#262D35",
+  border: "#3A474F",
 
   selected: "#FFFFFF",
 
-  selectedText: "#0C1014",
+  selectedText: "#202A30",
 
   successSoft: "rgba(91, 208, 138, 0.14)",
 

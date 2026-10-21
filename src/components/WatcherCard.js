@@ -263,6 +263,7 @@ const createStyles = (colors) =>
     name: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
       flexShrink: 1,
     },
@@ -289,6 +290,7 @@ const createStyles = (colors) =>
     rankName: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.rating,
     },
     rankNext: {
@@ -310,6 +312,7 @@ const createStyles = (colors) =>
     moreBadges: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
       marginStart: 2,
     },
@@ -330,6 +333,7 @@ const createStyles = (colors) =>
     addBioText: {
       ...typography.body,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textMuted,
     },
   });

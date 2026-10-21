@@ -213,6 +213,7 @@ const createStyles = (colors) =>
     periodText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     periodTextSelected: {

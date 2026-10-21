@@ -244,6 +244,7 @@ const createStyles = (colors) =>
     likeBadgeText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: "#0C1014",
       fontVariant: ["tabular-nums"],
     },

@@ -9,10 +9,10 @@
     "splash": {
       "image": "./assets/reelboard-splash-expo-go.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0C1014"
+      "backgroundColor": "#202A30"
     },
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0C1014",
+    "backgroundColor": "#202A30",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yazanwidyan.reelboard",
@@ -38,10 +38,10 @@
           "image": "./assets/reelboard-splash.png",
           "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#0C1014",
+          "backgroundColor": "#202A30",
           "dark": {
             "image": "./assets/reelboard-splash.png",
-            "backgroundColor": "#0C1014"
+            "backgroundColor": "#202A30"
           }
         }
       ],
@@ -57,7 +57,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0C1014"
+          "color": "#202A30"
         }
       ]
     ]

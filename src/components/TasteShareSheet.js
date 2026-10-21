@@ -242,6 +242,7 @@ const createStyles = (colors) =>
     brand: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textMuted,
       marginTop: spacing.md,
       alignSelf: "flex-end",

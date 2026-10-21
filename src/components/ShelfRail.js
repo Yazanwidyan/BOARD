@@ -77,6 +77,7 @@ const createStyles = (colors) =>
     title: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     meta: {

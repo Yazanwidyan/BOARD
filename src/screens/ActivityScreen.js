@@ -264,6 +264,7 @@ const createStyles = (colors) =>
     friendsTitle: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     friendsSubtitle: {
@@ -278,6 +279,7 @@ const createStyles = (colors) =>
     requestsText: {
       ...typography.bodyBold,
       fontSize: 11,
+      lineHeight: 15,
       color: colors.selectedText,
     },
     chipRow: {
@@ -299,6 +301,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     chipTextOn: {
@@ -335,6 +338,7 @@ const createStyles = (colors) =>
     emptyAction: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
       marginTop: spacing.md,
     },

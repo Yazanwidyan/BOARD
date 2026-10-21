@@ -186,6 +186,7 @@ const createStyles = (colors) =>
     reward: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.rating,
     },
     difficulty: {
@@ -214,6 +215,7 @@ const createStyles = (colors) =>
     placeholderMark: {
       ...typography.title,
       fontSize: 22,
+      lineHeight: 30,
       color: colors.textMuted,
     },
     actions: {
@@ -230,11 +232,13 @@ const createStyles = (colors) =>
     linkText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
     },
     secondaryText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
   });

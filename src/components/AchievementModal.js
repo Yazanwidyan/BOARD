@@ -847,6 +847,7 @@ const createStyles = (colors) =>
     alsoGain: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
     },
 
     // Title bar
@@ -873,6 +874,7 @@ const createStyles = (colors) =>
     countChipText: {
       ...typography.title,
       fontSize: 16,
+      lineHeight: 22,
       color: "#111214",
     },
     titleText: {
@@ -885,6 +887,7 @@ const createStyles = (colors) =>
     titleGain: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
     },
     titleToGo: {
       ...typography.caption,
@@ -936,11 +939,13 @@ const createStyles = (colors) =>
     linkText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textSecondary,
     },
     linkMuted: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textMuted,
     },
     flipped: {

@@ -331,6 +331,7 @@ const createStyles = (colors) =>
     count: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
     },
     meta: {
@@ -358,6 +359,7 @@ const createStyles = (colors) =>
     actionText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     actionTextPrimary: {

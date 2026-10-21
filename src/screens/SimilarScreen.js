@@ -327,6 +327,7 @@ const createStyles = (colors) =>
     intro: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textSecondary,
       paddingHorizontal: spacing.md,
       marginTop: spacing.md,
@@ -343,6 +344,7 @@ const createStyles = (colors) =>
     searchInput: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       flex: 1,
       paddingVertical: spacing.sm + 2,
       color: colors.textPrimary,
@@ -357,6 +359,7 @@ const createStyles = (colors) =>
     note: {
       ...typography.body,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textMuted,
       textAlign: "center",
       paddingVertical: spacing.xl,
@@ -418,6 +421,7 @@ const createStyles = (colors) =>
     changeText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textSecondary,
     },
     list: {
@@ -450,6 +454,7 @@ const createStyles = (colors) =>
     rowTitle: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     rowMeta: {
@@ -479,6 +484,7 @@ const createStyles = (colors) =>
     ringValue: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       fontVariant: ["tabular-nums"],
     },
     // Why — a bar for each part, and what it is.
@@ -492,6 +498,7 @@ const createStyles = (colors) =>
     explainTitle: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
       marginTop: spacing.sm,
     },
@@ -506,6 +513,7 @@ const createStyles = (colors) =>
     partLabel: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textSecondary,
       width: 58,
     },
@@ -548,6 +556,7 @@ const createStyles = (colors) =>
     actionText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
   });

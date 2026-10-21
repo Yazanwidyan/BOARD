@@ -698,6 +698,7 @@ const createStyles = (colors) =>
       ...typography.title,
       flex: 1,
       fontSize: 18,
+      lineHeight: 24,
       letterSpacing: -0.3,
       textAlign: "center",
       color: colors.textPrimary,
@@ -786,6 +787,7 @@ const createStyles = (colors) =>
     rankTitle: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     rankTitleReached: {
@@ -837,6 +839,7 @@ const createStyles = (colors) =>
     xpText: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textPrimary,
     },
     xpTextEarned: {
@@ -890,6 +893,7 @@ const createStyles = (colors) =>
     upNextTitle: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
     },
     upNextMeta: {
@@ -924,11 +928,13 @@ const createStyles = (colors) =>
     upNextPrimaryText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.selectedText,
     },
     upNextSkipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
 
@@ -948,6 +954,7 @@ const createStyles = (colors) =>
     sortText: {
       ...typography.bodyBold,
       fontSize: 11,
+      lineHeight: 15,
       color: colors.textSecondary,
     },
     sortTextActive: {
@@ -972,6 +979,7 @@ const createStyles = (colors) =>
     boardTierText: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textMuted,
     },
     boardTierTextOnColor: {

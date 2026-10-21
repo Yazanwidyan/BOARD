@@ -298,6 +298,7 @@ const createStyles = (colors) =>
     label: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
       flexShrink: 1,
     },
@@ -309,6 +310,7 @@ const createStyles = (colors) =>
     lastTagText: {
       ...typography.bodyBold,
       fontSize: 10,
+      lineHeight: 14,
       color: colors.rating,
     },
     hint: {
@@ -331,6 +333,7 @@ const createStyles = (colors) =>
     subLabel: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     fan: {
@@ -374,6 +377,7 @@ const createStyles = (colors) =>
     filterChipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     filterChipTextOn: {

@@ -16,9 +16,9 @@ import {
 } from "react-native-safe-area-context";
 
 import { CollectionCollage } from "../components/CollectionCollage";
-import { HomeHero, HomeHeroBleed } from "../components/HomeHero";
-import { PickInsight } from "../components/PickInsight";
+import { HomeHero } from "../components/HomeHero";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
+import { PickInsight } from "../components/PickInsight";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -386,9 +386,6 @@ export const HomeScreen = ({ navigation }) => {
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
-        {/* The hero's backdrop reaches the top of the screen, behind the
-            see-through header. */}
-        <HomeHeroBleed.Provider value={header.barBottom}>
         <View style={[styles.section, styles.firstSection]}>
           {pickedMovieId ? (
             <TonightsPickCard
@@ -406,8 +403,6 @@ export const HomeScreen = ({ navigation }) => {
             />
           )}
         </View>
-
-        </HomeHeroBleed.Provider>
 
         {/* First week of the month: last month's recap is ready. */}
         {lastMonthRecap && (
@@ -482,7 +477,6 @@ export const HomeScreen = ({ navigation }) => {
       <DockHeader
         {...header.props}
         refreshing={refreshing}
-        overlay
         title={t("ReelBoard")}
         italicTitle
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
@@ -566,6 +560,7 @@ const createStyles = (colors) =>
     seeAllText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     railPoster: {

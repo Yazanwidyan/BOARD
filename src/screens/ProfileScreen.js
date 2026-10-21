@@ -2,7 +2,6 @@ import {
   Bell,
   Settings as SettingsIcon,
   Share2,
-  Users,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
@@ -15,6 +14,7 @@ import Animated from "react-native-reanimated";
 
 import {
   BoardsRail,
+  FriendsRail,
   FinishedSagasRail,
   ProfileSection,
   RecapBanner,
@@ -74,7 +74,8 @@ export const ProfileScreen = ({ navigation }) => {
   useMoviesVersion();
   const colors = useColors();
   const notificationCount = useNotificationCount();
-  const { friends } = useFriends();
+  const { friends, incoming } = useFriends();
+  const openFriends = () => navigation.navigate("Friends");
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -95,7 +96,7 @@ export const ProfileScreen = ({ navigation }) => {
   const favoriteMovies = orderSTier(watched, sOrder)
     .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean);
-  const header = useDockHeader({ hideOnScroll: true });
+  const header = useDockHeader();
   const backdropStyle = useStretchyBackdropStyle(
     header.scrollY,
     header.contentInset + BACKDROP_HEIGHT,
@@ -187,15 +188,14 @@ export const ProfileScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: header.contentInset }}
       >
-        {/* Backdrop — your favorites, blurred, fading into the page. It
-            starts at the top of the screen, behind the see-through header,
-            with a shade at the top so the header reads on it. */}
+        {/* Backdrop — your favorites, blurred, fading into the page,
+            under the header. */}
         {backdropPosters.length > 0 && (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.backdrop,
-              { height: header.contentInset + BACKDROP_HEIGHT },
+              { top: header.contentInset, height: BACKDROP_HEIGHT },
               backdropStyle,
             ]}
           >
@@ -212,10 +212,6 @@ export const ProfileScreen = ({ navigation }) => {
               locations={[0, 0.95]}
               style={StyleSheet.absoluteFill}
             />
-            <LinearGradient
-              colors={[`${colors.background}CC`, `${colors.background}00`]}
-              style={[styles.backdropTopShade, { height: header.barBottom + spacing.xl }]}
-            />
           </Animated.View>
         )}
 
@@ -230,6 +226,31 @@ export const ProfileScreen = ({ navigation }) => {
             onPressFriends={() => navigation.navigate("Friends")}
             onPressCollections={openSagas}
           />
+
+          {/* Your friends, right on your profile: tap one for theirs. */}
+          <ProfileSection
+            title={t("Friends")}
+            actionLabel={
+              incoming.length > 0 ? t("{count} requests", { count: incoming.length }) : undefined
+            }
+            onAction={friends.length > 0 || incoming.length > 0 ? openFriends : undefined}
+            rail={friends.length > 0}
+          >
+            {friends.length > 0 ? (
+              <FriendsRail
+                friends={friends}
+                myWatched={watched}
+                onOpen={(friend) => navigation.navigate("FriendProfile", { friendId: friend.id })}
+                onAdd={openFriends}
+              />
+            ) : (
+              <SectionEmpty
+                line={t("Add friends to compare taste and see what they're watching.")}
+                actionLabel={t("Add friends")}
+                onPress={openFriends}
+              />
+            )}
+          </ProfileSection>
 
           {/* How you rate. Your S tier is your favourites — in your order,
               set on the tier list. */}
@@ -295,15 +316,11 @@ export const ProfileScreen = ({ navigation }) => {
       <FirstVisitTip id="profile" />
       <DockHeader
         {...header.props}
-        overlay={backdropPosters.length > 0}
         title={t("Profile")}
         right={
           <>
             <HeaderIconButton onPress={() => setIsShareOpen(true)}>
               <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
-            </HeaderIconButton>
-            <HeaderIconButton onPress={() => navigation.navigate("Friends")}>
-              <Users size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
             <HeaderIconButton
               onPress={() => navigation.navigate("Activity")}
@@ -351,17 +368,10 @@ const createStyles = (colors) =>
     },
     backdrop: {
       position: "absolute",
-      top: 0,
       start: 0,
       end: 0,
       flexDirection: "row",
       overflow: "hidden",
-    },
-    backdropTopShade: {
-      position: "absolute",
-      top: 0,
-      start: 0,
-      end: 0,
     },
     backdropPoster: {
       flex: 1,

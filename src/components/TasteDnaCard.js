@@ -146,6 +146,7 @@ const createStyles = (colors) =>
     emptyTitle: {
       ...typography.title,
       fontSize: 20,
+      lineHeight: 27,
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },
@@ -186,11 +187,13 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     chipCount: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.rating,
     },
     posters: {

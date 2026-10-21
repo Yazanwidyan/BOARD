@@ -480,6 +480,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     chipTextActive: {
@@ -594,6 +595,7 @@ const createStyles = (colors) =>
     missingCount: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textPrimary,
     },
     // The posters still to watch, 2px apart like the other poster rows.
@@ -662,6 +664,7 @@ const createStyles = (colors) =>
     seeAllText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
   });

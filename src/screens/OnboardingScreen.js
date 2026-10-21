@@ -732,6 +732,7 @@ const createStyles = (colors) =>
     counter: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       marginTop: spacing.md,
       color: colors.textSecondary,
     },
@@ -787,6 +788,7 @@ const createStyles = (colors) =>
     tierTitle: {
       ...typography.title,
       fontSize: 20,
+      lineHeight: 27,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.md,
@@ -811,6 +813,7 @@ const createStyles = (colors) =>
     versusLabel: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
       marginTop: spacing.sm,
     },
@@ -847,6 +850,7 @@ const createStyles = (colors) =>
     dnaXP: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.rating,
     },
     dnaXPDetail: {
@@ -856,6 +860,7 @@ const createStyles = (colors) =>
     dnaBrand: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textMuted,
     },
     nameLabel: {
@@ -913,6 +918,7 @@ const createStyles = (colors) =>
     pickTitle: {
       ...typography.bodyBold,
       fontSize: 16,
+      lineHeight: 22,
       color: colors.textPrimary,
     },
     pickMeta: {

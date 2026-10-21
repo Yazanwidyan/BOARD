@@ -623,6 +623,7 @@ const createStyles = (colors) =>
     headerTitle: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       letterSpacing: -0.3,
       color: colors.textPrimary,
     },
@@ -677,6 +678,7 @@ const createStyles = (colors) =>
     answerText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textSecondary,
     },
     answerTextOn: {
@@ -696,6 +698,7 @@ const createStyles = (colors) =>
     changeAnswersText: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textSecondary,
     },
 
@@ -843,6 +846,7 @@ const createStyles = (colors) =>
     whyToggleText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
       textDecorationLine: "underline",
     },

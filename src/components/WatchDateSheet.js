@@ -149,6 +149,7 @@ const createStyles = (colors) =>
     quickText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     quickTextActive: {

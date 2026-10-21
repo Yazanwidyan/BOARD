@@ -438,6 +438,7 @@ const createStyles = (colors) =>
     stackTitle: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       letterSpacing: -0.3,
       textAlign: "center",
       color: colors.textPrimary,
@@ -483,6 +484,7 @@ const createStyles = (colors) =>
     leftTitle: {
       ...typography.subtitle,
       fontSize: 17,
+      lineHeight: 23,
       color: colors.textPrimary,
       marginTop: 1,
     },

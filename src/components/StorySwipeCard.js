@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   card: {
     position: "absolute",
     overflow: "hidden",
-    backgroundColor: "#161B21",
+    backgroundColor: "#2A353C",
   },
   // A dark bar across the poster with the word — on images, so fixed white.
   label: {

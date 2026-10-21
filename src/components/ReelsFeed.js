@@ -635,6 +635,7 @@ const createStyles = (colors) =>
     youtubeButtonText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.selectedText,
     },
     unavailableText: {
@@ -707,6 +708,7 @@ const createStyles = (colors) =>
     chipStrong: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: "#FFFFFF",
     },
     chipTierText: {

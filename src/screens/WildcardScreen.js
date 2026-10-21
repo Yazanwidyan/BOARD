@@ -218,6 +218,7 @@ const createStyles = (colors) =>
     fromText: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textSecondary,
     },
     stage: {
@@ -254,6 +255,7 @@ const createStyles = (colors) =>
     hint: {
       ...typography.body,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textMuted,
       textAlign: "center",
       paddingHorizontal: spacing.md,
@@ -290,6 +292,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textPrimary,
       fontVariant: ["tabular-nums"],
     },

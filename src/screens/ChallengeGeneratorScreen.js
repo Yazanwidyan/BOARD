@@ -250,6 +250,7 @@ const createStyles = (colors) =>
     stepNumber: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
     },
     stepLabel: {
@@ -280,12 +281,14 @@ const createStyles = (colors) =>
     dareName: {
       ...typography.title,
       fontSize: 18,
+      lineHeight: 24,
       flex: 1,
       color: colors.textPrimary,
     },
     reward: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.rating,
     },
     why: {
@@ -329,6 +332,7 @@ const createStyles = (colors) =>
     difficultyText: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
     },
 
     reshuffle: {
@@ -339,6 +343,7 @@ const createStyles = (colors) =>
     reshuffleText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     empty: {

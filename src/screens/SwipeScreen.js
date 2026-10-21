@@ -531,12 +531,14 @@ const createStyles = (colors) =>
     topTitle: {
       ...typography.title,
       fontSize: 17,
+      lineHeight: 23,
       flex: 1,
       color: colors.textPrimary,
     },
     topRight: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
 
@@ -555,6 +557,7 @@ const createStyles = (colors) =>
     infoTitle: {
       ...typography.title,
       fontSize: 19,
+      lineHeight: 26,
       color: colors.textPrimary,
     },
     meta: {
@@ -657,6 +660,7 @@ const createStyles = (colors) =>
     duelHeading: {
       ...typography.title,
       fontSize: 20,
+      lineHeight: 27,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.xs,
@@ -678,6 +682,7 @@ const createStyles = (colors) =>
     link: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
       marginTop: spacing.sm,
     },
@@ -695,6 +700,7 @@ const createStyles = (colors) =>
     orText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
   });

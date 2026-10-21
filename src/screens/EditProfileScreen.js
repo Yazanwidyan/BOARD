@@ -308,12 +308,14 @@ const createStyles = (colors) =>
     at: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textMuted,
       marginEnd: 2,
     },
     input: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       flex: 1,
       color: colors.textPrimary,
       paddingVertical: spacing.sm + 2,

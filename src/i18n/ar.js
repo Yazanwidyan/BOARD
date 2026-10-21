@@ -1450,6 +1450,7 @@ const ar = {
   "Finish the Collection": "أكمل المجموعة",
   "Your watchlist, what you've watched, and your collections. Tier what you watch from S to F.": "قائمة مشاهدتك، وما شاهدته، ومجموعاتك. صنّف ما تشاهده من S إلى F.",
   "My taste DNA": "حمضي الذوقي",
+  "Add friends to compare taste and see what they're watching.": "أضف أصدقاء لتقارن ذوقك وترى ما يشاهدونه.",
   // Ranks
   "From your taste": "من ذوقك",
   "Narrow it down": "صفِّ الخيارات",

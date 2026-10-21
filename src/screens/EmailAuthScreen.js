@@ -321,6 +321,7 @@ const createStyles = (colors) =>
     fieldInput: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       flex: 1,
       color: colors.textPrimary,
       paddingVertical: spacing.sm + 2,
@@ -352,6 +353,7 @@ const createStyles = (colors) =>
     errorText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.danger,
     },
     submit: {

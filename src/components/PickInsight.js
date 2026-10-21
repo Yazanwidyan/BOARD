@@ -94,6 +94,7 @@ const createStyles = (colors) =>
     matchText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.success,
     },
     tag: {
@@ -105,6 +106,7 @@ const createStyles = (colors) =>
     tagText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     reason: {

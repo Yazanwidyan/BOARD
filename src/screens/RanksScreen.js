@@ -238,6 +238,7 @@ const createStyles = (colors) =>
     titleChipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     titleChipTextOn: {
@@ -281,6 +282,7 @@ const createStyles = (colors) =>
     trackTitle: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
       flexShrink: 1,
     },
@@ -291,6 +293,7 @@ const createStyles = (colors) =>
     trackRank: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.rating,
     },
     trackValue: {
@@ -330,6 +333,7 @@ const createStyles = (colors) =>
     stepTitle: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
       flex: 1,
     },

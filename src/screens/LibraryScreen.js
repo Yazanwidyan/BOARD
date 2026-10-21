@@ -1050,12 +1050,14 @@ const createStyles = (colors) =>
     countChipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
       fontVariant: ["tabular-nums"],
     },
     toolChipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     toolChipTextActive: {
@@ -1152,6 +1154,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     chipTextSelected: {

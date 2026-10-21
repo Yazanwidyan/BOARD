@@ -173,6 +173,7 @@ const createStyles = (colors) =>
     rowLabel: {
       ...typography.body,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     rowHint: {
@@ -218,6 +219,7 @@ const createStyles = (colors) =>
     segmentText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     segmentTextOn: {

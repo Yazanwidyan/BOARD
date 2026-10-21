@@ -277,6 +277,7 @@ const createStyles = (colors) =>
     modeText: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textSecondary,
     },
     modeTextActive: {
@@ -308,6 +309,7 @@ const createStyles = (colors) =>
     allText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
     },
     railContent: {
@@ -324,6 +326,7 @@ const createStyles = (colors) =>
     railMovieTitle: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
       marginTop: spacing.xs + 2,
     },

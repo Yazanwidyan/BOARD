@@ -770,12 +770,14 @@ const createStyles = (colors) =>
     topTitle: {
       ...typography.title,
       fontSize: 17,
+      lineHeight: 23,
       flex: 1,
       color: colors.textPrimary,
     },
     topRight: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
 
@@ -849,6 +851,7 @@ const createStyles = (colors) =>
     chipText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
     chipTextSelected: {
@@ -929,6 +932,7 @@ const createStyles = (colors) =>
     infoTitle: {
       ...typography.title,
       fontSize: 19,
+      lineHeight: 26,
       color: colors.textPrimary,
     },
     controls: {
@@ -985,6 +989,7 @@ const createStyles = (colors) =>
     matchBadgeText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: "#FFFFFF",
     },
     noMatch: {

@@ -556,6 +556,7 @@ const createStyles = (colors) =>
     codeInput: {
       ...typography.display,
       fontSize: 32,
+      lineHeight: 43,
       letterSpacing: 6,
       textAlign: "center",
       color: colors.textPrimary,

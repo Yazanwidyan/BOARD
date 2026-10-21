@@ -112,6 +112,7 @@ const createStyles = (colors) =>
     actionText: {
       ...typography.bodyBold,
       fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
   });

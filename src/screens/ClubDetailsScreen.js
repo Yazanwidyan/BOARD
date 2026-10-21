@@ -608,6 +608,7 @@ const createStyles = (colors) =>
     link: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },
@@ -626,6 +627,7 @@ const createStyles = (colors) =>
     tierBadgeText: {
       ...typography.hero,
       fontSize: 20,
+      lineHeight: 27,
       color: "#0C1014",
     },
     tierPosters: {

@@ -1173,6 +1173,7 @@ const createStyles = (colors) =>
     matchText: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.success,
     },
     matchReason: {
@@ -1231,6 +1232,7 @@ const createStyles = (colors) =>
     tierButtonTitle: {
       ...typography.bodyBold,
       fontSize: 16,
+      lineHeight: 22,
       color: colors.textPrimary,
     },
     tierButtonHint: {
@@ -1240,6 +1242,7 @@ const createStyles = (colors) =>
     tierButtonAction: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
     },
     savedRow: {
@@ -1316,6 +1319,7 @@ const createStyles = (colors) =>
     castInitials: {
       ...typography.title,
       fontSize: 28,
+      lineHeight: 38,
       color: colors.textPrimary,
     },
     castName: {
@@ -1495,6 +1499,7 @@ const createStyles = (colors) =>
     challengeDescription: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
       marginTop: 2,
     },
@@ -1522,6 +1527,7 @@ const createStyles = (colors) =>
     watchDate: {
       ...typography.bodyBold,
       fontSize: 12,
+      lineHeight: 16,
       color: colors.textPrimary,
       textDecorationLine: "underline",
     },
@@ -1565,6 +1571,7 @@ const createStyles = (colors) =>
     railHeaderLink: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.rating,
     },
     railContent: {
@@ -1618,6 +1625,7 @@ const createStyles = (colors) =>
     similarTitle: {
       ...typography.bodyBold,
       fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },

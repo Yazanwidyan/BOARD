@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 // Just the five weights the app uses — the package root would pull in all
-// eighteen Inter files, italics included.
-import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
-import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
-import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
-import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
-import { Inter_800ExtraBold } from "@expo-google-fonts/inter/800ExtraBold";
+// eighteen Roboto files, italics included.
+import { Roboto_400Regular } from "@expo-google-fonts/roboto/400Regular";
+import { Roboto_500Medium } from "@expo-google-fonts/roboto/500Medium";
+import { Roboto_600SemiBold } from "@expo-google-fonts/roboto/600SemiBold";
+import { Roboto_700Bold } from "@expo-google-fonts/roboto/700Bold";
+import { Roboto_800ExtraBold } from "@expo-google-fonts/roboto/800ExtraBold";
 import { IBMPlexSansArabic_400Regular } from "@expo-google-fonts/ibm-plex-sans-arabic/400Regular";
 import { IBMPlexSansArabic_500Medium } from "@expo-google-fonts/ibm-plex-sans-arabic/500Medium";
 import { IBMPlexSansArabic_600SemiBold } from "@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold";
@@ -34,13 +34,13 @@ export default function App() {
     if (useLanguageStore.persist.hasHydrated()) syncLayoutDirection();
     return useLanguageStore.persist.onFinishHydration(syncLayoutDirection);
   }, []);
-  // Inter everywhere — see src/theme/typography.js.
+  // Roboto everywhere — see src/theme/typography.js.
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_600SemiBold,
+    Roboto_700Bold,
+    Roboto_800ExtraBold,
     // Arabic (see src/theme/typography.js).
     IBMPlexSansArabic_400Regular,
     IBMPlexSansArabic_500Medium,

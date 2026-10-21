@@ -80,6 +80,7 @@ const createStyles = (colors) =>
     tierKey: {
       ...typography.hero,
       fontSize: 15,
+      lineHeight: 20,
       width: 16,
       textAlign: "center",
     },

@@ -192,6 +192,7 @@ const createStyles = (colors) =>
     strong: {
       ...typography.bodyBold,
       fontSize: 14,
+      lineHeight: 19,
       color: colors.textPrimary,
     },
     muted: {
@@ -200,6 +201,7 @@ const createStyles = (colors) =>
     tierLetter: {
       ...typography.hero,
       fontSize: 15,
+      lineHeight: 20,
     },
     eventTime: {
       ...typography.caption,

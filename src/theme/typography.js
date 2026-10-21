@@ -1,6 +1,6 @@
 import { I18nManager } from "react-native";
 
-// Inter for English; IBM Plex Sans Arabic when the app runs in Arabic (the
+// Roboto for English; IBM Plex Sans Arabic when the app runs in Arabic (the
 // app restarts when the language changes direction, so checking RTL once
 // at load is enough). Each `fontFamily` points at a specific weight file
 // (loaded in App.js), so `fontWeight` is intentionally omitted — pairing a
@@ -18,42 +18,49 @@ export const fonts = isArabicLayout
       extraBold: "IBMPlexSansArabic_700Bold",
     }
   : {
-      regular: "Inter_400Regular",
-      medium: "Inter_500Medium",
-      semiBold: "Inter_600SemiBold",
-      bold: "Inter_700Bold",
-      extraBold: "Inter_800ExtraBold",
+      regular: "Roboto_400Regular",
+      medium: "Roboto_500Medium",
+      semiBold: "Roboto_600SemiBold",
+      bold: "Roboto_700Bold",
+      extraBold: "Roboto_800ExtraBold",
     };
 
+// The scale: Heading 1 (hero) 24/36, Heading 2 (title) 20/28, Body
+// (subtitle) 16/24, Body small (body, bodyBold) 14/22 — with a bigger
+// display above, and captions and labels below.
 export const typography = {
   display: {
     fontFamily: fonts.extraBold,
     fontSize: 32,
-    letterSpacing: -0.8,
-    lineHeight: 36,
+    letterSpacing: -0.5,
+    lineHeight: 40,
   },
   hero: {
-    fontFamily: fonts.extraBold,
-    fontSize: 26,
-    letterSpacing: -0.6,
-    lineHeight: 31,
+    fontFamily: fonts.bold,
+    fontSize: 24,
+    letterSpacing: -0.3,
+    lineHeight: 36,
   },
   title: {
     fontFamily: fonts.bold,
-    fontSize: 18,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    letterSpacing: -0.2,
+    lineHeight: 28,
   },
   subtitle: {
     fontFamily: fonts.semiBold,
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 24,
   },
   body: {
     fontFamily: fonts.regular,
     fontSize: 14,
+    lineHeight: 22,
   },
   bodyBold: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
+    lineHeight: 22,
   },
   caption: {
     fontFamily: fonts.medium,
