@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 
 import { DIMENSIONS } from "../data/vibes";
 import { t } from "../i18n";
-import { shape, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -36,7 +36,7 @@ export const readTasteDna = (fingerprint) => {
   return { leanings, balanced };
 };
 
-// Taste DNA as chips: each leaning a chip with a small gold strength mark,
+// Taste DNA as chips: each leaning a chip with a small slate strength mark,
 // strongest first, and one chip for the balanced ones. `fingerprint`: six
 // 1–5 values (utils/tasteDna), 3 the middle.
 export const TasteDnaBars = ({ fingerprint }) => {
@@ -89,9 +89,10 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 6,
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.chip,
+      paddingVertical: 7,
+      // Like the tab tracks: dark, slightly rounded.
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
     },
     chipText: {
       ...typography.bodyBold,

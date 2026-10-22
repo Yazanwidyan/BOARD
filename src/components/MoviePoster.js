@@ -6,10 +6,12 @@ import { shadows } from "../theme/shadows";
 import { useColors } from "../theme/useColors";
 import { shape } from "../theme/spacing";
 
-// Every poster has the same softly rounded corners, app-wide — any
-// `radius` a caller passes is ignored, and a borderRadius in `style` is
-// overridden, so one place decides the look of every poster.
+// Every poster looks the same, app-wide: slightly rounded corners and a
+// thin dark frame drawn over the image's edge (so it never changes the
+// poster's size). Any `radius` a caller passes is ignored, and a
+// borderRadius in `style` is overridden, so one place decides the look.
 const POSTER_RADIUS = shape.poster;
+const POSTER_EDGE_WIDTH = 1.5;
 
 export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
   const cornerRadius = POSTER_RADIUS;
@@ -37,6 +39,7 @@ export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
           blurRadius={blurRadius}
         />
       )}
+      <View pointerEvents="none" style={[styles.edge, { borderRadius: cornerRadius }]} />
     </View>
   );
 
@@ -58,6 +61,11 @@ const createStyles = (colors) =>
     image: {
       width: "100%",
       height: "100%",
+    },
+    edge: {
+      ...StyleSheet.absoluteFill,
+      borderWidth: POSTER_EDGE_WIDTH,
+      borderColor: colors.posterEdge,
     },
     fallback: {
       width: "100%",

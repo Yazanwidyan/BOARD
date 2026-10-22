@@ -167,8 +167,6 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     rowPoster: {
       width: 64,

@@ -22,17 +22,13 @@ const getVariantStyles = (colors) => ({
   secondary: {
     container: {
       backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     text: { color: colors.textPrimary },
     shadow: null,
   },
   outline: {
     container: {
-      backgroundColor: "transparent",
-      borderWidth: 1,
-      borderColor: colors.border,
+      backgroundColor: colors.buttonFill,
     },
     text: { color: colors.textPrimary },
     shadow: null,

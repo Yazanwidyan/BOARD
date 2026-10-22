@@ -324,8 +324,6 @@ const createStyles = (colors) =>
       paddingTop: spacing.xs,
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     ladderHint: {

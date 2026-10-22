@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
 import { fonts } from "../theme/typography";
@@ -12,10 +12,29 @@ const initials = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("");
 
-// A friend's avatar: their initials on their colour, with a thin ring in
-// the page colour so overlapping avatars stay separate.
+// A friend's avatar: their photo if they've set one, else their initials
+// on their colour — with a thin ring in the page colour so overlapping
+// avatars stay separate.
 export const FriendAvatar = ({ friend, size = 44, style }) => {
   const colors = useColors();
+  if (friend.avatarUri) {
+    return (
+      <Image
+        source={{ uri: friend.avatarUri }}
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: friend.color ?? colors.card,
+            borderColor: colors.background,
+            borderWidth: Math.max(1.5, size * 0.05),
+          },
+          style,
+        ]}
+      />
+    );
+  }
   return (
     <View
       style={[

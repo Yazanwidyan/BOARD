@@ -127,7 +127,7 @@ const SectionTitle = ({ title, count, icon, color, styles }) => (
 
 // Library's Collections tab as shelves: type chips → In progress carousel
 // (cover + ring + what's left) → Almost there (1–2 left, with the exact
-// movie) → Not started → the gold Trophy shelf of completed ones (with the
+// movie) → Not started → the slate Trophy shelf of completed ones (with the
 // date they were finished) → You might like (untracked collections matching
 // what you watch). The full browser stays one tap away under "See all".
 export const CollectionsShelf = ({
@@ -458,34 +458,38 @@ const createStyles = (colors) =>
     flatRow: {
       flexGrow: 0,
     },
-    // Same bar as Watched / Watchlist: square filled boxes over a hairline,
-    // the active one filled white.
     chipsBar: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      marginHorizontal: spacing.md,
+      marginVertical: spacing.sm + 2,
     },
+    // Like Library's tabs: a dark track, the open one a slate pill.
     chips: {
-      gap: 6,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
+      flexGrow: 1,
+      gap: 2,
+      padding: 2,
+      // On the page, so the card colour (the dark track would vanish).
+      backgroundColor: colors.card,
+      borderRadius: 6,
     },
     chip: {
+      flexGrow: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 4,
       paddingHorizontal: spacing.sm + 4,
-      paddingVertical: spacing.sm,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: 7,
     },
     chipActive: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     chipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textPrimary,
+      color: colors.segmentText,
     },
     chipTextActive: {
-      color: colors.background,
+      color: colors.segmentOnText,
     },
     emptyBox: {
       alignItems: "center",
@@ -570,9 +574,9 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 1,
     },
-    // Filled rows edge to edge, 2px apart — square, no border.
+    // Filled rows, a little apart.
     list: {
-      gap: 2,
+      gap: 6,
     },
     missingCard: {
       flexDirection: "row",
@@ -600,10 +604,10 @@ const createStyles = (colors) =>
       lineHeight: 16,
       color: colors.textPrimary,
     },
-    // The posters still to watch, 2px apart like the other poster rows.
+    // The posters still to watch, a little apart.
     missingSlots: {
       flexDirection: "row",
-      gap: 2,
+      gap: 4,
       marginTop: spacing.sm,
     },
     missingSlot: {},

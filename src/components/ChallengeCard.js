@@ -193,7 +193,7 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       marginBottom: spacing.sm,
     },
-    // "ADMIT ONE", in gold, like the print on a real ticket.
+    // "ADMIT ONE", in slate, like the print on a real ticket.
     admit: {
       ...typography.label,
       letterSpacing: 1.4,

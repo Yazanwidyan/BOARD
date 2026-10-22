@@ -1,15 +1,20 @@
 import { Check, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react-native";
 import { forwardRef, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { Text } from "../components/AppText";
-import { PrimaryButton } from "../components/PrimaryButton";
-import {
-  StackHeader,
-  useStackHeaderScroll,
-} from "../components/ScreenHeader";
+import { StackHeader } from "../components/ScreenHeader";
 import { t } from "../i18n";
 import { register, signIn } from "../services/sync";
 import { shape, spacing } from "../theme/spacing";
@@ -18,33 +23,36 @@ import { useColors } from "../theme/useColors";
 
 const PASSWORD_MIN = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ICON_COLUMN = 18;
 
-// One field: an icon, the input, and (for a password) show / hide. The
-// box lights up while you're in it, and goes red with `error`.
+// One row of the fields group: an icon, a small label over the input, and
+// (for a password) show / hide. The row lifts a shade while you're in it;
+// with `error` its label turns red and says what's wrong.
 const Field = forwardRef(
   ({ Icon, label, error, secure, styles, colors, onBlur, ...inputProps }, ref) => {
     const [focused, setFocused] = useState(false);
     const [hidden, setHidden] = useState(true);
     return (
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <View
-          style={[
-            styles.fieldBox,
-            focused && styles.fieldBoxFocused,
-            !!error && styles.fieldBoxError,
-          ]}
-        >
-          <Icon
-            size={18}
-            color={focused ? colors.textPrimary : colors.textMuted}
-            strokeWidth={1.9}
-          />
+      <Pressable
+        style={[styles.field, focused && styles.fieldFocused]}
+        onPress={() => ref?.current?.focus()}
+        accessible={false}
+      >
+        <Icon
+          size={ICON_COLUMN}
+          color={error ? colors.danger : focused ? colors.textPrimary : colors.textMuted}
+          strokeWidth={1.9}
+        />
+        <View style={styles.fieldText}>
+          <Text style={[styles.fieldLabel, !!error && styles.fieldLabelError]} numberOfLines={1}>
+            {error ?? label}
+          </Text>
           <TextInput
             ref={ref}
             placeholderTextColor={colors.textMuted}
             style={styles.fieldInput}
             secureTextEntry={secure && hidden}
+            accessibilityLabel={label}
             {...inputProps}
             onFocus={() => setFocused(true)}
             onBlur={(event) => {
@@ -52,35 +60,34 @@ const Field = forwardRef(
               onBlur?.(event);
             }}
           />
-          {secure && (
-            <Pressable
-              onPress={() => setHidden((value) => !value)}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={hidden ? t("Show password") : t("Hide password")}
-            >
-              {hidden ? (
-                <Eye size={18} color={colors.textMuted} />
-              ) : (
-                <EyeOff size={18} color={colors.textMuted} />
-              )}
-            </Pressable>
-          )}
         </View>
-        {!!error && <Text style={styles.fieldError}>{error}</Text>}
-      </View>
+        {secure && (
+          <Pressable
+            onPress={() => setHidden((value) => !value)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? t("Show password") : t("Hide password")}
+          >
+            {hidden ? (
+              <Eye size={18} color={colors.textMuted} />
+            ) : (
+              <EyeOff size={18} color={colors.textMuted} />
+            )}
+          </Pressable>
+        )}
+      </Pressable>
     );
   },
 );
 
 // Sign in or create an account with email and password — reached from the
 // welcome screen (`mode`: "register" from "Sign up with email", "signIn"
-// from "I already have an account"). A big heading says which; the link at
-// the bottom switches. Fields say what's wrong as you go (an email that
-// doesn't look like one, a password that's too short) rather than after a
-// failed try.
+// from "Sign in"). Plain: back and the title in the header, a line on
+// what it's for, the fields as one full-width group, the button, and a
+// link to switch. Fields say what's wrong once
+// you've left them, and the button always works — pressed too early it
+// points at what's missing instead of doing nothing.
 export const EmailAuthScreen = ({ navigation, route }) => {
-  const headerScroll = useStackHeaderScroll();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -88,24 +95,43 @@ export const EmailAuthScreen = ({ navigation, route }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
+  // Which fields have been left (or the button pressed): only then do they
+  // say what's wrong.
+  const [touched, setTouched] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [headingBottom, setHeadingBottom] = useState(null);
+  const nameRef = useRef(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
   const isRegister = mode === "register";
   const emailValid = EMAIL_PATTERN.test(email.trim());
   const passwordLongEnough = password.length >= PASSWORD_MIN;
-  const canSubmit =
-    !busy &&
-    emailValid &&
-    (isRegister ? passwordLongEnough && name.trim().length > 0 : password.length > 0);
+  const problems = {
+    name: isRegister && !name.trim() ? t("Add your name") : null,
+    email: !email.trim()
+      ? t("Add your email")
+      : !emailValid
+        ? t("That doesn't look like an email address")
+        : null,
+    password: !password
+      ? t("Add a password")
+      : isRegister && !passwordLongEnough
+        ? t("At least 8 characters")
+        : null,
+  };
+  const shown = (key) => (touched[key] ? problems[key] : null);
+  const ready = !problems.name && !problems.email && !problems.password;
+  const touch = (key) => setTouched((value) => ({ ...value, [key]: true }));
 
   const submit = async () => {
-    if (!canSubmit) {
-      setEmailTouched(true);
+    if (busy) return;
+    if (!ready) {
+      // Show what's missing, and go to the first of it.
+      setTouched({ name: true, email: true, password: true });
+      if (problems.name) nameRef.current?.focus();
+      else if (problems.email) emailRef.current?.focus();
+      else passwordRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -126,145 +152,155 @@ export const EmailAuthScreen = ({ navigation, route }) => {
   const switchMode = () => {
     setMode(isRegister ? "signIn" : "register");
     setError(null);
+    setTouched({});
   };
 
   return (
     <View style={styles.container}>
+      {/* The title in the header's middle. */}
       <StackHeader
-        title={isRegister ? t("Create account") : t("Sign in")}
+        title={isRegister ? t("Create your account") : t("Welcome back")}
         onBack={() => navigation.goBack()}
-        scrollY={headerScroll.scrollY}
-        titleRevealAt={headingBottom}
       />
-      <Animated.ScrollView
-        onScroll={headerScroll.onScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + spacing.xl },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        // Android resizes the window for the keyboard by itself.
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View
-          style={styles.heading}
-          onLayout={(event) => {
-            const { y, height } = event.nativeEvent.layout;
-            setHeadingBottom(y + height);
-          }}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>
-            {isRegister ? t("Create your account") : t("Welcome back")}
-          </Text>
-          <Text style={styles.intro}>
-            {isRegister
-              ? t("Your library, tiers, boards and collection ranks are saved to it — on any phone.")
-              : t("Sign in to pick up where you left off.")}
-          </Text>
-        </View>
+          <View style={styles.heading}>
+            <Text style={styles.intro}>
+              {isRegister
+                ? t("Your library, tiers, boards and collection ranks are saved to it — on any phone.")
+                : t("Sign in to pick up where you left off.")}
+            </Text>
+          </View>
 
-        {isRegister && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+          {/* The fields: one full-width group, split by hairlines. */}
+          <Animated.View layout={LinearTransition.duration(200)} style={styles.group}>
+            {isRegister && (
+              <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+                <Field
+                  ref={nameRef}
+                  Icon={UserRound}
+                  label={t("Name")}
+                  value={name}
+                  onChangeText={setName}
+                  onBlur={() => touch("name")}
+                  error={shown("name")}
+                  placeholder={t("What friends call you")}
+                  autoComplete="name"
+                  textContentType="name"
+                  returnKeyType="next"
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  blurOnSubmit={false}
+                  styles={styles}
+                  colors={colors}
+                />
+                <View style={styles.divider} />
+              </Animated.View>
+            )}
             <Field
-              Icon={UserRound}
-              label={t("Name")}
-              value={name}
-              onChangeText={setName}
-              placeholder={t("What friends call you")}
-              autoComplete="name"
-              textContentType="name"
+              ref={emailRef}
+              Icon={Mail}
+              label={t("Email")}
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (error) setError(null);
+              }}
+              onBlur={() => email.trim() && touch("email")}
+              error={shown("email")}
+              placeholder={t("you@example.com")}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              keyboardType="email-address"
               returnKeyType="next"
-              onSubmitEditing={() => emailRef.current?.focus()}
+              onSubmitEditing={() => passwordRef.current?.focus()}
               blurOnSubmit={false}
               styles={styles}
               colors={colors}
             />
-          </Animated.View>
-        )}
-        <Field
-          ref={emailRef}
-          Icon={Mail}
-          label={t("Email")}
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (error) setError(null);
-          }}
-          onBlur={() => setEmailTouched(true)}
-          error={
-            emailTouched && email.trim() && !emailValid
-              ? t("That doesn't look like an email address")
-              : null
-          }
-          placeholder={t("you@example.com")}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
-          keyboardType="email-address"
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-          blurOnSubmit={false}
-          styles={styles}
-          colors={colors}
-        />
-        <Field
-          ref={passwordRef}
-          Icon={Lock}
-          label={t("Password")}
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (error) setError(null);
-          }}
-          placeholder={isRegister ? t("At least 8 characters") : t("Your password")}
-          secure
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete={isRegister ? "new-password" : "current-password"}
-          textContentType={isRegister ? "newPassword" : "password"}
-          returnKeyType="go"
-          onSubmitEditing={submit}
-          styles={styles}
-          colors={colors}
-        />
-        {/* The one rule, ticked as you type. */}
-        {isRegister && (
-          <View style={styles.rule}>
-            <Check
-              size={14}
-              color={passwordLongEnough ? colors.success : colors.textMuted}
-              strokeWidth={2.5}
+            <View style={styles.divider} />
+            <Field
+              ref={passwordRef}
+              Icon={Lock}
+              label={t("Password")}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (error) setError(null);
+              }}
+              error={shown("password")}
+              placeholder={isRegister ? t("At least 8 characters") : t("Your password")}
+              secure
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete={isRegister ? "new-password" : "current-password"}
+              textContentType={isRegister ? "newPassword" : "password"}
+              returnKeyType="go"
+              onSubmitEditing={submit}
+              styles={styles}
+              colors={colors}
             />
-            <Text style={[styles.ruleText, passwordLongEnough && { color: colors.success }]}>
-              {t("At least 8 characters")}
-            </Text>
-          </View>
-        )}
-
-        {!!error && (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
           </Animated.View>
-        )}
 
-        <PrimaryButton
-          label={busy ? t("Please wait…") : isRegister ? t("Create account") : t("Sign in")}
-          onPress={submit}
-          disabled={!canSubmit}
-          style={styles.submit}
-        />
+          {/* The one rule, ticked as you type. */}
+          {isRegister && (
+            <View style={styles.rule}>
+              <Check
+                size={14}
+                color={passwordLongEnough ? colors.success : colors.textMuted}
+                strokeWidth={2.5}
+              />
+              <Text style={[styles.ruleText, passwordLongEnough && { color: colors.success }]}>
+                {t("At least 8 characters")}
+              </Text>
+            </View>
+          )}
 
-        <Pressable onPress={switchMode} hitSlop={8} style={styles.switch} accessibilityRole="button">
-          <Text style={styles.switchText}>
-            {isRegister ? t("Already have an account?") : t("New to ReelBoard?")}{" "}
-            <Text style={styles.switchLink}>
-              {isRegister ? t("Sign in") : t("Create an account")}
+          {/* What the server said (wrong password, email taken…). */}
+          {!!error && (
+            <Animated.View entering={FadeIn.duration(200)} style={styles.errorBand}>
+              <Text style={styles.errorText}>{error}</Text>
+            </Animated.View>
+          )}
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.submit,
+              !ready && styles.submitWaiting,
+              pressed && styles.pressed,
+            ]}
+            onPress={submit}
+            accessibilityRole="button"
+            accessibilityState={{ busy, disabled: !ready }}
+          >
+            {busy ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.submitText}>
+                {isRegister ? t("Create account") : t("Sign in")}
+              </Text>
+            )}
+          </Pressable>
+
+          <Pressable onPress={switchMode} hitSlop={8} style={styles.switch} accessibilityRole="button">
+            <Text style={styles.switchText}>
+              {isRegister ? t("Already have an account?") : t("New to ReelBoard?")}{" "}
+              <Text style={styles.switchLink}>
+                {isRegister ? t("Sign in") : t("Create an account")}
+              </Text>
             </Text>
-          </Text>
-        </Pressable>
-      </Animated.ScrollView>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -275,64 +311,59 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    content: {
-      paddingTop: spacing.sm,
+    flex: {
+      flex: 1,
     },
     heading: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      gap: spacing.xs + 2,
-    },
-    title: {
-      ...typography.display,
-      color: colors.textPrimary,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.lg,
     },
     intro: {
       ...typography.body,
+      fontSize: 15,
+      lineHeight: 22,
       color: colors.textSecondary,
-      lineHeight: 21,
+      textAlign: "center",
     },
-    fieldWrap: {
-      marginTop: spacing.md,
+    // The fields: a full-width band.
+    group: {
+      marginTop: spacing.lg,
+      backgroundColor: colors.card,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      marginStart: spacing.md + ICON_COLUMN + spacing.md,
+      backgroundColor: colors.border,
+    },
+    field: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 62,
+      paddingHorizontal: spacing.md,
+    },
+    fieldFocused: {
+      backgroundColor: colors.cardElevated,
+    },
+    fieldText: {
+      flex: 1,
+      paddingVertical: spacing.sm,
     },
     fieldLabel: {
       ...typography.caption,
+      fontSize: 12,
+      lineHeight: 16,
       color: colors.textMuted,
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
     },
-    // A filled band; a line along the bottom while you're typing in it.
-    fieldBox: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm + 2,
-      minHeight: 52,
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 2,
-      borderBottomColor: "transparent",
-      borderRadius: shape.control,
-      marginHorizontal: spacing.md,
-    },
-    fieldBoxFocused: {
-      borderBottomColor: colors.textPrimary,
-    },
-    fieldBoxError: {
-      borderBottomColor: colors.danger,
+    fieldLabelError: {
+      color: colors.danger,
     },
     fieldInput: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 20,
-      flex: 1,
+      fontSize: 16,
+      lineHeight: 21,
       color: colors.textPrimary,
-      paddingVertical: spacing.sm + 2,
-    },
-    fieldError: {
-      ...typography.caption,
-      color: colors.danger,
-      marginTop: spacing.xs + 2,
-      paddingHorizontal: spacing.md,
+      paddingVertical: 2,
     },
     rule: {
       flexDirection: "row",
@@ -345,23 +376,35 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    errorBox: {
+    // The server's answer: a full-width red-tinted band.
+    errorBand: {
       marginTop: spacing.md,
-      marginHorizontal: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
+      paddingVertical: spacing.sm + 4,
       backgroundColor: `${colors.danger}1F`,
-      borderRadius: shape.control,
     },
     errorText: {
       ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 19,
       color: colors.danger,
     },
+    // The button: white, like the welcome screen's Get started; dimmed
+    // (but still pressable) until the form is ready.
     submit: {
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 50,
       marginTop: spacing.lg,
       marginHorizontal: spacing.md,
+      backgroundColor: colors.textPrimary,
+      borderRadius: shape.control,
+    },
+    submitWaiting: {
+      opacity: 0.45,
+    },
+    pressed: {
+      opacity: 0.8,
     },
     switch: {
       alignSelf: "center",
@@ -375,6 +418,12 @@ const createStyles = (colors) =>
     switchLink: {
       ...typography.bodyBold,
       color: colors.textPrimary,
+    },
+    submitText: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.background,
     },
   });
 

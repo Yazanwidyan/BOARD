@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
-import { Bookmark, Check, Share2 } from "lucide-react-native";
+import { Bookmark, Check, ChevronLeft, Share2 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import {
   Pressable,
@@ -18,7 +18,6 @@ import { captureRef } from "react-native-view-shot";
 
 import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { TasteDnaBars } from "../components/TasteDnaBars";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { DIMENSIONS } from "../data/vibes";
@@ -36,7 +35,8 @@ import {
 } from "../utils/onboardingTaste";
 import { buildMyTasteModel, getTastePicks } from "../utils/tasteEngine";
 import { getRankCount } from "../utils/ranks";
-import { t } from "../i18n";
+import { getTierInfo } from "../utils/tiers";
+import { t, useIsRTL } from "../i18n";
 
 // "Play, don't tell", built around Taste DNA (data/vibes.js). In about a
 // minute the engine gets real signals instead of a pile of checkmarks.
@@ -49,20 +49,72 @@ import { t } from "../i18n";
 //                for me — real tiers from minute one
 //   this or that five pairs on the dimensions we know least about yet
 //   your DNA     the payoff: your leanings, your watcher type, ranks — and
-//                your name on a card you can share
+//                your name on a card you can share (asked for here only
+//                when the account doesn't have one yet)
 //   tonight      three picks from the real taste engine, with reasons
 //
-// No top bar — each step's bottom button moves on (several double as a
-// skip: "I haven't seen these", "Skip the rest", "Skip", "Maybe later").
+// A slim top bar: back (from the second step on) and how far along you
+// are. Each step's bottom button moves on (several double as a skip: "I
+// haven't seen these", "Skip the rest", "Skip", "Maybe later").
 const STEP = { seen: 1, tier: 2, versus: 3, dna: 4, pick: 5 };
+const STEP_COUNT = 5;
+
+// The bottom button: white for going on, quiet grey for skipping.
+const FooterButton = ({ label, primary, onPress, styles }) => (
+  <Pressable
+    onPress={onPress}
+    style={({ pressed }) => [
+      styles.footerButton,
+      primary ? styles.footerPrimary : styles.footerQuiet,
+      pressed && styles.pressed,
+    ]}
+    accessibilityRole="button"
+  >
+    <Text style={[styles.footerText, primary ? styles.footerPrimaryText : styles.footerQuietText]}>
+      {label}
+    </Text>
+  </Pressable>
+);
+
+// Back, and a segment per step — the done ones and the open one lit.
+const TopBar = ({ step, onBack, styles, colors }) => {
+  const rtl = useIsRTL();
+  return (
+    <View style={styles.topBar}>
+      <View style={styles.topSide}>
+        {onBack && (
+          <Pressable
+            onPress={onBack}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("Back")}
+          >
+            <ChevronLeft
+              size={26}
+              color={colors.textPrimary}
+              strokeWidth={2}
+              style={rtl && styles.flipped}
+            />
+          </Pressable>
+        )}
+      </View>
+      <View style={styles.progress} accessibilityLabel={t("{current} of {total}", { current: step, total: STEP_COUNT })}>
+        {Array.from({ length: STEP_COUNT }, (_, index) => (
+          <View key={index} style={[styles.progressStep, index < step && styles.progressStepOn]} />
+        ))}
+      </View>
+      <View style={styles.topSide} />
+    </View>
+  );
+};
 
 const SEEN_FIRST = 12;
 const SEEN_MORE = 9;
 const SEEN_COLUMNS = 3;
 const TIER_MAX = 6;
 const PICK_COUNT = 3;
-// Posters sit 2px apart everywhere in the app.
-const GRID_GAP = 2;
+// The seen grid's posters: inside the page's margins, a little apart.
+const GRID_GAP = 8;
 
 // Tap cycle on a poster: nothing → seen → want → nothing.
 const NEXT_MARK = { undefined: "seen", seen: "want", want: undefined };
@@ -76,10 +128,10 @@ const QUICK_TIERS = [
 // ---------- What have you seen? ----------
 const SeenStep = ({ movies, marks, onTap, onMore, canMore, styles, colors }) => {
   const { width } = useWindowDimensions();
-  // Edge to edge, whole pixels; an explicit height so wrapped rows are
-  // never clipped.
+  // Inside the page's side margins, whole pixels; an explicit height so
+  // wrapped rows are never clipped.
   const tileWidth = Math.floor(
-    (width - GRID_GAP * (SEEN_COLUMNS - 1)) / SEEN_COLUMNS,
+    (width - spacing.md * 2 - GRID_GAP * (SEEN_COLUMNS - 1)) / SEEN_COLUMNS,
   );
   const tileSize = { width: tileWidth, height: tileWidth * 1.5 };
   const seenCount = Object.values(marks).filter((m) => m === "seen").length;
@@ -117,18 +169,18 @@ const SeenStep = ({ movies, marks, onTap, onMore, canMore, styles, colors }) => 
                 />
                 {mark && (
                   <View style={styles.markOverlay}>
-                    <View style={styles.markBadge}>
+                    <View style={[styles.markBadge, mark === "want" && styles.markBadgeWant]}>
                       {mark === "seen" ? (
                         <Check
-                          size={16}
+                          size={18}
                           color={colors.background}
-                          strokeWidth={3.5}
+                          strokeWidth={3.2}
                         />
                       ) : (
                         <Bookmark
-                          size={14}
-                          color={colors.background}
-                          fill={colors.background}
+                          size={15}
+                          color={colors.segmentOnText}
+                          fill={colors.segmentOnText}
                         />
                       )}
                     </View>
@@ -156,7 +208,7 @@ const SeenStep = ({ movies, marks, onTap, onMore, canMore, styles, colors }) => 
 // ---------- Quick tier ----------
 const QuickTierStep = ({ movie, position, total, onAnswer, styles }) => (
   <View style={[styles.step, styles.centered]}>
-    <Text style={styles.stepCount}>
+    <Text style={[styles.stepCount, styles.centerText]}>
       {t("{current} of {total}", { current: position, total })}
     </Text>
     <Text style={[styles.title, styles.centerText]}>
@@ -174,14 +226,19 @@ const QuickTierStep = ({ movie, position, total, onAnswer, styles }) => (
       <Text style={styles.tierMeta}>{movie.year}</Text>
     </Animated.View>
     <View style={styles.tierButtons}>
-      {QUICK_TIERS.map(({ tier, label }, index) => (
-        <PrimaryButton
+      {QUICK_TIERS.map(({ tier, label }) => (
+        <Pressable
           key={tier}
-          label={t(label)}
-          variant={index === 0 ? "primary" : "secondary"}
           onPress={() => onAnswer(tier)}
-          contentStyle={styles.footerButton}
-        />
+          style={({ pressed }) => [styles.tierAnswer, pressed && styles.tierAnswerPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`${t(label)} · ${tier}`}
+        >
+          <View style={[styles.tierAnswerTile, { backgroundColor: getTierInfo(tier).color }]}>
+            <Text style={styles.tierAnswerLetter}>{tier}</Text>
+          </View>
+          <Text style={styles.tierAnswerText}>{t(label)}</Text>
+        </Pressable>
       ))}
     </View>
   </View>
@@ -253,6 +310,7 @@ const DnaStep = ({
   ranks,
   seenCount,
   name,
+  askName,
   onChangeName,
   cardRef,
   onShare,
@@ -288,18 +346,22 @@ const DnaStep = ({
       </View>
     </View>
 
-    <Text style={styles.nameLabel}>{t("Put your name on it (optional)")}</Text>
-    <TextInput
-      value={name}
-      onChangeText={onChangeName}
-      placeholder={t("Your name")}
-      placeholderTextColor={colors.textMuted}
-      style={styles.nameInput}
-      autoCapitalize="words"
-      autoCorrect={false}
-      returnKeyType="done"
-      maxLength={24}
-    />
+    {askName && (
+      <>
+        <Text style={styles.nameLabel}>{t("Put your name on it (optional)")}</Text>
+        <TextInput
+          value={name}
+          onChangeText={onChangeName}
+          placeholder={t("Your name")}
+          placeholderTextColor={colors.textMuted}
+          style={styles.nameInput}
+          autoCapitalize="words"
+          autoCorrect={false}
+          returnKeyType="done"
+          maxLength={24}
+        />
+      </>
+    )}
     <Pressable
       onPress={onShare}
       disabled={isSharing}
@@ -354,7 +416,7 @@ const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => (
               </View>
               {isSelected && (
                 <View style={styles.pickCheck}>
-                  <Check size={16} color={colors.background} strokeWidth={3.5} />
+                  <Check size={16} color={colors.segmentOnText} strokeWidth={3.2} />
                 </View>
               )}
             </Pressable>
@@ -375,7 +437,11 @@ export const OnboardingScreen = () => {
   const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
 
-  const [name, setName] = useState(currentName === "You" ? "" : currentName);
+  // The name given at sign-up goes straight on the card; only an account
+  // without one (some Google / Apple sign-ins) is asked for it.
+  const hasName = !!currentName && currentName !== "You";
+  const [askName] = useState(!hasName);
+  const [name, setName] = useState(hasName ? currentName : "");
 
   // Seen: movies already in the stores (a replay) aren't offered, or a
   // "seen" tap would un-watch them.
@@ -416,7 +482,7 @@ export const OnboardingScreen = () => {
     setStep(nextStep);
   };
   const finish = () => {
-    if (name.trim()) setDisplayName(name.trim());
+    if (name.trim() && name.trim() !== currentName) setDisplayName(name.trim());
     completeOnboarding();
   };
 
@@ -559,6 +625,25 @@ export const OnboardingScreen = () => {
     }
   };
 
+  // Back one step. What's already saved stays (appliedIds keeps the seen
+  // grid from toggling it twice), so going back and on again is safe.
+  const goBack = () => {
+    if (step === STEP.tier) return goToStep(STEP.seen);
+    if (step === STEP.versus) {
+      if (tierQueue.length > 0) {
+        setTierIndex(tierQueue.length - 1);
+        return goToStep(STEP.tier);
+      }
+      return goToStep(STEP.seen);
+    }
+    if (step === STEP.dna) {
+      setQuestionIndex(Math.max(0, questions.length - 1));
+      return goToStep(STEP.versus);
+    }
+    if (step === STEP.pick) return goToStep(STEP.dna);
+    return undefined;
+  };
+
   const markedCount = Object.keys(marks).length;
   const footer = {
     [STEP.seen]:
@@ -578,6 +663,12 @@ export const OnboardingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <TopBar
+        step={step}
+        onBack={step > STEP.seen ? goBack : null}
+        styles={styles}
+        colors={colors}
+      />
       <Animated.View
         key={step}
         entering={FadeIn.duration(250)}
@@ -623,6 +714,7 @@ export const OnboardingScreen = () => {
               ranks={ranksGained}
               seenCount={seenIds.length}
               name={name}
+              askName={askName}
               onChangeName={setName}
               cardRef={cardRef}
               onShare={shareCard}
@@ -661,11 +753,11 @@ export const OnboardingScreen = () => {
       )}
 
       <View style={styles.footer}>
-        <PrimaryButton
+        <FooterButton
           label={footer.label}
-          variant={footer.primary ? "primary" : "secondary"}
+          primary={footer.primary}
           onPress={handleNext}
-          contentStyle={styles.footerButton}
+          styles={styles}
         />
       </View>
     </SafeAreaView>
@@ -681,13 +773,41 @@ const createStyles = (colors) =>
     pressed: {
       opacity: 0.75,
     },
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    // Back on the left, the steps in the middle.
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      height: 44,
+      paddingHorizontal: spacing.md,
+    },
+    topSide: {
+      width: 28,
+    },
+    progress: {
+      flex: 1,
+      flexDirection: "row",
+      gap: 4,
+    },
+    progressStep: {
+      flex: 1,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: colors.border,
+    },
+    progressStepOn: {
+      backgroundColor: colors.selected,
+    },
     contentWrap: {
       flex: 1,
     },
     content: {
       flexGrow: 1,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.lg,
+      paddingTop: spacing.md,
       paddingBottom: spacing.lg,
     },
     step: {
@@ -720,8 +840,28 @@ const createStyles = (colors) =>
       paddingBottom: spacing.sm,
     },
     footerButton: {
-      borderRadius: shape.control,
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 50,
+      paddingHorizontal: spacing.md,
+      borderRadius: shape.control,
+    },
+    footerPrimary: {
+      backgroundColor: colors.textPrimary,
+    },
+    footerQuiet: {
+      backgroundColor: colors.buttonFill,
+    },
+    footerText: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      lineHeight: 20,
+    },
+    footerPrimaryText: {
+      color: colors.background,
+    },
+    footerQuietText: {
+      color: colors.textPrimary,
     },
     moreText: {
       ...typography.bodyBold,
@@ -739,30 +879,30 @@ const createStyles = (colors) =>
     seenGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      justifyContent: "center",
       columnGap: GRID_GAP,
-      rowGap: spacing.sm,
+      rowGap: spacing.md,
       marginTop: spacing.md,
-      marginHorizontal: -spacing.md,
     },
     posterMarked: {
-      opacity: 0.55,
+      opacity: 0.4,
     },
-    // Marked: a white frame and a small white square badge.
+    // Marked: the poster dimmed, a round badge in its middle — a green
+    // check for seen, a slate bookmark for saved.
     markOverlay: {
       ...StyleSheet.absoluteFill,
-      borderWidth: 2,
-      borderColor: colors.textPrimary,
       alignItems: "center",
       justifyContent: "center",
     },
     markBadge: {
-      width: 30,
-      height: 30,
+      width: 36,
+      height: 36,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.textPrimary,
-      borderRadius: shape.chip,
+      backgroundColor: colors.success,
+      borderRadius: 18,
+    },
+    markBadgeWant: {
+      backgroundColor: colors.segmentOn,
     },
     gridTitle: {
       ...typography.caption,
@@ -799,10 +939,42 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
+    // The three answers: full-width rows, a hairline of page between.
     tierButtons: {
       alignSelf: "stretch",
-      gap: 2,
+      gap: StyleSheet.hairlineWidth * 2,
       marginTop: spacing.lg,
+      marginHorizontal: -spacing.md,
+    },
+    tierAnswer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 56,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
+    },
+    tierAnswerPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    tierAnswerTile: {
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: shape.poster,
+    },
+    tierAnswerLetter: {
+      ...typography.title,
+      fontSize: 18,
+      lineHeight: 22,
+      color: "#0C1014",
+    },
+    tierAnswerText: {
+      ...typography.bodyBold,
+      fontSize: 16,
+      lineHeight: 22,
+      color: colors.textPrimary,
     },
 
     // This or that
@@ -872,12 +1044,14 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     nameInput: {
-      ...typography.title,
-      paddingVertical: spacing.md,
+      ...typography.body,
+      fontSize: 16,
+      lineHeight: 21,
+      minHeight: 52,
       paddingHorizontal: spacing.md,
+      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
       color: colors.textPrimary,
-      borderRadius: shape.control,
     },
     shareRow: {
       flexDirection: "row",
@@ -889,8 +1063,9 @@ const createStyles = (colors) =>
     },
 
     // Tonight
+    // Full-width rows; the chosen one lifts a shade, with a slate check.
     pickList: {
-      gap: 2,
+      gap: StyleSheet.hairlineWidth * 2,
       marginTop: spacing.lg,
       marginHorizontal: -spacing.md,
     },
@@ -901,12 +1076,9 @@ const createStyles = (colors) =>
       padding: spacing.sm + 2,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
-      borderWidth: 2,
-      borderColor: "transparent",
-      borderRadius: shape.card,
     },
     pickRowSelected: {
-      borderColor: colors.textPrimary,
+      backgroundColor: colors.cardElevatedLight,
     },
     pickRowDimmed: {
       opacity: 0.5,
@@ -939,8 +1111,8 @@ const createStyles = (colors) =>
       height: 28,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.textPrimary,
-      borderRadius: shape.chip,
+      backgroundColor: colors.segmentOn,
+      borderRadius: 14,
     },
   });
 

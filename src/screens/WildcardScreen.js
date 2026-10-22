@@ -26,7 +26,7 @@ import { useDecidePool } from "../utils/useDecidePool";
 const CARD_MAX = 280;
 
 // The Wildcard's scratch: one film from where you chose (store/
-// decideStore, set by Decide's Wildcard sheet), under gold foil — rub it
+// decideStore, set by Decide's Wildcard sheet), under slate foil — rub it
 // to see. Once it's off, the poster blurs in behind and what it is shows;
 // Watch tonight makes it tonight's pick; Roll again deals a fresh card;
 // the poster opens the movie.
@@ -73,7 +73,7 @@ export const WildcardScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Behind: a gold glow while it's covered; the poster, blurred, once
+      {/* Behind: a slate glow while it's covered; the poster, blurred, once
           it's scratched. */}
       {revealed && movie ? (
         <Animated.View entering={FadeIn.duration(400)} style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -237,7 +237,7 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       textAlign: "center",
     },
-    // A gold stamp across the face's corner for a film outside your taste.
+    // A slate stamp across the face's corner for a film outside your taste.
     stamp: {
       position: "absolute",
       top: spacing.sm + 2,
@@ -253,7 +253,7 @@ const createStyles = (colors) =>
       fontSize: 11,
       letterSpacing: 0.8,
       textTransform: "uppercase",
-      color: "#0C1014",
+      color: colors.background,
     },
     hint: {
       ...typography.body,
@@ -310,9 +310,8 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       paddingVertical: spacing.sm + 4,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
       borderRadius: shape.control,
+      backgroundColor: colors.buttonFill,
     },
     rollText: {
       ...typography.bodyBold,

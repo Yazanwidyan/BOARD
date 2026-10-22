@@ -843,7 +843,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: shape.tab,
     },
     chipSelected: {
       backgroundColor: colors.selected,
@@ -853,9 +853,9 @@ const createStyles = (colors) =>
     },
     chipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     chipTextSelected: {
       color: colors.selectedText,

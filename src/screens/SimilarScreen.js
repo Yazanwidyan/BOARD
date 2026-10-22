@@ -28,7 +28,7 @@ const COLUMNS = 3;
 const GAP = 2;
 const RING = 46;
 
-// How similar, as a small ring: green when it's close, gold when it's a
+// How similar, as a small ring: green when it's close, slate when it's a
 // fair likeness, grey when it's loose.
 const PercentRing = ({ percent, colors, styles }) => {
   const stroke = 4;
@@ -378,8 +378,6 @@ const createStyles = (colors) =>
     results: {
       marginTop: 2,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     result: {
@@ -433,8 +431,6 @@ const createStyles = (colors) =>
     },
     list: {
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     separator: {

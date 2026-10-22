@@ -124,8 +124,11 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       ]
         .filter(Boolean)
         .join(" · ")}
-      reason={insight.reason ?? tag?.text}
+      reason={insight.reason}
       match={insight.match}
+      tag={tag}
+      saga={insight.saga}
+      forecast={insight.forecast}
       onPress={openDetails}
       onDismiss={clearPickedMovie}
       scrollY={scrollY}
@@ -169,15 +172,13 @@ const createStyles = (colors) =>
       borderRadius: shape.control,
       minHeight: 48,
     },
-    // The small squares beside it: raised tiles with a lighter edge.
+    // The small squares beside it: raised tiles.
     roundButton: {
       width: 48,
       height: 48,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.buttonFill,
-      borderWidth: 1.5,
-      borderColor: colors.buttonEdge,
       borderRadius: shape.control + 2,
     },
   });

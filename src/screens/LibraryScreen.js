@@ -1,13 +1,9 @@
 import {
-  Bookmark,
   Check,
   CheckCircle,
   ChevronDown,
-  Clapperboard,
   Circle,
-  Disc3,
-  LayoutGrid,
-  Layers,
+  Clapperboard,
   MoreHorizontal,
   Plus,
   Search,
@@ -23,7 +19,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Text } from "../components/AppText";
 import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
@@ -32,11 +27,13 @@ import {
 
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
+import { Text } from "../components/AppText";
 import { BoardCover } from "../components/BoardCover";
 import { BoardNameSheet } from "../components/BoardNameSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
+import { FirstVisitTip } from "../components/FirstVisitTip";
 import { MoviePoster } from "../components/MoviePoster";
 import { Popover } from "../components/Popover";
 import { MosaicSections } from "../components/PosterMosaic";
@@ -46,27 +43,30 @@ import {
   DockHeader,
   HEADER_BAR_HEIGHT,
   HeaderIconButton,
+  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { getMovieById, useMoviesVersion } from "../data/movies";
+import { t } from "../i18n";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { radius, shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
+import { TAB_BAR_CLEARANCE, radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import {
+  giveWatchedFeedback,
+  toggleBucketListWithFeedback,
+} from "../utils/achievementFeedback";
 import {
   getCollectionProgress,
   getCollectionSections,
   getUnlockedCollectionSections,
 } from "../utils/collections";
 import { formatRuntime, matchesGenres } from "../utils/movieFilters";
-import { giveWatchedFeedback, toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { movieMatches } from "../utils/movieSearch";
 import { shuffle } from "../utils/shuffle";
 import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
-import { t } from "../i18n";
-import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const PICK_MAX = 10;
 const PICK_MIN = 2;
@@ -164,12 +164,21 @@ const WatchlistRow = ({ movie, onPress, onMore, styles, colors }) => (
         {movie.title}
       </Text>
       <Text style={styles.listMeta} numberOfLines={1}>
-        {[movie.year, movie.genres?.[0], movie.runtime ? formatRuntime(movie.runtime) : null]
+        {[
+          movie.year,
+          movie.genres?.[0],
+          movie.runtime ? formatRuntime(movie.runtime) : null,
+        ]
           .filter(Boolean)
           .join(" · ")}
       </Text>
     </View>
-    <Pressable onPress={onMore} hitSlop={10} accessibilityLabel={t("More")} style={styles.listMore}>
+    <Pressable
+      onPress={onMore}
+      hitSlop={10}
+      accessibilityLabel={t("More")}
+      style={styles.listMore}
+    >
       <MoreHorizontal size={20} color={colors.textSecondary} />
     </Pressable>
   </Pressable>
@@ -246,8 +255,13 @@ const BrowseCollectionRow = ({
 // Boards view: your own lists as a two-up grid of square covers, with a
 // "New board" tile always last.
 const BOARD_COLUMNS = 2;
+// Room between board covers.
+const BOARD_GAP = 6;
+
 const BoardsGrid = ({ boards, width, onOpen, onCreate, styles, colors }) => {
-  const size = (width - 2 * (BOARD_COLUMNS - 1)) / BOARD_COLUMNS;
+  const size = Math.floor(
+    (width - spacing.md * 2 - BOARD_GAP * (BOARD_COLUMNS - 1)) / BOARD_COLUMNS,
+  );
   return (
     <View style={styles.boardGrid}>
       {boards.map((board) => {
@@ -255,7 +269,10 @@ const BoardsGrid = ({ boards, width, onOpen, onCreate, styles, colors }) => {
         return (
           <Pressable
             key={board.id}
-            style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              { width: size },
+              pressed && styles.pressed,
+            ]}
             onPress={() => onOpen(board.id)}
           >
             <BoardCover movies={movies} size={size} />
@@ -318,7 +335,6 @@ export const LibraryScreen = ({ navigation, route }) => {
   // Search lives behind the header's search icon; open while there's text.
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   // The header title is the section switcher; this opens its menu.
-  const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
   // Measured height of the fixed chip bar under the header (Watchlist /
   // Watched only), added to the content's top inset. Starts at a close
   // estimate for the first frame.
@@ -425,25 +441,21 @@ export const LibraryScreen = ({ navigation, route }) => {
   const tabOptions = [
     {
       key: "bucketlist",
-      Icon: Bookmark,
       label: "Watchlist",
       count: bucketListMovies.length,
     },
     {
       key: "boards",
-      Icon: LayoutGrid,
       label: "Boards",
       count: boards.length,
     },
     {
       key: "collections",
-      Icon: Layers,
       label: "Collections",
       count: unlockedCount,
     },
     {
       key: "watched",
-      Icon: Disc3,
       label: "Watched",
       count: watchedMovies.length,
     },
@@ -458,7 +470,9 @@ export const LibraryScreen = ({ navigation, route }) => {
   // How many, as the first chip in the filter row — what's showing out of
   // all ("8 of 48") while a filter or search narrows the list.
   const shownCount =
-    tab === "watched" ? visibleWatchedMovies.length : visibleBucketListMovies.length;
+    tab === "watched"
+      ? visibleWatchedMovies.length
+      : visibleBucketListMovies.length;
   const countLabel =
     shownCount === currentTab.count
       ? t("{count} films", { count: currentTab.count })
@@ -632,12 +646,7 @@ export const LibraryScreen = ({ navigation, route }) => {
           }
         >
           {/* Watchlist / Boards / Collections / Watched */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.toolRow}
-            contentContainerStyle={styles.toolRowContent}
-          >
+          <View style={styles.sectionTrack} accessibilityRole="tablist">
             {tabOptions.map((option) => {
               const selected = option.key === tab;
               return (
@@ -648,13 +657,19 @@ export const LibraryScreen = ({ navigation, route }) => {
                   accessibilityRole="tab"
                   accessibilityState={{ selected }}
                 >
-                  <Text style={[styles.sectionChipText, selected && styles.sectionChipTextOn]}>
+                  <Text
+                    style={[
+                      styles.sectionChipText,
+                      selected && styles.sectionChipTextOn,
+                    ]}
+                    numberOfLines={1}
+                  >
                     {t(option.label)}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           {hasTools && (isSearchOpen || query.length > 0) && (
             <View style={styles.searchField}>
@@ -784,12 +799,31 @@ export const LibraryScreen = ({ navigation, route }) => {
               )}
             </ScrollView>
           )}
+          <ScrollHairline scrollY={header.scrollY} />
         </Animated.View>
       )}
       <DockHeader
         {...header.props}
-        title={currentTab.label}
-        onPressTitle={() => setIsSectionMenuOpen(true)}
+        hairline={false}
+        title={t("Library")}
+        // Search on the left (Watchlist and Watched); ＋ on the right.
+        left={
+          hasTools && (
+            <HeaderIconButton
+              onPress={() => {
+                if (isSearchOpen || query.length > 0) {
+                  setQuery("");
+                  setIsSearchOpen(false);
+                } else {
+                  setIsSearchOpen(true);
+                }
+              }}
+              accessibilityLabel={t("Search")}
+            >
+              <Search size={22} color={colors.textPrimary} strokeWidth={1.75} />
+            </HeaderIconButton>
+          )
+        }
         right={
           tab === "boards" ? (
             <HeaderIconButton
@@ -800,33 +834,16 @@ export const LibraryScreen = ({ navigation, route }) => {
             </HeaderIconButton>
           ) : (
             hasTools && (
-            <>
-              <HeaderIconButton
-                onPress={() => {
-                  if (isSearchOpen || query.length > 0) {
-                    setQuery("");
-                    setIsSearchOpen(false);
-                  } else {
-                    setIsSearchOpen(true);
-                  }
-                }}
-              >
-                <Search
-                  size={22}
-                  color={colors.textPrimary}
-                  strokeWidth={1.75}
-                />
-              </HeaderIconButton>
               <HeaderIconButton
                 onPress={() =>
                   tab === "bucketlist"
                     ? setIsAddOpen(true)
                     : setIsAddWatchedOpen(true)
                 }
+                accessibilityLabel={t("Add")}
               >
                 <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
               </HeaderIconButton>
-            </>
             )
           )
         }
@@ -845,7 +862,8 @@ export const LibraryScreen = ({ navigation, route }) => {
               Icon: CheckCircle,
               label: t("Mark as watched"),
               run: (movie) => {
-                const { watched: watchedBefore, bucketList: bucketListBefore } = useMovieStore.getState();
+                const { watched: watchedBefore, bucketList: bucketListBefore } =
+                  useMovieStore.getState();
                 toggleWatched(movie.id);
                 giveWatchedFeedback(movie.id, watchedBefore, bucketListBefore);
               },
@@ -869,65 +887,30 @@ export const LibraryScreen = ({ navigation, route }) => {
           ].map(({ key, Icon, label, run, danger }) => (
             <Pressable
               key={key}
-              style={({ pressed }) => [styles.rowMenuItem, pressed && styles.listRowPressed]}
+              style={({ pressed }) => [
+                styles.rowMenuItem,
+                pressed && styles.listRowPressed,
+              ]}
               onPress={() => {
                 const movie = rowMenuMovie;
                 setRowMenuMovie(null);
                 if (movie) run(movie);
               }}
             >
-              <Icon size={20} color={danger ? colors.danger : colors.textPrimary} strokeWidth={1.9} />
-              <Text style={[styles.rowMenuText, danger && { color: colors.danger }]}>{label}</Text>
+              <Icon
+                size={20}
+                color={danger ? colors.danger : colors.textPrimary}
+                strokeWidth={1.9}
+              />
+              <Text
+                style={[styles.rowMenuText, danger && { color: colors.danger }]}
+              >
+                {label}
+              </Text>
             </Pressable>
           ))}
         </View>
       </BottomSheet>
-
-      <Popover
-        visible={isSectionMenuOpen}
-        anchor={{
-          top: insets.top + HEADER_BAR_HEIGHT + spacing.xs,
-          right: width - spacing.md - 220,
-        }}
-        onClose={() => setIsSectionMenuOpen(false)}
-      >
-        {tabOptions.map(({ key, label, Icon, count }) => {
-          const selected = tab === key;
-          return (
-            <Pressable
-              key={key}
-              style={({ pressed }) => [
-                styles.sortRow,
-                pressed && styles.sortRowPressed,
-              ]}
-              onPress={() => {
-                setTab(key);
-                setIsSectionMenuOpen(false);
-              }}
-              accessibilityState={{ selected }}
-            >
-              <View style={styles.sectionMenuLabel}>
-                <Icon
-                  size={16}
-                  color={selected ? colors.textPrimary : colors.textSecondary}
-                  strokeWidth={2.2}
-                />
-                <Text
-                  style={[
-                    styles.sortRowText,
-                    selected && styles.sortRowTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </View>
-              <Text style={styles.sectionMenuCount}>{count}</Text>
-              {selected && <Check size={16} color={colors.textPrimary} />}
-            </Pressable>
-          );
-        })}
-      </Popover>
 
       <AddToBucketListSheet
         visible={isAddOpen}
@@ -1074,8 +1057,9 @@ const createStyles = (colors) =>
     boardGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 2,
+      gap: BOARD_GAP,
       rowGap: spacing.md,
+      paddingHorizontal: spacing.md,
     },
     boardInfo: {
       paddingHorizontal: spacing.sm,
@@ -1111,30 +1095,32 @@ const createStyles = (colors) =>
     scrollContent: {
       flexGrow: 1,
     },
-    // A horizontal ScrollView has flexGrow: 1 by default, and this screen's
-    // scroll content is flexGrow: 1 too (for EmptyState centering) — so on
-    // a short tab the chip row grew to soak up the spare height and the
-    // chips stretched into tall pills. Pin it to its content height.
-    // Fixed chip bar under the header — card background like the header,
-    // one hairline under it.
-    // The section chips: pills, the open one filled.
+    // The four sections: a dark track, the open one a slate pill.
+    sectionTrack: {
+      flexDirection: "row",
+      gap: 2,
+      padding: 2,
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
+    },
     sectionChip: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 4,
+      borderRadius: 7,
     },
     sectionChipOn: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     sectionChipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     sectionChipTextOn: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
     // Watchlist rows.
     list: {
@@ -1184,6 +1170,8 @@ const createStyles = (colors) =>
       ...typography.subtitle,
       color: colors.textPrimary,
     },
+    // Spaced like Discover's switch: right under the header row, a little
+    // room below, no line.
     toolBar: {
       position: "absolute",
       start: 0,
@@ -1191,22 +1179,9 @@ const createStyles = (colors) =>
       zIndex: 99,
       elevation: 16,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
+      paddingBottom: spacing.sm,
       gap: spacing.sm,
-      backgroundColor: colors.background,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    sectionMenuLabel: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    sectionMenuCount: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginEnd: spacing.xs,
+      backgroundColor: colors.headerBackground,
     },
     toolRow: {
       flexGrow: 0,
@@ -1224,7 +1199,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: shape.tab,
     },
     toolChipActive: {
       backgroundColor: colors.selected,
@@ -1243,7 +1218,7 @@ const createStyles = (colors) =>
     },
     toolChipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
       color: colors.textPrimary,
     },
@@ -1339,19 +1314,19 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       // A step lighter than the sheet, so the boxes read on it.
       backgroundColor: colors.cardElevatedLight,
-      borderRadius: shape.chip,
+      borderRadius: shape.tab,
     },
     chipSelected: {
       backgroundColor: colors.selected,
     },
     chipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     chipTextSelected: {
-      color: colors.background,
+      color: colors.selectedText,
     },
     sortRow: {
       flexDirection: "row",

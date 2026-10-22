@@ -19,14 +19,14 @@ import { fonts } from "../theme/typography";
 // a soft spotlight in the moment's colour:
 //   watched    a ticket stub, punched with a check
 //   rewatch    two tickets — the same movie again
-//   collection a box set, every spine lit gold, with a seal
+//   collection a box set, every spine lit slate, with a seal
 //   challenge  a clapperboard snapping shut
-//   level      a gold star with a number — a new title, by its step
+//   level      a slate star with a number — a new title, by its step
 //   multi      a popcorn bucket ("Big Night!")
 // (A new rank without a movie shows the rank's own tile — see RankBadge.)
 
-// Highlight → base → shade of the gold (matches `rating`).
-const GOLD = ["#FFF0C2", "#F2C14E", "#B68A1F"];
+// Highlight → base → shade of the slate (matches `rating`).
+const SHINE = ["#E3EAF2", "#9FB3C8", "#667688"];
 const INK = "#0C1014";
 
 const toRgb = (hex) => {
@@ -85,7 +85,7 @@ const Scene = ({ kind, color, level, id }) => {
   const light = mix(color, "#FFFFFF", 0.45);
   const dark = mix(color, "#000000", 0.45);
   const metal = `url(#metal${id})`;
-  const gold = `url(#gold${id})`;
+  const shine = `url(#shine${id})`;
 
   switch (kind) {
     case "rewatch":
@@ -113,7 +113,7 @@ const Scene = ({ kind, color, level, id }) => {
     case "collection":
       return (
         <G>
-          {/* spines peeking out, all lit gold */}
+          {/* spines peeking out, all lit slate */}
           {Array.from({ length: 7 }, (_, index) => (
             <Rect
               key={index}
@@ -122,7 +122,7 @@ const Scene = ({ kind, color, level, id }) => {
               width={6}
               height={18}
               rx={1.5}
-              fill={gold}
+              fill={shine}
             />
           ))}
           <Rect
@@ -132,7 +132,7 @@ const Scene = ({ kind, color, level, id }) => {
             height={64}
             rx={4}
             fill={INK}
-            stroke={GOLD[1]}
+            stroke={SHINE[1]}
             strokeWidth={2}
           />
           {/* 2 × 2 box art */}
@@ -147,12 +147,12 @@ const Scene = ({ kind, color, level, id }) => {
             fill={color}
             opacity={0.75}
           />
-          {/* gold seal */}
+          {/* slate seal */}
           <Circle
             cx={90}
             cy={92}
             r={13}
-            fill={gold}
+            fill={shine}
             stroke="#FFF3C4"
             strokeWidth={2}
           />
@@ -223,8 +223,8 @@ const Scene = ({ kind, color, level, id }) => {
             ))}
           </G>
           <Circle cx={25} cy={43} r={3} fill={light} />
-          <Sparkle x={92} y={26} size={6} color={GOLD[0]} />
-          <Sparkle x={104} y={40} size={3.5} color={GOLD[0]} />
+          <Sparkle x={92} y={26} size={6} color={SHINE[0]} />
+          <Sparkle x={104} y={40} size={3.5} color={SHINE[0]} />
         </G>
       );
 
@@ -242,7 +242,7 @@ const Scene = ({ kind, color, level, id }) => {
               <Path
                 key={index}
                 d={`M${x1} ${y1} L${x2} ${y2}`}
-                stroke={GOLD[0]}
+                stroke={SHINE[0]}
                 strokeOpacity={0.7}
                 strokeWidth={3}
                 strokeLinecap="round"
@@ -251,7 +251,7 @@ const Scene = ({ kind, color, level, id }) => {
           })}
           <Polygon
             points={starPoints(60, 62, 42, 19)}
-            fill={gold}
+            fill={shine}
             stroke="#FFF3C4"
             strokeWidth={2}
             strokeLinejoin="round"
@@ -306,8 +306,8 @@ const Scene = ({ kind, color, level, id }) => {
             />
           ))}
           <Rect x={29} y={53} width={62} height={7} rx={3} fill={light} />
-          <Sparkle x={98} y={30} size={6} color={GOLD[0]} />
-          <Sparkle x={22} y={36} size={4} color={GOLD[0]} />
+          <Sparkle x={98} y={30} size={6} color={SHINE[0]} />
+          <Sparkle x={22} y={36} size={4} color={SHINE[0]} />
         </G>
       );
 
@@ -343,10 +343,10 @@ export const DialogArt = ({ kind, color, level, size = 132 }) => {
           <Stop offset="0" stopColor={mix(color, "#FFFFFF", 0.4)} />
           <Stop offset="1" stopColor={mix(color, "#000000", 0.2)} />
         </LinearGradient>
-        <LinearGradient id={`gold${id}`} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={GOLD[0]} />
-          <Stop offset="0.5" stopColor={GOLD[1]} />
-          <Stop offset="1" stopColor={GOLD[2]} />
+        <LinearGradient id={`shine${id}`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={SHINE[0]} />
+          <Stop offset="0.5" stopColor={SHINE[1]} />
+          <Stop offset="1" stopColor={SHINE[2]} />
         </LinearGradient>
       </Defs>
       <Circle cx={60} cy={60} r={60} fill={`url(#spot${id})`} />

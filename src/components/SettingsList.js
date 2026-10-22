@@ -3,7 +3,7 @@ import { Children, Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { useIsRTL } from "../i18n";
-import { shape, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -115,7 +115,7 @@ export const SettingsChoice = ({ Icon, label, options, value, onChange }) => {
               {OptionIcon && (
                 <OptionIcon
                   size={16}
-                  color={selected ? colors.selectedText : colors.textSecondary}
+                  color={selected ? colors.segmentOnText : colors.segmentText}
                   strokeWidth={2}
                 />
               )}
@@ -143,8 +143,6 @@ const createStyles = (colors) =>
     },
     groupBody: {
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     footnote: {
@@ -204,8 +202,9 @@ const createStyles = (colors) =>
     segments: {
       flexDirection: "row",
       gap: 2,
-      backgroundColor: colors.background,
       padding: 2,
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
     },
     segment: {
       flex: 1,
@@ -213,20 +212,19 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      paddingVertical: spacing.sm + 2,
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
+      paddingVertical: 4,
+      borderRadius: 7,
     },
     segmentOn: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     segmentText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     segmentTextOn: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
   });

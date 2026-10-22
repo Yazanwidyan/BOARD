@@ -1,16 +1,14 @@
 import { getMovieById } from "../data/movies";
 
-// The movies on the sign-in screen's drifting poster wall: recognisable
-// recent films, by TMDB id. The sign-in screen fetches them from the server
+// The movies on the sign-in screen (its stills and its sample tier
+// list): recognisable recent films, by TMDB id. The sign-in screen fetches them from the server
 // first (services/movieData's loadWallMovies — no account needed); any it
 // couldn't get are just left off.
 
-export const WALL_SIZE = 18;
 
 export const SIGN_IN_WALL = [
   "693134", // Dune: Part Two
   "872585", // Oppenheimer
-  "346698", // Barbie
   "324857", // Spider-Man: Into the Spider-Verse
   "414906", // The Batman
   "361743", // Top Gun: Maverick
@@ -27,6 +25,8 @@ export const SIGN_IN_WALL = [
   "354912", // Coco
   "245891", // John Wick
 ];
+
+export const WALL_SIZE = SIGN_IN_WALL.length;
 
 export const getSignInWallMovies = () =>
   SIGN_IN_WALL.map(getMovieById)

@@ -36,6 +36,7 @@ const ICONS = {
 const METALS = {
   bronze: "#D9A066",
   silver: "#C8C9CC",
+  gold: "#F2C14E",
 };
 
 // A rank as a small square tile: its track's icon on the metal of where
@@ -45,7 +46,7 @@ export const RankBadge = ({ track, step, size = 40 }) => {
   const colors = useColors();
   const Icon = ICONS[track.icon] ?? Crown;
   const metal = step ? getRankMetal(step, track) : null;
-  const color = metal === "gold" ? colors.rating : metal ? METALS[metal] : colors.textMuted;
+  const color = metal ? METALS[metal] : colors.textMuted;
   return (
     <View
       style={[

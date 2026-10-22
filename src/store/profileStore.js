@@ -24,6 +24,8 @@ export const useProfileStore = createAccountStore({
     bio: "",
     email: "",
     avatarUri: null,
+    // A film you've watched whose still is your profile's cover (null: none).
+    coverMovieId: null,
     // Completed collections pinned to the front of Profile's "Completed"
     // showcase — up to MAX_PINNED, most recently pinned first.
     pinnedCollections: [],
@@ -59,6 +61,11 @@ export const useProfileStore = createAccountStore({
       setAvatarUri: (avatarUri) => {
         set({ avatarUri });
         patchProfile({ avatarUri });
+      },
+      // Your cover: a watched film's still, or null for none.
+      setCoverMovieId: (coverMovieId) => {
+        set({ coverMovieId });
+        patchProfile({ coverMovieId });
       },
       // Your S tier, put in order: its movie ids, #1 first.
       setSTierOrder: saveSTierOrder,

@@ -3,16 +3,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   Bookmark,
   BookmarkCheck,
+  CalendarDays,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Clapperboard,
+  Ellipsis,
   Eye,
   LayoutGrid,
   Play,
   RotateCw,
-  MoreHorizontal,
   Share2,
+  Sparkles,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -38,12 +41,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
-import { CommunityTiers } from "../components/CommunityTiers";
 import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
+import { TasteMatchSheet } from "../components/TasteMatchSheet";
+import { TierHistogram } from "../components/TierHistogram";
+import { BottomSheet } from "../components/BottomSheet";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { getKnownMovies, getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
 import { useBoardStore } from "../store/boardStore";
@@ -70,14 +74,13 @@ import {
   useStretchyBackdropStyle,
 } from "../utils/scrollEffects";
 import { formatRuntime, isInBucketList, byWeightedRating } from "../utils/movieFilters";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 
 const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
 const DESCRIPTION_LINES = 4;
-// The title logo fits inside this box, keeping its shape.
-const LOGO_MAX_HEIGHT = 64;
-const LOGO_MAX_WIDTH = 240;
+// How long the ⋯ sheet takes to slide away before what it opens comes in.
+const SHEET_HANDOFF_MS = 260;
 // The hero's poster, on the right of the title.
 const HERO_POSTER = 112;
 // The backdrop runs from the very top (under the status bar) down to this
@@ -231,37 +234,53 @@ const scoreColor = (source, value, colors) => {
   return colors.rating;
 };
 
-// One button of the action dock — icon over a short label, lit in accent
-// when its state is "on" (on the watchlist, set as tonight's pick).
 // The page's tabs, under its actions.
 const TABS = [
   { key: "overview", label: "Overview" },
+  // Everyone's tiers and the critics' scores, together.
+  { key: "tiering", label: "Tiering" },
   { key: "cast", label: "Cast & Crew" },
-  { key: "reviews", label: "Reviews" },
   { key: "similar", label: "Similar" },
 ];
 
-const DockButton = ({ icon, label, active, onPress, styles }) => (
+// One of the ⋯ sheet's big actions: its icon over a short label in a
+// slate tile, white when it's "on" (watched, saved, tonight's pick).
+const ActionButton = ({ icon, label, active, onPress, styles }) => (
   <Pressable
-    style={({ pressed }) => [styles.dockButton, pressed && styles.dockPressed]}
+    style={({ pressed }) => [
+      styles.actionButton,
+      active && styles.actionButtonOn,
+      pressed && styles.actionPressed,
+    ]}
     onPress={onPress}
+    accessibilityRole="button"
+    accessibilityState={{ selected: !!active }}
   >
-    <View style={[styles.dockCircle, active && styles.dockCircleActive]}>{icon}</View>
-    <Text
-      style={[styles.dockLabel, active && styles.dockLabelActive]}
-      numberOfLines={1}
-    >
+    {icon}
+    <Text style={[styles.actionLabel, active && styles.actionLabelOn]} numberOfLines={1}>
       {label}
     </Text>
   </Pressable>
 );
 
+// Under the director: ▶ TRAILER, a small slate button.
+const TrailerButton = ({ onPress, styles, colors }) => (
+  <Pressable
+    style={({ pressed }) => [styles.trailerButton, pressed && styles.actionPressed]}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={t("Trailer")}
+  >
+    <Play size={12} color={colors.segmentOnText} fill={colors.segmentOnText} />
+    <Text style={styles.trailerText}>{t("Trailer")}</Text>
+  </Pressable>
+);
+
 // Cinematic hero (the movie's backdrop — a still from the film — fading
-// into the page, with the poster, title, facts and scores on it) → one
-// primary "Mark as Watched"
-// plus an action dock for everything else → context that only shows when
-// it applies (active challenge, your rating) → overview → the collections
-// it's part of → more like this.
+// into the page): the title, year and director with Trailer and Tonight
+// under them on the left, the poster on the right → the overview → three
+// actions across (Watched, Watchlist or Tier, Board) → context that only
+// shows when it applies (active challenge, your rating) → the tabs.
 export const MovieDetailsScreen = ({ route, navigation }) => {
   const { movieId } = route.params;
   // Any movie can be opened — one from search may not be on the phone, or
@@ -287,11 +306,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const rtl = useIsRTL();
   const [expanded, setExpanded] = useState(false);
   // Which of the page's tabs is open.
   const [tab, setTab] = useState("overview");
   const { width: windowWidth } = useWindowDimensions();
-  const [logoFailed, setLogoFailed] = useState(false);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const inBucketList = useMovieStore((state) =>
@@ -310,6 +329,10 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     state.boards.some((board) => board.movieIds.includes(movieId)),
   );
   const [isBoardSheetOpen, setIsBoardSheetOpen] = useState(false);
+  // The ⋯ sheet: everything you can do with the film.
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  // Why it's the match it is.
+  const [isMatchOpen, setIsMatchOpen] = useState(false);
 
   // All hooks run before the `!movie` early return below, so the hook
   // order never changes between renders.
@@ -391,20 +414,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     }),
     [stickyStart],
   );
-
-  // The title logo's size: as big as fits the box, keeping its shape.
-  const logo = (page.data?.movie?.details ?? movie?.details)?.logo;
-  const logoSize =
-    colors.isDark && logo?.url && logo.aspect > 0 && !logoFailed
-      ? (() => {
-          const width = Math.min(
-            LOGO_MAX_WIDTH,
-            windowWidth - spacing.md * 3 - HERO_POSTER,
-            LOGO_MAX_HEIGHT * logo.aspect,
-          );
-          return { width, height: width / logo.aspect };
-        })()
-      : null;
 
   // How well it fits your taste (not for movies you've watched).
   const tasteMatch = useMemo(
@@ -544,8 +553,15 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   };
 
   const headerTop = insets.top + spacing.sm;
-  const iconColor = (active) =>
-    active ? colors.textPrimary : colors.textSecondary;
+  // The actions' icons: white on the slate; the page colour on the white
+  // of an "on" one.
+  const actionIcon = (on) => (on ? colors.background : colors.segmentOnText);
+  // Close the ⋯ sheet, then (once it's slid away) do `action` — so a sheet
+  // it opens doesn't stack on this one.
+  const thenClose = (action) => () => {
+    setIsActionsOpen(false);
+    setTimeout(action, SHEET_HANDOFF_MS);
+  };
 
   return (
     <View style={styles.container}>
@@ -613,59 +629,55 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               style={styles.heroInfo}
               onLayout={(event) => measureTitle("column", event.nativeEvent.layout.y)}
             >
-              {logoSize ? (
-                // The movie's own title art (from TMDB). Dark mode only — most
-                // logos are white — and the plain title if it doesn't load.
-                <View
-                  style={styles.logoWrap}
-                  onLayout={(event) => {
-                    const { y, height } = event.nativeEvent.layout;
-                    measureTitle("title", y + height);
-                  }}
-                  accessible
-                  accessibilityRole="header"
-                  accessibilityLabel={movie.title}
-                >
-                  <Image
-                    source={{ uri: logo.url }}
-                    style={logoSize}
-                    resizeMode="contain"
-                    onError={() => setLogoFailed(true)}
-                  />
-                </View>
-              ) : (
-                <Text
-                  style={styles.title}
-                  onLayout={(event) => {
-                    const { y, height } = event.nativeEvent.layout;
-                    measureTitle("title", y + height);
-                  }}
-                >
-                  {movie.title}
-                </Text>
-              )}
+              <Text
+                style={styles.title}
+                accessibilityRole="header"
+                onLayout={(event) => {
+                  const { y, height } = event.nativeEvent.layout;
+                  measureTitle("title", y + height);
+                }}
+              >
+                {movie.title}
+              </Text>
               <Text style={styles.byline} numberOfLines={1}>
                 {t("{year} · Directed by", { year: movie.year })}
               </Text>
               <Text style={styles.director} numberOfLines={2}>
                 {movie.director}
               </Text>
-              <View style={styles.metaRow}>
+              {/* ▶ TRAILER, then how long (and its rating). */}
+              <View style={styles.trailerRow}>
+                <TrailerButton onPress={handleWatchTrailer} styles={styles} colors={colors} />
+                {!!movie.runtime && (
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {t("{count} mins", { count: movie.runtime })}
+                  </Text>
+                )}
                 {details?.rated && (
                   <View style={styles.ageBadge}>
                     <Text style={styles.ageText}>{details.rated}</Text>
                   </View>
                 )}
-                <Text style={styles.meta} numberOfLines={2}>
-                  {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
-                </Text>
               </View>
+              {/* Your taste match — tap it for why. */}
               {tasteMatch && (
-                <View style={styles.matchPill}>
+                <Pressable
+                  style={({ pressed }) => [styles.matchPill, pressed && styles.actionPressed]}
+                  onPress={() => setIsMatchOpen(true)}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityHint={t("Why it fits you")}
+                >
                   <Text style={styles.matchText}>
                     {t("{match}% your taste", { match: tasteMatch.match })}
                   </Text>
-                </View>
+                  <ChevronRight
+                    size={14}
+                    color={colors.success}
+                    strokeWidth={2.4}
+                    style={rtl && styles.flipped}
+                  />
+                </Pressable>
               )}
             </View>
             <Animated.View style={posterStyle}>
@@ -675,167 +687,15 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         </View>
 
         <View style={styles.content}>
-          <PrimaryButton
-            label={isWatched ? t("Watched") : t("Mark as watched")}
-            variant="secondary"
-            icon={
-              isWatched ? (
-                <CheckCircle size={18} color={colors.success} />
-              ) : (
-                <Eye size={18} color={colors.textPrimary} />
-              )
-            }
-            onPress={handleToggleWatched}
-          />
-          {!isWatched && isPicked && (
-            <Text style={styles.noteText}>
-              {t("Marking as watched will clear it as tonight's pick.")}
-            </Text>
-          )}
-
-          <View style={styles.dock}>
-            {!isWatched && (
-              <DockButton
-                styles={styles}
-                active={inBucketList}
-                label={inBucketList ? t("Saved") : t("Watchlist")}
-                onPress={() => toggleBucketListWithFeedback(movie.id)}
-                icon={
-                  inBucketList ? (
-                    <BookmarkCheck size={20} color={iconColor(true)} />
-                  ) : (
-                    <Bookmark size={20} color={iconColor(false)} />
-                  )
-                }
-              />
-            )}
-            {!isWatched && (
-              <DockButton
-                styles={styles}
-                active={isPicked}
-                label={t("Tonight")}
-                onPress={() => togglePickedMovie(movie.id)}
-                icon={<Clapperboard size={20} color={iconColor(isPicked)} />}
-              />
-            )}
-            <DockButton
-              styles={styles}
-              active={isOnABoard}
-              label={t("Board")}
-              onPress={() => setIsBoardSheetOpen(true)}
-              icon={<LayoutGrid size={20} color={iconColor(isOnABoard)} />}
-            />
-            <DockButton
-              styles={styles}
-              label={t("Trailer")}
-              onPress={handleWatchTrailer}
-              icon={<Play size={20} color={colors.textPrimary} />}
-            />
-            {isWatched && (
-              <DockButton
-                styles={styles}
-                label={t("Rewatch")}
-                onPress={() => rewatchMovieWithFeedback(movieId)}
-                icon={<RotateCw size={20} color={colors.textPrimary} />}
-              />
-            )}
-          </View>
-
-          {isChallengeTarget && (
-            <View style={styles.challengeBanner}>
-              <View style={styles.bannerText}>
-                <Text style={styles.challengeEyebrow}>
-                  {t("Your dare ·")} {activeChallenge.difficultyLabel}
-                </Text>
-                <Text style={styles.challengeDescription} numberOfLines={2}>
-                  {activeChallenge.description}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {isWatched ? (
-            <View style={styles.ratingCard}>
-              <View style={styles.ratingHeader}>
-                <Text style={styles.sectionLabelInline}>
-                  {t("Your history")}
-                </Text>
-                {/* Tap the date to change when you watched it. */}
-                <Pressable
-                  onPress={() => setIsDateSheetOpen(true)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("Change when you watched it")}
-                >
-                  <Text style={styles.watchCount}>
-                    <Text style={styles.watchDate}>
-                      {watchedEntry.timestamp
-                        ? formatDate(watchedEntry.timestamp)
-                        : t("Add date")}
-                    </Text>{" "}
-                    · {watchedEntry.watchCount ?? 1}×
-                  </Text>
-                </Pressable>
-              </View>
-              {/* Your tier: one button that opens the tiering screen (the
-                  face and the slider), as everywhere else. */}
-              {(() => {
-                const tierInfo = getTierInfo(getTier(watchedEntry));
-                return (
-                  <Pressable
-                    style={({ pressed }) => [styles.tierButton, pressed && styles.tierButtonPressed]}
-                    onPress={() => navigation.navigate("TierMovie", { movieId })}
-                    accessibilityRole="button"
-                    accessibilityLabel={tierInfo ? t("Change your tier") : t("Tier it")}
-                  >
-                    <View
-                      style={[
-                        styles.tierTile,
-                        tierInfo ? { backgroundColor: tierInfo.color } : styles.tierTileEmpty,
-                      ]}
-                    >
-                      <Text style={[styles.tierTileLetter, !tierInfo && styles.tierTileLetterEmpty]}>
-                        {tierInfo ? tierInfo.key : "?"}
-                      </Text>
-                    </View>
-                    <View style={styles.tierButtonText}>
-                      <Text style={styles.tierButtonTitle}>
-                        {tierInfo ? t("{tier} tier", { tier: tierInfo.key }) : t("Tier it")}
-                      </Text>
-                      <Text style={styles.tierButtonHint} numberOfLines={1}>
-                        {tierInfo ? t(tierInfo.meaning) : t("How was it? Slide from F to S")}
-                      </Text>
-                    </View>
-                    <Text style={styles.tierButtonAction}>
-                      {tierInfo ? t("Change") : t("Tier")} ›
-                    </Text>
-                  </Pressable>
-                );
-              })()}
-            </View>
-          ) : (
-            bucketEntry && (
-              <View style={styles.savedRow}>
-                <Text style={styles.savedText}>
-                  {t("On your watchlist")}
-                  {bucketEntry.addedAt
-                    ? t(" · saved {addedAt}", {
-                        addedAt: timeAgo(bucketEntry.addedAt),
-                      })
-                    : ""}
-                </Text>
-              </View>
-            )
-          )}
-
-          {/* Overview / Cast & Crew / Reviews / Similar, underlined. */}
+          {/* Overview / Cast & Crew / Reviews / Similar: a dark track,
+              the open one a slate pill. */}
           <View style={styles.tabs} accessibilityRole="tablist">
             {TABS.map((item) => {
               const selected = item.key === tab;
               return (
                 <Pressable
                   key={item.key}
-                  style={styles.tab}
+                  style={[styles.tab, selected && styles.tabOn]}
                   onPress={() => setTab(item.key)}
                   accessibilityRole="tab"
                   accessibilityState={{ selected }}
@@ -843,7 +703,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   <Text style={[styles.tabText, selected && styles.tabTextOn]} numberOfLines={1}>
                     {t(item.label)}
                   </Text>
-                  <View style={[styles.tabLine, selected && styles.tabLineOn]} />
                 </Pressable>
               );
             })}
@@ -851,14 +710,19 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
           {tab === "overview" && (
             <>
+            {/* First: the tagline and the overview, then what's yours (a
+                dare, your history). */}
+            <View style={styles.overviewTop}>
+            {/* Its tagline in small caps, then the overview; the chevron for
+                the rest. */}
+            {!!details?.tagline && (
+              <Text style={styles.tagline}>{details.tagline}</Text>
+            )}
             <Text
               style={styles.description}
               numberOfLines={expanded ? undefined : DESCRIPTION_LINES}
               onTextLayout={(event) => {
-                if (
-                  !expanded &&
-                  event.nativeEvent.lines.length >= DESCRIPTION_LINES
-                ) {
+                if (!expanded && event.nativeEvent.lines.length >= DESCRIPTION_LINES) {
                   setCanExpand(true);
                 }
               }}
@@ -881,6 +745,93 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               </Pressable>
             )}
 
+            {isChallengeTarget && (
+              <View style={styles.challengeBanner}>
+                <View style={styles.bannerText}>
+                  <Text style={styles.challengeEyebrow}>
+                    {t("Your dare ·")} {activeChallenge.difficultyLabel}
+                  </Text>
+                  <Text style={styles.challengeDescription} numberOfLines={2}>
+                    {activeChallenge.description}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {isWatched ? (
+              <View style={styles.ratingCard}>
+                <View style={styles.ratingHeader}>
+                  <Text style={styles.sectionLabelInline}>
+                    {t("Your history")}
+                  </Text>
+                  {/* Tap the date to change when you watched it. */}
+                  <Pressable
+                    onPress={() => setIsDateSheetOpen(true)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("Change when you watched it")}
+                  >
+                    <Text style={styles.watchCount}>
+                      <Text style={styles.watchDate}>
+                        {watchedEntry.timestamp
+                          ? formatDate(watchedEntry.timestamp)
+                          : t("Add date")}
+                      </Text>{" "}
+                      · {watchedEntry.watchCount ?? 1}×
+                    </Text>
+                  </Pressable>
+                </View>
+                {/* Your tier: one button that opens the tiering screen (the
+                    face and the slider), as everywhere else. */}
+                {(() => {
+                  const tierInfo = getTierInfo(getTier(watchedEntry));
+                  return (
+                    <Pressable
+                      style={({ pressed }) => [styles.tierButton, pressed && styles.tierButtonPressed]}
+                      onPress={() => navigation.navigate("TierMovie", { movieId })}
+                      accessibilityRole="button"
+                      accessibilityLabel={tierInfo ? t("Change your tier") : t("Tier it")}
+                    >
+                      <View
+                        style={[
+                          styles.tierTile,
+                          tierInfo ? { backgroundColor: tierInfo.color } : styles.tierTileEmpty,
+                        ]}
+                      >
+                        <Text style={[styles.tierTileLetter, !tierInfo && styles.tierTileLetterEmpty]}>
+                          {tierInfo ? tierInfo.key : "?"}
+                        </Text>
+                      </View>
+                      <View style={styles.tierButtonText}>
+                        <Text style={styles.tierButtonTitle}>
+                          {tierInfo ? t("{tier} tier", { tier: tierInfo.key }) : t("Tier it")}
+                        </Text>
+                        <Text style={styles.tierButtonHint} numberOfLines={1}>
+                          {tierInfo ? t(tierInfo.meaning) : t("How was it? Slide from F to S")}
+                        </Text>
+                      </View>
+                      <Text style={styles.tierButtonAction}>
+                        {tierInfo ? t("Change") : t("Tier")} ›
+                      </Text>
+                    </Pressable>
+                  );
+                })()}
+              </View>
+            ) : (
+              bucketEntry && (
+                <View style={styles.savedRow}>
+                  <Text style={styles.savedText}>
+                    {t("On your watchlist")}
+                    {bucketEntry.addedAt
+                      ? t(" · saved {addedAt}", {
+                          addedAt: timeAgo(bucketEntry.addedAt),
+                        })
+                      : ""}
+                  </Text>
+                </View>
+              )
+            )}
+            </View>
             <View style={styles.factChips}>
               <View style={styles.factChip}>
                 <Text style={styles.factChipText}>
@@ -939,8 +890,15 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             </>
           )}
 
-          {tab === "reviews" && (
+          {/* Tiering: everyone's tiers (F to S, and the average), then the
+              scores and awards under a line. */}
+          {tab === "tiering" && (
             <>
+            <TierHistogram
+              movieId={movieId}
+              style={styles.ratingsFirst}
+              labelStyle={styles.ratingsLabel}
+            />
             <Text style={styles.sectionLabel}>{t("Scores")}</Text>
             <ScoreRings scores={scores} />
 
@@ -950,7 +908,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            <CommunityTiers movieId={movieId} labelStyle={styles.sectionLabel} />
             </>
           )}
 
@@ -1184,12 +1141,122 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         <BackButton onPress={() => navigation.goBack()} floating />
         <Pressable
           style={styles.headerIconButton}
-          onPress={handleShare}
+          onPress={() => setIsActionsOpen(true)}
           hitSlop={6}
+          accessibilityLabel={t("More")}
         >
-          <MoreHorizontal size={20} color="#FFFFFF" strokeWidth={2} />
+          <Ellipsis size={20} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
       </Animated.View>
+
+      {/* ⋯: the big three (Watched, Watchlist or Tier, Tonight or Rewatch)
+          as tiles, then the rest as rows. One that opens something else
+          closes this first. */}
+      <BottomSheet
+        visible={isActionsOpen}
+        onClose={() => setIsActionsOpen(false)}
+        size="auto"
+        flush
+        title={movie.title}
+        subtitle={`${movie.year} · ${formatRuntime(movie.runtime)}`}
+      >
+        <View style={styles.sheetTiles}>
+          <ActionButton
+            styles={styles}
+            active={isWatched}
+            label={t("Watched")}
+            onPress={handleToggleWatched}
+            icon={
+              isWatched ? (
+                <CheckCircle size={22} color={actionIcon(true)} />
+              ) : (
+                <Eye size={22} color={actionIcon(false)} />
+              )
+            }
+          />
+          {isWatched ? (
+            <ActionButton
+              styles={styles}
+              label={t("Tier")}
+              onPress={thenClose(() => navigation.navigate("TierMovie", { movieId }))}
+              icon={<Sparkles size={22} color={actionIcon(false)} />}
+            />
+          ) : (
+            <ActionButton
+              styles={styles}
+              active={inBucketList}
+              label={inBucketList ? t("Saved") : t("Watchlist")}
+              onPress={() => toggleBucketListWithFeedback(movie.id)}
+              icon={
+                inBucketList ? (
+                  <BookmarkCheck size={22} color={actionIcon(true)} />
+                ) : (
+                  <Bookmark size={22} color={actionIcon(false)} />
+                )
+              }
+            />
+          )}
+          {isWatched ? (
+            <ActionButton
+              styles={styles}
+              label={t("Rewatch")}
+              onPress={thenClose(() => rewatchMovieWithFeedback(movieId))}
+              icon={<RotateCw size={22} color={actionIcon(false)} />}
+            />
+          ) : (
+            <ActionButton
+              styles={styles}
+              active={isPicked}
+              label={t("Tonight")}
+              onPress={() => togglePickedMovie(movie.id)}
+              icon={<Clapperboard size={22} color={actionIcon(isPicked)} />}
+            />
+          )}
+        </View>
+        {!isWatched && isPicked && (
+          <Text style={styles.noteText}>
+            {t("Marking as watched will clear it as tonight's pick.")}
+          </Text>
+        )}
+
+        <View style={styles.sheetRows}>
+          <Pressable
+            style={({ pressed }) => [styles.sheetRow, pressed && styles.sheetRowPressed]}
+            onPress={thenClose(() => setIsBoardSheetOpen(true))}
+            accessibilityRole="button"
+          >
+            <LayoutGrid size={20} color={colors.textSecondary} strokeWidth={1.9} />
+            <Text style={styles.sheetRowText}>
+              {isOnABoard ? t("On a board · change") : t("Add to a board")}
+            </Text>
+          </Pressable>
+          {isWatched && (
+            <Pressable
+              style={({ pressed }) => [styles.sheetRow, pressed && styles.sheetRowPressed]}
+              onPress={thenClose(() => setIsDateSheetOpen(true))}
+              accessibilityRole="button"
+            >
+              <CalendarDays size={20} color={colors.textSecondary} strokeWidth={1.9} />
+              <Text style={styles.sheetRowText}>{t("Change when you watched it")}</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={({ pressed }) => [styles.sheetRow, pressed && styles.sheetRowPressed]}
+            onPress={thenClose(handleShare)}
+            accessibilityRole="button"
+          >
+            <Share2 size={20} color={colors.textSecondary} strokeWidth={1.9} />
+            <Text style={styles.sheetRowText}>{t("Share")}</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
+
+      <TasteMatchSheet
+        visible={isMatchOpen}
+        onClose={() => setIsMatchOpen(false)}
+        match={tasteMatch}
+        title={movie.title}
+      />
 
       <AddToBoardSheet
         visible={isBoardSheetOpen}
@@ -1231,11 +1298,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         </Animated.View>
         <Pressable
           style={styles.stickyIconButton}
-          onPress={handleShare}
+          onPress={() => setIsActionsOpen(true)}
           hitSlop={6}
-          accessibilityLabel={t("Share")}
+          accessibilityLabel={t("More")}
         >
-          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
+          <Ellipsis size={22} color={colors.textPrimary} strokeWidth={1.75} />
         </Pressable>
       </Animated.View>
     </View>
@@ -1244,15 +1311,14 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    metaRow: {
+    // Your taste match, under the title: a pill, and why.
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    matchPill: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.xs + 2,
-      marginTop: spacing.sm,
-      maxWidth: "100%",
-    },
-    // Your taste match, under the title: a pill, and why.
-    matchPill: {
+      gap: 2,
       alignSelf: "flex-start",
       marginTop: spacing.sm + 2,
       paddingHorizontal: spacing.sm,
@@ -1358,11 +1424,12 @@ const createStyles = (colors) =>
       flex: 1,
       color: colors.textPrimary,
     },
+    // First under the tabs: the same gap the other tabs' headings get.
     factChips: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: spacing.sm,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     factChip: {
       flexDirection: "row",
@@ -1371,7 +1438,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: 7,
       backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: shape.tab,
     },
     factChipText: {
       ...typography.caption,
@@ -1432,9 +1499,9 @@ const createStyles = (colors) =>
       color: colors.rating,
     },
     factsCard: {
+      marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
       overflow: "hidden",
     },
     factRow: {
@@ -1493,14 +1560,14 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
-    // Round, so it reads on any backdrop.
+    // The same round button as the back one beside it.
     headerIconButton: {
       width: 40,
       height: 40,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.4)",
-      borderRadius: shape.chip,
+      backgroundColor: colors.cardElevated,
+      borderRadius: 20,
     },
     stage: {
       paddingHorizontal: spacing.md,
@@ -1522,15 +1589,9 @@ const createStyles = (colors) =>
       end: 0,
       overflow: "hidden",
     },
-    // A thin light frame lifts it off the backdrop.
     poster: {
       width: HERO_POSTER,
       aspectRatio: 2 / 3,
-      borderWidth: 1.5,
-      borderColor: "rgba(255, 255, 255, 0.28)",
-    },
-    logoWrap: {
-      alignItems: "flex-start",
     },
     title: {
       ...typography.hero,
@@ -1538,49 +1599,107 @@ const createStyles = (colors) =>
       lineHeight: 34,
       color: colors.textPrimary,
     },
+    // "2015 · DIRECTED BY": small grey caps, spaced.
     byline: {
-      ...typography.caption,
+      ...typography.label,
+      fontSize: 13,
+      lineHeight: 18,
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
       color: colors.textSecondary,
-      marginTop: spacing.sm,
+      marginTop: spacing.md,
     },
     director: {
       ...typography.bodyBold,
+      fontSize: 18,
+      lineHeight: 24,
       color: colors.textPrimary,
-      marginTop: 1,
+      marginTop: 2,
     },
+    trailerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: spacing.sm + 4,
+      marginTop: spacing.md,
+    },
+    trailerButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      height: 32,
+      paddingHorizontal: spacing.sm + 4,
+      backgroundColor: colors.segmentOn,
+      borderRadius: shape.control,
+    },
+    trailerText: {
+      ...typography.label,
+      fontSize: 13,
+      lineHeight: 16,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: colors.segmentOnText,
+    },
+    // The tagline: caps, spaced, grey, over the overview.
+    tagline: {
+      ...typography.label,
+      fontSize: 13,
+      lineHeight: 20,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    // Ratings: first in the Tiering tab, the same gap other tabs' headings get.
+    ratingsFirst: {
+      marginTop: spacing.lg,
+    },
+    ratingsLabel: {
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
+    // "188 mins", beside the trailer.
     meta: {
-      ...typography.caption,
+      ...typography.body,
+      fontSize: 15,
+      lineHeight: 20,
       flexShrink: 1,
       color: colors.textSecondary,
     },
     tabs: {
       flexDirection: "row",
+      gap: 2,
+      padding: 2,
+      // On the page, so the card colour (the dark track would vanish).
+      backgroundColor: colors.card,
+      borderRadius: 6,
+    },
+    // The Overview tab's opening: the same gap the other tabs' headings get.
+    overviewTop: {
       marginTop: spacing.lg,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
     tab: {
       flex: 1,
       alignItems: "center",
-      paddingTop: spacing.sm,
-      gap: spacing.sm,
+      justifyContent: "center",
+      paddingVertical: 4,
+      borderRadius: 7,
+    },
+    tabOn: {
+      backgroundColor: colors.segmentOn,
     },
     tabText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     tabTextOn: {
-      color: colors.textPrimary,
-    },
-    tabLine: {
-      alignSelf: "stretch",
-      height: 2,
-      borderRadius: 1,
-    },
-    tabLineOn: {
-      backgroundColor: colors.success,
+      color: colors.segmentOnText,
     },
     tabEmpty: {
       ...typography.body,
@@ -1602,45 +1721,63 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
       textAlign: "center",
-      marginTop: spacing.xs,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
-    dock: {
+    // The ⋯ sheet's three big actions: equal tiles across.
+    sheetTiles: {
       flexDirection: "row",
       gap: spacing.sm,
-      marginTop: spacing.sm,
+      paddingHorizontal: spacing.md,
     },
-    dockButton: {
+    actionButton: {
       flex: 1,
       alignItems: "center",
+      justifyContent: "center",
       gap: 6,
-      paddingVertical: spacing.sm,
+      minHeight: 72,
+      paddingHorizontal: spacing.xs,
+      backgroundColor: colors.segmentOn,
+      borderRadius: shape.control,
     },
-    dockPressed: {
+    // On (watched, saved, on a board, tonight's pick): white, dark text.
+    actionButtonOn: {
+      backgroundColor: colors.textPrimary,
+    },
+    actionPressed: {
       opacity: 0.7,
     },
-    // Each action's icon in a quiet filled circle with a faint ring.
-    dockCircle: {
-      width: 48,
-      height: 48,
+    actionLabel: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      lineHeight: 18,
+      color: colors.segmentOnText,
+      flexShrink: 1,
+    },
+    actionLabelOn: {
+      color: colors.background,
+    },
+    // The rest, as full-width rows under the tiles.
+    sheetRows: {
+      marginTop: spacing.md,
+      gap: StyleSheet.hairlineWidth * 2,
+    },
+    sheetRow: {
+      flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.ringFill,
-      borderWidth: 1,
-      borderColor: colors.ringEdge,
-      borderRadius: 24,
+      gap: spacing.md,
+      minHeight: 52,
+      paddingHorizontal: spacing.md,
+      // A step lighter than the sheet.
+      backgroundColor: colors.surfaceSoft,
     },
-    // On (saved, tonight's pick, on a board): the raised fill and edge.
-    dockCircleActive: {
-      backgroundColor: colors.buttonFill,
-      borderColor: colors.buttonEdge,
+    sheetRowPressed: {
+      backgroundColor: colors.cardElevatedLight,
     },
-    dockLabel: {
-      ...typography.caption,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textSecondary,
-    },
-    dockLabelActive: {
+    sheetRowText: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
     challengeBanner: {
@@ -1694,18 +1831,26 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       textDecorationLine: "underline",
     },
+    // A section's name: small grey capitals under a hairline across the
+    // page (it reaches past the page's margins).
     sectionLabel: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
-      marginTop: spacing.xl,
-      marginBottom: spacing.sm,
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      marginBottom: spacing.sm + 2,
     },
+    // Straight under the hero.
     description: {
       ...typography.body,
-      color: colors.textPrimary,
+      color: colors.textSecondary,
       lineHeight: 22,
     },
     moreText: {
@@ -1713,29 +1858,38 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: spacing.xs,
     },
+    // Outside the padded content: its own margins.
     railLabel: {
+      marginHorizontal: 0,
       paddingHorizontal: spacing.md,
     },
-    // A rail's title with a link at the end (the director's saga).
     railHeader: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xl,
-      marginBottom: spacing.sm,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      marginBottom: spacing.sm + 2,
     },
+    // Inside a rail's header row, which has the line.
     railHeaderLabel: {
       flexShrink: 1,
+      marginHorizontal: 0,
+      paddingHorizontal: 0,
       marginTop: 0,
+      paddingTop: 0,
+      borderTopWidth: 0,
       marginBottom: 0,
     },
     railHeaderLink: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.rating,
+      color: colors.textSecondary,
     },
     railContent: {
       paddingHorizontal: spacing.md,
@@ -1797,7 +1951,7 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    // Why it's here, in gold — "Same feel", "With Al Pacino".
+    // Why it's here, in slate — "Same feel", "With Al Pacino".
     similarReason: {
       ...typography.caption,
       fontSize: 11,
@@ -1816,7 +1970,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      backgroundColor: colors.background,
+      backgroundColor: colors.headerBackground,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },

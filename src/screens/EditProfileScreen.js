@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { Camera } from "lucide-react-native";
+import { Camera, ChevronRight, ImagePlus } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -7,11 +7,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
 import { AvatarCropper } from "../components/AvatarCropper";
+import { CoverPickerSheet } from "../components/CoverPickerSheet";
 import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
-import { t } from "../i18n";
+import { getMovieById, useMoviesVersion } from "../data/movies";
+import { t, useIsRTL } from "../i18n";
 import { api } from "../services/api";
 import { queryClient, queryKeys } from "../services/queryClient";
 import { useAuthStore } from "../store/authStore";
+import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
@@ -34,12 +37,16 @@ const saveProfileDrafts = ({ name, bio }) => {
   if (nextBio !== profile.bio) profile.setBio(nextBio);
 };
 
-// Your public profile: photo, name, @handle and bio — what friends see.
+// Your public profile: photo, cover (a still from a film you've watched,
+// across your profile's top), name, @handle and bio — what friends see.
 // Name and bio save when you leave the field (or the screen), not on every
 // keystroke. The handle is checked by the server (it has to be free), so
 // it saves on its own and says if it's taken.
 export const EditProfileScreen = ({ navigation }) => {
+  // Re-render when the cover's film arrives (data/movies).
+  useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
+  const rtl = useIsRTL();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -48,6 +55,11 @@ export const EditProfileScreen = ({ navigation }) => {
   const avatarUri = useProfileStore((state) => state.avatarUri);
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const account = useAuthStore((state) => state.user);
+  const watched = useMovieStore((state) => state.watched);
+  const coverMovieId = useProfileStore((state) => state.coverMovieId);
+  const setCoverMovieId = useProfileStore((state) => state.setCoverMovieId);
+  const coverMovie = coverMovieId ? getMovieById(coverMovieId) : null;
+  const [isCoverOpen, setIsCoverOpen] = useState(false);
 
   const [nameDraft, setNameDraft] = useState(displayName);
   const [bioDraft, setBioDraft] = useState(bio);
@@ -143,6 +155,32 @@ export const EditProfileScreen = ({ navigation }) => {
           <Text style={styles.avatarEditText}>{t("Change photo")}</Text>
         </Pressable>
 
+        {/* Cover: the still, or a way to choose one. */}
+        <Text style={styles.label}>{t("Cover")}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.coverRow, pressed && styles.coverRowPressed]}
+          onPress={() => setIsCoverOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={coverMovie ? t("Change cover") : t("Add a cover")}
+        >
+          <View style={styles.coverThumb}>
+            {coverMovie?.backdrop ? (
+              <Image source={{ uri: coverMovie.backdrop }} style={styles.coverThumbImage} />
+            ) : (
+              <ImagePlus size={20} color={colors.textMuted} strokeWidth={1.9} />
+            )}
+          </View>
+          <View style={styles.coverText}>
+            <Text style={styles.coverTitle} numberOfLines={1}>
+              {coverMovie ? coverMovie.title : t("Add a cover")}
+            </Text>
+            <Text style={styles.coverHint} numberOfLines={1}>
+              {coverMovie ? t("Change cover") : t("A still from a film you've watched")}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+        </Pressable>
+
         <Text style={styles.label}>{t("Name")}</Text>
         <View style={styles.field}>
           <TextInput
@@ -207,6 +245,21 @@ export const EditProfileScreen = ({ navigation }) => {
         <Text style={styles.help}>{t("Shown on your profile, as a quote.")}</Text>
       </Animated.ScrollView>
 
+      <CoverPickerSheet
+        visible={isCoverOpen}
+        onClose={() => setIsCoverOpen(false)}
+        watched={watched}
+        selectedId={coverMovieId}
+        onPick={(movieId) => {
+          setCoverMovieId(movieId);
+          setIsCoverOpen(false);
+        }}
+        onRemove={() => {
+          setCoverMovieId(null);
+          setIsCoverOpen(false);
+        }}
+      />
+
       {cropImage && (
         <AvatarCropper
           key={cropImage.uri}
@@ -263,6 +316,49 @@ const createStyles = (colors) =>
     avatarEditText: {
       ...typography.bodyBold,
       color: colors.textPrimary,
+    },
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    // The cover: a wide thumbnail of the still, its film, and ›.
+    coverRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 64,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
+    },
+    coverRowPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    coverThumb: {
+      width: 80,
+      aspectRatio: 16 / 9,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: shape.poster,
+      overflow: "hidden",
+    },
+    coverThumbImage: {
+      width: "100%",
+      height: "100%",
+    },
+    coverText: {
+      flex: 1,
+      gap: 2,
+    },
+    coverTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    coverHint: {
+      ...typography.caption,
+      color: colors.textMuted,
     },
     label: {
       ...typography.caption,

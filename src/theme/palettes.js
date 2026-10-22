@@ -1,68 +1,80 @@
-// Two palettes — dark is a near-black blue (#04080B) with a pale
-// blue-white for main actions and selected states; its cards, sheets,
-// borders and greys are lighter steps of the same cool hue. Light is
-// neutral. Main actions are white / black;
-// colour carries meaning: `rating` gold for XP, levels and scores,
-// `success` green for done / saved / matched, `danger` red for hard dares,
-// poor scores and destructive actions. Main actions use `accent` (white in
-// dark mode, near-black in light mode) with `accentContrast` text; there's
-// no coloured brand accent. `isDark` lets the few theme-specific bits (status
-// bar, blur tint, glass tab bar) pick their side.
+// Two palettes. Dark is built on three colours — #1A1B1E (the card and
+// tab-track grey-black), #667688 (slate: every selected state and the main
+// buttons, white text on it) and #7E8E9E (muted text) — with the page a
+// step darker and sheets, fills and edges a step lighter, all neutral.
+// Light is neutral too. Colour carries meaning on top: `rating` (a light
+// slate) for ranks, scores and collections, `success` green for done / saved / matched, `danger`
+// red for hard dares, poor scores and destructive actions. `isDark` lets
+// the few theme-specific bits (status bar, blur tint) pick their side.
 export const darkColors = {
   isDark: true,
 
-  background: "#040E12",
+  // The page under the header: a dark grey, not black.
+  background: "#1A1B1E",
 
-  card: "#0d161b",
+  // The header bars (and the tab bars pinned under them): near-black.
+  headerBackground: "#0E0F11",
 
-  cardElevated: "#142028",
+  card: "#222327",
 
-  cardElevatedLight: "#1E2C34",
+  cardElevated: "#27292D",
+
+  // Empty tiles and light fills — muted text still reads 4.5:1 on it.
+  cardElevatedLight: "#2C2E33",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#B9C6CF",
+  textSecondary: "#B4BEC8",
 
-  // At least 4.5:1 on every surface, light fills included.
-  textMuted: "#8A99A3",
+  textMuted: "#909EAC",
 
   accent: "#FFFFFF",
-  accentLight: "#B9C6CF",
+  accentLight: "#B4BEC8",
 
-  accentContrast: "#04080B",
+  accentContrast: "#0E0F11",
 
   success: "#4ED08A",
 
-  rating: "#F2C14E",
+  // Ranks, scores, collections: a light slate, bluer than the greys.
+  rating: "#9FB3C8",
 
   danger: "#FF8585",
 
-  border: "#1C2B33",
+  border: "#34363B",
 
-  // Selected tabs and chips, and the main buttons: a pale blue-white.
-  selected: "#edf4fa",
+  // Selected tabs and chips, and the main buttons: slate, white text.
+  selected: "#667688",
 
-  selectedText: "#04080B",
+  selectedText: "#FFFFFF",
 
   successSoft: "rgba(78, 208, 138, 0.16)",
 
   surfaceSoft: "rgba(255, 255, 255, 0.06)",
 
-  // Small square icon buttons (shuffle, trailer): a raised tile with a
-  // lighter edge.
-  buttonFill: "#19252F",
-  buttonEdge: "#2C3F4E",
+  // Small square icon buttons (shuffle, trailer): a raised tile.
+  buttonFill: "#2C2E33",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
-  // a quiet fill a step above the page, a faint ring.
-  ringFill: "#111C23",
-  ringEdge: "#1E2C35",
+  // a quiet fill a step above the page.
+  ringFill: "#222327",
+
+  // Segmented tabs (For you / Friends, Browse / Reels / Trending…): a dark
+  // track, the open one a slate pill with white text.
+  segmentTrack: "#1A1B1E",
+  segmentOn: "#667688",
+  segmentOnText: "#FFFFFF",
+  segmentText: "#7E8E9E",
+
+  // Every poster's thin frame.
+  posterEdge: "#2A2C31",
 };
 
 export const lightColors = {
   isDark: false,
 
   background: "#FFFFFF",
+
+  headerBackground: "#FFFFFF",
 
   card: "#F2F2F3",
 
@@ -84,7 +96,7 @@ export const lightColors = {
 
   success: "#1F9D55",
 
-  rating: "#C99400",
+  rating: "#4E5D6E",
 
   danger: "#D64545",
 
@@ -99,10 +111,15 @@ export const lightColors = {
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 
   buttonFill: "#F2F2F3",
-  buttonEdge: "#D6D8DC",
 
   ringFill: "#F7F7F8",
-  ringEdge: "#DCDDE0",
+
+  segmentTrack: "#EDEEF0",
+  segmentOn: "#667688",
+  segmentOnText: "#FFFFFF",
+  segmentText: "#5F6B78",
+
+  posterEdge: "rgba(0, 0, 0, 0.1)",
 };
 
 // Static default for code that can't call `useColors()`.

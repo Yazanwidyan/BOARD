@@ -110,7 +110,7 @@ const SORTS = [
   },
 ];
 
-// One frame per film, filled when you've watched it — gold once they all
+// One frame per film, filled when you've watched it — slate once they all
 // are. Thin frames for big collections, but always one each.
 const FilmStrip = ({ movieIds, watchedIds, complete, styles }) => (
   <View style={styles.strip}>
@@ -765,7 +765,7 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    // A saga's ranks: a step each, side by side; reached ones gold.
+    // A saga's ranks: a step each, side by side; reached ones slate.
     ranks: {
       flexDirection: "row",
       gap: 2,
@@ -845,7 +845,7 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     xpTextEarned: {
-      color: "#0C1014",
+      color: colors.background,
     },
 
     // ---- Sections
@@ -942,28 +942,31 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
 
-    // ---- To watch: sort chips
+    // Like Library's tabs, small: a dark track, the chosen sort slate.
     sorts: {
       flexDirection: "row",
       gap: 2,
+      padding: 2,
+      // On the page, so the card colour (the dark track would vanish).
+      backgroundColor: colors.card,
+      borderRadius: 6,
     },
     sort: {
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
+      borderRadius: 7,
     },
     sortActive: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     sortText: {
       ...typography.bodyBold,
-      fontSize: 11,
-      lineHeight: 15,
-      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 18,
+      color: colors.segmentText,
     },
     sortTextActive: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
 
     // ---- Your tiers

@@ -26,6 +26,7 @@ import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
   DockHeader,
   HeaderIconButton,
+  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
@@ -68,10 +69,9 @@ const ShelfTag = ({ label, right, styles }) => (
   </View>
 );
 
-// Home's top slot when there's no Tonight's Pick: the header asks "Bored?",
-// so the first thing under it is the way out — straight into Swipe, Spin
-// or AI. A brand-new account (nothing watched or saved yet) gets one
-// "Start Discovering" button instead, since there's no taste to work from.
+// Home's top slot when there's no Tonight's Pick: a suggestion for
+// tonight. A brand-new account (nothing watched or saved yet) gets one "Start
+// discovering" card instead, since there's no taste to work from.
 const DecideHeroCard = ({
   isFreshAccount,
   navigation,
@@ -101,66 +101,82 @@ const DecideHeroCard = ({
   }
 
   return (
-    <WatchlistSuggestion
-      navigation={navigation}
-      styles={styles}
-      colors={colors}
-      refreshCount={refreshCount}
-      scrollY={scrollY}
-    />
+    <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />
   );
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Up to seven to step through — the dots under the card show which.
 const SUGGESTION_PAGES = 7;
+// How long each "thinking" line shows before the next film.
+const THINK_STEP_MS = 340;
 
 const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
-  if (days < 1) return "today";
-  if (days === 1) return "yesterday";
+  if (days < 1) return t("today");
+  if (days === 1) return t("yesterday");
   if (days < 14) return t("{count} days ago", { count: days });
   if (days < 60) return t("{count} weeks ago", { count: Math.round(days / 7) });
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
-// Home's slot when there's no Tonight's Pick: one concrete suggestion for
-// tonight (utils/tonightPick) — the best fit for your taste, lifted when
-// it's on your watchlist or moves a saga along — with why (PickInsight),
-// a one-tap "make it tonight's pick" and ⇄ to step to the next one.
-const WatchlistSuggestion = ({
-  navigation,
-  styles,
-  colors,
-  refreshCount,
-  scrollY,
-}) => {
+// Home's slot when there's no Tonight's Pick: one suggestion at a time, in
+// the same card as Tonight's pick (HomeHero) — the best fits for your taste
+// (utils/tonightPick), lifted when they're on your watchlist or move a saga
+// along — with why and how well it fits, a button to make it tonight's
+// pick, and ⇄ (or a pull to refresh) to step to the next: the engine
+// "thinks" for a moment (a ✦ and what it's weighing), then the next one
+// fades in.
+const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const dares = countFinishedDares(useChallengeStore((state) => state.history));
-  const [offset, setOffset] = useState(0);
-  // Pull to refresh on Home steps to the next suggestion.
-  const lastRefresh = useRef(refreshCount);
-  useEffect(() => {
-    if (refreshCount !== lastRefresh.current) {
-      lastRefresh.current = refreshCount;
-      setOffset((value) => value + 1);
-    }
-  }, [refreshCount]);
-
+  const [step, setStep] = useState(0);
+  const [thinking, setThinking] = useState(null);
+  const timers = useRef([]);
   const candidates = useMemo(
     () => getTonightSuggestions(watched, bucketList, dares),
     [watched, bucketList, dares],
   );
+
+  // What it's weighing, a line at a time, then the next film.
+  const thinkThenNext = () => {
+    if (timers.current.length > 0) return;
+    const lines = [t("Reading your tiers…"), t("Matching your taste…"), t("Picking tonight's film…")];
+    lines.forEach((line, index) => {
+      timers.current.push(setTimeout(() => setThinking(line), index * THINK_STEP_MS));
+    });
+    timers.current.push(
+      setTimeout(() => {
+        setStep((value) => value + 1);
+        setThinking(null);
+        timers.current = [];
+        Haptics.selectionAsync();
+      }, lines.length * THINK_STEP_MS),
+    );
+  };
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // A pull to refresh steps on too.
+  const lastRefresh = useRef(refreshCount);
+  useEffect(() => {
+    if (refreshCount !== lastRefresh.current) {
+      lastRefresh.current = refreshCount;
+      thinkThenNext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshCount]);
+
   if (candidates.length === 0) return null;
 
-  // Up to seven to step through — the dots under the card show which.
   const pageCount = Math.min(candidates.length, SUGGESTION_PAGES);
-  const page = offset % pageCount;
+  const page = step % pageCount;
   const suggestion = candidates[page];
   const { movie, savedAt, angle } = suggestion;
   const endsAt = getEndTime(movie);
-  // Why it's here (its angle) — a watchlist save says when it was saved.
+  // Why it's here, as its tag — a watchlist save says when.
   const tag =
     angle.key === "saved"
       ? {
@@ -169,67 +185,65 @@ const WatchlistSuggestion = ({
             : t("On your watchlist"),
         }
       : { text: t(angle.label), color: angle.key === "rank" ? colors.rating : undefined };
-  const insight = {
-    ...suggestion,
-    // With too little history there's no taste to explain it.
-    reason:
-      suggestion.reason ??
-      (suggestion.match == null && !suggestion.saved
-        ? t("Highly rated, and you haven't seen it")
-        : null),
-  };
+  // Why it fits you (with too little history, that it's well liked).
+  const why =
+    suggestion.reason ??
+    (suggestion.match == null && !suggestion.saved ? t("Highly rated, and you haven't seen it") : null);
 
-  // Keyed on the movie, so each new suggestion fades in rather than
-  // popping in place.
   return (
-    <Animated.View key={movie.id} entering={FadeIn.duration(280)}>
-      <HomeHero
-        scrollY={scrollY}
-        posterUri={movie.poster}
-        backdropUri={movie.backdrop}
-        logo={movie.details?.logo}
-        eyebrow={t("Suggested for tonight")}
-        title={movie.title}
-        meta={[
-          movie.year,
-          movie.genres[0],
-          formatRuntime(movie.runtime),
-          endsAt && t("ends {time}", { time: endsAt }),
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-        reason={insight.reason ?? tag.text}
-        match={insight.match}
-        pages={{ count: pageCount, index: page }}
-        onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-        actions={
-          <>
-            <PrimaryButton
-              label={t("Make it tonight's pick")}
-              icon={<Play size={16} color={colors.selectedText} fill={colors.selectedText} />}
+    // Keyed on the film, so each new one fades in fresh (its logo too).
+    <Animated.View key={movie.id} entering={FadeIn.duration(350)}>
+    <HomeHero
+      scrollY={scrollY}
+      thinking={thinking}
+      posterUri={movie.poster}
+      backdropUri={movie.backdrop}
+      logo={movie.details?.logo}
+      eyebrow={t("Suggested for tonight")}
+      title={movie.title}
+      meta={[
+        movie.year,
+        movie.genres?.[0],
+        movie.runtime ? formatRuntime(movie.runtime) : null,
+        endsAt && t("ends {time}", { time: endsAt }),
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+      reason={why}
+      match={suggestion.match}
+      tag={tag}
+      saga={suggestion.saga}
+      forecast={suggestion.forecast}
+      pages={{ count: pageCount, index: page }}
+      onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+      actions={
+        <>
+          <PrimaryButton
+            label={t("Make it tonight's pick")}
+            icon={<Play size={16} color={colors.selectedText} fill={colors.selectedText} />}
+            onPress={() => {
+              Haptics.selectionAsync();
+              togglePickedMovie(movie.id);
+            }}
+            style={styles.heroMain}
+            contentStyle={styles.heroSquare}
+          />
+          {pageCount > 1 && (
+            <Pressable
+              style={({ pressed }) => [styles.heroRound, pressed && styles.heroRoundPressed]}
               onPress={() => {
                 Haptics.selectionAsync();
-                togglePickedMovie(movie.id);
+                thinkThenNext();
               }}
-              style={styles.heroMain}
-              contentStyle={styles.heroSquare}
-            />
-            {pageCount > 1 && (
-              <Pressable
-                style={styles.heroRound}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setOffset((value) => value + 1);
-                }}
-                hitSlop={4}
-                accessibilityLabel={t("Suggest another")}
-              >
-                <Shuffle size={18} color={colors.textPrimary} />
-              </Pressable>
-            )}
-          </>
-        }
-      />
+              hitSlop={4}
+              accessibilityLabel={t("Suggest another")}
+            >
+              <Shuffle size={18} color={colors.textPrimary} />
+            </Pressable>
+          )}
+        </>
+      }
+    />
     </Animated.View>
   );
 };
@@ -381,6 +395,7 @@ export const HomeScreen = ({ navigation }) => {
             );
           })}
         </View>
+        <ScrollHairline scrollY={header.scrollY} />
       </View>
       <Animated.ScrollView
         onScroll={header.onScroll}
@@ -402,6 +417,8 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={{
+          // The usual gap under the tabs, as on every tab.
+          paddingTop: spacing.md,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
@@ -547,6 +564,7 @@ export const HomeScreen = ({ navigation }) => {
       />
       <DockHeader
         {...header.props}
+        hairline={false}
         refreshing={refreshing}
         title={t("ReelBoard")}
         italicTitle
@@ -571,16 +589,19 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    // A section: a hairline across the page above it.
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xl,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
-    // Same vertical rhythm as `section`, but no horizontal padding — used
-    // for the two horizontal-scroll rails, so the scrollable row itself
-    // reaches both screen edges. Only the label above it keeps the normal
-    // margin, via railLabelPadding.
     railSection: {
-      marginTop: spacing.xl,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
     // The cards sit inside the page's margins.
     bento: {
@@ -589,38 +610,41 @@ const createStyles = (colors) =>
     tabsBar: {
       zIndex: 1,
       paddingBottom: spacing.sm,
-      backgroundColor: colors.background,
+      backgroundColor: colors.headerBackground,
     },
-    // For you / Friends: the chosen one filled, like Settings' choices.
+    // For you / Friends: a dark track, the open one a slate pill.
     tabs: {
       flexDirection: "row",
       gap: 2,
-      padding: 3,
+      padding: 2,
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
       marginHorizontal: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
     },
     tab: {
       flex: 1,
       alignItems: "center",
-      paddingVertical: spacing.sm,
-      borderRadius: shape.chip,
+      justifyContent: "center",
+      paddingVertical: 4,
+      borderRadius: 7,
     },
     tabOn: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     tabText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     tabTextOn: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
-    // The header inset already leaves the gap under the header.
+    // The first under the tabs: no line.
     firstSection: {
       marginTop: 0,
+      paddingTop: 0,
+      borderTopWidth: 0,
     },
     recapBanner: {
       marginHorizontal: spacing.md,
@@ -650,18 +674,19 @@ const createStyles = (colors) =>
     tag: {
       flexShrink: 1,
     },
+    // Section names: small grey capitals, so the content leads.
     tagText: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
     },
     seeAllText: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textPrimary,
+      color: colors.textSecondary,
     },
     railPoster: {
       width: POSTER_ITEM - 2,
@@ -675,16 +700,17 @@ const createStyles = (colors) =>
       borderRadius: shape.control,
       minHeight: 48,
     },
-    // The small square beside it: a raised tile with a lighter edge.
+    // ⇄ beside it: a raised square, like Tonight's pick's.
     heroRound: {
       width: 48,
       height: 48,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.buttonFill,
-      borderWidth: 1.5,
-      borderColor: colors.buttonEdge,
       borderRadius: shape.control + 2,
+    },
+    heroRoundPressed: {
+      opacity: 0.7,
     },
   });
 

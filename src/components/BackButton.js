@@ -39,8 +39,6 @@ export const BackButton = ({ onPress, size = 40, floating = false }) => {
         floating && {
           borderRadius: size / 2,
           backgroundColor: colors.cardElevated,
-          borderWidth: 1,
-          borderColor: colors.border,
         },
         pressed && styles.pressed,
       ]}

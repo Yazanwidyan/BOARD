@@ -10,7 +10,7 @@ import { useColors } from "../theme/useColors";
 import { ActivityEvent } from "./ActivityEvent";
 import { Text } from "./AppText";
 import { FriendsRail, SectionEmpty } from "./ProfileSections";
-import { DecideTile } from "./QuickPickBento";
+import { ActionList } from "./QuickPickBento";
 
 const FEED_COUNT = 6;
 
@@ -46,7 +46,7 @@ export const HomeFriends = ({ navigation }) => {
       {incoming.length > 0 && (
         <Pressable
           style={({ pressed }) => [styles.requests, pressed && styles.pressed]}
-          onPress={openFriends}
+          onPress={() => navigation.navigate("Friends", { tab: "requests" })}
           accessibilityRole="button"
         >
           <View style={styles.requestsIcon}>
@@ -59,7 +59,7 @@ export const HomeFriends = ({ navigation }) => {
         </Pressable>
       )}
 
-      <View style={styles.section}>
+      <View style={[styles.section, incoming.length === 0 && styles.sectionFirst]}>
         <SectionTitle
           label={t("Your friends")}
           onLink={friends.length > 0 ? openFriends : undefined}
@@ -85,18 +85,24 @@ export const HomeFriends = ({ navigation }) => {
 
       <View style={styles.section}>
         <SectionTitle label={t("Watch together")} styles={styles} />
-        <View style={[styles.padded, styles.together]}>
-          <DecideTile
-            Icon={Users}
-            label={t("Movie night")}
-            hint={t("Two people, one phone")}
-            onPress={() => navigation.navigate("MovieNight")}
-          />
-          <DecideTile
-            Icon={Smartphone}
-            label={t("Group night")}
-            hint={t("Everyone on their own phone")}
-            onPress={() => navigation.navigate("GroupNight")}
+        <View style={styles.padded}>
+          <ActionList
+            rows={[
+              {
+                key: "movieNight",
+                Icon: Users,
+                label: t("Movie night"),
+                hint: t("Two people, one phone"),
+                onPress: () => navigation.navigate("MovieNight"),
+              },
+              {
+                key: "groupNight",
+                Icon: Smartphone,
+                label: t("Group night"),
+                hint: t("Everyone on their own phone"),
+                onPress: () => navigation.navigate("GroupNight"),
+              },
+            ]}
           />
         </View>
       </View>
@@ -134,22 +140,21 @@ export const HomeFriends = ({ navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    container: {
-      paddingTop: spacing.md,
-    },
+    // The page's gap under the tabs comes from Home; the sections bring
+    // their own lines and gaps.
+    container: {},
     pressed: {
       opacity: 0.75,
     },
-    // Requests waiting on you: first, so they don't go unseen.
+    // Requests waiting on you: first, so they don't go unseen — a
+    // full-width band.
     requests: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 4,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-      padding: spacing.sm + 4,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
     },
     requestsIcon: {
       width: 32,
@@ -168,7 +173,16 @@ const createStyles = (colors) =>
       transform: [{ scaleX: -1 }],
     },
     section: {
-      marginTop: spacing.lg,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    // The first under the tabs: no line.
+    sectionFirst: {
+      marginTop: 0,
+      paddingTop: 0,
+      borderTopWidth: 0,
     },
     padded: {
       paddingHorizontal: spacing.md,
@@ -182,26 +196,22 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm + 2,
     },
     title: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
       flexShrink: 1,
     },
     link: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textPrimary,
-    },
-    together: {
-      flexDirection: "row",
-      gap: spacing.sm,
+      color: colors.textSecondary,
     },
     feed: {
+      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
       overflow: "hidden",
     },
     empty: {

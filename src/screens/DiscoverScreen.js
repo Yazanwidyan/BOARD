@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Check, ChevronRight, Plus, Search } from "lucide-react-native";
+import { ChevronRight, Search } from "lucide-react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
 import {
@@ -22,25 +22,24 @@ import { ReelsFeed } from "../components/ReelsFeed";
 import {
   DockHeader,
   HeaderIconButton,
+  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useTrending } from "../store/communityStore";
 import { useMovieStore } from "../store/movieStore";
 import { useUserStore } from "../store/userStore";
-import { radius, shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
+import { spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
-import { isInBucketList } from "../utils/movieFilters";
 import { t, useIsRTL } from "../i18n";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 import { useMoviesVersion } from "../data/movies";
 
-// One row: title + "See all" (opens the full list in Browse), then posters
-// with the IMDb rating and a one-tap save-to-watchlist button.
-const DiscoverRail = ({ rail, bucketList, navigation, styles, colors, posterWidth, rtl }) => {
+// One row: title + "See all" (opens the full list in Browse), then just
+// the posters — tap one for the film.
+const DiscoverRail = ({ rail, first, navigation, styles, colors, posterWidth, rtl }) => {
   const openAll = () =>
     navigation.navigate("BrowseMovies", {
       title: rail.title,
@@ -48,7 +47,7 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors, posterWidt
     });
 
   return (
-    <View style={styles.rail}>
+    <View style={[styles.rail, first && styles.railFirst]}>
       <View style={styles.railHeader}>
         <Text style={styles.railTitle} numberOfLines={1}>
           {rail.title}
@@ -65,47 +64,17 @@ const DiscoverRail = ({ rail, bucketList, navigation, styles, colors, posterWidt
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.railContent}
       >
-        {rail.movies.slice(0, RAIL_PREVIEW).map((movie) => {
-          const saved = isInBucketList(bucketList, movie.id);
-          return (
-            <Pressable
-              key={movie.id}
-              style={[styles.railCard, { width: posterWidth }]}
-              onPress={() =>
-                navigation.navigate("MovieDetails", { movieId: movie.id })
-              }
-            >
-              <View>
-                <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: posterWidth }]} />
-                <Pressable
-                  style={[styles.saveButton, saved && styles.saveButtonSaved]}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    toggleBucketListWithFeedback(movie.id);
-                  }}
-                  hitSlop={8}
-                  accessibilityLabel={
-                    saved ? t("Remove from watchlist") : t("Add to watchlist")
-                  }
-                >
-                  {saved ? (
-                    <Check
-                      size={12}
-                      color={colors.selectedText}
-                      strokeWidth={3}
-                    />
-                  ) : (
-                    <Plus size={13} color="#FFFFFF" strokeWidth={2.6} />
-                  )}
-                </Pressable>
-              </View>
-              <Text style={styles.railMovieTitle} numberOfLines={1}>
-                {movie.title}
-              </Text>
-              <Text style={styles.railMovieYear}>{movie.year}</Text>
-            </Pressable>
-          );
-        })}
+        {rail.movies.slice(0, RAIL_PREVIEW).map((movie) => (
+          <Pressable
+            key={movie.id}
+            style={({ pressed }) => [{ width: posterWidth }, pressed && styles.pressed]}
+            onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+            accessibilityRole="button"
+            accessibilityLabel={movie.title}
+          >
+            <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: posterWidth }]} />
+          </Pressable>
+        ))}
       </ScrollView>
     </View>
   );
@@ -120,14 +89,12 @@ const TrendingGrid = ({ movies, navigation, styles, posterWidth }) =>
       {movies.map((movie) => (
         <Pressable
           key={movie.id}
-          style={{ width: posterWidth }}
+          style={({ pressed }) => [{ width: posterWidth }, pressed && styles.pressed]}
           onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+          accessibilityRole="button"
+          accessibilityLabel={movie.title}
         >
           <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: posterWidth }]} />
-          <Text style={styles.railMovieTitle} numberOfLines={1}>
-            {movie.title}
-          </Text>
-          <Text style={styles.railMovieYear}>{movie.year}</Text>
         </Pressable>
       ))}
     </View>
@@ -201,6 +168,7 @@ export const DiscoverScreen = ({ navigation }) => {
         );
       })}
     </View>
+    <ScrollHairline scrollY={header.scrollY} />
     </View>
   );
   const searchButton = (
@@ -221,7 +189,7 @@ export const DiscoverScreen = ({ navigation }) => {
             bottomInset={insets.bottom + TAB_BAR_CLEARANCE}
           />
         </View>
-        <DockHeader title={t("Discover")} right={searchButton} />
+        <DockHeader title={t("Discover")} right={searchButton} hairline={false} />
         <FirstVisitTip id="discover" />
       </SafeAreaView>
     );
@@ -245,9 +213,9 @@ export const DiscoverScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={{
-          // Every rail brings its own top margin (styles.rail); pull back
-          // the difference so the gap under the header matches other tabs.
-          marginTop: spacing.md - spacing.lg,
+          // The usual gap under the tabs; the first rail adds none of its
+          // own (styles.railFirst).
+          paddingTop: spacing.md,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
         showsVerticalScrollIndicator={false}
@@ -260,11 +228,11 @@ export const DiscoverScreen = ({ navigation }) => {
             posterWidth={gridWidth}
           />
         ) : (
-          rails.map((rail) => (
+          rails.map((rail, index) => (
             <DiscoverRail
               key={rail.key}
               rail={rail}
-              bucketList={bucketList}
+              first={index === 0}
               navigation={navigation}
               styles={styles}
               colors={colors}
@@ -278,6 +246,7 @@ export const DiscoverScreen = ({ navigation }) => {
       <FirstVisitTip id="discover" />
       <DockHeader
         {...header.props}
+        hairline={false}
         refreshing={refreshing}
         title={t("Discover")}
         right={searchButton}
@@ -299,39 +268,50 @@ const createStyles = (colors) =>
     reelsArea: {
       flex: 1,
     },
-    // Browse / Reels / Trending: a full-width bar, the open one filled.
+    // Browse / Reels / Trending: a dark track, the open one a slate pill.
     modeBar: {
       zIndex: 1,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
+      backgroundColor: colors.headerBackground,
     },
     modeSwitch: {
       flexDirection: "row",
       gap: 2,
-      padding: 3,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      padding: 2,
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
     },
     modeOption: {
       flex: 1,
       alignItems: "center",
-      paddingVertical: spacing.sm,
-      borderRadius: shape.chip,
+      justifyContent: "center",
+      paddingVertical: 4,
+      borderRadius: 7,
     },
     modeOptionActive: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     modeText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     modeTextActive: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
+    // A rail: a hairline across the page above it.
     rail: {
-      marginTop: spacing.lg,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    railFirst: {
+      marginTop: 0,
+      paddingTop: 0,
+      borderTopWidth: 0,
     },
     railHeader: {
       flexDirection: "row",
@@ -340,13 +320,14 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm,
     },
+    // Rail names: small grey capitals, so the posters lead.
     railTitle: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
       flex: 1,
-      color: colors.textPrimary,
     },
     allLink: {
       flexDirection: "row",
@@ -366,7 +347,9 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
-    railCard: {},
+    pressed: {
+      opacity: 0.75,
+    },
     railPoster: {
       aspectRatio: 2 / 3,
     },
@@ -375,7 +358,6 @@ const createStyles = (colors) =>
       flexWrap: "wrap",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.lg,
       rowGap: spacing.md,
     },
     empty: {
@@ -384,34 +366,6 @@ const createStyles = (colors) =>
       textAlign: "center",
       marginTop: spacing.xxl,
       paddingHorizontal: spacing.xl,
-    },
-    railMovieTitle: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textPrimary,
-      marginTop: spacing.xs + 2,
-    },
-    railMovieYear: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-    },
-    // Bottom-right of the poster: + to save, ✓ once it's on the watchlist.
-    saveButton: {
-      position: "absolute",
-      end: 5,
-      bottom: 5,
-      width: 26,
-      height: 26,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.65)",
-      borderRadius: shape.chip,
-    },
-    // Saved: filled, with a dark check.
-    saveButtonSaved: {
-      backgroundColor: colors.selected,
     },
   });
 

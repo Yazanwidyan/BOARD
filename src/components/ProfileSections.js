@@ -1,5 +1,5 @@
 import { ChevronRight, Plus, UserPlus } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { t, useIsRTL } from "../i18n";
@@ -9,7 +9,7 @@ import { useColors } from "../theme/useColors";
 import { getCollectionCompletedAt, getSagas } from "../utils/collections";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { getTasteMatch } from "../utils/friends";
-import { TIERS, getTier } from "../utils/tiers";
+import { TIERS, getTier, getTierInfo } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
 import { FriendAvatar } from "./FriendAvatar";
@@ -288,6 +288,58 @@ export const FriendsRail = ({ friends, myWatched, onOpen, onAdd }) => {
   );
 };
 
+// Your last watches as a poster grid, four across, newest first — each
+// with the tier you gave it as a small badge on its corner and the day
+// under it. Tap one for the film. `entries`: { movieId, timestamp,
+// tier|rating }.
+const RECENT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const RECENT_COLUMNS = 4;
+const RECENT_GAP = 8;
+export const RecentPosters = ({ entries, count = 8, onOpen }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  const { width } = useWindowDimensions();
+  const posterWidth = Math.floor((width - spacing.md * 2 - RECENT_GAP * (RECENT_COLUMNS - 1)) / RECENT_COLUMNS);
+  const items = [...entries]
+    .filter((entry) => entry.timestamp)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .map((entry) => ({ entry, movie: getMovieById(entry.movieId) }))
+    .filter(({ movie }) => movie)
+    .slice(0, count);
+  if (items.length === 0) {
+    return <SectionEmpty line={t("Mark a movie as watched and it shows here.")} />;
+  }
+  return (
+    <View style={styles.recentGrid}>
+      {items.map(({ entry, movie }) => {
+        const date = new Date(entry.timestamp);
+        const tier = getTierInfo(getTier(entry));
+        return (
+          <Pressable
+            key={`${entry.movieId}-${entry.timestamp}`}
+            style={({ pressed }) => [{ width: posterWidth }, pressed && styles.pressed]}
+            onPress={() => onOpen(movie.id)}
+            accessibilityRole="button"
+            accessibilityLabel={tier ? `${movie.title}, ${tier.key}` : movie.title}
+          >
+            <View>
+              <MoviePoster uri={movie.poster} style={{ width: posterWidth, aspectRatio: 2 / 3 }} />
+              {tier && (
+                <View style={[styles.recentTier, { backgroundColor: tier.color }]}>
+                  <Text style={styles.recentTierText}>{tier.key}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.recentDate} numberOfLines={1}>
+              {t(RECENT_MONTHS[date.getMonth()])} {date.getDate()}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+};
+
 // This month on ReelBoard, as Home's recap banner: how much you've watched
 // so far, its best films at the end. Opens the recap.
 export const RecapBanner = ({ watched, onOpen }) => {
@@ -337,10 +389,15 @@ const createStyles = (colors) =>
       height: "100%",
     },
 
-    // A section: a bold title and "See all", 20 apart — tighter than
-    // Home's shelves, so a profile reads as one page.
+    // A section: a hairline across the page above it (the section reaches
+    // the screen's edges; its content keeps the margins).
     section: {
-      marginTop: SECTION_GAP,
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.md + 4,
+      paddingTop: spacing.md + 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
     tagRow: {
       flexDirection: "row",
@@ -349,12 +406,13 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       marginBottom: spacing.sm,
     },
+    // Section names: small grey capitals, so the content leads.
     tagText: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      color: colors.textSecondary,
       flexShrink: 1,
     },
     seeAllText: {
@@ -418,6 +476,38 @@ const createStyles = (colors) =>
       borderWidth: 1.5,
       borderStyle: "dashed",
       borderColor: colors.border,
+    },
+    // Recently watched
+    recentGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: RECENT_GAP,
+      rowGap: spacing.md,
+    },
+    // The tier, a small square on the poster's top-left corner.
+    recentTier: {
+      position: "absolute",
+      top: 4,
+      start: 4,
+      width: 22,
+      height: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 5,
+    },
+    recentTierText: {
+      ...typography.label,
+      fontSize: 11,
+      lineHeight: 14,
+      color: "#0C1014",
+    },
+    recentDate: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textSecondary,
+      marginTop: 6,
+      textAlign: "center",
     },
     seeAll: {
       flexDirection: "row",
@@ -495,6 +585,8 @@ const createStyles = (colors) =>
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
     recapText: {
       flex: 1,

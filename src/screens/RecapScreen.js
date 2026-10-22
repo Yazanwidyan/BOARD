@@ -197,28 +197,34 @@ const createStyles = (colors) =>
       padding: spacing.md,
       gap: spacing.md,
     },
+    // Like Library's tabs: a dark track, the open one a slate pill.
     periods: {
       flexDirection: "row",
       gap: 2,
+      padding: 2,
+      // On the page, so the card colour (the dark track would vanish).
+      backgroundColor: colors.card,
+      borderRadius: 6,
     },
     period: {
       flex: 1,
       alignItems: "center",
-      paddingVertical: spacing.sm + 2,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      justifyContent: "center",
+      paddingVertical: 4,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 7,
     },
     periodSelected: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     periodText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     periodTextSelected: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
     empty: {
       alignItems: "center",

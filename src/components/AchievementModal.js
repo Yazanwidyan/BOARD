@@ -867,7 +867,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm + 2,
     },
-    // The chip sits on the gold, so dark text.
+    // The chip sits on the slate, so the page's colour for its text.
     countChip: {
       minWidth: 34,
       height: 34,
@@ -879,7 +879,7 @@ const createStyles = (colors) =>
       ...typography.title,
       fontSize: 16,
       lineHeight: 22,
-      color: "#111214",
+      color: colors.background,
     },
     titleText: {
       flex: 1,

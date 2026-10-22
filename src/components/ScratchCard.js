@@ -31,7 +31,7 @@ const FADE_MS = 280;
 const TICK_MS = 70;
 const INK = "#3B2A08";
 
-// A scratch card: `children` (the poster) under a layer of gold foil that
+// A scratch card: `children` (the poster) under a layer of slate foil that
 // comes off where you rub it. Once about 60% is off the rest fades and
 // `onReveal` is called. Fresh for each card — give it a new `key` to cover
 // a new film.
@@ -123,10 +123,10 @@ export const ScratchCard = ({ width, height, children, onReveal, onScratchStart,
             <Svg width={width} height={height}>
               <Defs>
                 <LinearGradient id="foil" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#F7DC8A" />
-                  <Stop offset="0.35" stopColor="#D4A33C" />
-                  <Stop offset="0.6" stopColor="#F2C14E" />
-                  <Stop offset="1" stopColor="#B8862A" />
+                  <Stop offset="0" stopColor="#E3EAF2" />
+                  <Stop offset="0.35" stopColor="#8394A6" />
+                  <Stop offset="0.6" stopColor="#B7C6D6" />
+                  <Stop offset="1" stopColor="#667688" />
                 </LinearGradient>
                 <Pattern id="foilHatch" width={10} height={10} patternUnits="userSpaceOnUse">
                   <Line x1={0} y1={0} x2={10} y2={10} stroke={INK} strokeOpacity={0.14} strokeWidth={1} />

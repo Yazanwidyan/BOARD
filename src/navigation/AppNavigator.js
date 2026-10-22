@@ -29,6 +29,7 @@ import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
 import { TasteScreen } from "../screens/TasteScreen";
+import { HighlightScreen } from "../screens/HighlightScreen";
 import { TierListScreen } from "../screens/TierListScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { WildcardScreen } from "../screens/WildcardScreen";
@@ -210,6 +211,12 @@ export const AppNavigator = () => {
             />
             <Stack.Screen name="Ranks" component={RanksScreen} />
             <Stack.Screen name="TierList" component={TierListScreen} />
+            {/* A profile's highlights, story-style: taps, not swipes. */}
+            <Stack.Screen
+              name="Highlight"
+              component={HighlightScreen}
+              options={{ animation: "fade", gestureEnabled: false }}
+            />
             <Stack.Screen name="Taste" component={TasteScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />

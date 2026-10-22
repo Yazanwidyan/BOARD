@@ -26,7 +26,7 @@ import { useAuthStore } from "../store/authStore";
 import { useClub, useClubActions, useClubActivity } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
 import { showToast } from "../store/toastStore";
-import { shape, spacing } from "../theme/spacing";
+import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { TIERS, getTierInfo } from "../utils/tiers";
@@ -540,8 +540,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       padding: spacing.lg,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     inviteLabel: {
       ...typography.caption,
@@ -590,8 +588,6 @@ const createStyles = (colors) =>
       gap: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     nowPoster: {
       width: 72,
@@ -622,8 +618,6 @@ const createStyles = (colors) =>
     tierRow: {
       flexDirection: "row",
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     tierBadge: {
       width: 44,
@@ -667,8 +661,6 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm + 2,
       marginBottom: 2,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     memberText: {
       flex: 1,
@@ -687,15 +679,11 @@ const createStyles = (colors) =>
     },
     feed: {
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     section: {
       marginTop: spacing.xl,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     row: {

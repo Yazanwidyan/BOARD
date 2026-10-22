@@ -324,7 +324,11 @@ const scoreMovie = (movie, model, context) => {
   if (model.dislikedCentroid) {
     const fit = closeness(model.dislikedCentroid, vibe.dims);
     if (fit > 0.75) {
-      push("dislikedVibe", -WEIGHTS.dislikedVibe * (fit - 0.75) * 8, null);
+      push(
+        "dislikedVibe",
+        -WEIGHTS.dislikedVibe * (fit - 0.75) * 8,
+        t("It feels like films you tiered low."),
+      );
     }
   }
 
@@ -428,7 +432,7 @@ const scoreMovie = (movie, model, context) => {
     push(
       "runtime",
       -WEIGHTS.runtime * ((movie.runtime - LONG_RUNTIME) / 30),
-      null,
+      t("Longer than you like."),
     );
   }
 
@@ -484,6 +488,33 @@ const reasonsOf = (signals) => {
     ? reasons
     : [t("Highly rated, and you haven't seen it yet.")];
 };
+
+// What each signal is, for the "why this match" breakdown.
+const FACTOR_LABELS = {
+  vibe: "Feel",
+  dislikedVibe: "Feel",
+  theme: "Themes",
+  genre: "Genre",
+  director: "Director",
+  cast: "Cast",
+  decade: "Era",
+  quality: "Ratings",
+  runtime: "Length",
+};
+
+// Every signal that moved a match, biggest first: { key, label, value,
+// reason } — positive pulled it up, negative down. Session-only signals
+// (jitter, turned-down picks, your watchlist) are left out.
+const factorsOf = (signals) =>
+  signals
+    .filter((signal) => FACTOR_LABELS[signal.key] && Math.abs(signal.value) >= 0.05)
+    .map((signal) => ({
+      key: signal.key,
+      label: FACTOR_LABELS[signal.key],
+      value: signal.value,
+      reason: signal.reason,
+    }))
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 
 // Your own model: tiers plus your aspects and passes.
 export const buildMyTasteModel = (watched) => {
@@ -548,7 +579,14 @@ export const getMovieMatch = (watched, movie) => {
     random: () => 0,
     jitter: 0,
   });
-  return { match: toMatch(pick.score), reasons: reasonsOf(pick.signals) };
+  return {
+    match: toMatch(pick.score),
+    reasons: reasonsOf(pick.signals),
+    // For the breakdown: what moved it, and how much of you it's based on.
+    factors: factorsOf(pick.signals),
+    tieredCount: model.tieredCount,
+    watchedCount: model.watchedCount,
+  };
 };
 
 // What the "thinking" screen says it's doing — real numbers from your data.

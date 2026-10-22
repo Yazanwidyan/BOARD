@@ -1,6 +1,5 @@
 import { ChevronDown, X } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text } from "./AppText";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -11,14 +10,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { t } from "../i18n";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { Text } from "./AppText";
 import { BackButton } from "./BackButton";
 import { SpinningLogo, useRefreshSpin } from "./RefreshSpin";
-import { t } from "../i18n";
 
-export const HEADER_BAR_HEIGHT = 52;
+export const HEADER_BAR_HEIGHT = 40;
 // The hairline under a header fades in over this much scroll — at the very
 // top the bar melts into the page; once anything goes under it, it's a bar.
 const BORDER_FADE_DISTANCE = 16;
@@ -127,7 +127,18 @@ const HeaderHairline = ({ scrollY, styles }) => {
         )
       : 1,
   }));
-  return <Animated.View pointerEvents="none" style={[styles.hairline, style]} />;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.hairline, style]} />
+  );
+};
+
+// The same line for a bar that sits under the header (a row of tabs): it
+// fades in as the page scrolls, along the bar's bottom edge. Give the
+// header `hairline={false}` so there's just the one line, under the tabs.
+export const ScrollHairline = ({ scrollY }) => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  return <HeaderHairline scrollY={scrollY} styles={styles} />;
 };
 
 // An overlay header's background: none at the top of the page — the
@@ -141,7 +152,9 @@ const OverlayFill = ({ scrollY, styles }) => {
       Extrapolation.CLAMP,
     ),
   }));
-  return <Animated.View pointerEvents="none" style={[styles.overlayFill, style]} />;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.overlayFill, style]} />
+  );
 };
 
 // The round icon button every tab's header actions use. `badge`: a count
@@ -174,7 +187,7 @@ export const HeaderIconButton = ({
 };
 
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
-// greeting) on the left, actions on the right — no centered title.
+// greeting) in the middle, with `left` and `right` actions either side.
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
@@ -189,11 +202,13 @@ export const DockHeader = ({
   eyebrow,
   subtitle,
   onPressTitle,
+  left,
   right,
   scrollY,
   offset,
   refreshing,
   overlay = false,
+  hairline = true,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -227,6 +242,8 @@ export const DockHeader = ({
     >
       {overlay && <OverlayFill scrollY={scrollY} styles={styles} />}
       <Animated.View style={[styles.barRow, rowStyle]}>
+        {/* Equal sides, so the title stays in the middle. */}
+        <View style={[styles.side, styles.sideStart]}>{left}</View>
         <View style={styles.leftTitleBlock}>
           {!!eyebrow && (
             <Text style={styles.leftEyebrow} numberOfLines={1}>
@@ -281,9 +298,9 @@ export const DockHeader = ({
             </Text>
           )}
         </View>
-        {right ? <View style={styles.right}>{right}</View> : null}
+        <View style={[styles.side, styles.sideEnd]}>{right}</View>
       </Animated.View>
-      <HeaderHairline scrollY={scrollY} styles={styles} />
+      {hairline && <HeaderHairline scrollY={scrollY} styles={styles} />}
     </Animated.View>
   );
 };
@@ -324,7 +341,7 @@ export const StackHeader = ({
   }, [titleRevealAt]);
 
   return (
-    <View style={[styles.stackBar, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.stackBar, { paddingTop: insets.top + spacing.xs }]}>
       {/* Equal-width sides keep the title centred on the screen. */}
       <View style={styles.stackSide}>
         {close ? (
@@ -379,15 +396,15 @@ const createStyles = (colors) =>
       end: 0,
       zIndex: 100,
       elevation: 16,
-      // Instagram-style: the page's own colour, a hairline underneath.
-      backgroundColor: colors.background,
+      // Near-black, darker than the page, a hairline underneath.
+      backgroundColor: colors.headerBackground,
     },
     barOverlay: {
       backgroundColor: "transparent",
     },
     overlayFill: {
       ...StyleSheet.absoluteFill,
-      backgroundColor: colors.background,
+      backgroundColor: colors.headerBackground,
     },
     barRow: {
       flex: 1,
@@ -408,20 +425,22 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.xs,
     },
+    // Bold, in the middle.
     title: {
-      ...typography.display,
-      fontSize: 24,
-      lineHeight: 30,
-      letterSpacing: -0.6,
+      ...typography.title,
+      fontSize: 20,
+      lineHeight: 26,
+      letterSpacing: -0.3,
       color: colors.textPrimary,
+      textAlign: "center",
     },
     stackBar: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.background,
+      paddingBottom: spacing.xs,
+      backgroundColor: colors.headerBackground,
       zIndex: 10,
     },
     stackSide: {
@@ -446,7 +465,6 @@ const createStyles = (colors) =>
     titleButton: {
       flexDirection: "row",
       alignItems: "center",
-      alignSelf: "flex-start",
       gap: 4,
     },
     titleWithSubtitle: {
@@ -473,9 +491,24 @@ const createStyles = (colors) =>
     titleItalic: {
       transform: [{ skewX: "-6deg" }],
     },
+    // The title, centred between the two sides.
     leftTitleBlock: {
       flex: 1,
-      marginEnd: spacing.sm,
+      alignItems: "center",
+    },
+    // Each side holds up to two buttons; the same width both ways keeps
+    // the title centred.
+    side: {
+      width: 80,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    sideStart: {
+      justifyContent: "flex-start",
+    },
+    sideEnd: {
+      justifyContent: "flex-end",
     },
     leftEyebrow: {
       ...typography.caption,
@@ -490,8 +523,8 @@ const createStyles = (colors) =>
     },
     // Plain icons, no circle behind them.
     iconButton: {
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       alignItems: "center",
       justifyContent: "center",
     },

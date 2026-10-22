@@ -7,15 +7,17 @@ import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
 
 const COLUMNS = 3;
-const GAP = 2;
+// Room between posters, and the page's margins around the grid.
+const GAP = 6;
+const MARGIN = spacing.md;
 
-// An edge-to-edge poster grid with hairline gaps — the posters do all the
-// work. items: [{ movie, watchCount? }]; a rewatch shows a small ×N.
+// A poster grid inside the page's margins, the posters a little apart —
+// they do all the work. items: [{ movie, watchCount? }]; a rewatch shows a small ×N.
 export const PosterMosaic = ({ items, onPressMovie }) => {
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = createStyles(colors);
-  const tile = (width - GAP * (COLUMNS - 1)) / COLUMNS;
+  const tile = Math.floor((width - MARGIN * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
 
   return (
     <View style={styles.grid}>
@@ -77,6 +79,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       flexWrap: "wrap",
       gap: GAP,
+      paddingHorizontal: MARGIN,
     },
     poster: {
       width: "100%",

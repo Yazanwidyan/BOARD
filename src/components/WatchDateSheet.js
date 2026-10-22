@@ -133,28 +133,33 @@ export const WatchDateSheet = ({ visible, timestamp, onSave, onClose }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // Like Library's tabs: a dark track, the chosen day a slate pill.
     quickRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
+      gap: 2,
+      padding: 2,
+      backgroundColor: colors.segmentTrack,
+      borderRadius: 6,
     },
     quick: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: 8,
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 4,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 7,
     },
     quickActive: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     quickText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     quickTextActive: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
     calendar: {
       marginTop: spacing.sm,

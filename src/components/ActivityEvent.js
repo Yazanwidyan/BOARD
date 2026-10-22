@@ -110,7 +110,7 @@ const EventBadge = ({ event, styles, colors }) => {
   return content ? <View style={styles.badge}>{content}</View> : null;
 };
 
-// The thing on the end of an event: the poster, or a gold crown tile for
+// The thing on the end of an event: the poster, or a slate crown tile for
 // a rank (or, from before ranks, a badge or a finished collection).
 const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   if (event.movieId) {

@@ -12,93 +12,78 @@ const ICON_BOX = 38;
 // One way to decide (or to watch together), as a card: its icon in a small
 // rounded square, its name, and a line on what it does. `wide`: across the whole
 // row, the icon beside the words and an arrow at the end.
-export const DecideTile = ({ Icon, iconColor, label, hint, onPress, wide }) => {
+// A full-width list of ways to go: each its icon in a small square, its
+// name and a line on what it does, and a › — split by hairlines. `rows`:
+// [{ key, Icon, label, hint, onPress }]. Home's decide list and its Watch
+// together.
+export const ActionList = ({ rows }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const rtl = useIsRTL();
   return (
-    <Pressable
-      style={({ pressed }) => [styles.tile, wide && styles.tileWide, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}. ${hint}`}
-    >
-      <View style={[styles.iconBox, iconColor && { backgroundColor: `${iconColor}24` }]}>
-        <Icon size={20} color={iconColor ?? colors.textPrimary} strokeWidth={1.9} />
-      </View>
-      <View style={wide ? styles.wideText : styles.text}>
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
-        <Text style={styles.hint} numberOfLines={2}>
-          {hint}
-        </Text>
-      </View>
-      {wide && (
-        <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
-      )}
-    </Pressable>
-  );
-};
-
-// Home's other ways to decide: Swipe and Wildcard side by side, then
-// More like… across — plain cards, no posters.
-export const QuickPickBento = ({ onSwipe, onWildcard, onSimilar }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  return (
-    <View style={styles.grid}>
-      <View style={styles.row}>
-        <DecideTile
-          Icon={Layers}
-          label={t("Swipe")}
-          hint={t("Narrow ten down to one")}
-          onPress={onSwipe}
-        />
-        <DecideTile
-          Icon={Dices}
-          label={t("Wildcard")}
-          hint={t("One film, a surprise")}
-          onPress={onWildcard}
-        />
-      </View>
-      <DecideTile
-        wide
-        Icon={Waves}
-        label={t("More like…")}
-        hint={t("Films like one you love")}
-        onPress={onSimilar}
-      />
+    <View style={styles.list}>
+      {rows.map(({ key, Icon, label, hint, onPress }, index) => (
+        <Pressable
+          key={key}
+          style={({ pressed }) => [
+            styles.row,
+            index < rows.length - 1 && styles.rowDivider,
+            pressed && styles.rowPressed,
+          ]}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}. ${hint}`}
+        >
+          <View style={styles.iconBox}>
+            <Icon size={20} color={colors.textPrimary} strokeWidth={1.9} />
+          </View>
+          <View style={styles.wideText}>
+            <Text style={styles.label} numberOfLines={1}>
+              {label}
+            </Text>
+            <Text style={styles.hint} numberOfLines={1}>
+              {hint}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+        </Pressable>
+      ))}
     </View>
   );
 };
 
+// Home's other ways to decide.
+export const QuickPickBento = ({ onSwipe, onWildcard, onSimilar }) => (
+  <ActionList
+    rows={[
+      { key: "swipe", Icon: Layers, label: t("Swipe"), hint: t("Narrow ten down to one"), onPress: onSwipe },
+      { key: "wildcard", Icon: Dices, label: t("Wildcard"), hint: t("One film, a surprise"), onPress: onWildcard },
+      { key: "similar", Icon: Waves, label: t("More like…"), hint: t("Films like one you love"), onPress: onSimilar },
+    ]}
+  />
+);
+
 const createStyles = (colors) =>
   StyleSheet.create({
-    grid: {
-      gap: spacing.sm,
+    // The grouped list: a full-width band (it cancels the page's margins),
+    // square, no edge — rows split by hairlines.
+    list: {
+      marginHorizontal: -spacing.md,
+      backgroundColor: colors.card,
     },
     row: {
       flexDirection: "row",
-      gap: spacing.sm,
-    },
-    tile: {
-      flex: 1,
-      gap: spacing.sm + 2,
-      padding: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-    },
-    tileWide: {
-      flex: 0,
-      flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
     },
-    pressed: {
-      opacity: 0.75,
+    rowDivider: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    rowPressed: {
+      backgroundColor: colors.surfaceSoft,
     },
     // The icon in a small rounded square, outlined.
     iconBox: {
@@ -110,9 +95,6 @@ const createStyles = (colors) =>
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
       borderRadius: shape.control - 2,
-    },
-    text: {
-      gap: 2,
     },
     wideText: {
       flex: 1,

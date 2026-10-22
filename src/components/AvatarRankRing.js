@@ -11,10 +11,12 @@ const RING_STROKE = 5;
 const RING_GAP = 4;
 
 // The avatar wrapped in a ring that fills toward your next title, with
-// your rank count and title ("23 · Star") on a tag at its bottom edge.
-// `title`: getTitle() from utils/ranks. `color`: the ring's (gold unless
-// given); `tag: false` leaves the tag off (when it shows elsewhere).
-export const AvatarRankRing = ({ source, title, avatarSize = 88, color, tag = true }) => {
+// your rank count and title ("23 · Star") on a tag at its bottom edge —
+// both in the slate accent. `title`: getTitle() from utils/ranks. `color`:
+// the ring's (slate unless given); `tag: false` leaves the tag off (when
+// it shows elsewhere). `children`: an avatar to put in the ring in place
+// of `source`'s image (a friend's initials).
+export const AvatarRankRing = ({ source, title, avatarSize = 88, color, tag = true, children }) => {
   const colors = useColors();
   const size = avatarSize + 2 * (RING_GAP + RING_STROKE);
   const ringRadius = (size - RING_STROKE) / 2;
@@ -36,7 +38,7 @@ export const AvatarRankRing = ({ source, title, avatarSize = 88, color, tag = tr
           cx={size / 2}
           cy={size / 2}
           r={ringRadius}
-          stroke={color ?? colors.rating}
+          stroke={color ?? colors.selected}
           strokeWidth={RING_STROKE}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -46,7 +48,7 @@ export const AvatarRankRing = ({ source, title, avatarSize = 88, color, tag = tr
         />
       </Svg>
       <View style={styles.avatar}>
-        <Image source={source} style={styles.avatarImage} />
+        {children ?? <Image source={source} style={styles.avatarImage} />}
       </View>
       {tag && (
         <View style={styles.pill}>
@@ -78,7 +80,7 @@ const createStyles = (colors, size, avatarSize) =>
       width: "100%",
       height: "100%",
     },
-    // A small square gold tag, like the rank tags on posters.
+    // A small slate tag, white text, ringed in the page colour.
     pill: {
       position: "absolute",
       bottom: -6,
@@ -86,14 +88,14 @@ const createStyles = (colors, size, avatarSize) =>
       paddingVertical: 1,
       borderWidth: 2,
       borderColor: colors.background,
-      backgroundColor: colors.rating,
+      backgroundColor: colors.selected,
       borderRadius: shape.chip,
     },
     pillText: {
       ...typography.bodyBold,
       fontSize: 11,
       lineHeight: 14,
-      color: colors.background,
+      color: colors.selectedText,
     },
   });
 

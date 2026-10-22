@@ -266,8 +266,6 @@ const createStyles = (colors) =>
   StyleSheet.create({
     list: {
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
       overflow: "hidden",
     },
     separator: {
@@ -374,16 +372,16 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: shape.tab,
     },
     filterChipOn: {
       backgroundColor: colors.selected,
     },
     filterChipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     filterChipTextOn: {
       color: colors.selectedText,

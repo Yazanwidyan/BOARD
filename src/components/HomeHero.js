@@ -1,12 +1,16 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { X } from "lucide-react-native";
-import { useState } from "react";
+import { Crown, Layers, Sparkles, TrendingUp, X } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
   Extrapolation,
+  FadeIn,
+  FadeOut,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
 import { Text } from "./AppText";
 
@@ -14,6 +18,8 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
+import { describeForecast } from "../utils/ranks";
+import { describeSagaStep } from "../utils/tonightPick";
 
 // The card's height for its width.
 const CARD_RATIO = 0.82;
@@ -29,7 +35,30 @@ const PULL_DISTANCE = 160;
 // when there are several to step through, dots for which one this is.
 // Without an image (the welcome) it's the same card, plain.
 //
-// `match`: how well it fits your taste (0–100). `pages`: { count, index }.
+// The ✦ while it's thinking: breathing in and out.
+const ThinkingMark = ({ color }) => {
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 550 }), -1, true);
+  }, [pulse]);
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.55 + pulse.value * 0.45,
+    transform: [{ scale: 0.85 + pulse.value * 0.3 }, { rotate: `${pulse.value * 20}deg` }],
+  }));
+  return (
+    <Animated.View style={style}>
+      <Sparkles size={30} color={color} strokeWidth={1.8} />
+    </Animated.View>
+  );
+};
+
+// `match`: how well it fits your taste (0–100). `tag`: { text, color? } —
+// why it's here ("From your watchlist", "Finishes a collection"), beside
+// the match. `saga` and `forecast` (utils/tonightPick) add a slate line each
+// for what it does for a collection and for your ranks.
+// `pages`: { count, index }.
+// `thinking`: a line to show over the card while the next one's being
+// found (the ✦ pulses over the dimmed card), or null.
 export const HomeHero = ({
   posterUri,
   backdropUri,
@@ -39,15 +68,24 @@ export const HomeHero = ({
   meta,
   reason,
   match,
+  tag,
+  saga,
+  forecast,
   actions,
   pages,
   onPress,
   onDismiss,
   scrollY,
+  thinking = null,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const { width } = useWindowDimensions();
+  // What it does for a collection, and for your ranks — a line each.
+  const sagaLine = describeSagaStep(saga);
+  const isRankStep = saga?.type === "rank";
+  const rankLine = forecast ? describeForecast(forecast) : null;
+  const earnsRank = (forecast?.gained?.length ?? 0) > 0;
   const cardWidth = width - spacing.md * 2;
   const image = backdropUri ?? posterUri;
   // The movie's own title art (TMDB's) in place of the title — dark mode
@@ -76,7 +114,8 @@ export const HomeHero = ({
   return (
     <View>
       <Pressable
-        style={[styles.card, image && { height: Math.round(cardWidth * CARD_RATIO) }]}
+        // At least this tall; taller when there's more to say.
+        style={[styles.card, image && { minHeight: Math.round(cardWidth * CARD_RATIO) }]}
         onPress={onPress}
         disabled={!onPress}
       >
@@ -149,12 +188,61 @@ export const HomeHero = ({
               {reason}
             </Text>
           )}
-          {match != null && (
-            <View style={styles.match}>
-              <Text style={styles.matchText}>{t("{match}% match", { match })}</Text>
+          {(match != null || tag) && (
+            <View style={styles.chips}>
+              {match != null && (
+                <View style={styles.match}>
+                  <Text style={styles.matchText}>{t("{match}% match", { match })}</Text>
+                </View>
+              )}
+              {tag && (
+                <View style={styles.tag}>
+                  <Text style={[styles.tagText, tag.color && { color: tag.color }]} numberOfLines={1}>
+                    {tag.text}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          {!!sagaLine && (
+            <View style={styles.note}>
+              {isRankStep ? (
+                <Crown size={13} color={colors.rating} strokeWidth={2} />
+              ) : (
+                <Layers size={13} color={colors.rating} strokeWidth={2} />
+              )}
+              <Text style={styles.noteText} numberOfLines={1}>
+                {sagaLine}
+              </Text>
+            </View>
+          )}
+          {!!rankLine && (
+            <View style={styles.note}>
+              {earnsRank ? (
+                <Crown size={13} color={colors.rating} strokeWidth={2} />
+              ) : (
+                <TrendingUp size={13} color={colors.rating} strokeWidth={2} />
+              )}
+              <Text style={styles.noteText} numberOfLines={1}>
+                {rankLine}
+              </Text>
             </View>
           )}
         </View>
+
+        {!!thinking && (
+          <Animated.View
+            entering={FadeIn.duration(150)}
+            exiting={FadeOut.duration(200)}
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.thinking]}
+          >
+            <ThinkingMark color={colors.textPrimary} />
+            <Animated.View key={thinking} entering={FadeIn.duration(180)}>
+              <Text style={styles.thinkingText}>{thinking}</Text>
+            </Animated.View>
+          </Animated.View>
+        )}
       </Pressable>
 
       {actions && <View style={styles.actions}>{actions}</View>}
@@ -226,9 +314,42 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
+    chips: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: 6,
+      marginTop: spacing.sm,
+    },
+    // Why it's here, beside the match.
+    tag: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      borderRadius: shape.control - 4,
+      maxWidth: "100%",
+    },
+    tagText: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.textPrimary,
+    },
+    // What it does for a collection or your ranks, in slate.
+    note: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 4,
+    },
+    noteText: {
+      ...typography.caption,
+      lineHeight: 16,
+      color: colors.rating,
+      flexShrink: 1,
+    },
     match: {
       alignSelf: "flex-start",
-      marginTop: spacing.sm,
       paddingHorizontal: spacing.sm,
       paddingVertical: 3,
       backgroundColor: colors.successSoft,
@@ -239,6 +360,19 @@ const createStyles = (colors) =>
       fontSize: 12,
       lineHeight: 16,
       color: colors.success,
+    },
+    // While it's finding the next one: the card dimmed, the ✦ and a line.
+    thinking: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm + 2,
+      backgroundColor: `${colors.background}D9`,
+    },
+    thinkingText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
     },
     actions: {
       flexDirection: "row",

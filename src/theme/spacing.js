@@ -1,15 +1,16 @@
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
+  md: 12,
   lg: 28,
   xl: 32,
   xxl: 48,
 };
 
-// The app's corners: cards and grouped rows, controls (buttons, inputs,
-// segments), chips and pills (fully round), posters, and sheets' tops.
-export const shape = { card: 10, control: 8, chip: 999, poster: 4, sheet: 14 };
+// The app's corners: cards and grouped rows, controls (buttons, inputs),
+// tabs and filter chips (the Library tab's pill), round pills and tags,
+// posters, and sheets' tops.
+export const shape = { card: 10, control: 8, tab: 7, chip: 999, poster: 4, sheet: 14 };
 
 export const radius = {
   xs: 6,

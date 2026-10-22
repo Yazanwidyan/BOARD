@@ -250,8 +250,6 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
     },
     avatarStack: {
       flexDirection: "row",
@@ -288,28 +286,36 @@ const createStyles = (colors) =>
     chipRow: {
       flexGrow: 0,
       marginTop: spacing.md,
+      marginHorizontal: spacing.md,
     },
+    // Like Library's tabs: a dark track, the open one a slate pill.
     chipRowContent: {
-      gap: 6,
-      paddingHorizontal: spacing.md,
+      flexGrow: 1,
+      gap: 2,
+      padding: 2,
+      // On the page, so the card colour (the dark track would vanish).
+      backgroundColor: colors.card,
+      borderRadius: 6,
     },
     chip: {
+      flexGrow: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 4,
       paddingHorizontal: spacing.sm + 4,
-      paddingVertical: spacing.sm,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: 7,
     },
     chipOn: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.segmentOn,
     },
     chipText: {
       ...typography.bodyBold,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.segmentText,
     },
     chipTextOn: {
-      color: colors.selectedText,
+      color: colors.segmentOnText,
     },
     empty: {
       alignItems: "center",
