@@ -12,7 +12,7 @@ import {
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { CLUB_NAME_MAX, useClubActions, useClubs } from "../store/clubsStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { useRefetchOnFocus } from "../utils/useRefetchOnFocus";
@@ -189,6 +189,8 @@ const createStyles = (colors) =>
     intro: {
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     introText: {
       ...typography.body,
@@ -210,6 +212,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       minHeight: 48,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     input: {
       ...typography.body,
@@ -232,6 +236,8 @@ const createStyles = (colors) =>
       padding: spacing.md,
       marginBottom: 2,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     clubText: {
       flex: 1,

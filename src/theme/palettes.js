@@ -1,6 +1,7 @@
-// Two palettes — dark is a slate blue-grey (#202A30) with white as the
-// secondary (main actions, selected states); its cards, sheets, borders and
-// greys are lighter steps of the same cool hue. Light is neutral. Main actions are white / black;
+// Two palettes — dark is a near-black blue (#04080B) with a pale
+// blue-white for main actions and selected states; its cards, sheets,
+// borders and greys are lighter steps of the same cool hue. Light is
+// neutral. Main actions are white / black;
 // colour carries meaning: `rating` gold for XP, levels and scores,
 // `success` green for done / saved / matched, `danger` red for hard dares,
 // poor scores and destructive actions. Main actions use `accent` (white in
@@ -10,41 +11,52 @@
 export const darkColors = {
   isDark: true,
 
-  background: "#202A30",
+  background: "#040E12",
 
-  card: "#2A353C",
+  card: "#0d161b",
 
-  cardElevated: "#313D45",
+  cardElevated: "#142028",
 
-  cardElevatedLight: "#3D4A53",
+  cardElevatedLight: "#1E2C34",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#C9D2D8",
+  textSecondary: "#B9C6CF",
 
-  // At least 4.5:1 on every surface up to sheets.
-  textMuted: "#A0ACB4",
+  // At least 4.5:1 on every surface, light fills included.
+  textMuted: "#8A99A3",
 
   accent: "#FFFFFF",
-  accentLight: "#C9D2D8",
+  accentLight: "#B9C6CF",
 
-  accentContrast: "#202A30",
+  accentContrast: "#04080B",
 
-  success: "#5BD08A",
+  success: "#4ED08A",
 
   rating: "#F2C14E",
 
   danger: "#FF8585",
 
-  border: "#3A474F",
+  border: "#1C2B33",
 
-  selected: "#FFFFFF",
+  // Selected tabs and chips, and the main buttons: a pale blue-white.
+  selected: "#edf4fa",
 
-  selectedText: "#202A30",
+  selectedText: "#04080B",
 
-  successSoft: "rgba(91, 208, 138, 0.14)",
+  successSoft: "rgba(78, 208, 138, 0.16)",
 
-  surfaceSoft: "rgba(255, 255, 255, 0.08)",
+  surfaceSoft: "rgba(255, 255, 255, 0.06)",
+
+  // Small square icon buttons (shuffle, trailer): a raised tile with a
+  // lighter edge.
+  buttonFill: "#19252F",
+  buttonEdge: "#2C3F4E",
+
+  // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
+  // a quiet fill a step above the page, a faint ring.
+  ringFill: "#111C23",
+  ringEdge: "#1E2C35",
 };
 
 export const lightColors = {
@@ -85,6 +97,12 @@ export const lightColors = {
   successSoft: "rgba(31, 157, 85, 0.12)",
 
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
+
+  buttonFill: "#F2F2F3",
+  buttonEdge: "#D6D8DC",
+
+  ringFill: "#F7F7F8",
+  ringEdge: "#DCDDE0",
 };
 
 // Static default for code that can't call `useColors()`.

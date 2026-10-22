@@ -9,8 +9,8 @@ import { useColors } from "../theme/useColors";
 
 const ICON_BOX = 38;
 
-// One way to decide (or to watch together), as a card: its icon in a soft
-// circle, its name, and a line on what it does. `wide`: across the whole
+// One way to decide (or to watch together), as a card: its icon in a small
+// rounded square, its name, and a line on what it does. `wide`: across the whole
 // row, the icon beside the words and an arrow at the end.
 export const DecideTile = ({ Icon, iconColor, label, hint, onPress, wide }) => {
   const colors = useColors();
@@ -88,6 +88,8 @@ const createStyles = (colors) =>
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
     tileWide: {
       flex: 0,
@@ -98,13 +100,16 @@ const createStyles = (colors) =>
     pressed: {
       opacity: 0.75,
     },
+    // The icon in a small rounded square, outlined.
     iconBox: {
       width: ICON_BOX,
       height: ICON_BOX,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.surfaceSoft,
-      borderRadius: ICON_BOX / 2,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: shape.control - 2,
     },
     text: {
       gap: 2,

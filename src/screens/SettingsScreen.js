@@ -53,7 +53,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useTipsStore } from "../store/tipsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { changeLanguage, t, useIsRTL } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -286,6 +286,8 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     avatar: {
       width: AVATAR_SIZE,

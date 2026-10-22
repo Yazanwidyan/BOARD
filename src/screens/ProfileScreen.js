@@ -1,11 +1,10 @@
 import {
-  Bell,
   Settings as SettingsIcon,
   Share2,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -26,7 +25,6 @@ import {
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
-import { MoviePoster } from "../components/MoviePoster";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TasteShareSheet } from "../components/TasteShareSheet";
 import { WatcherCard } from "../components/WatcherCard";
@@ -44,13 +42,14 @@ import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { isRated, orderSTier } from "../utils/tiers";
 import { useRankSummary } from "../utils/useRanks";
 import { t } from "../i18n";
-import { useFriends, useNotificationCount } from "../store/friendsStore";
+import { useFriends } from "../store/friendsStore";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
 // The blurred poster strip behind the identity.
-const BACKDROP_POSTERS = 5;
+// How many favourites to look through for a still.
+const BACKDROP_CANDIDATES = 6;
 const BACKDROP_HEIGHT = 190;
 
 // Who you are as a watcher, top to bottom, one short section each: the
@@ -72,7 +71,6 @@ export const ProfileScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
-  const notificationCount = useNotificationCount();
   const { friends } = useFriends();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -109,15 +107,18 @@ export const ProfileScreen = ({ navigation }) => {
     (a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0),
   );
 
-  // Backdrop: your favourites (or, before you've tiered any S, what you
-  // watched last).
-  const backdropPosters = (
+  // Backdrop: a still from your favourite (or, before you've tiered any S,
+  // what you watched last) — the first of them that has one; else its
+  // poster, blurred.
+  const backdropCandidates = (
     favoriteMovies.length > 0
       ? favoriteMovies
       : watchedByRecent
           .map((entry) => getMovieById(entry.movieId))
           .filter(Boolean)
-  ).slice(0, BACKDROP_POSTERS);
+  ).slice(0, BACKDROP_CANDIDATES);
+  const backdropMovie =
+    backdropCandidates.find((movie) => movie.backdrop) ?? backdropCandidates[0] ?? null;
 
   // Fully watched sagas — counted in the stats (tap it for Library →
   // Sagas) and named in the share text.
@@ -186,28 +187,32 @@ export const ProfileScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: header.contentInset }}
       >
-        {/* Backdrop — your favorites, blurred, fading into the page,
-            under the header. */}
-        {backdropPosters.length > 0 && (
+        {/* Backdrop — a still from your favourite, from the very top
+            behind the see-through header and your card, fading into the
+            page. */}
+        {backdropMovie && (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.backdrop,
-              { top: header.contentInset, height: BACKDROP_HEIGHT },
+              { height: header.contentInset + BACKDROP_HEIGHT },
               backdropStyle,
             ]}
           >
-            {backdropPosters.map((movie) => (
-              <MoviePoster
-                key={movie.id}
-                uri={movie.poster}
-                blurRadius={14}
-                style={styles.backdropPoster}
-              />
-            ))}
+            <Image
+              source={{ uri: backdropMovie.backdrop ?? backdropMovie.poster }}
+              blurRadius={backdropMovie.backdrop ? 0 : 18}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            />
             <LinearGradient
-              colors={[`${colors.background}8C`, colors.background]}
-              locations={[0, 0.95]}
+              colors={[
+                `${colors.background}73`,
+                `${colors.background}33`,
+                `${colors.background}B3`,
+                colors.background,
+              ]}
+              locations={[0, 0.35, 0.75, 1]}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
@@ -287,21 +292,18 @@ export const ProfileScreen = ({ navigation }) => {
       </Animated.ScrollView>
       <ScreenBottomFade />
       <FirstVisitTip id="profile" />
+      {/* See-through over the backdrop, no title — your name is on the
+          card — just Share and Settings. */}
       <DockHeader
         {...header.props}
-        title={t("Profile")}
+        overlay={!!backdropMovie}
+        title=""
         right={
           <>
-            <HeaderIconButton onPress={() => setIsShareOpen(true)}>
+            <HeaderIconButton onPress={() => setIsShareOpen(true)} accessibilityLabel={t("Share")}>
               <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
-            <HeaderIconButton
-              onPress={() => navigation.navigate("Activity")}
-              badge={notificationCount}
-            >
-              <Bell size={22} color={colors.textPrimary} strokeWidth={1.75} />
-            </HeaderIconButton>
-            <HeaderIconButton onPress={() => navigation.navigate("Settings")}>
+            <HeaderIconButton onPress={() => navigation.navigate("Settings")} accessibilityLabel={t("Settings")}>
               <SettingsIcon
                 size={22}
                 color={colors.textPrimary}
@@ -341,15 +343,10 @@ const createStyles = (colors) =>
     },
     backdrop: {
       position: "absolute",
+      top: 0,
       start: 0,
       end: 0,
-      flexDirection: "row",
       overflow: "hidden",
-    },
-    backdropPoster: {
-      flex: 1,
-      height: "100%",
-      opacity: 0.55,
     },
   });
 

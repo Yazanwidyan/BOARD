@@ -5,7 +5,7 @@ import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useToastStore } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -61,7 +61,7 @@ const createStyles = (colors) =>
       maxWidth: "100%",
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-      borderRadius: 0,
+      borderRadius: shape.chip,
       backgroundColor: colors.cardElevatedLight,
       borderWidth: 1,
       borderColor: colors.border,

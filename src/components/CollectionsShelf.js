@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -473,6 +473,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     chipActive: {
       backgroundColor: colors.selected,
@@ -513,7 +514,7 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm + 2,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
-      borderRadius: 0,
+      borderRadius: shape.chip,
       backgroundColor: colors.cardElevated,
     },
     tagText: {
@@ -579,6 +580,7 @@ const createStyles = (colors) =>
       gap: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     missingInfo: {
       flex: 1,
@@ -630,7 +632,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       padding: spacing.sm,
-      borderRadius: 0,
+      borderRadius: shape.card,
       backgroundColor: colors.card,
     },
     suggestionMain: {
@@ -645,7 +647,7 @@ const createStyles = (colors) =>
       gap: 4,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 7,
-      borderRadius: 0,
+      borderRadius: shape.control,
       backgroundColor: colors.accent,
     },
     trackText: {

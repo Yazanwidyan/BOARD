@@ -14,7 +14,7 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { BOARD_NAME_MAX, useBoardStore } from "../store/boardStore";
 import { useClubActions, useClubs } from "../store/clubsStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BoardCover } from "./BoardCover";
@@ -160,6 +160,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.md,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     newInput: {
       ...typography.body,

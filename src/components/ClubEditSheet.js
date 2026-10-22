@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 
 import { CLUB_DESCRIPTION_MAX, CLUB_NAME_MAX } from "../store/clubsStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
@@ -81,6 +81,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
+      borderRadius: shape.control,
     },
     multiline: {
       minHeight: 80,

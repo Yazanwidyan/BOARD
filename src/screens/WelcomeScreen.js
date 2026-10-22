@@ -23,7 +23,7 @@ import {
   getGoogleCredentials,
 } from "../services/socialAuth";
 import { signInWith } from "../services/sync";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { SIGN_IN_WALL, WALL_SIZE, getSignInWallMovies } from "../utils/posterWalls";
@@ -236,6 +236,8 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       minHeight: 50,
       paddingHorizontal: spacing.md,
+      borderRadius: shape.control,
+      overflow: "hidden",
     },
     buttonText: {
       ...typography.bodyBold,
@@ -253,6 +255,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderRadius: shape.control,
     },
     pressed: {
       opacity: 0.8,
@@ -273,6 +276,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.card,
     },
     featureText: {
       ...typography.caption,

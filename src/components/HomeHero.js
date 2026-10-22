@@ -2,30 +2,34 @@ import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { Text } from "./AppText";
 
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 
-// Home's top banner, like a movie's page: the film's backdrop (a still,
-// softened; or, without one, its poster blurred) behind it all — the title
-// or logo (left) and poster (right) high up, then `details` (why it's the
-// pick) and the actions — fading into the page at the bottom. Without a poster (the welcome) it's just the text.
-//
-// Pass the page's `scrollY` and the backdrop answers a pull to refresh: it
-// stretches up into the gap the pull opens above it, its top edge held at
-// the top of the page. Scrolling the other way, it just scrolls.
-const POSTER_WIDTH = 104;
-const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
+// The card's height for its width.
+const CARD_RATIO = 0.82;
 // The film's title art fits inside this box, keeping its shape.
-const LOGO_MAX_HEIGHT = 72;
-// The still is softened behind the words, so they read on it.
-const BACKDROP_BLUR = 24;
+const LOGO_MAX_HEIGHT = 64;
+// On a pull to refresh the still zooms in a little, inside the card.
+const PULL_ZOOM = 0.18;
+const PULL_DISTANCE = 160;
 
+// Home's top card: the film's still filling a rounded card, darkened from
+// the left, with a small label, the title (or the film's logo), one line of
+// meta, why it fits you and how well — then the actions under the card and,
+// when there are several to step through, dots for which one this is.
+// Without an image (the welcome) it's the same card, plain.
+//
+// `match`: how well it fits your taste (0–100). `pages`: { count, index }.
 export const HomeHero = ({
   posterUri,
   backdropUri,
@@ -34,8 +38,9 @@ export const HomeHero = ({
   title,
   meta,
   reason,
-  details,
+  match,
   actions,
+  pages,
   onPress,
   onDismiss,
   scrollY,
@@ -43,202 +48,218 @@ export const HomeHero = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const { width } = useWindowDimensions();
-  // The backdrop's part of the banner (measured), which it fills.
-  const [height, setHeight] = useState(0);
+  const cardWidth = width - spacing.md * 2;
+  const image = backdropUri ?? posterUri;
   // The movie's own title art (TMDB's) in place of the title — dark mode
   // only, as most logos are white; the plain title if it doesn't load.
   const [logoFailed, setLogoFailed] = useState(false);
-  const textWidth = width - spacing.md * 3 - (posterUri ? POSTER_WIDTH : 0);
   const logoSize =
     colors.isDark && logo?.url && logo.aspect > 0 && !logoFailed
       ? (() => {
-          const logoWidth = Math.min(textWidth, LOGO_MAX_HEIGHT * logo.aspect);
+          const logoWidth = Math.min(cardWidth * 0.62, LOGO_MAX_HEIGHT * logo.aspect);
           return { width: logoWidth, height: logoWidth / logo.aspect };
         })()
       : null;
-  const backdropHeight = height || width;
+
   const stillScroll = useSharedValue(0);
   const pull = scrollY ?? stillScroll;
-  // Pulled down by g: grow by g (scaled about the centre) and move up by
-  // half of it, so the top edge stays where the page starts.
-  const stretchStyle = useAnimatedStyle(() => {
-    const y = pull.value;
-    if (y >= 0) return { transform: [{ translateY: 0 }, { scale: 1 }] };
-    return { transform: [{ translateY: y / 2 }, { scale: 1 - y / backdropHeight }] };
-  }, [backdropHeight]);
-
-  const row = (
-    // The words on the left, the poster on the right.
-    <View style={styles.row}>
-      <View style={styles.text}>
-        <Text style={[styles.eyebrow, posterUri && styles.shadowed]}>{eyebrow}</Text>
-        {logoSize ? (
-          <Image
-            source={{ uri: logo.url }}
-            style={[logoSize, styles.logo]}
-            resizeMode="contain"
-            onError={() => setLogoFailed(true)}
-            accessible
-            accessibilityRole="header"
-            accessibilityLabel={title}
-          />
-        ) : (
-          <Text style={[styles.title, posterUri && styles.shadowed]} numberOfLines={3}>
-            {title}
-          </Text>
-        )}
-        {!!meta && (
-          <Text style={[styles.meta, posterUri && styles.shadowed]} numberOfLines={2}>
-            {meta}
-          </Text>
-        )}
-        {reason}
-      </View>
-      {posterUri && <MoviePoster uri={posterUri} shadow style={styles.poster} />}
-    </View>
-  );
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale:
+          1 +
+          interpolate(-pull.value, [0, PULL_DISTANCE], [0, PULL_ZOOM], Extrapolation.CLAMP),
+      },
+    ],
+  }));
 
   return (
-    <Pressable style={styles.hero} onPress={onPress} disabled={!onPress}>
-      {posterUri ? (
-        // The title and poster, on the backdrop.
-        <View
-          style={[styles.onImage, { paddingTop: Math.round(width * 0.06) }]}
-          onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
-        >
-          <Animated.View pointerEvents="none" style={[styles.backdrop, stretchStyle]}>
+    <View>
+      <Pressable
+        style={[styles.card, image && { height: Math.round(cardWidth * CARD_RATIO) }]}
+        onPress={onPress}
+        disabled={!onPress}
+      >
+        {image && (
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, zoomStyle]}>
             <Image
-              source={{ uri: backdropUri ?? posterUri }}
-              blurRadius={backdropUri ? BACKDROP_BLUR : 22}
+              source={{ uri: image }}
+              blurRadius={backdropUri ? 0 : 18}
               resizeMode="cover"
               style={StyleSheet.absoluteFill}
             />
-            {/* The softened still behind it all: a light shade at the top
-                for the ✕, a touch more down the banner for the words and
-                buttons, then into the page at the very bottom. */}
+          </Animated.View>
+        )}
+        {image && (
+          <>
+            {/* Dark from the left, where the words are… */}
             <LinearGradient
-              colors={[
-                `${colors.background}66`,
-                `${colors.background}26`,
-                `${colors.background}59`,
-                `${colors.background}B3`,
-                colors.background,
-              ]}
-              locations={[0, 0.3, 0.7, 0.9, 1]}
+              pointerEvents="none"
+              colors={[`${colors.background}F2`, `${colors.background}99`, `${colors.background}00`]}
+              locations={[0, 0.45, 0.85]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
-          </Animated.View>
+            {/* …and up from the bottom. */}
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${colors.background}00`, `${colors.background}B3`]}
+              locations={[0.45, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </>
+        )}
 
-          {onDismiss && (
-            <Pressable
-              style={styles.dismiss}
-              onPress={onDismiss}
-              hitSlop={10}
-              accessibilityLabel={t("Remove")}
-            >
-              <X size={22} color={colors.textPrimary} strokeWidth={1.75} />
-            </Pressable>
+        {onDismiss && (
+          <Pressable
+            style={styles.dismiss}
+            onPress={onDismiss}
+            hitSlop={10}
+            accessibilityLabel={t("Remove")}
+          >
+            <X size={18} color="#FFFFFF" strokeWidth={2} />
+          </Pressable>
+        )}
+
+        <View style={styles.words}>
+          {!!eyebrow && <Text style={styles.eyebrow}>{eyebrow}</Text>}
+          {logoSize ? (
+            <Image
+              source={{ uri: logo.url }}
+              style={[logoSize, styles.logo]}
+              resizeMode="contain"
+              onError={() => setLogoFailed(true)}
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={title}
+            />
+          ) : (
+            <Text style={styles.title} numberOfLines={2}>
+              {title}
+            </Text>
           )}
-          {row}
-          {details}
-          {actions && <View style={styles.actions}>{actions}</View>}
+          {!!meta && (
+            <Text style={styles.meta} numberOfLines={1}>
+              {meta}
+            </Text>
+          )}
+          {!!reason && (
+            <Text style={styles.reason} numberOfLines={2}>
+              {reason}
+            </Text>
+          )}
+          {match != null && (
+            <View style={styles.match}>
+              <Text style={styles.matchText}>{t("{match}% match", { match })}</Text>
+            </View>
+          )}
         </View>
-      ) : (
-        <>
-          {row}
-          {details}
-          {actions && <View style={styles.actions}>{actions}</View>}
-        </>
+      </Pressable>
+
+      {actions && <View style={styles.actions}>{actions}</View>}
+
+      {pages && pages.count > 1 && (
+        <View style={styles.dots} accessible accessibilityLabel={`${pages.index + 1} / ${pages.count}`}>
+          {Array.from({ length: pages.count }, (_, index) => (
+            <View key={index} style={[styles.dot, index === pages.index && styles.dotOn]} />
+          ))}
+        </View>
       )}
-    </Pressable>
+    </View>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Edge to edge (it cancels Home's section padding). Not clipped, so the
-    // backdrop can stretch up past it on a pull — the page's scroll view
-    // keeps it below the tabs.
-    hero: {
-      marginHorizontal: -spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+    card: {
+      justifyContent: "flex-end",
+      padding: spacing.md + 2,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      overflow: "hidden",
     },
-    // On the backdrop: the full width, the still showing above the title
-    // and poster, everything down to the buttons on it, and a little room
-    // under them for the fade.
-    onImage: {
-      marginHorizontal: -spacing.md,
-      marginTop: -spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xl,
-    },
-    logo: {
-      marginTop: spacing.sm,
-    },
-    shadowed: {
-      textShadowColor: "rgba(0, 0, 0, 0.65)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 8,
-    },
-    backdrop: {
-      ...StyleSheet.absoluteFill,
-    },
-    // A flat ✕ like the header icons (no circle).
+    // A small round ✕ on the image.
     dismiss: {
       position: "absolute",
       top: spacing.sm + 2,
-      end: spacing.md,
+      end: spacing.sm + 2,
       zIndex: 2,
-      width: 32,
-      height: 32,
-      alignItems: "flex-end",
-      justifyContent: "flex-start",
+      width: 30,
+      height: 30,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.45)",
+      borderRadius: shape.chip,
     },
-    // The words and the poster level at the top.
-    row: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: spacing.md,
+    words: {
+      maxWidth: "72%",
+      gap: 4,
     },
-    // A thin light frame lifts it off the backdrop.
-    poster: {
-      width: POSTER_WIDTH,
-      height: POSTER_HEIGHT,
-      borderWidth: 1.5,
-      borderColor: "rgba(255, 255, 255, 0.28)",
-    },
-    text: {
-      flex: 1,
-      paddingTop: spacing.xs,
-    },
-    // Small capitals, like a film page's credits line.
     eyebrow: {
       ...typography.label,
-      fontSize: 12,
+      fontSize: 11,
       letterSpacing: 1,
-      color: colors.textMuted,
+      color: colors.textSecondary,
     },
     title: {
-      ...typography.hero,
-      fontSize: 26,
-      lineHeight: 32,
+      ...typography.display,
+      fontSize: 30,
+      lineHeight: 34,
+      letterSpacing: -0.6,
       color: colors.textPrimary,
-      marginTop: spacing.xs,
+    },
+    logo: {
+      marginVertical: 4,
     },
     meta: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 18,
-      letterSpacing: 0.8,
+      ...typography.caption,
+      lineHeight: 16,
       color: colors.textSecondary,
-      marginTop: spacing.sm + 2,
+    },
+    reason: {
+      ...typography.body,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    match: {
+      alignSelf: "flex-start",
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      backgroundColor: colors.successSoft,
+      borderRadius: shape.control - 4,
+    },
+    matchText: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.success,
     },
     actions: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      marginTop: spacing.lg,
+      marginTop: spacing.md,
+    },
+    dots: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: spacing.md,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.cardElevatedLight,
+    },
+    dotOn: {
+      backgroundColor: colors.textSecondary,
     },
   });
 

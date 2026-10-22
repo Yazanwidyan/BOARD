@@ -1,15 +1,15 @@
-import { Plus, Star } from "lucide-react-native";
+import { Pencil } from "lucide-react-native";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { AvatarRankRing } from "./AvatarRankRing";
 import { RankBadge } from "./RankBadge";
 import { t } from "../i18n";
 
-// Your rarest ranks, shown under the bio.
+// Your rarest ranks, shown under the bio on the shared image.
 const TOP_RANKS = 6;
 const TOP_RANK_SIZE = 34;
 
@@ -17,20 +17,19 @@ const TOP_RANK_SIZE = 34;
 // are as a watcher at a glance, laid out like a social profile.
 //
 //   avatar (ring to your next title)   name
-//                                      movies · hours · collections · friends
-//                                      TITLE · ranks to the next one
-//   "bio, as a quote"
-//   your rarest ranks
+//                                      [ ranks · title ]   (a gold pill)
+//   movies   watched   collections   friends
+//   your bio ……………………………………………… ✎
 //
 // mode "profile" is interactive (edit the photo and bio, open sagas);
-// mode "share" drops every control so it reads cleanly as an image.
+// mode "share" drops every control so it reads cleanly as an image, and
+// adds your rarest ranks under the bio.
 // `title` (getTitle() from utils/ranks) and `showcase` (ranks, rarest
-// first) are optional: without them it's a plain avatar, no title line and
-// no rank tiles. `ring` (getTitle()) alone draws the avatar's ring to the
-// next title; `rankCount` alone shows the ranks number in the stats;
-// `stats.friends`, when given, shows how many friends (tap: `onPressFriends`);
-// `nameTitle` (getTitle()) puts your title in a small gold tag after your
-// name.
+// first) are optional: without them it's a plain avatar and no pill.
+// `ring` (getTitle()) alone draws the avatar's ring to the next title;
+// `rankCount` is the number in the pill; `stats.friends`, when given,
+// shows how many friends (tap: `onPressFriends`). `nameTitle` (getTitle())
+// names the title in the pill when `title` isn't given.
 export const WatcherCard = ({
   mode = "profile",
   displayName,
@@ -53,15 +52,13 @@ export const WatcherCard = ({
   const styles = createStyles(colors);
   const isShare = mode === "share";
   const Touch = isShare ? View : Pressable;
+  // The pill names your title: the given one, or the ring's.
+  const pillTitle = title ?? nameTitle ?? ring;
+  const pillCount = rankCount ?? pillTitle?.count;
 
   const statItems = [
     { value: stats.movies, label: stats.movies === 1 ? "movie" : "movies" },
     { value: `${stats.hours}h`, label: "watched" },
-    rankCount != null && {
-      value: rankCount,
-      label: rankCount === 1 ? "rank" : "ranks",
-      onPress: onPressRanks,
-    },
     { value: stats.completed, label: "collections", onPress: onPressCollections },
     stats.friends != null && {
       value: stats.friends,
@@ -72,127 +69,92 @@ export const WatcherCard = ({
 
   return (
     <View>
-      {/* Avatar beside the headline numbers */}
+      {/* The avatar, your name, and your rank in a gold pill */}
       <View style={styles.topRow}>
         <Touch
           onPress={onPressAvatar}
           accessibilityLabel={ring ? t("Your ranks") : t("Change profile photo")}
         >
           {ring ? (
-            <AvatarRankRing source={avatarSource} title={ring} avatarSize={76} />
+            <AvatarRankRing
+              source={avatarSource}
+              title={ring}
+              avatarSize={76}
+              color={colors.success}
+              tag={false}
+            />
           ) : (
             <Image source={avatarSource} style={styles.avatar} />
           )}
         </Touch>
         <View style={styles.side}>
-          {/* The name (and your title in a gold tag), over the numbers */}
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {displayName}
-            </Text>
-            {nameTitle && (
-              <Touch
-                onPress={onPressRanks}
-                hitSlop={6}
-                style={styles.titleTag}
-                accessibilityLabel={t(nameTitle.name)}
-              >
-                <Star size={11} color={colors.rating} fill={colors.rating} strokeWidth={2} />
-                <Text style={styles.titleTagText} numberOfLines={1}>
-                  {t(nameTitle.name)}
-                </Text>
-              </Touch>
-            )}
-          </View>
+          <Text style={styles.name} numberOfLines={1}>
+            {displayName}
+          </Text>
           {isShare && <Text style={styles.handle}>{handle}</Text>}
-          <View style={styles.stats}>
-            {statItems.map(({ value, label, onPress }) => {
-              const tappable = !isShare && !!onPress;
-              const Item = tappable ? Pressable : View;
-              return (
-                <Item
-                  key={label}
-                  style={styles.stat}
-                  onPress={onPress}
-                  hitSlop={6}
-                  accessibilityRole={tappable ? "button" : undefined}
-                  accessibilityLabel={`${value} ${label}`}
-                >
-                  <Text style={styles.statValue}>{value}</Text>
-                  <View style={styles.statLabelRow}>
-                    <Text style={styles.statLabel} numberOfLines={1}>
-                      {t(label)}
-                    </Text>
-                  </View>
-                </Item>
-              );
-            })}
-          </View>
-          {/* Your title, and how far to the next — under the numbers */}
-          {title && (
-          <Touch
-            onPress={onPressAvatar}
-            hitSlop={6}
-            style={styles.rankRow}
-            accessibilityLabel={t("Your ranks")}
-          >
-            <Text style={styles.rankName} numberOfLines={1}>
-              {t(title.name)}
-              {!isShare && (
-                <Text style={styles.rankNext}>
-                  {" · "}
-                  {title.next
-                    ? t("{count} ranks to {title}", {
-                        count: title.toNext,
-                        title: t(title.next.name),
-                      })
-                    : t("The top title")}
-                </Text>
-              )}
-            </Text>
-          </Touch>
+          {pillTitle && (
+            <Touch
+              onPress={onPressRanks}
+              hitSlop={6}
+              style={styles.pill}
+              accessibilityLabel={t("Your ranks")}
+            >
+              <Text style={styles.pillText} numberOfLines={1}>
+                {pillCount != null ? `${pillCount} · ` : ""}
+                {t(pillTitle.name)}
+              </Text>
+            </Touch>
           )}
         </View>
       </View>
 
-      {/* Bio as a quote — your take, not a description */}
+      {/* The numbers, across */}
+      <View style={styles.stats}>
+        {statItems.map(({ value, label, onPress }) => {
+          const tappable = !isShare && !!onPress;
+          const Item = tappable ? Pressable : View;
+          return (
+            <Item
+              key={label}
+              style={styles.stat}
+              onPress={onPress}
+              hitSlop={6}
+              accessibilityRole={tappable ? "button" : undefined}
+              accessibilityLabel={`${value} ${label}`}
+            >
+              <Text style={styles.statValue}>{value}</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                {t(label)}
+              </Text>
+            </Item>
+          );
+        })}
+      </View>
+
+      {/* Your bio, with a pencil to edit it */}
       {isShare ? (
         !!bio && (
-          <View style={styles.quote}>
-            <Text style={styles.quoteText} numberOfLines={3}>
-              “{bio}”
-            </Text>
-          </View>
+          <Text style={[styles.bioText, styles.bio]} numberOfLines={3}>
+            “{bio}”
+          </Text>
         )
       ) : (
         <Pressable
           onPress={onPressBio}
           hitSlop={6}
-          style={styles.quote}
+          style={styles.bio}
           accessibilityLabel={bio ? t("Edit bio") : t("Add a bio")}
         >
-          {bio ? (
-            <Text style={styles.quoteText} numberOfLines={3}>
-              “{bio}”
-            </Text>
-          ) : (
-            <View style={styles.addBio}>
-              <Plus size={12} color={colors.textMuted} strokeWidth={2.4} />
-              <Text style={styles.addBioText}>
-                {t("Add your take — a short bio")}
-              </Text>
-            </View>
-          )}
+          <Text style={[styles.bioText, !bio && styles.bioEmpty]} numberOfLines={3}>
+            {bio ? `“${bio}”` : t("Add your take — a short bio")}
+          </Text>
+          <Pencil size={16} color={colors.textSecondary} strokeWidth={1.9} />
         </Pressable>
       )}
 
-      {/* Your rarest ranks — tap to see them all */}
-      {showcase.length > 0 && (
-        <Touch
-          style={styles.topBadges}
-          onPress={onPressRanks}
-          accessibilityLabel={t("Your ranks")}
-        >
+      {/* On the shared image: your rarest ranks */}
+      {isShare && showcase.length > 0 && (
+        <View style={styles.topBadges}>
           {showcase.slice(0, TOP_RANKS).map((rank) => (
             <RankBadge
               key={rank.id}
@@ -206,7 +168,7 @@ export const WatcherCard = ({
               +{showcase.length - TOP_RANKS}
             </Text>
           )}
-        </Touch>
+        </View>
       )}
     </View>
   );
@@ -227,81 +189,69 @@ const createStyles = (colors) =>
     },
     side: {
       flex: 1,
-    },
-    // Natural widths, spread edge to edge: the first number lines up under
-    // the name, the last with the right edge.
-    stats: {
-      flexDirection: "row",
-      marginTop: spacing.sm + 2,
-      paddingEnd: spacing.xs,
-      justifyContent: "space-between",
-    },
-    stat: {
       alignItems: "flex-start",
-    },
-    statValue: {
-      ...typography.hero,
-      fontSize: 19,
-      lineHeight: 24,
-      color: colors.textPrimary,
-    },
-    statLabelRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 1,
-    },
-    statLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-    },
-    nameRow: {
-      flexDirection: "row",
-      alignItems: "center",
       gap: spacing.sm,
     },
     name: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
+      ...typography.hero,
+      fontSize: 24,
+      lineHeight: 30,
       color: colors.textPrimary,
-      flexShrink: 1,
     },
-    // Your title after your name: gold on a tint of it.
-    titleTag: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      flexShrink: 0,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      backgroundColor: `${colors.rating}24`,
+    // Your rank: a gold pill, dark text.
+    pill: {
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: 4,
+      backgroundColor: colors.rating,
+      borderRadius: shape.control - 2,
     },
-    titleTagText: {
-      ...typography.bodyBold,
-      fontSize: 11,
-      lineHeight: 14,
-      color: colors.rating,
-    },
-    rankRow: {
-      marginTop: spacing.sm,
-      alignSelf: "flex-start",
-    },
-    rankName: {
+    pillText: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.rating,
+      color: "#0C1014",
     },
-    rankNext: {
+    // Four numbers, evenly across the full width.
+    stats: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+    },
+    stat: {
+      flex: 1,
+      alignItems: "center",
+      gap: 2,
+    },
+    statValue: {
+      ...typography.hero,
+      fontSize: 18,
+      lineHeight: 24,
+      color: colors.textPrimary,
+    },
+    statLabel: {
       ...typography.caption,
       fontSize: 12,
-      color: colors.textMuted,
+      lineHeight: 16,
+      color: colors.textSecondary,
     },
     handle: {
       ...typography.caption,
       color: colors.textMuted,
-      marginTop: 2,
+    },
+    bio: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+    },
+    bioText: {
+      ...typography.body,
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
+    bioEmpty: {
+      color: colors.textMuted,
     },
     topBadges: {
       flexDirection: "row",
@@ -315,26 +265,6 @@ const createStyles = (colors) =>
       lineHeight: 18,
       color: colors.textSecondary,
       marginStart: 2,
-    },
-    quote: {
-      marginTop: spacing.md,
-    },
-    quoteText: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.textSecondary,
-    },
-    addBio: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    addBioText: {
-      ...typography.body,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textMuted,
     },
   });
 

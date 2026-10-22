@@ -3,7 +3,7 @@ import { Children, Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { useIsRTL } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -143,6 +143,9 @@ const createStyles = (colors) =>
     },
     groupBody: {
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     footnote: {
       ...typography.caption,
@@ -212,6 +215,7 @@ const createStyles = (colors) =>
       gap: 6,
       paddingVertical: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     segmentOn: {
       backgroundColor: colors.selected,

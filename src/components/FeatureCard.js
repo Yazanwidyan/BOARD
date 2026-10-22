@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -31,7 +31,7 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderRadius: 0,
+      borderRadius: shape.card,
       padding: spacing.md,
     },
     textBlock: {
@@ -50,7 +50,7 @@ const createStyles = (colors) =>
     iconBadge: {
       width: 44,
       height: 44,
-      borderRadius: 0,
+      borderRadius: shape.control,
       backgroundColor: colors.surfaceSoft,
       alignItems: "center",
       justifyContent: "center",

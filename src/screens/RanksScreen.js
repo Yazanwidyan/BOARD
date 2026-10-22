@@ -8,7 +8,7 @@ import { Text } from "../components/AppText";
 import { RankBadge } from "../components/RankBadge";
 import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { TITLES, describeNext, formatAmount, getClosestRanks } from "../utils/ranks";
@@ -205,10 +205,12 @@ const createStyles = (colors) =>
       height: 8,
       marginTop: spacing.md,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     heroFill: {
       height: "100%",
       backgroundColor: colors.rating,
+      borderRadius: shape.chip,
     },
     heroNext: {
       ...typography.caption,
@@ -228,6 +230,7 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
       gap: 2,
+      borderRadius: shape.chip,
     },
     titleChipPast: {
       backgroundColor: `${colors.rating}29`,
@@ -304,10 +307,12 @@ const createStyles = (colors) =>
       height: 4,
       marginTop: 3,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     barFill: {
       height: "100%",
       backgroundColor: colors.rating,
+      borderRadius: shape.chip,
     },
     trackNext: {
       ...typography.caption,
@@ -319,6 +324,9 @@ const createStyles = (colors) =>
       paddingTop: spacing.xs,
       gap: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     ladderHint: {
       ...typography.caption,

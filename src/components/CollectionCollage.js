@@ -1,4 +1,5 @@
 import { StyleSheet, View } from "react-native";
+import { shape } from "../theme/spacing";
 import { Text } from "./AppText";
 
 import { typography } from "../theme/typography";
@@ -75,7 +76,7 @@ const createStyles = (colors) =>
       start: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,
-      borderRadius: 0,
+      borderRadius: shape.chip,
       backgroundColor: colors.rating,
     },
     completeText: {

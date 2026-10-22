@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -135,9 +135,9 @@ export const TasteDnaCard = ({
 const createStyles = (colors) =>
   StyleSheet.create({
     card: {
-      marginHorizontal: -spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     eyebrow: {
       ...typography.caption,
@@ -183,6 +183,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     chipText: {
       ...typography.bodyBold,
@@ -209,6 +210,7 @@ const createStyles = (colors) =>
       padding: spacing.sm + 2,
       backgroundColor: colors.surfaceSoft,
       gap: 2,
+      borderRadius: shape.card,
     },
     factLabel: {
       ...typography.caption,

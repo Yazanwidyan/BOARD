@@ -31,7 +31,7 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { shuffle } from "../utils/shuffle";
@@ -352,6 +352,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     actionPrimary: {
       backgroundColor: colors.selected,
@@ -384,6 +385,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
+      borderRadius: shape.chip,
     },
     menuRow: {
       paddingHorizontal: spacing.md,

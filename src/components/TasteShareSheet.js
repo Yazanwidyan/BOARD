@@ -6,7 +6,7 @@ import { ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -186,6 +186,7 @@ const createStyles = (colors) =>
       padding: spacing.md,
       overflow: "hidden",
       backgroundColor: colors.background,
+      borderRadius: shape.card,
     },
     backdrop: {
       position: "absolute",
@@ -205,6 +206,7 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     sectionLabel: {
       ...typography.caption,
@@ -223,6 +225,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 5,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     genreText: {
       ...typography.caption,

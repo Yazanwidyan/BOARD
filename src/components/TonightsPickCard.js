@@ -18,7 +18,6 @@ import {
 } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
 import { HomeHero } from "./HomeHero";
-import { PickInsight } from "./PickInsight";
 import { PrimaryButton } from "./PrimaryButton";
 import { t } from "../i18n";
 
@@ -125,7 +124,8 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       ]
         .filter(Boolean)
         .join(" · ")}
-      details={<PickInsight insight={insight} tag={tag} />}
+      reason={insight.reason ?? tag?.text}
+      match={insight.match}
       onPress={openDetails}
       onDismiss={clearPickedMovie}
       scrollY={scrollY}
@@ -164,19 +164,21 @@ const createStyles = (colors) =>
     mainButton: {
       flex: 1,
     },
-    // Rounded, the same height as the main button; the small ones a step
-    // lighter than the card they sit on.
+    // Rounded, the same height as the main button.
     square: {
       borderRadius: shape.control,
       minHeight: 48,
     },
+    // The small squares beside it: raised tiles with a lighter edge.
     roundButton: {
       width: 48,
       height: 48,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.control,
+      backgroundColor: colors.buttonFill,
+      borderWidth: 1.5,
+      borderColor: colors.buttonEdge,
+      borderRadius: shape.control + 2,
     },
   });
 

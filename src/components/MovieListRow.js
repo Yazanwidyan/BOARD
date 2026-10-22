@@ -2,7 +2,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -74,6 +74,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     poster: {
       width: 64,
@@ -99,7 +101,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.sm,
       paddingVertical: 6,
-      borderRadius: 0,
+      borderRadius: shape.control,
       marginStart: spacing.sm,
     },
     queueButtonActive: {

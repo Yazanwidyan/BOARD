@@ -16,7 +16,7 @@ import { useMovieSearch } from "../hooks/useMovieSearch";
 import { api } from "../services/api";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
-import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -275,6 +275,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
+      borderRadius: shape.control,
     },
     searchInput: {
       flex: 1,
@@ -290,6 +291,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       marginBottom: spacing.md,
       paddingVertical: spacing.md,
+      borderRadius: shape.control,
     },
     pasteButtonText: {
       ...typography.bodyBold,
@@ -303,8 +305,8 @@ const createStyles = (colors) =>
     },
     pasteSheet: {
       backgroundColor: colors.background,
-      borderTopStartRadius: 0,
-      borderTopEndRadius: 0,
+      borderTopStartRadius: shape.sheet,
+      borderTopEndRadius: shape.sheet,
       padding: spacing.md,
     },
     pasteHeaderRow: {
@@ -328,6 +330,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       padding: spacing.md,
       minHeight: 140,
+      borderRadius: shape.control,
     },
     pasteSummary: {
       ...typography.caption,

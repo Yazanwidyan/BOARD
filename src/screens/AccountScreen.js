@@ -15,7 +15,7 @@ import {
 import { t } from "../i18n";
 import { deleteAccount } from "../services/sync";
 import { useAuthStore } from "../store/authStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -191,6 +191,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       minHeight: 48,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     fieldInput: {
       ...typography.body,

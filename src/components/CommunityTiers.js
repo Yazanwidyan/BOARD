@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
 import { useMovieCommunity } from "../store/communityStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { TIERS } from "../utils/tiers";
@@ -88,6 +88,7 @@ const createStyles = (colors) =>
       flex: 1,
       height: 8,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     fill: {
       height: 8,

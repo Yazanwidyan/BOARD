@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import Svg, { Circle } from "react-native-svg";
 
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTierInfo } from "../utils/tiers";
@@ -116,10 +116,10 @@ const createStyles = (colors) =>
     row: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginHorizontal: -spacing.md,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     item: {
       flex: 1,
@@ -142,6 +142,7 @@ const createStyles = (colors) =>
       height: SIZE,
       alignItems: "center",
       justifyContent: "center",
+      borderRadius: shape.control,
     },
     // Not tiered yet: a plain filled square with a dash.
     tierTileEmpty: {

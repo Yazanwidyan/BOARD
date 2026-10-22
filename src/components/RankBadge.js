@@ -53,6 +53,7 @@ export const RankBadge = ({ track, step, size = 40 }) => {
         {
           width: size,
           height: size,
+          borderRadius: Math.round(size * 0.28),
           backgroundColor: step ? `${color}29` : colors.surfaceSoft,
           borderColor: step ? `${color}80` : "transparent",
         },

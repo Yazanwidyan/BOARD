@@ -15,7 +15,7 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { orderSTier } from "../utils/tiers";
@@ -260,6 +260,7 @@ const createStyles = (colors) =>
       gap: spacing.sm + 2,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     rank: {
       ...typography.title,
@@ -295,6 +296,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.control,
     },
     arrowOff: {
       opacity: 0.3,

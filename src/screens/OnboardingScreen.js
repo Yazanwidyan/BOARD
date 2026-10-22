@@ -26,7 +26,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useTasteStore } from "../store/tasteStore";
 import { useUserStore } from "../store/userStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -720,7 +720,7 @@ const createStyles = (colors) =>
       paddingBottom: spacing.sm,
     },
     footerButton: {
-      borderRadius: 0,
+      borderRadius: shape.control,
       minHeight: 50,
     },
     moreText: {
@@ -762,6 +762,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.textPrimary,
+      borderRadius: shape.chip,
     },
     gridTitle: {
       ...typography.caption,
@@ -833,6 +834,7 @@ const createStyles = (colors) =>
       padding: spacing.md,
       paddingTop: spacing.lg,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     dnaEyebrow: {
       ...typography.caption,
@@ -875,6 +877,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
       color: colors.textPrimary,
+      borderRadius: shape.control,
     },
     shareRow: {
       flexDirection: "row",
@@ -900,6 +903,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderWidth: 2,
       borderColor: "transparent",
+      borderRadius: shape.card,
     },
     pickRowSelected: {
       borderColor: colors.textPrimary,
@@ -936,6 +940,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.textPrimary,
+      borderRadius: shape.chip,
     },
   });
 

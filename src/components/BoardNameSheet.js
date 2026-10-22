@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "./AppText";
 
 import { BOARD_NAME_MAX } from "../store/boardStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -101,6 +101,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
+      borderRadius: shape.control,
     },
     chips: {
       flexDirection: "row",
@@ -113,6 +114,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     chipSelected: {
       backgroundColor: colors.selected,

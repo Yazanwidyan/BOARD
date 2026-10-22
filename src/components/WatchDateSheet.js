@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -142,6 +142,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     quickActive: {
       backgroundColor: colors.selected,
@@ -165,6 +166,7 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     pickLabel: {
       ...typography.bodyBold,

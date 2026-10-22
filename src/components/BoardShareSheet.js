@@ -7,7 +7,7 @@ import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
 import { useProfileStore } from "../store/profileStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -152,6 +152,7 @@ const createStyles = (colors) =>
       paddingTop: spacing.xl,
       overflow: "hidden",
       backgroundColor: colors.background,
+      borderRadius: shape.card,
     },
     backdrop: {
       position: "absolute",

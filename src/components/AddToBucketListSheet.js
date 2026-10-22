@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMovieSearch } from "../hooks/useMovieSearch";
 import { useMovieStore } from "../store/movieStore";
 import { useRecentSearchStore } from "../store/recentSearchStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -168,6 +168,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
       marginBottom: spacing.md,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     searchInput: {
       flex: 1,

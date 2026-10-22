@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 
 import { DIMENSIONS } from "../data/vibes";
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -91,6 +91,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     chipText: {
       ...typography.bodyBold,

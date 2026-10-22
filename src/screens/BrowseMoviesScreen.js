@@ -11,7 +11,7 @@ import { StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -146,6 +146,8 @@ const createStyles = (colors) =>
       minHeight: 48,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     searchInput: {
       flex: 1,
@@ -165,6 +167,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     rowPoster: {
       width: 64,

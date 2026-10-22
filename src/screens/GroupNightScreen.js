@@ -35,7 +35,7 @@ import {
 } from "../services/movieNights";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -562,6 +562,7 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       backgroundColor: colors.card,
       paddingVertical: spacing.md,
+      borderRadius: shape.control,
     },
     bigTitle: {
       ...typography.title,
@@ -596,6 +597,7 @@ const createStyles = (colors) =>
       gap: spacing.sm + 2,
       padding: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     memberText: {
       flex: 1,

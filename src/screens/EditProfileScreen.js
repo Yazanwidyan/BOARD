@@ -14,7 +14,7 @@ import { queryClient, queryKeys } from "../services/queryClient";
 import { useAuthStore } from "../store/authStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -297,6 +297,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderBottomWidth: 2,
       borderBottomColor: "transparent",
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     fieldError: {
       borderBottomColor: colors.danger,

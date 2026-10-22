@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { timeAgo } from "../utils/friends";
@@ -237,6 +237,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: `${colors.rating}29`,
+      borderRadius: shape.control,
     },
   });
 

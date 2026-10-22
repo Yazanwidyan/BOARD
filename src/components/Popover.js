@@ -1,6 +1,6 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
-import { radius } from "../theme/spacing";
+import { radius, shape } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
 import { useLayoutDirection } from "../i18n";
 
@@ -47,7 +47,7 @@ const createStyles = (colors) =>
     menu: {
       position: "absolute",
       paddingVertical: 6,
-      borderRadius: 0,
+      borderRadius: shape.card,
       backgroundColor: colors.cardElevated,
       borderWidth: 1,
       borderColor: colors.border,

@@ -12,7 +12,7 @@ import {
 } from "../components/ScreenHeader";
 import { t } from "../i18n";
 import { register, signIn } from "../services/sync";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -311,6 +311,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderBottomWidth: 2,
       borderBottomColor: "transparent",
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     fieldBoxFocused: {
       borderBottomColor: colors.textPrimary,
@@ -349,6 +351,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       backgroundColor: `${colors.danger}1F`,
+      borderRadius: shape.control,
     },
     errorText: {
       ...typography.bodyBold,

@@ -22,7 +22,7 @@ import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -517,9 +517,11 @@ const createStyles = (colors) =>
       flex: 1,
       height: 3,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     barLit: {
       backgroundColor: colors.textPrimary,
+      borderRadius: shape.chip,
     },
     topBar: {
       flexDirection: "row",
@@ -588,6 +590,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     controlKeep: {
       backgroundColor: colors.selected,
@@ -696,6 +699,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.background,
+      borderRadius: shape.chip,
     },
     orText: {
       ...typography.bodyBold,

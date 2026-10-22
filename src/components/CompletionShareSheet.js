@@ -8,7 +8,7 @@ import { captureRef } from "react-native-view-shot";
 
 import { useMovieStore } from "../store/movieStore";
 import { useShareCardStore } from "../store/shareCardStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -191,6 +191,7 @@ const createStyles = (colors) =>
       padding: spacing.md,
       overflow: "hidden",
       backgroundColor: colors.background,
+      borderRadius: shape.card,
     },
     grid: {
       flexDirection: "row",

@@ -14,7 +14,7 @@ import { useMovieSearch } from "../hooks/useMovieSearch";
 import { t } from "../i18n";
 import { api } from "../services/api";
 import { useMovieStore } from "../store/movieStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -340,6 +340,8 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     searchInput: {
       ...typography.body,
@@ -376,6 +378,9 @@ const createStyles = (colors) =>
     results: {
       marginTop: 2,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     result: {
       flexDirection: "row",
@@ -399,6 +404,8 @@ const createStyles = (colors) =>
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     heroPoster: {
       width: 64,
@@ -426,6 +433,9 @@ const createStyles = (colors) =>
     },
     list: {
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     separator: {
       height: StyleSheet.hairlineWidth,
@@ -494,6 +504,7 @@ const createStyles = (colors) =>
       paddingTop: spacing.xs,
       gap: spacing.sm + 2,
       backgroundColor: colors.background,
+      borderRadius: shape.control,
     },
     explainTitle: {
       ...typography.bodyBold,
@@ -521,10 +532,12 @@ const createStyles = (colors) =>
       flex: 1,
       height: 4,
       backgroundColor: colors.border,
+      borderRadius: shape.chip,
     },
     partFill: {
       height: 4,
       backgroundColor: colors.rating,
+      borderRadius: shape.chip,
     },
     partValue: {
       ...typography.caption,
@@ -552,6 +565,7 @@ const createStyles = (colors) =>
       gap: 6,
       paddingVertical: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     actionText: {
       ...typography.bodyBold,

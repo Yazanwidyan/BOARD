@@ -3,16 +3,18 @@ import Svg, { Circle } from "react-native-svg";
 
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { shape } from "../theme/spacing";
 import { t } from "../i18n";
 import { Text } from "./AppText";
 
 const RING_STROKE = 5;
 const RING_GAP = 4;
 
-// The avatar wrapped in a ring that fills toward your next title, gold,
-// with your rank count and title ("23 · Star") on a tag at its bottom
-// edge. `title`: getTitle() from utils/ranks.
-export const AvatarRankRing = ({ source, title, avatarSize = 88 }) => {
+// The avatar wrapped in a ring that fills toward your next title, with
+// your rank count and title ("23 · Star") on a tag at its bottom edge.
+// `title`: getTitle() from utils/ranks. `color`: the ring's (gold unless
+// given); `tag: false` leaves the tag off (when it shows elsewhere).
+export const AvatarRankRing = ({ source, title, avatarSize = 88, color, tag = true }) => {
   const colors = useColors();
   const size = avatarSize + 2 * (RING_GAP + RING_STROKE);
   const ringRadius = (size - RING_STROKE) / 2;
@@ -34,7 +36,7 @@ export const AvatarRankRing = ({ source, title, avatarSize = 88 }) => {
           cx={size / 2}
           cy={size / 2}
           r={ringRadius}
-          stroke={colors.rating}
+          stroke={color ?? colors.rating}
           strokeWidth={RING_STROKE}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -46,11 +48,13 @@ export const AvatarRankRing = ({ source, title, avatarSize = 88 }) => {
       <View style={styles.avatar}>
         <Image source={source} style={styles.avatarImage} />
       </View>
-      <View style={styles.pill}>
-        <Text style={styles.pillText} numberOfLines={1}>
-          {title.count} · {t(title.name)}
-        </Text>
-      </View>
+      {tag && (
+        <View style={styles.pill}>
+          <Text style={styles.pillText} numberOfLines={1}>
+            {title.count} · {t(title.name)}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -83,6 +87,7 @@ const createStyles = (colors, size, avatarSize) =>
       borderWidth: 2,
       borderColor: colors.background,
       backgroundColor: colors.rating,
+      borderRadius: shape.chip,
     },
     pillText: {
       ...typography.bodyBold,

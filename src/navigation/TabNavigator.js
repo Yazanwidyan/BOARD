@@ -4,7 +4,7 @@ import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { GlassTabBar } from "./tabBars/GlassTabBar";
+import { BottomTabBar } from "./tabBars/BottomTabBar";
 
 const Tab = createBottomTabNavigator();
 
@@ -14,7 +14,7 @@ const LogTab = () => null;
 export const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={{ headerShown: false, animation: "fade" }}
-    tabBar={(props) => <GlassTabBar {...props} />}
+    tabBar={(props) => <BottomTabBar {...props} />}
   >
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Discover" component={DiscoverScreen} />

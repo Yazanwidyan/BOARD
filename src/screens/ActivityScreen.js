@@ -16,7 +16,7 @@ import { SettingsGroup } from "../components/SettingsList";
 import { useActivitySeenStore } from "../store/activitySeenStore";
 import { useAuthStore } from "../store/authStore";
 import { useFriends } from "../store/friendsStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t, useIsRTL } from "../i18n";
@@ -250,6 +250,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     avatarStack: {
       flexDirection: "row",
@@ -275,6 +277,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 3,
       backgroundColor: colors.selected,
+      borderRadius: shape.chip,
     },
     requestsText: {
       ...typography.bodyBold,
@@ -294,6 +297,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     chipOn: {
       backgroundColor: colors.selected,

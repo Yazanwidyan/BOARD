@@ -1,8 +1,8 @@
-import { Plus, UserPlus } from "lucide-react-native";
+import { ChevronRight, Plus, UserPlus } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -12,7 +12,6 @@ import { getTasteMatch } from "../utils/friends";
 import { TIERS, getTier } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
-import { CollectionCollage } from "./CollectionCollage";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
 import { ShelfRail } from "./ShelfRail";
@@ -26,8 +25,8 @@ import { TasteDnaBars } from "./TasteDnaBars";
 // Home's saga tiles: 142 wide, with their 1px side padding.
 const BOX_ITEM = 142;
 const TILE = BOX_ITEM - 2;
-// A tier's share of the bar below this hides its letter (it wouldn't fit).
-const LETTER_MIN_SHARE = 0.07;
+// A finished collection's poster on the shelf (with its own side gap).
+const SAGA_ITEM = 104;
 
 // One section: its title and action, then its content. `onPress` makes
 // the content a button (it opens the full view, like the action). `rail`:
@@ -38,6 +37,7 @@ const SECTION_GAP = spacing.md + 4;
 export const ProfileSection = ({ title, actionLabel, onAction, onPress, rail = false, children }) => {
   const colors = useColors();
   const styles = createStyles(colors);
+  const rtl = useIsRTL();
   return (
     <View style={styles.section}>
       <View style={styles.tagRow}>
@@ -45,8 +45,9 @@ export const ProfileSection = ({ title, actionLabel, onAction, onPress, rail = f
           {title}
         </Text>
         {onAction && (
-          <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
+          <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button" style={styles.seeAll}>
             <Text style={styles.seeAllText}>{actionLabel ?? t("See all")}</Text>
+            <ChevronRight size={16} color={colors.textSecondary} style={rtl && styles.flipped} />
           </Pressable>
         )}
       </View>
@@ -121,35 +122,32 @@ export const getFinishedSagas = (watched) => {
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 };
 
-// Finished sagas as a shelf of box sets, like Home's sagas: each its cover
-// (four of its posters, 2 × 2, with the gold "Complete" corner), then its
-// top rank in gold and the saga — or, when the top rank shares the saga's
-// name ("Goodfellas"), who it's about.
+// Finished sagas as a shelf of posters: each its first film's poster,
+// then its name and how many films it holds.
 export const FinishedSagasRail = ({ watched, onOpen }) => {
   const colors = useColors();
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const styles = createStyles(colors);
   return (
     <ShelfRail
-      itemWidth={BOX_ITEM}
-      items={getFinishedSagas(watched).map(({ collection, top }) => {
-        // Under the rank: the saga, unless the rank already says it.
-        const sameName =
-          !!top && top.title.trim().toLowerCase() === collection.title.trim().toLowerCase();
-        return {
-          key: collection.id,
-          onPress: () => onOpen(collection.id),
-          title: top ? t(top.title) : t("Complete"),
-          titleColor: colors.rating,
-          meta: sameName ? collection.person ?? t(collection.title) : t(collection.title),
-          content: <CollectionCollage collection={collection} watchedIds={watchedIds} size={TILE} />,
-        };
-      })}
+      itemWidth={SAGA_ITEM}
+      items={getFinishedSagas(watched).map(({ collection }) => ({
+        key: collection.id,
+        onPress: () => onOpen(collection.id),
+        title: t(collection.title),
+        meta: t("{count} films", { count: collection.movieIds.length }),
+        content: (
+          <MoviePoster
+            uri={getMovieById(collection.movieIds[0])?.poster}
+            style={styles.sagaPoster}
+          />
+        ),
+      }))}
     />
   );
 };
 
-// Tiers in brief: one bar split by how many films sit in each tier (the
-// letter on each part, the counts under it). `onSeeUntiered` (yours) adds
+// Tiers in brief: a box for each tier, S to F — in its colour when films
+// sit in it, dark when none do — with the count under each. `onSeeUntiered` (yours) adds
 // a line about the ones not tiered yet.
 export const TierSummary = ({ entries, onSeeUntiered }) => {
   const colors = useColors();
@@ -178,23 +176,22 @@ export const TierSummary = ({ entries, onSeeUntiered }) => {
         .map((tier) => `${tier.key} ${tier.entries.length}`)
         .join(", ")}
     >
+      {/* Six boxes, S to F: filled in the tier's colour when it has films,
+          dark when it's empty — each with its count under it. */}
       <View style={styles.tierBar}>
-        {counts
-          .filter((tier) => tier.entries.length > 0)
-          .map((tier) => (
-            <View key={tier.key} style={[styles.tierPart, { flex: tier.entries.length, backgroundColor: tier.color }]}>
-              {tier.entries.length / tiered >= LETTER_MIN_SHARE && (
-                <Text style={styles.tierPartText}>{tier.key}</Text>
-              )}
+        {counts.map((tier) => {
+          const has = tier.entries.length > 0;
+          return (
+            <View key={tier.key} style={styles.tierColumn}>
+              <View style={[styles.tierBox, has && { backgroundColor: tier.color }]}>
+                <Text style={[styles.tierBoxText, !has && styles.tierBoxTextEmpty]}>{tier.key}</Text>
+              </View>
+              <Text style={[styles.tierLegendItem, !has && styles.tierLegendEmpty]}>
+                <Text style={styles.tierLegendKey}>{tier.key}</Text> {tier.entries.length}
+              </Text>
             </View>
-          ))}
-      </View>
-      <View style={styles.tierLegend}>
-        {counts.map((tier) => (
-          <Text key={tier.key} style={[styles.tierLegendItem, tier.entries.length === 0 && styles.tierLegendEmpty]}>
-            <Text style={styles.tierLegendKey}>{tier.key}</Text> {tier.entries.length}
-          </Text>
-        ))}
+          );
+        })}
       </View>
       {onSeeUntiered && untiered > 0 && (
         <Pressable onPress={onSeeUntiered} hitSlop={6} style={styles.untiered}>
@@ -364,7 +361,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textPrimary,
+      color: colors.textSecondary,
     },
     // A row of tiles cancels the page's side padding, so it reaches both
     // screen edges.
@@ -422,34 +419,52 @@ const createStyles = (colors) =>
       borderStyle: "dashed",
       borderColor: colors.border,
     },
+    seeAll: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 1,
+    },
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
+    sagaPoster: {
+      width: SAGA_ITEM - spacing.sm,
+      aspectRatio: 2 / 3,
+    },
     newTile: {
       width: TILE,
       height: TILE,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
 
     // Tiers
     tierBar: {
       flexDirection: "row",
-      height: 28,
-      gap: 2,
+      gap: 6,
     },
-    tierPart: {
+    tierColumn: {
+      flex: 1,
+      alignItems: "center",
+      gap: spacing.xs + 2,
+    },
+    tierBox: {
+      alignSelf: "stretch",
+      height: 36,
       alignItems: "center",
       justifyContent: "center",
-      minWidth: 4,
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: shape.control - 4,
     },
-    tierPartText: {
+    tierBoxText: {
       ...typography.label,
-      fontSize: 12,
+      fontSize: 13,
       color: "#0C1014",
     },
-    tierLegend: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: spacing.xs + 2,
+    tierBoxTextEmpty: {
+      color: colors.textMuted,
     },
     tierLegendItem: {
       ...typography.caption,
@@ -479,6 +494,7 @@ const createStyles = (colors) =>
       marginTop: SECTION_GAP,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     recapText: {
       flex: 1,

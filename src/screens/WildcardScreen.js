@@ -16,7 +16,7 @@ import { StackHeader } from "../components/ScreenHeader";
 import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { SOURCES, dealOne } from "../utils/decidePools";
@@ -214,6 +214,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     fromText: {
       ...typography.bodyBold,
@@ -229,6 +230,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
       padding: spacing.lg,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     empty: {
       ...typography.body,
@@ -244,6 +246,7 @@ const createStyles = (colors) =>
       paddingVertical: 4,
       backgroundColor: colors.rating,
       transform: [{ rotate: "4deg" }],
+      borderRadius: 4,
     },
     stampText: {
       fontFamily: fonts.extraBold,
@@ -288,6 +291,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     chipText: {
       ...typography.bodyBold,
@@ -308,6 +312,7 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm + 4,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderRadius: shape.control,
     },
     rollText: {
       ...typography.bodyBold,

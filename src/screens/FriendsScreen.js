@@ -36,7 +36,7 @@ import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
@@ -401,6 +401,8 @@ const createStyles = (colors) =>
       padding: spacing.md,
       gap: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     meTop: {
       flexDirection: "row",
@@ -436,6 +438,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderRadius: shape.control,
     },
     addRow: {
       flexDirection: "row",
@@ -488,6 +491,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderRadius: shape.control,
     },
     acceptButton: {
       flexDirection: "row",
@@ -496,6 +500,7 @@ const createStyles = (colors) =>
       height: 34,
       paddingHorizontal: spacing.sm + 2,
       backgroundColor: colors.selected,
+      borderRadius: shape.control,
     },
     acceptText: {
       ...typography.bodyBold,
@@ -527,10 +532,12 @@ const createStyles = (colors) =>
       width: 48,
       height: 3,
       backgroundColor: colors.border,
+      borderRadius: shape.chip,
     },
     matchFill: {
       height: 3,
       backgroundColor: colors.success,
+      borderRadius: shape.chip,
     },
     matchLabel: {
       ...typography.caption,

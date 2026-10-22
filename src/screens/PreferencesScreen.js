@@ -19,7 +19,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { showToast } from "../store/toastStore";
 import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -303,6 +303,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     chipSelected: {
       backgroundColor: colors.selected,

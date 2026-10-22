@@ -4,11 +4,12 @@ import { Image, StyleSheet, View } from "react-native";
 
 import { shadows } from "../theme/shadows";
 import { useColors } from "../theme/useColors";
+import { shape } from "../theme/spacing";
 
-// Posters are always square-cornered, app-wide — any `radius` a caller
-// passes is ignored, and a borderRadius in `style` is overridden, so one
-// place decides the look of every poster.
-const POSTER_RADIUS = 0;
+// Every poster has the same softly rounded corners, app-wide — any
+// `radius` a caller passes is ignored, and a borderRadius in `style` is
+// overridden, so one place decides the look of every poster.
+const POSTER_RADIUS = shape.poster;
 
 export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
   const cornerRadius = POSTER_RADIUS;

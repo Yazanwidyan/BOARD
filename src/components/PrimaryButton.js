@@ -7,7 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { shadows } from "../theme/shadows";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -15,13 +15,15 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const getVariantStyles = (colors) => ({
   primary: {
-    container: { backgroundColor: colors.accent },
-    text: { color: colors.accentContrast },
+    container: { backgroundColor: colors.selected },
+    text: { color: colors.selectedText },
     shadow: shadows.glow,
   },
   secondary: {
     container: {
       backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     text: { color: colors.textPrimary },
     shadow: null,
@@ -29,6 +31,8 @@ const getVariantStyles = (colors) => ({
   outline: {
     container: {
       backgroundColor: "transparent",
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     text: { color: colors.textPrimary },
     shadow: null,
@@ -127,8 +131,8 @@ const createStyles = (colors) =>
       justifyContent: "center",
       paddingVertical: 11,
       paddingHorizontal: spacing.md,
-      // Square, like every other filled box in the app.
-      borderRadius: 0,
+      // Rounded, like every other box in the app.
+      borderRadius: shape.control,
       overflow: "hidden",
     },
     baseDense: {

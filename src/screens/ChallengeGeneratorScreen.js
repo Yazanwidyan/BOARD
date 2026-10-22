@@ -14,7 +14,7 @@ import { t } from "../i18n";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
@@ -246,6 +246,7 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     stepNumber: {
       ...typography.title,
@@ -269,6 +270,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderWidth: 2,
       borderColor: "transparent",
+      borderRadius: shape.card,
     },
     cardSelected: {
       borderColor: colors.textPrimary,

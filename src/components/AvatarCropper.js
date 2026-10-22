@@ -22,7 +22,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
@@ -298,7 +298,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       paddingHorizontal: spacing.lg,
       paddingVertical: 12,
-      borderRadius: 0,
+      borderRadius: shape.control,
       backgroundColor: colors.selected,
     },
     useButtonPressed: {

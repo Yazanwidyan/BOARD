@@ -9,7 +9,7 @@ export const spacing = {
 
 // The app's corners: cards and grouped rows, controls (buttons, inputs,
 // segments), chips and pills (fully round), posters, and sheets' tops.
-export const shape = { card: 16, control: 12, chip: 999, poster: 8, sheet: 22 };
+export const shape = { card: 10, control: 8, chip: 999, poster: 4, sheet: 14 };
 
 export const radius = {
   xs: 6,

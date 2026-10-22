@@ -15,7 +15,7 @@ import { t, useIsRTL } from "../i18n";
 import { loadCandidates } from "../services/movieData";
 import { useDecideStore } from "../store/decideStore";
 import { useUserStore } from "../store/userStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { SOURCES, TASTE_SOURCES } from "../utils/decidePools";
@@ -266,6 +266,9 @@ const createStyles = (colors) =>
   StyleSheet.create({
     list: {
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     separator: {
       height: StyleSheet.hairlineWidth,
@@ -306,6 +309,7 @@ const createStyles = (colors) =>
       paddingHorizontal: 6,
       paddingVertical: 1,
       backgroundColor: `${colors.rating}29`,
+      borderRadius: shape.chip,
     },
     lastTagText: {
       ...typography.bodyBold,
@@ -370,6 +374,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     filterChipOn: {
       backgroundColor: colors.selected,

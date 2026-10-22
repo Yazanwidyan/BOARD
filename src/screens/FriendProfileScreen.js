@@ -26,7 +26,7 @@ import { useHeroFadeStyle } from "../utils/scrollEffects";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -428,6 +428,8 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     recPoster: {
       width: 52,
@@ -482,6 +484,8 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     activityText: {
       ...typography.body,

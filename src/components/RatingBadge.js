@@ -2,7 +2,7 @@ import { Star } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -33,7 +33,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.successSoft,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
-      borderRadius: 0,
+      borderRadius: shape.control,
       gap: 4,
     },
     containerSmall: {

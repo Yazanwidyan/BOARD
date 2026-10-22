@@ -4,13 +4,17 @@ import {
   Bookmark,
   BookmarkCheck,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Clapperboard,
+  Eye,
   LayoutGrid,
   Play,
   RotateCw,
+  MoreHorizontal,
   Share2,
 } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -45,7 +49,7 @@ import { api } from "../services/api";
 import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -72,8 +76,15 @@ const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
 const DESCRIPTION_LINES = 4;
 // The title logo fits inside this box, keeping its shape.
-const LOGO_MAX_HEIGHT = 96;
-const LOGO_MAX_WIDTH = 300;
+const LOGO_MAX_HEIGHT = 64;
+const LOGO_MAX_WIDTH = 240;
+// The hero's poster, on the right of the title.
+const HERO_POSTER = 112;
+// The backdrop runs from the very top (under the status bar) down to this
+// share of the screen's width, scaled to fill, then fades into the page.
+const BACKDROP_HEIGHT = 0.82;
+// How far the title and poster reach up onto the backdrop's fade.
+const POSTER_OVERLAP = 56;
 const SIMILAR_COUNT = 10;
 // A cast card's width; its photo is a portrait under the name.
 const CAST_CARD = 112;
@@ -222,12 +233,20 @@ const scoreColor = (source, value, colors) => {
 
 // One button of the action dock — icon over a short label, lit in accent
 // when its state is "on" (on the watchlist, set as tonight's pick).
+// The page's tabs, under its actions.
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "cast", label: "Cast & Crew" },
+  { key: "reviews", label: "Reviews" },
+  { key: "similar", label: "Similar" },
+];
+
 const DockButton = ({ icon, label, active, onPress, styles }) => (
   <Pressable
-    style={[styles.dockButton, active && styles.dockButtonActive]}
+    style={({ pressed }) => [styles.dockButton, pressed && styles.dockPressed]}
     onPress={onPress}
   >
-    {icon}
+    <View style={[styles.dockCircle, active && styles.dockCircleActive]}>{icon}</View>
     <Text
       style={[styles.dockLabel, active && styles.dockLabelActive]}
       numberOfLines={1}
@@ -269,11 +288,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
+  // Which of the page's tabs is open.
+  const [tab, setTab] = useState("overview");
   const { width: windowWidth } = useWindowDimensions();
   const [logoFailed, setLogoFailed] = useState(false);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
-  // Measured height of the poster stage, for the blurred backdrop behind it.
-  const [stageHeight, setStageHeight] = useState(0);
   const [canExpand, setCanExpand] = useState(false);
   const inBucketList = useMovieStore((state) =>
     isInBucketList(state.bucketList, movieId),
@@ -302,6 +321,14 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   // title's bottom edge (measured in the page) minus the bar's height is
   // the scroll offset where it disappears. A close estimate until measured.
   const [titleBottom, setTitleBottom] = useState(null);
+  // The title sits in a column inside the hero's row, so its bottom in the
+  // page is the row's top + the column's top + its own bottom.
+  const titleParts = useRef({ row: 0, column: 0, title: null });
+  const measureTitle = (part, value) => {
+    titleParts.current[part] = value;
+    const { row, column, title } = titleParts.current;
+    if (title != null) setTitleBottom(row + column + title);
+  };
   const barBottom = insets.top + STICKY_BAR_HEIGHT;
   const stickyEnd = titleBottom != null ? titleBottom - barBottom : 340;
   const stickyStart = stickyEnd - 56;
@@ -349,7 +376,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   }, [stickyStart, stickyEnd]);
   // Pull down and the blurred backdrop zooms in with you; scroll up and it
   // drifts behind the page while the poster eases back under the bar.
-  const backdropStyle = useStretchyBackdropStyle(scrollY, stageHeight);
+  const backdropHeight = Math.round(windowWidth * BACKDROP_HEIGHT);
+  const backdropStyle = useStretchyBackdropStyle(scrollY, backdropHeight);
   const posterStyle = useHeroFadeStyle(scrollY, stickyEnd);
   // The floating back / share fade out as the sticky bar takes over.
   const floatingBarStyle = useAnimatedStyle(
@@ -371,7 +399,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       ? (() => {
           const width = Math.min(
             LOGO_MAX_WIDTH,
-            windowWidth * 0.72,
+            windowWidth - spacing.md * 3 - HERO_POSTER,
             LOGO_MAX_HEIGHT * logo.aspect,
           );
           return { width, height: width / logo.aspect };
@@ -529,12 +557,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
       >
         {/* Backdrop: a still from the film (TMDB's, without text), fading
             into the page — or, for a movie without one, its poster blurred.
-            Sized from the stage's measured height (not stretched to fill
-            it), with a plain Image. */}
-        {stageHeight > 0 && (
+            Its own frame across the top, scaled to fill. */}
+        {(
           <Animated.View
             pointerEvents="none"
-            style={[styles.backdrop, { height: stageHeight }, backdropStyle]}
+            style={[styles.backdrop, { height: backdropHeight }, backdropStyle]}
           >
             <Image
               source={{ uri: movie.backdrop ?? movie.poster }}
@@ -546,11 +573,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               colors={
                 movie.backdrop
                   ? [
-                      // A touch darker at the top for the header buttons,
-                      // clearer in the middle, solid at the bottom.
+                      // A light shade at the top for the header buttons,
+                      // the still itself clear, then a fade into the page.
                       `${colors.background}59`,
-                      `${colors.background}26`,
-                      `${colors.background}99`,
+                      `${colors.background}00`,
+                      `${colors.background}00`,
+                      `${colors.background}B3`,
                       colors.background,
                     ]
                   : [
@@ -559,87 +587,103 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                       colors.background,
                     ]
               }
-              locations={movie.backdrop ? [0, 0.3, 0.7, 1] : [0, 0.55, 1]}
+              locations={movie.backdrop ? [0, 0.22, 0.58, 0.85, 1] : [0, 0.55, 1]}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
         )}
         <View
-          onLayout={(event) => setStageHeight(event.nativeEvent.layout.height)}
           style={[
             styles.stage,
-            { paddingTop: headerTop + HEADER_BAR_HEIGHT + spacing.md },
+            {
+              // The title and poster start on the backdrop's fade — never
+              // under the header buttons.
+              paddingTop: Math.max(
+                headerTop + HEADER_BAR_HEIGHT + spacing.md,
+                backdropHeight - POSTER_OVERLAP,
+              ),
+            },
           ]}
         >
-          <Animated.View style={posterStyle}>
-            <MoviePoster uri={movie.poster} style={styles.poster} shadow />
-          </Animated.View>
-          {logoSize ? (
-            // The movie's own title art (from TMDB). Dark mode only — most
-            // logos are white — and the plain title if it doesn't load.
+          <View
+            style={styles.heroRow}
+            onLayout={(event) => measureTitle("row", event.nativeEvent.layout.y)}
+          >
             <View
-              style={styles.logoWrap}
-              onLayout={(event) => {
-                const { y, height } = event.nativeEvent.layout;
-                setTitleBottom(y + height);
-              }}
-              accessible
-              accessibilityRole="header"
-              accessibilityLabel={movie.title}
+              style={styles.heroInfo}
+              onLayout={(event) => measureTitle("column", event.nativeEvent.layout.y)}
             >
-              <Image
-                source={{ uri: logo.url }}
-                style={logoSize}
-                resizeMode="contain"
-                onError={() => setLogoFailed(true)}
-              />
-            </View>
-          ) : (
-            <Text
-              style={styles.title}
-              onLayout={(event) => {
-                const { y, height } = event.nativeEvent.layout;
-                setTitleBottom(y + height);
-              }}
-            >
-              {movie.title}
-            </Text>
-          )}
-          <Text style={styles.director} numberOfLines={1}>
-            {movie.director} · {movie.year}
-          </Text>
-          <View style={styles.metaRow}>
-            {details?.rated && (
-              <View style={styles.ageBadge}>
-                <Text style={styles.ageText}>{details.rated}</Text>
-              </View>
-            )}
-            <Text style={styles.meta} numberOfLines={1}>
-              {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
-            </Text>
-          </View>
-          {tasteMatch && (
-            <View style={styles.matchBlock}>
-              <View style={styles.matchPill}>
-                <Text style={styles.matchText}>
-                  {t("{match}% your taste", { match: tasteMatch.match })}
+              {logoSize ? (
+                // The movie's own title art (from TMDB). Dark mode only — most
+                // logos are white — and the plain title if it doesn't load.
+                <View
+                  style={styles.logoWrap}
+                  onLayout={(event) => {
+                    const { y, height } = event.nativeEvent.layout;
+                    measureTitle("title", y + height);
+                  }}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={movie.title}
+                >
+                  <Image
+                    source={{ uri: logo.url }}
+                    style={logoSize}
+                    resizeMode="contain"
+                    onError={() => setLogoFailed(true)}
+                  />
+                </View>
+              ) : (
+                <Text
+                  style={styles.title}
+                  onLayout={(event) => {
+                    const { y, height } = event.nativeEvent.layout;
+                    measureTitle("title", y + height);
+                  }}
+                >
+                  {movie.title}
+                </Text>
+              )}
+              <Text style={styles.byline} numberOfLines={1}>
+                {t("{year} · Directed by", { year: movie.year })}
+              </Text>
+              <Text style={styles.director} numberOfLines={2}>
+                {movie.director}
+              </Text>
+              <View style={styles.metaRow}>
+                {details?.rated && (
+                  <View style={styles.ageBadge}>
+                    <Text style={styles.ageText}>{details.rated}</Text>
+                  </View>
+                )}
+                <Text style={styles.meta} numberOfLines={2}>
+                  {formatRuntime(movie.runtime)} · {movie.genres.join(" · ")}
                 </Text>
               </View>
-              <Text style={styles.matchReason} numberOfLines={2}>
-                {tasteMatch.reasons[0]}
-              </Text>
+              {tasteMatch && (
+                <View style={styles.matchPill}>
+                  <Text style={styles.matchText}>
+                    {t("{match}% your taste", { match: tasteMatch.match })}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
+            <Animated.View style={posterStyle}>
+              <MoviePoster uri={movie.poster} style={styles.poster} shadow />
+            </Animated.View>
+          </View>
         </View>
 
         <View style={styles.content}>
           <PrimaryButton
             label={isWatched ? t("Watched") : t("Mark as watched")}
-            variant={isWatched ? "secondary" : "primary"}
+            variant="secondary"
             icon={
               isWatched ? (
                 <CheckCircle size={18} color={colors.success} />
-              ) : null
+              ) : (
+                <Eye size={18} color={colors.textPrimary} />
+              )
             }
             onPress={handleToggleWatched}
           />
@@ -784,301 +828,351 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             )
           )}
 
-          <Text style={styles.sectionLabel}>{t("Overview")}</Text>
-          <Text
-            style={styles.description}
-            numberOfLines={expanded ? undefined : DESCRIPTION_LINES}
-            onTextLayout={(event) => {
-              if (
-                !expanded &&
-                event.nativeEvent.lines.length >= DESCRIPTION_LINES
-              ) {
-                setCanExpand(true);
-              }
-            }}
-          >
-            {movie.description}
-          </Text>
-          {canExpand && (
-            <Pressable
-              onPress={() => setExpanded((value) => !value)}
-              hitSlop={6}
+          {/* Overview / Cast & Crew / Reviews / Similar, underlined. */}
+          <View style={styles.tabs} accessibilityRole="tablist">
+            {TABS.map((item) => {
+              const selected = item.key === tab;
+              return (
+                <Pressable
+                  key={item.key}
+                  style={styles.tab}
+                  onPress={() => setTab(item.key)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.tabText, selected && styles.tabTextOn]} numberOfLines={1}>
+                    {t(item.label)}
+                  </Text>
+                  <View style={[styles.tabLine, selected && styles.tabLineOn]} />
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {tab === "overview" && (
+            <>
+            <Text
+              style={styles.description}
+              numberOfLines={expanded ? undefined : DESCRIPTION_LINES}
+              onTextLayout={(event) => {
+                if (
+                  !expanded &&
+                  event.nativeEvent.lines.length >= DESCRIPTION_LINES
+                ) {
+                  setCanExpand(true);
+                }
+              }}
             >
-              <Text style={styles.moreText}>
-                {expanded ? t("Show less") : t("Read more")}
-              </Text>
-            </Pressable>
-          )}
-
-          <Text style={styles.sectionLabel}>{t("Scores")}</Text>
-          <ScoreRings scores={scores} />
-
-          {details?.awards && (
-            <View style={styles.awardsRow}>
-              <Text style={styles.awardsText}>{details.awards}</Text>
-            </View>
-          )}
-
-          <CommunityTiers movieId={movieId} labelStyle={styles.sectionLabel} />
-
-          <View style={styles.factChips}>
-            <View style={styles.factChip}>
-              <Text style={styles.factChipText}>
-                {runtimeCategory(movie.runtime)} ·{" "}
-                {formatRuntime(movie.runtime)}
-              </Text>
-            </View>
-            <Pressable
-              style={styles.factChip}
-              onPress={() =>
-                openList(
-                  t("The {decade}", { decade }),
-                  getKnownMovies().filter(
-                    (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
-                  ).sort(byWeightedRating),
-                )
-              }
-            >
-              <Text style={styles.factChipText}>
-                {t("The")} {decade}
-              </Text>
-            </Pressable>
-            {movie.genres.map((genre) => (
+              {movie.description}
+            </Text>
+            {canExpand && (
               <Pressable
-                key={genre}
+                style={styles.expand}
+                onPress={() => setExpanded((value) => !value)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={expanded ? t("Show less") : t("Read more")}
+              >
+                {expanded ? (
+                  <ChevronUp size={20} color={colors.textSecondary} />
+                ) : (
+                  <ChevronDown size={20} color={colors.textSecondary} />
+                )}
+              </Pressable>
+            )}
+
+            <View style={styles.factChips}>
+              <View style={styles.factChip}>
+                <Text style={styles.factChipText}>
+                  {runtimeCategory(movie.runtime)} ·{" "}
+                  {formatRuntime(movie.runtime)}
+                </Text>
+              </View>
+              <Pressable
                 style={styles.factChip}
                 onPress={() =>
                   openList(
-                    genre,
-                    getKnownMovies().filter((item) => item.genres.includes(genre)).sort(
-                      byWeightedRating,
-                    ),
+                    t("The {decade}", { decade }),
+                    getKnownMovies().filter(
+                      (item) => `${Math.floor(item.year / 10) * 10}s` === decade,
+                    ).sort(byWeightedRating),
                   )
                 }
               >
-                <Text style={styles.factChipText}>{genre}</Text>
+                <Text style={styles.factChipText}>
+                  {t("The")} {decade}
+                </Text>
               </Pressable>
-            ))}
-          </View>
+              {movie.genres.map((genre) => (
+                <Pressable
+                  key={genre}
+                  style={styles.factChip}
+                  onPress={() =>
+                    openList(
+                      genre,
+                      getKnownMovies().filter((item) => item.genres.includes(genre)).sort(
+                        byWeightedRating,
+                      ),
+                    )
+                  }
+                >
+                  <Text style={styles.factChipText}>{genre}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-          {castPeople.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>{t("Cast")}</Text>
-              {/* A rail of big photo cards, edge to edge: who, who they
-                  play, and their collection if they have one. */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.castRail}
-                contentContainerStyle={styles.castRailContent}
-              >
-                {castPeople.map(({ name: actor, character, photo }) => {
-                  const saga = getSagaForPerson(actor);
-                  return (
-                    <Pressable
-                      key={actor}
-                      style={({ pressed }) => [styles.castCard, pressed && styles.castCardPressed]}
-                      onPress={() => openActor(actor)}
-                      accessibilityRole="button"
-                      accessibilityLabel={character ? `${actor}, ${character}` : actor}
-                    >
-                      <View style={styles.castAvatar}>
-                        {photo ? (
-                          <Image
-                            source={{ uri: photo }}
-                            style={styles.castPhoto}
-                          />
-                        ) : (
-                          <Text style={styles.castInitials}>
-                            {initials(actor)}
-                          </Text>
-                        )}
-                      </View>
-                      <Text style={styles.castName} numberOfLines={2}>
-                        {actor}
-                      </Text>
-                      {!!character && (
-                        <Text style={styles.castCharacter} numberOfLines={1}>
-                          {character}
-                        </Text>
-                      )}
-                      {/* Actors with a collection name it — tapping opens it. */}
-                      {saga && (
-                        <Text style={styles.castSaga} numberOfLines={1}>
-                          {saga.title}
-                        </Text>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+            <Text style={styles.sectionLabel}>{t("Details")}</Text>
+            <View style={styles.factsCard}>
+              {facts.map((fact, index) => (
+                <View
+                  key={fact.label}
+                  style={[
+                    styles.factRow,
+                    index === facts.length - 1 && styles.factRowLast,
+                  ]}
+                >
+                  <Text style={styles.factLabel}>{fact.label}</Text>
+                  <Text style={styles.factValue}>{fact.value}</Text>
+                </View>
+              ))}
+            </View>
             </>
           )}
 
-          <Text style={styles.sectionLabel}>{t("Details")}</Text>
-          <View style={styles.factsCard}>
-            {facts.map((fact, index) => (
-              <View
-                key={fact.label}
-                style={[
-                  styles.factRow,
-                  index === facts.length - 1 && styles.factRowLast,
-                ]}
-              >
-                <Text style={styles.factLabel}>{fact.label}</Text>
-                <Text style={styles.factValue}>{fact.value}</Text>
+          {tab === "reviews" && (
+            <>
+            <Text style={styles.sectionLabel}>{t("Scores")}</Text>
+            <ScoreRings scores={scores} />
+
+            {details?.awards && (
+              <View style={styles.awardsRow}>
+                <Text style={styles.awardsText}>{details.awards}</Text>
               </View>
-            ))}
-          </View>
+            )}
+
+            <CommunityTiers movieId={movieId} labelStyle={styles.sectionLabel} />
+            </>
+          )}
+
+          {tab === "cast" && (
+            <>
+            {castPeople.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>{t("Cast")}</Text>
+                {/* A rail of big photo cards, edge to edge: who, who they
+                    play, and their collection if they have one. */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.castRail}
+                  contentContainerStyle={styles.castRailContent}
+                >
+                  {castPeople.map(({ name: actor, character, photo }) => {
+                    const saga = getSagaForPerson(actor);
+                    return (
+                      <Pressable
+                        key={actor}
+                        style={({ pressed }) => [styles.castCard, pressed && styles.castCardPressed]}
+                        onPress={() => openActor(actor)}
+                        accessibilityRole="button"
+                        accessibilityLabel={character ? `${actor}, ${character}` : actor}
+                      >
+                        <View style={styles.castAvatar}>
+                          {photo ? (
+                            <Image
+                              source={{ uri: photo }}
+                              style={styles.castPhoto}
+                            />
+                          ) : (
+                            <Text style={styles.castInitials}>
+                              {initials(actor)}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.castName} numberOfLines={2}>
+                          {actor}
+                        </Text>
+                        {!!character && (
+                          <Text style={styles.castCharacter} numberOfLines={1}>
+                            {character}
+                          </Text>
+                        )}
+                        {/* Actors with a collection name it — tapping opens it. */}
+                        {saga && (
+                          <Text style={styles.castSaga} numberOfLines={1}>
+                            {saga.title}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
+              {castPeople.length === 0 && directorMovies.length === 0 && (
+                <Text style={styles.tabEmpty}>{t("No cast listed for this film.")}</Text>
+              )}
+            </>
+          )}
         </View>
 
-        {collections.length > 0 && (
+        {tab === "cast" && (
           <>
-            <Text style={[styles.sectionLabel, styles.railLabel]}>
-              {t("Part of")}
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.railContent}
-            >
-              {collections.map((collection) => {
-                const { watchedCount, total, progress } = getCollectionProgress(
-                  collection,
-                  watchedIds,
-                );
-                return (
-                  <Pressable
-                    key={collection.id}
-                    style={styles.collectionChip}
-                    onPress={() =>
-                      navigation.push("CollectionDetails", {
-                        collectionId: collection.id,
-                      })
-                    }
-                  >
-                    <View style={styles.collectionChipHeader}>
-                      <Text
-                        style={styles.collectionChipTitle}
-                        numberOfLines={1}
-                      >
-                        {collection.title}
+            {directorMovies.length > 0 && (
+              <>
+                <View style={styles.railHeader}>
+                  <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
+                    {t("Also by")} {movie.director}
+                  </Text>
+                  {directorSaga && (
+                    <Pressable
+                      hitSlop={8}
+                      onPress={() =>
+                        navigation.push("CollectionDetails", { collectionId: directorSaga.id })
+                      }
+                    >
+                      <Text style={styles.railHeaderLink} numberOfLines={1}>
+                        {directorSaga.title} ›
                       </Text>
-                    </View>
-                    <View style={styles.chipTrack}>
-                      <View
-                        style={[
-                          styles.chipFill,
-                          { width: `${progress * 100}%` },
-                        ]}
+                    </Pressable>
+                  )}
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.posterRailContent}
+                >
+                  {directorMovies.map((other) => (
+                    <Pressable
+                      key={other.id}
+                      style={styles.similarCard}
+                      onPress={() =>
+                        navigation.push("MovieDetails", { movieId: other.id })
+                      }
+                    >
+                      <MoviePoster
+                        uri={other.poster}
+                        style={styles.similarPoster}
                       />
-                    </View>
-                    <Text style={styles.collectionChipStat}>
-                      {watchedCount} / {total} watched
+                      {watchedIds.has(other.id) && (
+                        <View style={styles.watchedTick}>
+                          <CheckCircle size={14} color={colors.success} />
+                        </View>
+                      )}
+                      <Text style={styles.similarTitle} numberOfLines={1}>
+                        {other.title}
+                      </Text>
+                      <Text style={styles.similarYear}>{other.year}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </>
+        )}
+
+        {tab === "similar" && (
+          <>
+            {collections.length > 0 && (
+              <>
+                <Text style={[styles.sectionLabel, styles.railLabel]}>
+                  {t("Part of")}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.railContent}
+                >
+                  {collections.map((collection) => {
+                    const { watchedCount, total, progress } = getCollectionProgress(
+                      collection,
+                      watchedIds,
+                    );
+                    return (
+                      <Pressable
+                        key={collection.id}
+                        style={styles.collectionChip}
+                        onPress={() =>
+                          navigation.push("CollectionDetails", {
+                            collectionId: collection.id,
+                          })
+                        }
+                      >
+                        <View style={styles.collectionChipHeader}>
+                          <Text
+                            style={styles.collectionChipTitle}
+                            numberOfLines={1}
+                          >
+                            {collection.title}
+                          </Text>
+                        </View>
+                        <View style={styles.chipTrack}>
+                          <View
+                            style={[
+                              styles.chipFill,
+                              { width: `${progress * 100}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.collectionChipStat}>
+                          {watchedCount} / {total} watched
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
+            {similarMovies.length > 0 && (
+              <>
+                {/* "See all" opens Decide's "More like…" for this movie: how
+                    similar each is, and why. */}
+                <View style={styles.railHeader}>
+                  <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
+                    {t("More like this")}
+                  </Text>
+                  <Pressable hitSlop={8} onPress={() => navigation.push("Similar", { movieId })}>
+                    <Text style={styles.railHeaderLink} numberOfLines={1}>
+                      {t("See why")} ›
                     </Text>
                   </Pressable>
-                );
-              })}
-            </ScrollView>
-          </>
-        )}
-
-        {directorMovies.length > 0 && (
-          <>
-            <View style={styles.railHeader}>
-              <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
-                {t("Also by")} {movie.director}
-              </Text>
-              {directorSaga && (
-                <Pressable
-                  hitSlop={8}
-                  onPress={() =>
-                    navigation.push("CollectionDetails", { collectionId: directorSaga.id })
-                  }
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.posterRailContent}
                 >
-                  <Text style={styles.railHeaderLink} numberOfLines={1}>
-                    {directorSaga.title} ›
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.posterRailContent}
-            >
-              {directorMovies.map((other) => (
-                <Pressable
-                  key={other.id}
-                  style={styles.similarCard}
-                  onPress={() =>
-                    navigation.push("MovieDetails", { movieId: other.id })
-                  }
-                >
-                  <MoviePoster
-                    uri={other.poster}
-                    style={styles.similarPoster}
-                  />
-                  {watchedIds.has(other.id) && (
-                    <View style={styles.watchedTick}>
-                      <CheckCircle size={14} color={colors.success} />
-                    </View>
-                  )}
-                  <Text style={styles.similarTitle} numberOfLines={1}>
-                    {other.title}
-                  </Text>
-                  <Text style={styles.similarYear}>{other.year}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </>
-        )}
-
-        {similarMovies.length > 0 && (
-          <>
-            {/* "See all" opens Decide's "More like…" for this movie: how
-                similar each is, and why. */}
-            <View style={styles.railHeader}>
-              <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
-                {t("More like this")}
-              </Text>
-              <Pressable hitSlop={8} onPress={() => navigation.push("Similar", { movieId })}>
-                <Text style={styles.railHeaderLink} numberOfLines={1}>
-                  {t("See why")} ›
-                </Text>
-              </Pressable>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.posterRailContent}
-            >
-              {similarMovies.map(({ movie: similar, reason, seen }) => (
-                <Pressable
-                  key={similar.id}
-                  style={styles.similarCard}
-                  onPress={() =>
-                    navigation.push("MovieDetails", { movieId: similar.id })
-                  }
-                >
-                  <MoviePoster
-                    uri={similar.poster}
-                    style={[styles.similarPoster, seen && styles.similarSeen]}
-                  />
-                  <Text style={styles.similarTitle} numberOfLines={1}>
-                    {similar.title}
-                  </Text>
-                  <Text style={styles.similarYear} numberOfLines={1}>
-                    {seen ? t("Watched") : similar.year}
-                  </Text>
-                  {!!reason && (
-                    <Text style={styles.similarReason} numberOfLines={1}>
-                      {reason}
-                    </Text>
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
+                  {similarMovies.map(({ movie: similar, reason, seen }) => (
+                    <Pressable
+                      key={similar.id}
+                      style={styles.similarCard}
+                      onPress={() =>
+                        navigation.push("MovieDetails", { movieId: similar.id })
+                      }
+                    >
+                      <MoviePoster
+                        uri={similar.poster}
+                        style={[styles.similarPoster, seen && styles.similarSeen]}
+                      />
+                      <Text style={styles.similarTitle} numberOfLines={1}>
+                        {similar.title}
+                      </Text>
+                      <Text style={styles.similarYear} numberOfLines={1}>
+                        {seen ? t("Watched") : similar.year}
+                      </Text>
+                      {!!reason && (
+                        <Text style={styles.similarReason} numberOfLines={1}>
+                          {reason}
+                        </Text>
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+            {collections.length === 0 && similarMovies.length === 0 && (
+              <Text style={[styles.tabEmpty, styles.tabEmptyPadded]}>{t("Nothing similar yet.")}</Text>
+            )}
           </>
         )}
       </Animated.ScrollView>
@@ -1087,13 +1181,13 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         style={[styles.headerBar, { top: headerTop }, floatingBarStyle]}
         pointerEvents="box-none"
       >
-        <BackButton onPress={() => navigation.goBack()} />
+        <BackButton onPress={() => navigation.goBack()} floating />
         <Pressable
           style={styles.headerIconButton}
           onPress={handleShare}
           hitSlop={6}
         >
-          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
+          <MoreHorizontal size={20} color="#FFFFFF" strokeWidth={2} />
         </Pressable>
       </Animated.View>
 
@@ -1153,22 +1247,18 @@ const createStyles = (colors) =>
     metaRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
       gap: spacing.xs + 2,
-      marginTop: 4,
+      marginTop: spacing.sm,
       maxWidth: "100%",
     },
     // Your taste match, under the title: a pill, and why.
-    matchBlock: {
-      alignItems: "center",
-      gap: spacing.xs,
-      marginTop: spacing.sm + 2,
-      paddingHorizontal: spacing.lg,
-    },
     matchPill: {
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
+      alignSelf: "flex-start",
+      marginTop: spacing.sm + 2,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
       backgroundColor: colors.successSoft,
+      borderRadius: shape.control - 4,
     },
     matchText: {
       ...typography.bodyBold,
@@ -1176,16 +1266,12 @@ const createStyles = (colors) =>
       lineHeight: 18,
       color: colors.success,
     },
-    matchReason: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
     ageBadge: {
       paddingHorizontal: 5,
       paddingVertical: 1,
       borderWidth: 1,
       borderColor: colors.textMuted,
+      borderRadius: 4,
     },
     ageText: {
       ...typography.label,
@@ -1201,6 +1287,7 @@ const createStyles = (colors) =>
       gap: spacing.md,
       padding: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     tierButtonPressed: {
       backgroundColor: colors.cardElevated,
@@ -1210,6 +1297,7 @@ const createStyles = (colors) =>
       height: 52,
       alignItems: "center",
       justifyContent: "center",
+      borderRadius: shape.control,
     },
     tierTileEmpty: {
       borderWidth: 1.5,
@@ -1260,10 +1348,10 @@ const createStyles = (colors) =>
       alignItems: "flex-start",
       gap: spacing.sm,
       marginTop: spacing.md,
-      marginHorizontal: -spacing.md,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     awardsText: {
       ...typography.caption,
@@ -1283,6 +1371,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: 7,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     factChipText: {
       ...typography.caption,
@@ -1311,6 +1400,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
       backgroundColor: colors.cardElevatedLight,
       marginBottom: spacing.xs + 2,
+      borderRadius: shape.control,
     },
     castPhoto: {
       width: CAST_CARD,
@@ -1342,9 +1432,10 @@ const createStyles = (colors) =>
       color: colors.rating,
     },
     factsCard: {
-      marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     factRow: {
       flexDirection: "row",
@@ -1402,17 +1493,27 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
-    // Flat, like the app's other header icons (no circle).
+    // Round, so it reads on any backdrop.
     headerIconButton: {
-      width: HEADER_BAR_HEIGHT,
-      height: HEADER_BAR_HEIGHT,
-      alignItems: "flex-end",
+      width: 40,
+      height: 40,
+      alignItems: "center",
       justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      borderRadius: shape.chip,
     },
     stage: {
-      alignItems: "center",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.lg,
+    },
+    heroRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.md,
+    },
+    heroInfo: {
+      flex: 1,
+      paddingTop: spacing.xs,
     },
     backdrop: {
       position: "absolute",
@@ -1421,34 +1522,78 @@ const createStyles = (colors) =>
       end: 0,
       overflow: "hidden",
     },
+    // A thin light frame lifts it off the backdrop.
     poster: {
-      width: 168,
+      width: HERO_POSTER,
       aspectRatio: 2 / 3,
+      borderWidth: 1.5,
+      borderColor: "rgba(255, 255, 255, 0.28)",
     },
     logoWrap: {
-      alignItems: "center",
-      marginTop: spacing.md,
+      alignItems: "flex-start",
     },
     title: {
-      ...typography.display,
+      ...typography.hero,
       fontSize: 28,
       lineHeight: 34,
-      letterSpacing: -0.6,
       color: colors.textPrimary,
-      textAlign: "center",
-      marginTop: spacing.md,
+    },
+    byline: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
     },
     director: {
       ...typography.bodyBold,
-      color: colors.textSecondary,
-      textAlign: "center",
-      marginTop: spacing.xs,
+      color: colors.textPrimary,
+      marginTop: 1,
     },
     meta: {
       ...typography.caption,
       flexShrink: 1,
+      color: colors.textSecondary,
+    },
+    tabs: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    tab: {
+      flex: 1,
+      alignItems: "center",
+      paddingTop: spacing.sm,
+      gap: spacing.sm,
+    },
+    tabText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+    },
+    tabTextOn: {
+      color: colors.textPrimary,
+    },
+    tabLine: {
+      alignSelf: "stretch",
+      height: 2,
+      borderRadius: 1,
+    },
+    tabLineOn: {
+      backgroundColor: colors.success,
+    },
+    tabEmpty: {
+      ...typography.body,
       color: colors.textMuted,
-      textAlign: "center",
+      marginTop: spacing.lg,
+    },
+    tabEmptyPadded: {
+      paddingHorizontal: spacing.md,
+    },
+    expand: {
+      alignSelf: "center",
+      padding: spacing.xs,
+      marginTop: spacing.xs,
     },
     content: {
       paddingHorizontal: spacing.md,
@@ -1464,17 +1609,35 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       marginTop: spacing.sm,
     },
-    // Clean icon + label buttons — no tile behind them.
     dockButton: {
       flex: 1,
       alignItems: "center",
       gap: 6,
       paddingVertical: spacing.sm,
     },
-    dockButtonActive: {},
+    dockPressed: {
+      opacity: 0.7,
+    },
+    // Each action's icon in a quiet filled circle with a faint ring.
+    dockCircle: {
+      width: 48,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.ringFill,
+      borderWidth: 1,
+      borderColor: colors.ringEdge,
+      borderRadius: 24,
+    },
+    // On (saved, tonight's pick, on a board): the raised fill and edge.
+    dockCircleActive: {
+      backgroundColor: colors.buttonFill,
+      borderColor: colors.buttonEdge,
+    },
     dockLabel: {
       ...typography.caption,
-      fontSize: 11,
+      fontSize: 12,
+      lineHeight: 16,
       color: colors.textSecondary,
     },
     dockLabelActive: {
@@ -1485,9 +1648,9 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       marginTop: spacing.md,
-      marginHorizontal: -spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     bannerText: {
       flex: 1,
@@ -1505,10 +1668,10 @@ const createStyles = (colors) =>
     },
     ratingCard: {
       marginTop: spacing.md,
-      marginHorizontal: -spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
       gap: spacing.sm,
+      borderRadius: shape.card,
     },
     ratingHeader: {
       flexDirection: "row",
@@ -1587,6 +1750,7 @@ const createStyles = (colors) =>
       width: 180,
       padding: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     collectionChipHeader: {
       flexDirection: "row",
@@ -1600,7 +1764,7 @@ const createStyles = (colors) =>
     },
     chipTrack: {
       height: 4,
-      borderRadius: 0,
+      borderRadius: shape.chip,
       marginTop: spacing.sm,
       backgroundColor: colors.cardElevatedLight,
       overflow: "hidden",

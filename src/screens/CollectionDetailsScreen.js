@@ -33,7 +33,7 @@ import { api } from "../services/api";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { openShareCard } from "../store/shareCardStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -777,6 +777,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       backgroundColor: colors.card,
       gap: 2,
+      borderRadius: shape.card,
     },
     rankReached: {
       backgroundColor: `${colors.rating}29`,
@@ -832,6 +833,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 3,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     xpChipEarned: {
       backgroundColor: colors.rating,
@@ -881,6 +883,7 @@ const createStyles = (colors) =>
       marginHorizontal: spacing.md,
       padding: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     upNextPoster: {
       width: 96,
@@ -920,6 +923,7 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: 6,
       backgroundColor: colors.background,
+      borderRadius: shape.control,
     },
     upNextPrimary: {
       backgroundColor: colors.selected,
@@ -947,6 +951,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     sortActive: {
       backgroundColor: colors.selected,
@@ -969,12 +974,15 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "stretch",
       backgroundColor: colors.card,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     boardTier: {
       width: 40,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.cardElevated,
+      borderRadius: shape.control,
     },
     boardTierText: {
       ...typography.title,
@@ -1029,7 +1037,7 @@ const createStyles = (colors) =>
     },
     // Square, like the app's other filled boxes.
     actionContent: {
-      borderRadius: 0,
+      borderRadius: shape.control,
       paddingVertical: 12,
     },
   });

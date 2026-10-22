@@ -19,7 +19,7 @@ import { getMovieById } from "../data/movies";
 import { REEL_CLIPS, getYoutubeThumbnail } from "../data/reelClips";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -631,6 +631,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       backgroundColor: colors.selected,
+      borderRadius: shape.control,
     },
     youtubeButtonText: {
       ...typography.bodyBold,
@@ -652,6 +653,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
+      borderRadius: shape.chip,
     },
     soundText: {
       ...typography.caption,
@@ -696,9 +698,11 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 5,
       backgroundColor: "rgba(0, 0, 0, 0.45)",
+      borderRadius: shape.chip,
     },
     chipMatch: {
       backgroundColor: "rgba(0, 0, 0, 0.45)",
+      borderRadius: shape.chip,
     },
     chipText: {
       ...typography.caption,

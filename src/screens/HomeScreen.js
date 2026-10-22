@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Bell, Search, Shuffle } from "lucide-react-native";
+import { Bell, Play, Shuffle } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
@@ -19,7 +19,6 @@ import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
-import { PickInsight } from "../components/PickInsight";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { QuickPickBento } from "../components/QuickPickBento";
@@ -113,6 +112,7 @@ const DecideHeroCard = ({
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SUGGESTION_PAGES = 7;
 
 const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
@@ -154,7 +154,10 @@ const WatchlistSuggestion = ({
   );
   if (candidates.length === 0) return null;
 
-  const suggestion = candidates[offset % candidates.length];
+  // Up to seven to step through — the dots under the card show which.
+  const pageCount = Math.min(candidates.length, SUGGESTION_PAGES);
+  const page = offset % pageCount;
+  const suggestion = candidates[page];
   const { movie, savedAt, angle } = suggestion;
   const endsAt = getEndTime(movie);
   // Why it's here (its angle) — a watchlist save says when it was saved.
@@ -195,12 +198,15 @@ const WatchlistSuggestion = ({
         ]
           .filter(Boolean)
           .join(" · ")}
-        details={<PickInsight insight={insight} tag={tag} />}
+        reason={insight.reason ?? tag.text}
+        match={insight.match}
+        pages={{ count: pageCount, index: page }}
         onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
         actions={
           <>
             <PrimaryButton
               label={t("Make it tonight's pick")}
+              icon={<Play size={16} color={colors.selectedText} fill={colors.selectedText} />}
               onPress={() => {
                 Haptics.selectionAsync();
                 togglePickedMovie(movie.id);
@@ -208,7 +214,7 @@ const WatchlistSuggestion = ({
               style={styles.heroMain}
               contentStyle={styles.heroSquare}
             />
-            {candidates.length > 1 && (
+            {pageCount > 1 && (
               <Pressable
                 style={styles.heroRound}
                 onPress={() => {
@@ -546,21 +552,13 @@ export const HomeScreen = ({ navigation }) => {
         italicTitle
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
-          <>
-            <HeaderIconButton
-              onPress={() => navigation.navigate("Activity")}
-              accessibilityLabel={t("Activity")}
-              badge={notificationCount}
-            >
-              <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />
-            </HeaderIconButton>
-            <HeaderIconButton
-              onPress={() => navigation.navigate("Search")}
-              accessibilityLabel={t("Search")}
-            >
-              <Search size={22} strokeWidth={1.75} color={colors.textPrimary} />
-            </HeaderIconButton>
-          </>
+          <HeaderIconButton
+            onPress={() => navigation.navigate("Activity")}
+            accessibilityLabel={t("Activity")}
+            badge={notificationCount}
+          >
+            <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />
+          </HeaderIconButton>
         }
       />
     </SafeAreaView>
@@ -630,6 +628,7 @@ const createStyles = (colors) =>
       padding: spacing.md,
       backgroundColor: colors.card,
       gap: 2,
+      borderRadius: shape.card,
     },
     recapTitle: {
       ...typography.bodyBold,
@@ -671,19 +670,21 @@ const createStyles = (colors) =>
     heroMain: {
       flex: 1,
     },
-    // Square filled boxes, like Tonight's pick.
+    // Rounded, like Tonight's pick.
     heroSquare: {
       borderRadius: shape.control,
       minHeight: 48,
     },
-    // A step lighter than the hero card it sits on.
+    // The small square beside it: a raised tile with a lighter edge.
     heroRound: {
       width: 48,
       height: 48,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.control,
+      backgroundColor: colors.buttonFill,
+      borderWidth: 1.5,
+      borderColor: colors.buttonEdge,
+      borderRadius: shape.control + 2,
     },
   });
 

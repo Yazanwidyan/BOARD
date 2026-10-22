@@ -28,7 +28,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { useUserStore } from "../store/userStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -825,6 +825,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: spacing.sm,
       marginBottom: 2,
+      borderRadius: shape.card,
+      marginHorizontal: spacing.md,
     },
     nameInput: {
       ...typography.bodyBold,
@@ -841,6 +843,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     chipSelected: {
       backgroundColor: colors.selected,
@@ -917,6 +920,7 @@ const createStyles = (colors) =>
       flex: 1,
       height: 3,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.chip,
     },
     stage: {
       flex: 1,
@@ -951,6 +955,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     controlKeep: {
       backgroundColor: colors.selected,
@@ -985,6 +990,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: 6,
       backgroundColor: colors.success,
+      borderRadius: shape.chip,
     },
     matchBadgeText: {
       ...typography.bodyBold,

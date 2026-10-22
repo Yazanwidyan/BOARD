@@ -38,7 +38,7 @@ import { t, useIsRTL, useLayoutDirection } from "../i18n";
 import { useAchievementStore } from "../store/achievementStore";
 import { useMovieStore } from "../store/movieStore";
 import { openShareCard } from "../store/shareCardStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -748,6 +748,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
+      borderRadius: shape.card,
     },
     grabber: {
       position: "absolute",
@@ -769,6 +770,7 @@ const createStyles = (colors) =>
     stampTile: {
       padding: 3,
       backgroundColor: colors.cardElevated,
+      borderRadius: shape.card,
     },
     stampCheck: {
       width: 40,
@@ -825,6 +827,7 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm + 4,
       backgroundColor: colors.surfaceSoft,
+      borderRadius: shape.card,
     },
     alsoIcon: {
       width: 34,
@@ -857,6 +860,7 @@ const createStyles = (colors) =>
       padding: spacing.sm + 4,
       backgroundColor: colors.surfaceSoft,
       gap: spacing.sm + 2,
+      borderRadius: shape.card,
     },
     titleTop: {
       flexDirection: "row",
@@ -897,6 +901,7 @@ const createStyles = (colors) =>
       height: 8,
       overflow: "hidden",
       backgroundColor: colors.border,
+      borderRadius: shape.chip,
     },
     barFill: {
       height: "100%",

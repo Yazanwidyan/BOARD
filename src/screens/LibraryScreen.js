@@ -3,12 +3,15 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
+  Clapperboard,
   Circle,
   Disc3,
   LayoutGrid,
   Layers,
+  MoreHorizontal,
   Plus,
   Search,
+  Trash2,
   X,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -36,7 +39,7 @@ import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
 import { MoviePoster } from "../components/MoviePoster";
 import { Popover } from "../components/Popover";
-import { MosaicSections, PosterMosaic } from "../components/PosterMosaic";
+import { MosaicSections } from "../components/PosterMosaic";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
@@ -49,7 +52,7 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { TAB_BAR_CLEARANCE, radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -57,7 +60,8 @@ import {
   getCollectionSections,
   getUnlockedCollectionSections,
 } from "../utils/collections";
-import { matchesGenres } from "../utils/movieFilters";
+import { formatRuntime, matchesGenres } from "../utils/movieFilters";
+import { giveWatchedFeedback, toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { movieMatches } from "../utils/movieSearch";
 import { shuffle } from "../utils/shuffle";
 import { TIERS, getTierInfo, tierRank } from "../utils/tiers";
@@ -144,6 +148,32 @@ const groupByTier = (items) => {
   });
   return groups;
 };
+
+// One film on the watchlist: its poster, title, and year · genre ·
+// runtime, with ••• for what you can do with it.
+const WatchlistRow = ({ movie, onPress, onMore, styles, colors }) => (
+  <Pressable
+    style={({ pressed }) => [styles.listRow, pressed && styles.listRowPressed]}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={movie.title}
+  >
+    <MoviePoster uri={movie.poster} style={styles.listPoster} />
+    <View style={styles.listInfo}>
+      <Text style={styles.listTitle} numberOfLines={1}>
+        {movie.title}
+      </Text>
+      <Text style={styles.listMeta} numberOfLines={1}>
+        {[movie.year, movie.genres?.[0], movie.runtime ? formatRuntime(movie.runtime) : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </Text>
+    </View>
+    <Pressable onPress={onMore} hitSlop={10} accessibilityLabel={t("More")} style={styles.listMore}>
+      <MoreHorizontal size={20} color={colors.textSecondary} />
+    </Pressable>
+  </Pressable>
+);
 
 // Title, director or cast — see utils/movieSearch.
 const matchesQuery = (movie, query) => movieMatches(movie, query ?? "");
@@ -322,6 +352,11 @@ export const LibraryScreen = ({ navigation, route }) => {
 
   const bucketListEntries = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
+  const toggleWatched = useMovieStore((state) => state.toggleWatched);
+  const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
+  const pickedMovieId = useMovieStore((state) => state.pickedMovie);
+  // The watchlist film whose ••• is open.
+  const [rowMenuMovie, setRowMenuMovie] = useState(null);
   const unlockedCollectionIds = useMovieStore(
     (state) => state.unlockedCollections,
   );
@@ -416,15 +451,17 @@ export const LibraryScreen = ({ navigation, route }) => {
   const currentTab =
     tabOptions.find((option) => option.key === tab) ?? tabOptions[0];
 
-  // Only Watchlist and Watched have the search / filter chip bar.
-  const hasToolBar = tab === "bucketlist" || tab === "watched";
+  // Every section has the bar under the header (its section chips); only
+  // Watchlist and Watched add the search and the count / sort / filter row.
+  const hasToolBar = true;
+  const hasTools = tab === "bucketlist" || tab === "watched";
   // How many, as the first chip in the filter row — what's showing out of
   // all ("8 of 48") while a filter or search narrows the list.
   const shownCount =
     tab === "watched" ? visibleWatchedMovies.length : visibleBucketListMovies.length;
   const countLabel =
     shownCount === currentTab.count
-      ? t("{count} movies", { count: currentTab.count })
+      ? t("{count} films", { count: currentTab.count })
       : t("{shown} of {count}", { shown: shownCount, count: currentTab.count });
 
   const openBoard = (boardId) =>
@@ -464,10 +501,8 @@ export const LibraryScreen = ({ navigation, route }) => {
               // flush under the header like the other tabs' fixed bar
               // (the inset's usual gap is dropped).
               tab === "collections"
-                ? header.contentInset - spacing.md
-                : hasToolBar
-                  ? header.contentInset + toolBarHeight
-                  : header.contentInset,
+                ? header.contentInset - spacing.md + toolBarHeight
+                : header.contentInset + toolBarHeight,
           },
         ]}
       >
@@ -514,10 +549,18 @@ export const LibraryScreen = ({ navigation, route }) => {
                 }
               />
             ) : (
-              <PosterMosaic
-                items={visibleBucketListMovies.map((movie) => ({ movie }))}
-                onPressMovie={(movie) => openDetails(movie.id)}
-              />
+              <View style={styles.list}>
+                {visibleBucketListMovies.map((movie) => (
+                  <WatchlistRow
+                    key={movie.id}
+                    movie={movie}
+                    onPress={() => openDetails(movie.id)}
+                    onMore={() => setRowMenuMovie(movie)}
+                    styles={styles}
+                    colors={colors}
+                  />
+                ))}
+              </View>
             )}
           </>
         ) : (
@@ -588,7 +631,32 @@ export const LibraryScreen = ({ navigation, route }) => {
             setToolBarHeight(event.nativeEvent.layout.height)
           }
         >
-          {(isSearchOpen || query.length > 0) && (
+          {/* Watchlist / Boards / Collections / Watched */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.toolRow}
+            contentContainerStyle={styles.toolRowContent}
+          >
+            {tabOptions.map((option) => {
+              const selected = option.key === tab;
+              return (
+                <Pressable
+                  key={option.key}
+                  style={[styles.sectionChip, selected && styles.sectionChipOn]}
+                  onPress={() => setTab(option.key)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.sectionChipText, selected && styles.sectionChipTextOn]}>
+                    {t(option.label)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {hasTools && (isSearchOpen || query.length > 0) && (
             <View style={styles.searchField}>
               <Search size={16} color={colors.textMuted} />
               <TextInput
@@ -618,9 +686,9 @@ export const LibraryScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* One chip row: how many, what's sorted / filtered, and the
+          {/* One row: how many, what's sorted / filtered, and the
               shortcuts. */}
-          {
+          {hasTools && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -628,7 +696,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               contentContainerStyle={styles.toolRowContent}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={[styles.toolChip, styles.countChip]}>
+              <View style={styles.countChip}>
                 <Text style={styles.countChipText}>{countLabel}</Text>
               </View>
               {tab === "watched" && (
@@ -715,7 +783,7 @@ export const LibraryScreen = ({ navigation, route }) => {
                 </Pressable>
               )}
             </ScrollView>
-          }
+          )}
         </Animated.View>
       )}
       <DockHeader
@@ -731,7 +799,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
           ) : (
-            hasToolBar && (
+            hasTools && (
             <>
               <HeaderIconButton
                 onPress={() => {
@@ -763,6 +831,58 @@ export const LibraryScreen = ({ navigation, route }) => {
           )
         }
       />
+      {/* A watchlist film's •••: what you can do with it. */}
+      <BottomSheet
+        visible={!!rowMenuMovie}
+        onClose={() => setRowMenuMovie(null)}
+        title={rowMenuMovie?.title}
+        size="auto"
+      >
+        <View style={styles.rowMenu}>
+          {[
+            {
+              key: "watched",
+              Icon: CheckCircle,
+              label: t("Mark as watched"),
+              run: (movie) => {
+                const { watched: watchedBefore, bucketList: bucketListBefore } = useMovieStore.getState();
+                toggleWatched(movie.id);
+                giveWatchedFeedback(movie.id, watchedBefore, bucketListBefore);
+              },
+            },
+            {
+              key: "pick",
+              Icon: Clapperboard,
+              label:
+                rowMenuMovie && pickedMovieId === rowMenuMovie.id
+                  ? t("Clear tonight's pick")
+                  : t("Make it tonight's pick"),
+              run: (movie) => togglePickedMovie(movie.id),
+            },
+            {
+              key: "remove",
+              Icon: Trash2,
+              label: t("Remove from watchlist"),
+              danger: true,
+              run: (movie) => toggleBucketListWithFeedback(movie.id),
+            },
+          ].map(({ key, Icon, label, run, danger }) => (
+            <Pressable
+              key={key}
+              style={({ pressed }) => [styles.rowMenuItem, pressed && styles.listRowPressed]}
+              onPress={() => {
+                const movie = rowMenuMovie;
+                setRowMenuMovie(null);
+                if (movie) run(movie);
+              }}
+            >
+              <Icon size={20} color={danger ? colors.danger : colors.textPrimary} strokeWidth={1.9} />
+              <Text style={[styles.rowMenuText, danger && { color: colors.danger }]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </BottomSheet>
+
       <Popover
         visible={isSectionMenuOpen}
         anchor={{
@@ -977,6 +1097,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.card,
+      borderRadius: shape.control,
     },
     container: {
       flex: 1,
@@ -996,6 +1117,73 @@ const createStyles = (colors) =>
     // chips stretched into tall pills. Pin it to its content height.
     // Fixed chip bar under the header — card background like the header,
     // one hairline under it.
+    // The section chips: pills, the open one filled.
+    sectionChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: shape.chip,
+    },
+    sectionChipOn: {
+      backgroundColor: colors.selected,
+    },
+    sectionChipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+    },
+    sectionChipTextOn: {
+      color: colors.selectedText,
+    },
+    // Watchlist rows.
+    list: {
+      paddingTop: spacing.xs,
+    },
+    listRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    listRowPressed: {
+      opacity: 0.7,
+    },
+    listPoster: {
+      width: 48,
+      aspectRatio: 2 / 3,
+    },
+    listInfo: {
+      flex: 1,
+      gap: 3,
+    },
+    listTitle: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.textPrimary,
+    },
+    listMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    listMore: {
+      padding: spacing.xs,
+    },
+    rowMenu: {
+      paddingBottom: spacing.lg,
+    },
+    rowMenuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.sm + 6,
+    },
+    rowMenuText: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+    },
     toolBar: {
       position: "absolute",
       start: 0,
@@ -1036,16 +1224,15 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     toolChipActive: {
       backgroundColor: colors.selected,
     },
-    // The count: shaped like a chip, but only an outline — it's not a
-    // button.
+    // The count: plain text at the start of the row.
     countChip: {
-      backgroundColor: "transparent",
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      justifyContent: "center",
+      paddingEnd: spacing.xs,
     },
     countChipText: {
       ...typography.bodyBold,
@@ -1077,9 +1264,11 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.xs,
       height: 44,
-      marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
+      overflow: "hidden",
     },
     searchInput: {
       ...typography.body,
@@ -1103,6 +1292,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       padding: spacing.sm,
       marginBottom: 2,
+      borderRadius: shape.card,
     },
     collectionCollage: {
       width: 76,
@@ -1126,10 +1316,12 @@ const createStyles = (colors) =>
       height: 3,
       backgroundColor: colors.surfaceSoft,
       overflow: "hidden",
+      borderRadius: shape.chip,
     },
     collectionBarFill: {
       height: "100%",
       backgroundColor: colors.textPrimary,
+      borderRadius: shape.chip,
     },
     collectionProgressText: {
       ...typography.caption,
@@ -1147,6 +1339,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       // A step lighter than the sheet, so the boxes read on it.
       backgroundColor: colors.cardElevatedLight,
+      borderRadius: shape.chip,
     },
     chipSelected: {
       backgroundColor: colors.selected,

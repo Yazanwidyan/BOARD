@@ -13,7 +13,7 @@ import { StackHeader } from "../components/ScreenHeader";
 import { t } from "../i18n";
 import { useLanguageStore } from "../store/languageStore";
 import { useMovieStore } from "../store/movieStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
@@ -206,6 +206,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       paddingVertical: spacing.sm + 2,
       backgroundColor: colors.card,
+      borderRadius: shape.chip,
     },
     periodSelected: {
       backgroundColor: colors.selected,
@@ -241,6 +242,7 @@ const createStyles = (colors) =>
       padding: spacing.lg,
       backgroundColor: colors.card,
       gap: spacing.sm,
+      borderRadius: shape.card,
     },
     cardTop: {
       flexDirection: "row",

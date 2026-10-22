@@ -2,7 +2,7 @@ import { ArrowUpDown } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { TIERS, getTier, orderSTier } from "../utils/tiers";
@@ -97,6 +97,7 @@ const createStyles = (colors) =>
       minHeight: POSTER_WIDTH * 1.5,
       backgroundColor: colors.card,
       overflow: "hidden",
+      borderRadius: shape.card,
     },
     letter: {
       width: 48,

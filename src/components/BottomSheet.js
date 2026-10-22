@@ -25,7 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { radius, spacing } from "../theme/spacing";
+import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { useLayoutDirection } from "../i18n";
@@ -259,8 +259,8 @@ const createStyles = (colors) =>
       flexShrink: 1,
       minHeight: 0,
       backgroundColor: colors.cardElevated,
-      borderTopStartRadius: 0,
-      borderTopEndRadius: 0,
+      borderTopStartRadius: shape.sheet,
+      borderTopEndRadius: shape.sheet,
       borderTopWidth: 1,
       borderStartWidth: 1,
       borderEndWidth: 1,

@@ -2,7 +2,7 @@ import { Crown, Layers, TrendingUp } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { describeForecast } from "../utils/ranks";
@@ -90,6 +90,7 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
       backgroundColor: colors.successSoft,
+      borderRadius: shape.chip,
     },
     matchText: {
       ...typography.bodyBold,
@@ -102,6 +103,7 @@ const createStyles = (colors) =>
       paddingVertical: 4,
       backgroundColor: colors.card,
       flexShrink: 1,
+      borderRadius: shape.chip,
     },
     tagText: {
       ...typography.bodyBold,

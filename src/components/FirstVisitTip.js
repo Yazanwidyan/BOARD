@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { t } from "../i18n";
 import { useTipsStore } from "../store/tipsStore";
-import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
+import { shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
@@ -94,6 +94,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.cardElevated,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderRadius: shape.card,
     },
     text: {
       flex: 1,

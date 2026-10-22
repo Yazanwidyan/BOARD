@@ -14,7 +14,7 @@ import { getMovieById } from "../data/movies";
 import { useMovieSearch } from "../hooks/useMovieSearch";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -130,6 +130,8 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
       marginBottom: spacing.md,
+      borderRadius: shape.control,
+      marginHorizontal: spacing.md,
     },
     searchInput: {
       ...typography.body,

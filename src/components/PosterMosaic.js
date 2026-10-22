@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text } from "./AppText";
 
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
@@ -91,7 +91,7 @@ const createStyles = (colors) =>
       bottom: 6,
       paddingHorizontal: 6,
       paddingVertical: 2,
-      borderRadius: 0,
+      borderRadius: shape.chip,
       backgroundColor: "rgba(2, 0, 2, 0.75)",
     },
     rewatchText: {
