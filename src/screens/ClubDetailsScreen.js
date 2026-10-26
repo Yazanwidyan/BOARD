@@ -272,7 +272,7 @@ export const ClubDetailsScreen = ({ navigation, route }) => {
           <Text style={styles.placeholder}>
             {isOwner
               ? t(
-                  "Pick what everyone watches next: long-press a movie on the board below.",
+                  "Pick what everyone watches next: long-press a movie on the list below.",
                 )
               : t("The owner hasn't picked the next movie yet.")}
           </Text>
@@ -308,7 +308,7 @@ export const ClubDetailsScreen = ({ navigation, route }) => {
 
         {/* The shared board */}
         <Text style={styles.tagText}>
-          {t("The board ·")} {club.movies.length}
+          {t("The list ·")} {club.movies.length}
         </Text>
         {club.movies.length > 0 ? (
           <View style={styles.grid}>
@@ -351,7 +351,7 @@ export const ClubDetailsScreen = ({ navigation, route }) => {
         )}
         <Text style={styles.hint}>
           {t(
-            "Add movies from any movie's page with Board. Long-press one here for more.",
+            "Add movies from any movie's page with List. Long-press one here for more.",
           )}
         </Text>
 

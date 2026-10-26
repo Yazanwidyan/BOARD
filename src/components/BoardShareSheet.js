@@ -39,7 +39,7 @@ export const BoardShareSheet = ({ visible, onClose, board, movies }) => {
   const posterWidth =
     (CARD_WIDTH - spacing.md * 2 - POSTER_GAP * (COLUMNS - 1)) / COLUMNS;
   const fallbackMessage = [
-    `${board.name} — ${t("a board on ReelBoard")}`,
+    `${board.name} — ${t("a list on ReelBoard")}`,
     ...movies.map((movie) => `• ${movie.title} (${movie.year})`),
   ].join("\n");
 
@@ -74,7 +74,7 @@ export const BoardShareSheet = ({ visible, onClose, board, movies }) => {
       visible={visible}
       onClose={onClose}
       size="full"
-      title={t("Share board")}
+      title={t("Share list")}
       subtitle={t("This is the image that gets shared")}
       footer={
         <PrimaryButton
@@ -108,7 +108,7 @@ export const BoardShareSheet = ({ visible, onClose, board, movies }) => {
           </View>
 
           <Text style={styles.eyebrow}>
-            {t("{name}'s board", { name: displayName })}
+            {t("{name}'s list", { name: displayName })}
           </Text>
           <Text style={styles.title} numberOfLines={2}>
             {board.name}

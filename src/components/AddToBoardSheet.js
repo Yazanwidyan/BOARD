@@ -55,7 +55,7 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
       visible={visible}
       onClose={onClose}
       size="half"
-      title={t("Add to board")}
+      title={t("Add to list")}
       flush
     >
       <View style={styles.newRow}>
@@ -64,7 +64,7 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
           value={newName}
           onChangeText={setNewName}
           onSubmitEditing={handleCreate}
-          placeholder={t("New board…")}
+          placeholder={t("New list…")}
           placeholderTextColor={colors.textMuted}
           maxLength={BOARD_NAME_MAX}
           returnKeyType="done"
@@ -84,7 +84,7 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
       >
         {boards.length === 0 && (
           <Text style={styles.empty}>
-            {t("No boards yet — name one above to start.")}
+            {t("No lists yet — name one above to start.")}
           </Text>
         )}
         {boards.map((board) => {

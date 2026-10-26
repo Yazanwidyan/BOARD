@@ -80,26 +80,6 @@ const DiscoverRail = ({ rail, first, navigation, styles, colors, posterWidth, rt
   );
 };
 
-// Trending: everything trending on ReelBoard this week, three across.
-const TrendingGrid = ({ movies, navigation, styles, posterWidth }) =>
-  movies.length === 0 ? (
-    <Text style={styles.empty}>{t("Nothing trending this week yet.")}</Text>
-  ) : (
-    <View style={styles.grid}>
-      {movies.map((movie) => (
-        <Pressable
-          key={movie.id}
-          style={({ pressed }) => [{ width: posterWidth }, pressed && styles.pressed]}
-          onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-          accessibilityRole="button"
-          accessibilityLabel={movie.title}
-        >
-          <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: posterWidth }]} />
-        </Pressable>
-      ))}
-    </View>
-  );
-
 // Personal rows built from your history (see utils/discoverRails) — watched
 // movies are never shown, so the page is always about something new.
 export const DiscoverScreen = ({ navigation }) => {
@@ -115,12 +95,9 @@ export const DiscoverScreen = ({ navigation }) => {
   const header = useDockHeader();
   const rtl = useIsRTL();
   const { width } = useWindowDimensions();
-  // A little under four posters across a rail, so the next one peeks in;
-  // three across the Trending grid.
+  // A little under four posters across a rail, so the next one peeks in.
   const posterWidth = Math.round((width - spacing.md - spacing.sm * 3) / 3.7);
-  const gridWidth = Math.floor((width - spacing.md * 2 - spacing.sm * 2) / 3);
-  // Browse (the rails, the default), Reels (full-screen trailer clips) or
-  // Trending (this week's most watched, as a grid).
+  // Browse (the rails, the default) or Reels (full-screen trailer clips).
   const [mode, setMode] = useState("browse");
   const isFocused = useIsFocused();
 
@@ -150,7 +127,6 @@ export const DiscoverScreen = ({ navigation }) => {
       {[
         ["browse", "Browse"],
         ["reels", "Reels"],
-        ["trending", "Trending"],
       ].map(([key, label]) => {
         const active = mode === key;
         return (
@@ -176,7 +152,6 @@ export const DiscoverScreen = ({ navigation }) => {
       <Search size={22} color={colors.textPrimary} strokeWidth={1.75} />
     </HeaderIconButton>
   );
-  const trending = rails.find((rail) => rail.key === "trending")?.movies ?? [];
 
   if (mode === "reels") {
     return (
@@ -197,7 +172,7 @@ export const DiscoverScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      {/* Browse / Reels / Trending, pinned under the header. */}
+      {/* Browse / Reels, pinned under the header. */}
       {modeSwitch}
       <Animated.ScrollView
         onScroll={header.onScroll}
@@ -220,27 +195,18 @@ export const DiscoverScreen = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {mode === "trending" ? (
-          <TrendingGrid
-            movies={trending}
+        {rails.map((rail, index) => (
+          <DiscoverRail
+            key={rail.key}
+            rail={rail}
+            first={index === 0}
             navigation={navigation}
             styles={styles}
-            posterWidth={gridWidth}
+            colors={colors}
+            posterWidth={posterWidth}
+            rtl={rtl}
           />
-        ) : (
-          rails.map((rail, index) => (
-            <DiscoverRail
-              key={rail.key}
-              rail={rail}
-              first={index === 0}
-              navigation={navigation}
-              styles={styles}
-              colors={colors}
-              posterWidth={posterWidth}
-              rtl={rtl}
-            />
-          ))
-        )}
+        ))}
       </Animated.ScrollView>
       <ScreenBottomFade />
       <FirstVisitTip id="discover" />
@@ -268,7 +234,7 @@ const createStyles = (colors) =>
     reelsArea: {
       flex: 1,
     },
-    // Browse / Reels / Trending: a dark track, the open one a slate pill.
+    // Browse / Reels: a dark track, the open one a slate pill.
     modeBar: {
       zIndex: 1,
       paddingHorizontal: spacing.md,
@@ -352,20 +318,6 @@ const createStyles = (colors) =>
     },
     railPoster: {
       aspectRatio: 2 / 3,
-    },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      rowGap: spacing.md,
-    },
-    empty: {
-      ...typography.body,
-      color: colors.textMuted,
-      textAlign: "center",
-      marginTop: spacing.xxl,
-      paddingHorizontal: spacing.xl,
     },
   });
 

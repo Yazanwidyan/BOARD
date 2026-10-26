@@ -56,7 +56,6 @@ const ThinkingMark = ({ color }) => {
 // why it's here ("From your watchlist", "Finishes a collection"), beside
 // the match. `saga` and `forecast` (utils/tonightPick) add a slate line each
 // for what it does for a collection and for your ranks.
-// `pages`: { count, index }.
 // `thinking`: a line to show over the card while the next one's being
 // found (the ✦ pulses over the dimmed card), or null.
 export const HomeHero = ({
@@ -72,7 +71,6 @@ export const HomeHero = ({
   saga,
   forecast,
   actions,
-  pages,
   onPress,
   onDismiss,
   scrollY,
@@ -247,13 +245,6 @@ export const HomeHero = ({
 
       {actions && <View style={styles.actions}>{actions}</View>}
 
-      {pages && pages.count > 1 && (
-        <View style={styles.dots} accessible accessibilityLabel={`${pages.index + 1} / ${pages.count}`}>
-          {Array.from({ length: pages.count }, (_, index) => (
-            <View key={index} style={[styles.dot, index === pages.index && styles.dotOn]} />
-          ))}
-        </View>
-      )}
     </View>
   );
 };
@@ -379,21 +370,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       marginTop: spacing.md,
-    },
-    dots: {
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: 6,
-      marginTop: spacing.md,
-    },
-    dot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.cardElevatedLight,
-    },
-    dotOn: {
-      backgroundColor: colors.textSecondary,
     },
   });
 

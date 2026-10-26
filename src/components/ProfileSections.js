@@ -207,7 +207,7 @@ export const TierSummary = ({ entries, onSeeUntiered }) => {
   );
 };
 
-// Boards as a shelf of square covers. Yours ends with a "New board" tile
+// Boards as a shelf of square covers. Yours ends with a "New list" tile
 // (`onCreate`).
 export const BoardsRail = ({ boards, onOpen, onCreate }) => {
   const colors = useColors();
@@ -223,7 +223,7 @@ export const BoardsRail = ({ boards, onOpen, onCreate }) => {
     items.push({
       key: "new-board",
       onPress: onCreate,
-      title: t("New board"),
+      title: t("New list"),
       meta: t("Another mood"),
       content: (
         <View style={styles.newTile}>

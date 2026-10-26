@@ -198,7 +198,6 @@ export const HeaderIconButton = ({
 export const DockHeader = ({
   title,
   logo,
-  italicTitle = false,
   eyebrow,
   subtitle,
   onPressTitle,
@@ -284,7 +283,6 @@ export const DockHeader = ({
                   eyebrow ? styles.leftTitle : styles.title,
                   subtitle && styles.titleWithSubtitle,
                   styles.titleShrink,
-                  italicTitle && styles.titleItalic,
                 ]}
                 numberOfLines={1}
               >
@@ -485,11 +483,6 @@ const createStyles = (colors) =>
     },
     titleShrink: {
       flexShrink: 1,
-    },
-    // Inter has no italic face, so the slant is a skew — same on iOS and
-    // Android.
-    titleItalic: {
-      transform: [{ skewX: "-6deg" }],
     },
     // The title, centred between the two sides.
     leftTitleBlock: {

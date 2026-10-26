@@ -92,7 +92,7 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
     setIsMenuOpen(false);
     Alert.alert(
       t("Delete {name}?", { name: board.name }),
-      t("The movies stay in your library — only the board goes."),
+      t("The movies stay in your library — only the list goes."),
       [
         { text: t("Cancel"), style: "cancel" },
         {
@@ -108,7 +108,7 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
     { key: "add", label: t("Add movies"), onPress: () => setIsAddOpen(true) },
     unwatched.length >= SWIPE_MIN && {
       key: "swipe",
-      label: t("Swipe this board"),
+      label: t("Swipe this list"),
       onPress: handleSwipe,
     },
     unwatched.length >= MOVIE_NIGHT_MIN && {
@@ -128,7 +128,7 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
           <>
             <HeaderIconButton
               onPress={() => movies.length > 0 && setIsShareOpen(true)}
-              accessibilityLabel={t("Share board")}
+              accessibilityLabel={t("Share list")}
             >
               <Share2
                 size={22}
@@ -210,9 +210,9 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
         {movies.length === 0 ? (
           <EmptyState
             art="emptyShelf"
-            title={t("Nothing on this board yet")}
+            title={t("Nothing on this list yet")}
             subtitle={t(
-              "Add movies here, or use “Board” on any movie's page.",
+              "Add movies here, or use “List” on any movie's page.",
             )}
             actionLabel={t("Add movies")}
             onAction={() => setIsAddOpen(true)}
@@ -278,7 +278,7 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
           onPress={confirmDelete}
         >
           <Text style={[styles.menuText, styles.menuDanger]}>
-            {t("Delete board")}
+            {t("Delete list")}
           </Text>
         </Pressable>
       </Popover>

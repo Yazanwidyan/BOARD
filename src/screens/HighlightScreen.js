@@ -164,7 +164,7 @@ export const HighlightScreen = ({ navigation, route }) => {
         {(slide.movieId || slide.collectionId || slide.board) && (
           <PrimaryButton
             label={
-              slide.movieId ? t("View film") : slide.collectionId ? t("View collection") : t("View board")
+              slide.movieId ? t("View film") : slide.collectionId ? t("View collection") : t("View list")
             }
             onPress={openSlide}
             style={styles.action}

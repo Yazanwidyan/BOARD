@@ -3,7 +3,6 @@ import {
   CheckCircle,
   ChevronDown,
   Circle,
-  Clapperboard,
   MoreHorizontal,
   Plus,
   Search,
@@ -28,6 +27,7 @@ import {
 import { AddToBucketListSheet } from "../components/AddToBucketListSheet";
 import { AddToWatchedSheet } from "../components/AddToWatchedSheet";
 import { Text } from "../components/AppText";
+import { TonightIcon } from "../components/icons/TonightIcon";
 import { BoardCover } from "../components/BoardCover";
 import { BoardNameSheet } from "../components/BoardNameSheet";
 import { BottomSheet } from "../components/BottomSheet";
@@ -253,7 +253,7 @@ const BrowseCollectionRow = ({
 };
 
 // Boards view: your own lists as a two-up grid of square covers, with a
-// "New board" tile always last.
+// "New list" tile always last.
 const BOARD_COLUMNS = 2;
 // Room between board covers.
 const BOARD_GAP = 6;
@@ -296,7 +296,7 @@ const BoardsGrid = ({ boards, width, onOpen, onCreate, styles, colors }) => {
           <Plus size={32} color={colors.textSecondary} strokeWidth={1.5} />
         </View>
         <View style={styles.boardInfo}>
-          <Text style={styles.boardName}>{t("New board")}</Text>
+          <Text style={styles.boardName}>{t("New list")}</Text>
           <Text style={styles.boardCount}>
             {boards.length === 0
               ? t("Rainy day, date night…")
@@ -446,7 +446,7 @@ export const LibraryScreen = ({ navigation, route }) => {
     },
     {
       key: "boards",
-      label: "Boards",
+      label: "Lists",
       count: boards.length,
     },
     {
@@ -645,7 +645,7 @@ export const LibraryScreen = ({ navigation, route }) => {
             setToolBarHeight(event.nativeEvent.layout.height)
           }
         >
-          {/* Watchlist / Boards / Collections / Watched */}
+          {/* Watchlist / Lists / Collections / Watched */}
           <View style={styles.sectionTrack} accessibilityRole="tablist">
             {tabOptions.map((option) => {
               const selected = option.key === tab;
@@ -828,7 +828,7 @@ export const LibraryScreen = ({ navigation, route }) => {
           tab === "boards" ? (
             <HeaderIconButton
               onPress={() => setIsNewBoardOpen(true)}
-              accessibilityLabel={t("New board")}
+              accessibilityLabel={t("New list")}
             >
               <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
@@ -870,7 +870,7 @@ export const LibraryScreen = ({ navigation, route }) => {
             },
             {
               key: "pick",
-              Icon: Clapperboard,
+              Icon: TonightIcon,
               label:
                 rowMenuMovie && pickedMovieId === rowMenuMovie.id
                   ? t("Clear tonight's pick")

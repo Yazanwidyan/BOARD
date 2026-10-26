@@ -6,14 +6,17 @@ import {
   Layers,
   Search,
 } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { Text } from "./AppText";
 
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { PrimaryButton } from "./PrimaryButton";
 
-const RING_SIZE = 76;
+const FRONT_WIDTH = 64;
+const BACK_WIDTH = 52;
 
 // One thin icon per kind of empty — the `art` names are kept from the old
 // drawn scenes so callers don't change.
@@ -26,11 +29,25 @@ const ART_ICONS = {
   noCollections: Layers, // no collections yet
 };
 
-// An empty screen or list, Instagram-style: a thin outlined circle with
-// one thin icon, a bold title, a grey line, and an optional way forward as
-// a plain text action. `icon` is still accepted in place of `art`.
+// Three blank posters, fanned like a little stack — the front one carries
+// the icon. A shelf waiting for films.
+const PosterStack = ({ Icon, styles, colors }) => (
+  <Animated.View entering={FadeIn.duration(300)} style={styles.stack} pointerEvents="none">
+    <View style={[styles.back, styles.backStart]} />
+    <View style={[styles.back, styles.backEnd]} />
+    <View style={styles.front}>
+      <Icon size={24} color={colors.textSecondary} strokeWidth={1.7} />
+    </View>
+  </Animated.View>
+);
+
+// An empty screen or list: a little stack of blank posters with an icon on
+// the front one, a title, a grey line, and — when there's a way forward —
+// a button for it. `art` picks the icon (ART_ICONS), or pass `Icon` (a
+// lucide icon) directly; `icon` (any element) still replaces the stack.
 export const EmptyState = ({
   art,
+  Icon: IconProp,
   icon,
   title,
   subtitle,
@@ -39,28 +56,19 @@ export const EmptyState = ({
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const Icon = ART_ICONS[art];
+  const Icon = IconProp ?? ART_ICONS[art];
 
   return (
     <View style={styles.wrap}>
-      {Icon ? (
-        <View style={styles.ring}>
-          <Icon size={32} color={colors.textPrimary} strokeWidth={1.5} />
-        </View>
-      ) : (
-        icon
-      )}
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {Icon ? <PosterStack Icon={Icon} styles={styles} colors={colors} /> : icon}
+      <Animated.View entering={FadeInDown.duration(320).delay(80)} style={styles.words}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </Animated.View>
       {actionLabel && onAction ? (
-        <Pressable
-          onPress={onAction}
-          hitSlop={10}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-        >
-          <Text style={styles.actionText}>{actionLabel}</Text>
-        </Pressable>
+        <Animated.View entering={FadeIn.duration(300).delay(160)} style={styles.action}>
+          <PrimaryButton label={actionLabel} onPress={onAction} dense />
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -75,22 +83,51 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.xl,
     },
-    ring: {
-      width: RING_SIZE,
-      height: RING_SIZE,
-      borderRadius: RING_SIZE / 2,
-      borderWidth: 1.5,
-      borderColor: colors.textPrimary,
+    // The stack: two blank posters leaning out behind the front one.
+    stack: {
+      width: FRONT_WIDTH + BACK_WIDTH,
+      height: FRONT_WIDTH * 1.5,
       alignItems: "center",
       justifyContent: "center",
+      marginBottom: spacing.lg,
+    },
+    back: {
+      position: "absolute",
+      width: BACK_WIDTH,
+      aspectRatio: 2 / 3,
+      backgroundColor: colors.card,
+      borderRadius: shape.poster,
+    },
+    backStart: {
+      start: 0,
+      transform: [{ rotate: "-10deg" }],
+    },
+    backEnd: {
+      end: 0,
+      transform: [{ rotate: "10deg" }],
+    },
+    front: {
+      width: FRONT_WIDTH,
+      aspectRatio: 2 / 3,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: shape.poster,
+      shadowColor: "#000",
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+    words: {
+      alignItems: "center",
+      gap: spacing.xs + 2,
     },
     title: {
-      ...typography.title,
-      fontSize: 20,
-      lineHeight: 26,
-      letterSpacing: -0.3,
+      ...typography.bodyBold,
+      fontSize: 17,
+      lineHeight: 22,
       color: colors.textPrimary,
-      marginTop: spacing.md,
       textAlign: "center",
     },
     subtitle: {
@@ -98,22 +135,12 @@ const createStyles = (colors) =>
       fontSize: 14,
       lineHeight: 20,
       color: colors.textMuted,
-      marginTop: spacing.xs,
       textAlign: "center",
       maxWidth: 280,
     },
     action: {
-      marginTop: spacing.md,
-      paddingVertical: spacing.xs,
-    },
-    pressed: {
-      opacity: 0.6,
-    },
-    actionText: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.textPrimary,
+      marginTop: spacing.lg,
+      minWidth: 180,
     },
   });
 

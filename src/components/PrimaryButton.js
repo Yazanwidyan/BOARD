@@ -6,18 +6,19 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { shadows } from "../theme/shadows";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+// `primary` — every screen's one main action — is the page's contrast
+// colour, flat: white with near-black text on dark, the reverse on light.
 const getVariantStyles = (colors) => ({
   primary: {
-    container: { backgroundColor: colors.selected },
-    text: { color: colors.selectedText },
-    shadow: shadows.glow,
+    container: { backgroundColor: colors.textPrimary },
+    text: { color: colors.background },
+    shadow: null,
   },
   secondary: {
     container: {
@@ -64,21 +65,17 @@ export const PrimaryButton = ({
   const variantStyle = variantStyles[variant] ?? variantStyles.primary;
   const isPrimary = variant === "primary" || !variantStyles[variant];
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(isPrimary ? 0.9 : 1);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
     transform: [{ scale: scale.value }],
   }));
 
   const handlePressIn = () => {
     scale.value = withTiming(0.95, { duration: 100 });
-    if (isPrimary) opacity.value = withTiming(1, { duration: 100 });
   };
 
   const handlePressOut = () => {
     scale.value = withTiming(1, { duration: 150 });
-    if (isPrimary) opacity.value = withTiming(0.9, { duration: 150 });
   };
 
   return (

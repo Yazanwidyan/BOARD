@@ -2,6 +2,7 @@ import { Activity as ActivityIcon, ChevronRight, UserPlus } from "lucide-react-n
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/AppText";
+import { EmptyState } from "../components/EmptyState";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -192,28 +193,17 @@ export const ActivityScreen = ({ navigation }) => {
 
         {/* Nothing in the feed yet: one way forward. */}
         {loaded && activity.length === 0 && (
-          <View style={styles.empty}>
-            <View style={styles.emptyRing}>
-              <ActivityIcon size={28} color={colors.textPrimary} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.emptyTitle}>
-              {friends.length === 0 ? t("No friends yet") : t("All quiet")}
-            </Text>
-            <Text style={styles.emptyText}>
-              {friends.length === 0
+          <EmptyState
+            Icon={ActivityIcon}
+            title={friends.length === 0 ? t("No friends yet") : t("All quiet")}
+            subtitle={
+              friends.length === 0
                 ? t("Add friends to see what they're watching.")
-                : t("Nothing yet — your friends' watches and tiers show up here.")}
-            </Text>
-            {friends.length === 0 && (
-              <Pressable
-                onPress={() => navigation.navigate("Friends")}
-                hitSlop={10}
-                accessibilityRole="button"
-              >
-                <Text style={styles.emptyAction}>{t("Find friends")}</Text>
-              </Pressable>
-            )}
-          </View>
+                : t("Nothing yet — your friends' watches and tiers show up here.")
+            }
+            actionLabel={friends.length === 0 ? t("Find friends") : undefined}
+            onAction={() => navigation.navigate("Friends")}
+          />
         )}
         {!loaded && loading && (
           <Text style={styles.footnote}>{t("Loading…")}</Text>
@@ -316,41 +306,6 @@ const createStyles = (colors) =>
     },
     chipTextOn: {
       color: colors.segmentOnText,
-    },
-    empty: {
-      alignItems: "center",
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.xl,
-    },
-    emptyRing: {
-      width: 68,
-      height: 68,
-      borderRadius: 34,
-      borderWidth: 1.5,
-      borderColor: colors.textPrimary,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    emptyTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginTop: spacing.md,
-    },
-    emptyText: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.textMuted,
-      textAlign: "center",
-      marginTop: spacing.xs,
-      maxWidth: 290,
-    },
-    emptyAction: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.textPrimary,
-      marginTop: spacing.md,
     },
     footnote: {
       ...typography.caption,

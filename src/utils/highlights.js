@@ -27,7 +27,7 @@ const stillOf = (movie) => movie?.backdrop ?? movie?.poster ?? null;
 // Each: { key, label, cover: { poster | tier + color | icon }, slides:
 // [{ key, image, blur?, poster?, tier?, tierColor?, eyebrow, title, line,
 // movieId?, collectionId?, board? }] }. Empty ones are left out — except
-// your boards (`ownBoards`): with none to show, a "New board" placeholder
+// your boards (`ownBoards`): with none to show, a "New list" placeholder
 // ({ empty: true, no slides }) stands in.
 export const buildHighlights = (watched, { sOrder = [], boards = [], ownBoards = false } = {}) => {
   const highlights = [];
@@ -140,7 +140,7 @@ export const buildHighlights = (watched, { sOrder = [], boards = [], ownBoards =
         key: String(board.id),
         image: stillOf(films[0]),
         poster: films[0].poster,
-        eyebrow: t("Board"),
+        eyebrow: t("List"),
         title: board.name,
         line: [
           t("{count} films", { count: films.length }),
@@ -155,14 +155,14 @@ export const buildHighlights = (watched, { sOrder = [], boards = [], ownBoards =
   if (boardSlides.length > 0) {
     highlights.push({
       key: "boards",
-      label: t("Boards"),
+      label: t("Lists"),
       cover: { poster: boardSlides[0].poster },
       slides: boardSlides,
     });
   } else if (ownBoards) {
     highlights.push({
       key: "boards",
-      label: t("New board"),
+      label: t("New list"),
       cover: { icon: "plus" },
       empty: true,
       slides: [],

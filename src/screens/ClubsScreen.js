@@ -80,7 +80,7 @@ export const ClubsScreen = ({ navigation }) => {
         <View style={styles.intro}>
           <Text style={styles.introText}>
             {t(
-              "Watch together: a shared board, one movie everyone watches next, and the club's own tier list.",
+              "Watch together: a shared list, one movie everyone watches next, and the club's own tier list.",
             )}
           </Text>
         </View>

@@ -805,14 +805,13 @@ const ar = {
   "Best of the 2020s": "أفضل أفلام العشرينيات",
 
   // ---- Boards & Movie night ----
-  "Boards": "اللوحات",
-  "Board": "لوحة",
-  "{count} boards": "{count} لوحات",
-  "New board": "لوحة جديدة",
-  "Rename board": "إعادة تسمية اللوحة",
+  "List": "قائمة",
+  "{count} lists": "{count} قوائم",
+  "New list": "قائمة جديدة",
+  "Rename list": "إعادة تسمية القائمة",
   "Your own list — for a mood, a person, a night": "قائمتك الخاصة — لمزاج، لشخص، لليلة",
-  "Create board": "أنشئ اللوحة",
-  "Board name": "اسم اللوحة",
+  "Create list": "أنشئ القائمة",
+  "List name": "اسم القائمة",
   "Rainy day": "يوم ماطر",
   "Date night": "سهرة رومانسية",
   "Comfort rewatches": "أفلام مريحة للإعادة",
@@ -821,27 +820,27 @@ const ar = {
   "Halloween": "الهالوين",
   "Rainy day, date night…": "يوم ماطر، سهرة رومانسية…",
   "Another mood": "مزاج آخر",
-  "Add to board": "أضف إلى لوحة",
+  "Add to list": "أضف إلى قائمة",
   "Added to {name}": "أُضيف إلى {name}",
-  "New board…": "لوحة جديدة…",
+  "New list…": "قائمة جديدة…",
   "Create": "إنشاء",
-  "No boards yet — name one above to start.": "لا توجد لوحات بعد — سمِّ واحدة في الأعلى للبدء.",
+  "No lists yet — name one above to start.": "لا توجد قوائم بعد — سمِّ واحدة في الأعلى للبدء.",
   "{count} watched": "{count} شوهدت",
   "Add to {name}": "أضف إلى {name}",
   "Search for a movie to add it.": "ابحث عن فيلم لإضافته.",
-  "Share board": "شارك اللوحة",
-  "a board on ReelBoard": "لوحة على ReelBoard",
-  "{name}'s board": "لوحة {name}",
+  "Share list": "شارك القائمة",
+  "a list on ReelBoard": "قائمة على ReelBoard",
+  "{name}'s list": "قائمة {name}",
   "Delete {name}?": "حذف {name}؟",
-  "The movies stay in your library — only the board goes.": "تبقى الأفلام في مكتبتك — تُحذف اللوحة فقط.",
+  "The movies stay in your library — only the list goes.": "تبقى الأفلام في مكتبتك — تُحذف القائمة فقط.",
   "Delete": "حذف",
-  "Delete board": "احذف اللوحة",
+  "Delete list": "احذف القائمة",
   "Rename": "إعادة تسمية",
   "Add movies": "أضف أفلامًا",
-  "Swipe this board": "اسحب هذه اللوحة",
+  "Swipe this list": "اسحب هذه القائمة",
   "More": "المزيد",
-  "Nothing on this board yet": "لا شيء في هذه اللوحة بعد",
-  "Add movies here, or use “Board” on any movie's page.": "أضف الأفلام هنا، أو استخدم «لوحة» في صفحة أي فيلم.",
+  "Nothing on this list yet": "لا شيء في هذه القائمة بعد",
+  "Add movies here, or use “List” on any movie's page.": "أضف الأفلام هنا، أو استخدم «قائمة» في صفحة أي فيلم.",
   "Remove {title}": "أزل {title}",
   "Movie night": "سهرة فيلم",
   "For two": "لشخصين",
@@ -1069,7 +1068,7 @@ const ar = {
   "Please wait…": "يرجى الانتظار…",
   Server: "الخادم",
   "Create your account — your library, tiers and boards are saved to it.":
-    "أنشئ حسابك — تُحفظ فيه مكتبتك وتصنيفاتك ولوحاتك.",
+    "أنشئ حسابك — تُحفظ فيه مكتبتك وتصنيفاتك وقوائمك.",
   "Welcome back. Sign in to pick up where you left off.":
     "مرحبًا بعودتك. سجّل الدخول لتكمل من حيث توقفت.",
   "Signed in as {handle}": "مسجّل الدخول باسم {handle}",
@@ -1079,8 +1078,8 @@ const ar = {
   "Sign out": "تسجيل الخروج",
   "Sign out?": "تسجيل الخروج؟",
   "Delete account?": "حذف الحساب؟",
-  "This permanently deletes your account and everything in it — watched, tiers, boards, friends. This can't be undone.":
-    "سيؤدي هذا إلى حذف حسابك وكل ما فيه نهائيًا — المشاهدات والتصنيفات واللوحات والأصدقاء. لا يمكن التراجع عن ذلك.",
+  "This permanently deletes your account and everything in it — watched, tiers, lists, friends. This can't be undone.":
+    "سيؤدي هذا إلى حذف حسابك وكل ما فيه نهائيًا — المشاهدات والتصنيفات والقوائم والأصدقاء. لا يمكن التراجع عن ذلك.",
   "Enter your password to confirm": "أدخل كلمة المرور للتأكيد",
   "Delete account forever": "حذف الحساب نهائيًا",
   "Couldn't load your account": "تعذّر تحميل حسابك",
@@ -1202,8 +1201,8 @@ const ar = {
     "أهلًا بك في {name}",
   "Clubs":
     "الأندية",
-  "Watch together: a shared board, one movie everyone watches next, and the club's own tier list.":
-    "شاهدوا معًا: لوحة مشتركة، وفيلم واحد يشاهده الجميع تاليًا، وقائمة تصنيف خاصة بالنادي.",
+  "Watch together: a shared list, one movie everyone watches next, and the club's own tier list.":
+    "شاهدوا معًا: قائمة مشتركة، وفيلم واحد يشاهده الجميع تاليًا، وقائمة تصنيف خاصة بالنادي.",
   "Start a club":
     "أنشئ ناديًا",
   "Club name, e.g. Horror Nights":
@@ -1246,22 +1245,22 @@ const ar = {
     "نشاهد الآن",
   "{watched} of {members} have watched it":
     "شاهده {watched} من {members}",
-  "Pick what everyone watches next: long-press a movie on the board below.":
-    "اختر ما سيشاهده الجميع تاليًا: اضغط مطولًا على فيلم في اللوحة أدناه.",
+  "Pick what everyone watches next: long-press a movie on the list below.":
+    "اختر ما سيشاهده الجميع تاليًا: اضغط مطولًا على فيلم في القائمة أدناه.",
   "The owner hasn't picked the next movie yet.":
     "لم يختر المالك الفيلم التالي بعد.",
   "Club tier list":
     "قائمة تصنيف النادي",
   "Each movie sits at the average of members' tiers.":
     "كل فيلم في متوسط تصنيفات الأعضاء.",
-  "The board ·":
-    "اللوحة ·",
+  "The list ·":
+    "القائمة ·",
   "{watched}/{members} watched":
     "شاهده {watched}/{members}",
   "Nothing here yet.":
     "لا شيء هنا بعد.",
-  "Add movies from any movie's page with Board. Long-press one here for more.":
-    "أضف أفلامًا من صفحة أي فيلم عبر «لوحة». اضغط مطولًا على فيلم هنا للمزيد.",
+  "Add movies from any movie's page with List. Long-press one here for more.":
+    "أضف أفلامًا من صفحة أي فيلم عبر «قائمة». اضغط مطولًا على فيلم هنا للمزيد.",
   "Members ·":
     "الأعضاء ·",
   "(you)":
@@ -1351,12 +1350,12 @@ const ar = {
   // Profiles
   "Top ten": "أفضل عشرة",
   "Finished · {count}": "مكتملة · {count}",
-  "{name} hasn't made any boards yet.": "لم يُنشئ {name} أي لوحات بعد.",
+  "{name} hasn't made any lists yet.": "لم يُنشئ {name} أي قوائم بعد.",
   "Watch and tier a few movies — your Taste DNA shows up here.":
     "شاهد وصنّف بعض الأفلام — ستظهر بصمة ذوقك هنا.",
   Together: "معًا",
-  "Your tier list, boards and taste. Pick your top ten and share your taste card.":
-    "قائمة تصنيفك ولوحاتك وذوقك. اختر أفضل عشرة وشارك بطاقة ذوقك.",
+  "Your tier list, lists and taste. Pick your top ten and share your taste card.":
+    "قائمة تصنيفك وقوائمك وذوقك. اختر أفضل عشرة وشارك بطاقة ذوقك.",
   "{match}% your taste": "{match}% من ذوقك",
   // ---- Sagas ----
   "{count} more to {rank}": "{count} أخرى حتى {rank}",
@@ -1428,7 +1427,7 @@ const ar = {
   "Hide password": "إخفاء كلمة المرور",
   "Create your account": "أنشئ حسابك",
   "Welcome back": "مرحبًا بعودتك",
-  "Your library, tiers, boards and collection ranks are saved to it — on any phone.": "تُحفظ فيه مكتبتك وتصنيفاتك ولوحاتك ورتب مجموعاتك — على أي هاتف.",
+  "Your library, tiers, lists and collection ranks are saved to it — on any phone.": "تُحفظ فيه مكتبتك وتصنيفاتك وقوائمك ورتب مجموعاتك — على أي هاتف.",
   "Sign in to pick up where you left off.": "سجّل الدخول لتكمل من حيث توقفت.",
   "What friends call you": "الاسم الذي يناديك به أصدقاؤك",
   "That doesn't look like an email address": "هذا لا يبدو بريدًا إلكترونيًا",
@@ -1495,7 +1494,7 @@ const ar = {
   "Next": "التالي",
   "Diary": "اليوميات",
   "Mark a movie as watched and it shows here.": "علّم فيلماً كمُشاهَد وسيظهر هنا.",
-  "View board": "عرض اللوحة",
+  "View list": "عرض القائمة",
   "Tonight's lineup": "تشكيلة الليلة",
   "Saved {addedAt}": "حُفظ {addedAt}",
   "today": "اليوم",
@@ -1544,8 +1543,8 @@ const ar = {
   "{name} added": "أضاف {name}",
   "to their watchlist": "إلى قائمة مشاهدته",
   "{name} watched": "شاهد {name}",
-  "On a board · change": "على لوحة · تغيير",
-  "Add to a board": "أضف إلى لوحة",
+  "On a list · change": "على قائمة · تغيير",
+  "Add to a list": "أضف إلى قائمة",
   "{count} mins": "{count} دقيقة",
   "Ratings": "التقييمات",
   "Nobody's tiered it yet.": "لم يصنّفه أحد بعد.",
@@ -1562,6 +1561,19 @@ const ar = {
   "Longer than you like.": "أطول مما تحب.",
   "Length": "المدة",
   "Cover": "الغلاف",
+  "Slide, or tap a letter": "اسحب، أو اضغط على حرف",
+  "Tap again to save": "اضغط مرة أخرى للحفظ",
+  "{count} more": "{count} أخرى",
+  "You're here": "أنت هنا",
+  "Pick a dare, watch the film, earn ranks.": "اختر تحديًا، شاهد الفيلم، واكسب رتبًا.",
+  "Take this dare · +{count} ranks": "خذ هذا التحدي · +{count} رتب",
+  "Take this dare": "خذ هذا التحدي",
+  "Use this cover": "استخدم هذا الغلاف",
+  "Current cover": "الغلاف الحالي",
+  "Tap a still to try it": "اضغط على لقطة لتجربتها",
+  "More you've watched": "أفلام أخرى شاهدتها",
+  "Search your films": "ابحث في أفلامك",
+  "No film by that name.": "لا يوجد فيلم بهذا الاسم.",
   // Welcome
   "Add your name": "أضف اسمك",
   "Add your email": "أضف بريدك الإلكتروني",
@@ -1645,16 +1657,16 @@ const ar = {
   "Swipe these · {count}": "مرّر هذه · {count}",
   "Tier a few movies first": "صنّف بعض الأفلام أولاً",
   "Save a few movies first": "احفظ بعض الأفلام أولاً",
-  "No boards with films to pick yet": "لا لوحات فيها أفلام بعد",
+  "No lists with films to pick yet": "لا قوائم فيها أفلام بعد",
   "{count} saved, unwatched": "{count} محفوظة لم تُشاهد",
   "Last used": "آخر اختيار",
   "{count} unwatched": "{count} لم تُشاهد",
-  "A board": "لوحة",
+  "A list": "قائمة",
   "Your best matches": "الأنسب لذوقك",
   "Any good film you haven't seen": "أي فيلم جيد لم تشاهده",
   "Good films that aren't your usual": "أفلام جيدة ليست من عادتك",
   "What you've saved": "ما حفظته",
-  "One of your boards": "إحدى لوحاتك",
+  "One of your lists": "إحدى قوائمك",
   "Rub the card to see what you got": "اخدش البطاقة لترى ما حصلت عليه",
   "Scratch to reveal": "اخدش لتكشف",
   "Reveal": "اكشف",
@@ -1689,8 +1701,8 @@ const ar = {
   "Choose filters": "اختر الفلاتر",
   "What do you want to swipe?": "ماذا تريد أن تمرّر؟",
   "Ten at a time, down to one": "عشرة في كل مرة، حتى يبقى واحد",
-  "Your boards": "لوحاتك",
-  "Your watchlist, something new or a board": "قائمتك، أو شيء جديد، أو لوحة",
+  "Your boards": "قوائمك",
+  "Your watchlist, something new or a board": "قائمتك، أو شيء جديد، أو قائمة",
   "Jan": "يناير",
   "Feb": "فبراير",
   "Mar": "مارس",

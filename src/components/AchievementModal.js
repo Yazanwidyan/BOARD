@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Check, ChevronRight, Star, TrendingUp } from "lucide-react-native";
+import { Check, Share2, Star, TrendingUp, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -12,13 +12,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
 import Animated, {
   Easing,
+  FadeIn,
   FadeInDown,
   ZoomIn,
   runOnJS,
@@ -26,16 +22,16 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
-  withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
+import Svg, { Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
 
 import { getMovieById } from "../data/movies";
-import { t, useIsRTL, useLayoutDirection } from "../i18n";
+import { t, useLayoutDirection } from "../i18n";
 import { useAchievementStore } from "../store/achievementStore";
+import { useSheetStore } from "../store/sheetStore";
 import { useMovieStore } from "../store/movieStore";
 import { openShareCard } from "../store/shareCardStore";
 import { shape, spacing } from "../theme/spacing";
@@ -48,37 +44,41 @@ import { useRankRarity, useRankSummary } from "../utils/useRanks";
 import { Text } from "./AppText";
 import { DialogArt } from "./DialogArt";
 import { MoviePoster } from "./MoviePoster";
-import { PrimaryButton } from "./PrimaryButton";
 import { RankBadge } from "./RankBadge";
 
-// The reward moment: a sheet that rises from the bottom over a dimmed,
-// blurred version of what you just did. The thing you earned leads —
-// by name, not a generic "New Rank!":
+// The reward moment, full screen — an award, not a dialog. The film you
+// watched fills the screen behind it, darkened (or, without one, the
+// moment's colour glows on the page). The thing you earned leads, by name,
+// not a generic "New Rank!":
 //
-//   ┌ rays ┐   the hero — the film you watched (its rank tile stamped on
-//   │ HERO │   the corner), or the rank's tile, or the title art — over
-//   └──────┘   slow light rays in the moment's colour
+//                                   ✕
+//     ╲ ╱      a projector's beam falling from the top of the screen
+//   ┌──────┐   onto the hero — the film's poster (its rank tile stamped
+//   │ HERO │   on the corner), or the rank's tile, or the title art —
+//   └──────┘   switching on with one flicker
 //   NEW RANK                       what kind of moment
 //   Explorer                       what you earned
 //   Time Traveler · 14% of watchers
 //   also earned                    anything else this one action brought
 //   [23] Lead ━━━━━━━━━━──  7 ranks to Star   (fills from before to after)
 //   ↗ 1 film to Wolf · King of the World      (what's next)
-//   [ Tier it ]                    one main action
-//   See your ranks ›   Later
+//   [ Tier it ]                    the one main action (white)
+//   [ Share / See your ranks ]     the second (grey)
 //
-// Swipe it down, tap outside or tap a button to close. Everything that
+// ✕, a tap on the backdrop or the system back closes it. Everything that
 // moves respects the system's Reduce Motion.
 
-const HERO_HEIGHT = 176;
-const HERO_OVERLAP = 76; // how far the hero hangs over the sheet
-const POSTER_WIDTH = 112;
-const RAYS_SIZE = 340;
+const HERO_HEIGHT = 220;
+const POSTER_WIDTH = 132;
+// The beam: how far above the hero it starts, how narrow it is there, and
+// how wide where it lands.
+const BEAM_RISE = 320;
+const BEAM_TOP_WIDTH = 36;
+const BEAM_BOTTOM_WIDTH = 300;
 const BAR_DELAY = 450;
 const BAR_MS = 700;
 const ROWS_DELAY = 380;
 const ROW_STAGGER = 70;
-const DISMISS_DISTANCE = 110;
 // One easing for everything that arrives: quick, then settles — no
 // overshoot, no wobble.
 const ARRIVE = { duration: 340, easing: Easing.out(Easing.cubic) };
@@ -278,55 +278,66 @@ const getHeadline = (achievement, rarity, colors) => {
 
 // ---------- Pieces of the dialog ----------
 
-// Light rays behind the hero: thin wedges fading out from the centre,
-// turning slowly.
-const RAY_COUNT = 14;
-const rayPath = (index, radius) => {
-  const center = radius;
-  const angle = (index * 360) / RAY_COUNT;
-  const half = 5.5;
-  const point = (degrees) => {
-    const radians = (degrees * Math.PI) / 180;
-    return `${(center + Math.cos(radians) * radius).toFixed(1)} ${(center + Math.sin(radians) * radius).toFixed(1)}`;
-  };
-  return `M${center} ${center} L${point(angle - half)} L${point(angle + half)} Z`;
-};
-
-const Rays = ({ color }) => {
+// A projector's beam: a soft cone of white light from high above, landing
+// on the hero in a pool of light. It switches on with one flicker, then
+// holds still (just fades in with Reduce Motion on).
+const ProjectorBeam = () => {
   const reduceMotion = useReducedMotion();
-  const rotation = useSharedValue(0);
-  const appear = useSharedValue(0);
+  const on = useSharedValue(0);
+  const { width } = useWindowDimensions();
 
   useEffect(() => {
-    appear.value = withTiming(1, { duration: 500 });
-    if (reduceMotion) return;
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 30000, easing: Easing.linear }),
-      -1,
-      false,
+    if (reduceMotion) {
+      on.value = withTiming(1, { duration: 400 });
+      return;
+    }
+    on.value = withDelay(
+      80,
+      withSequence(
+        withTiming(0.8, { duration: 90 }),
+        withTiming(0.25, { duration: 80 }),
+        withTiming(0.9, { duration: 70 }),
+        withTiming(0.55, { duration: 110 }),
+        withTiming(1, { duration: 380, easing: Easing.out(Easing.quad) }),
+      ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const style = useAnimatedStyle(() => ({
-    opacity: appear.value,
-    transform: [{ rotate: `${rotation.value}deg` }, { scale: 0.6 + appear.value * 0.4 }],
-  }));
+  const style = useAnimatedStyle(() => ({ opacity: on.value }));
+  const height = BEAM_RISE + HERO_HEIGHT;
+  const center = width / 2;
+  const cone = [
+    `M${center - BEAM_TOP_WIDTH / 2} 0`,
+    `L${center + BEAM_TOP_WIDTH / 2} 0`,
+    `L${center + BEAM_BOTTOM_WIDTH / 2} ${height}`,
+    `L${center - BEAM_BOTTOM_WIDTH / 2} ${height}`,
+    "Z",
+  ].join(" ");
 
-  const radius = RAYS_SIZE / 2;
   return (
-    <Animated.View pointerEvents="none" style={[styles_.rays, style]}>
-      <Svg width={RAYS_SIZE} height={RAYS_SIZE}>
+    <Animated.View pointerEvents="none" style={[styles_.beam, { width, height }, style]}>
+      <Svg width={width} height={height}>
         <Defs>
-          <RadialGradient id="rayFade" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={color} stopOpacity="0.55" />
-            <Stop offset="0.45" stopColor={color} stopOpacity="0.18" />
-            <Stop offset="1" stopColor={color} stopOpacity="0" />
+          <SvgLinearGradient id="beamFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.32" />
+            <Stop offset="0.7" stopColor="#FFFFFF" stopOpacity="0.1" />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
+          </SvgLinearGradient>
+          <RadialGradient id="beamPool" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.22" />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        {Array.from({ length: RAY_COUNT }, (_, index) => (
-          <Path key={index} d={rayPath(index, radius)} fill="url(#rayFade)" />
-        ))}
+        <Path d={cone} fill="url(#beamFade)" />
+        {/* Where it lands: a soft pool behind the hero. */}
+        <Ellipse
+          cx={center}
+          cy={height - HERO_HEIGHT / 2}
+          rx={BEAM_BOTTOM_WIDTH / 2 + 20}
+          ry={HERO_HEIGHT / 2 + 10}
+          fill="url(#beamPool)"
+        />
       </Svg>
     </Animated.View>
   );
@@ -481,9 +492,25 @@ const AlsoRow = ({ item, index, color, styles, colors }) => (
 // Mounted once inside AppNavigator (needs useNavigation for "See your
 // ranks"), so any screen can trigger it via
 // useAchievementStore.getState().showAchievement({...}).
+// It waits while any bottom sheet is still on screen (store/sheetStore) —
+// marking a film watched from a sheet would otherwise put two Modals up at
+// once, and on iOS the second freezes the screen — then a beat more for
+// the sheet's Modal to finish going.
+const AFTER_SHEET_MS = 120;
+
 export const AchievementModal = () => {
   const achievement = useAchievementStore((state) => state.achievement);
-  if (!achievement) return null;
+  const sheetOpen = useSheetStore((state) => state.open > 0);
+  const [clear, setClear] = useState(!sheetOpen);
+  useEffect(() => {
+    if (sheetOpen) {
+      setClear(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setClear(true), AFTER_SHEET_MS);
+    return () => clearTimeout(timer);
+  }, [sheetOpen]);
+  if (!achievement || !clear) return null;
   // Keyed so every new achievement remounts — everything replays.
   return <AchievementDialog key={achievement.id} achievement={achievement} />;
 };
@@ -491,12 +518,10 @@ export const AchievementModal = () => {
 const AchievementDialog = ({ achievement }) => {
   const colors = useColors();
   const direction = useLayoutDirection();
-  const rtl = useIsRTL();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const navigation = useNavigation();
-  const reduceMotion = useReducedMotion();
   const hideAchievement = useAchievementStore((state) => state.hideAchievement);
   const rarity = useRankRarity();
   const summary = useRankSummary();
@@ -513,73 +538,59 @@ const AchievementDialog = ({ achievement }) => {
     !!movie && watchedNow.some((entry) => entry.movieId === movie.id && !isRated(entry));
   const showProgress = ranksAfter > ranksBefore || headline.kind === "title";
 
-  // Rise in; close by sliding back down (button, outside tap, swipe).
-  const translateY = useSharedValue(reduceMotion ? 0 : windowHeight);
-  const backdrop = useSharedValue(0);
+  // Fades in; closes by fading out (✕, the backdrop, the system back).
+  const appear = useSharedValue(0);
   useEffect(() => {
-    backdrop.value = withTiming(1, { duration: 220 });
-    translateY.value = withTiming(0, ARRIVE);
+    appear.value = withTiming(1, { duration: 260 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Once only — a second tap mid-close mustn't navigate twice.
   const closing = useRef(false);
-  const close = (after) => {
+  // `after`: what to open once it's gone (another sheet — two at once
+  // don't mix). `goTo`: a screen to open right away, underneath, so it's
+  // already there as this fades — no flash of the screen behind.
+  const close = (after, goTo) => {
     if (closing.current) return;
     closing.current = true;
+    if (goTo) navigation.navigate(...goTo);
     const finish = () => {
       hideAchievement();
       if (after) setTimeout(after, 250);
     };
-    backdrop.value = withTiming(0, { duration: 200 });
-    translateY.value = withTiming(
-      windowHeight,
-      { duration: 240, easing: Easing.in(Easing.quad) },
-      () => runOnJS(finish)(),
+    appear.value = withDelay(
+      goTo ? 120 : 0,
+      withTiming(0, { duration: 200 }, () => runOnJS(finish)()),
     );
   };
+  const appearStyle = useAnimatedStyle(() => ({ opacity: appear.value }));
 
-  const pan = Gesture.Pan()
-    .activeOffsetY(12)
-    .failOffsetX([-20, 20])
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, event.translationY);
-    })
-    .onEnd((event) => {
-      if (event.translationY > DISMISS_DISTANCE || event.velocityY > 900) {
-        runOnJS(close)();
-      } else {
-        translateY.value = withTiming(0, ARRIVE);
-      }
-    });
-
-  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
-
-  // The one main action: tier the film, else share a finished saga, else
-  // just "Nice". The others close it ("Later").
+  // The main action: tier the film, else share a finished saga, else just
+  // "Nice". The second: share (when tiering leads), else your ranks.
   const primary = canTier
     ? {
         label: t("Tier it"),
-        icon: <Star size={16} color={colors.accentContrast} />,
-        onPress: () => close(() => navigation.navigate("TierMovie", { movieId: movie.id })),
-        dismissible: true,
+        icon: <Star size={16} color={colors.background} fill={colors.background} />,
+        onPress: () => close(null, ["TierMovie", { movieId: movie.id }]),
       }
     : shareCollectionId
       ? {
           label: t("Share it"),
+          icon: <Share2 size={16} color={colors.background} strokeWidth={2.2} />,
           onPress: () => close(() => openShareCard(shareCollectionId)),
-          dismissible: true,
         }
-      : { label: t("Nice"), onPress: () => close(), dismissible: false };
-  const openRanks = () => close(() => navigation.navigate("Ranks"));
+      : { label: t("Nice"), onPress: () => close() };
+  const secondary =
+    canTier && shareCollectionId
+      ? { label: t("Share it"), onPress: () => close(() => openShareCard(shareCollectionId)) }
+      : { label: t("See your ranks"), onPress: () => close(null, ["Ranks"]) };
 
   const hero =
     movie && headline.kind !== "title" ? (
       <PosterHero movie={movie} stamp={headline.lead} color={color} styles={styles} />
     ) : headline.lead ? (
       <Animated.View entering={HERO_IN.delay(120)}>
-        <RankBadge track={headline.lead.track} step={headline.lead} size={HERO_HEIGHT - 56} />
+        <RankBadge track={headline.lead.track} step={headline.lead} size={HERO_HEIGHT - 70} />
       </Animated.View>
     ) : (
       <Animated.View entering={HERO_IN.delay(120)}>
@@ -587,175 +598,195 @@ const AchievementDialog = ({ achievement }) => {
           kind={headline.kind === "title" ? "level" : headline.kind}
           color={color}
           level={headline.kind === "title" ? getTitle(ranksAfter).step : null}
-          size={HERO_HEIGHT - 16}
+          size={HERO_HEIGHT - 30}
         />
       </Animated.View>
     );
+  const still = movie?.backdrop ?? movie?.poster ?? null;
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={() => close()}>
-      <GestureHandlerRootView style={{ flex: 1, direction }}>
-        {/* The moment behind it: the poster blurred (or the moment's colour
-            glowing), dimmed. Tap it to close. */}
-        <Animated.View style={[StyleSheet.absoluteFill, backdropStyle]}>
-          <View style={[StyleSheet.absoluteFill, styles.scrim]} />
-          {movie && (
-            <Image
-              source={{ uri: movie.poster }}
-              blurRadius={40}
-              style={[StyleSheet.absoluteFill, styles.backdropImage]}
-            />
-          )}
-          <LinearGradient
-            colors={[withAlpha(color, "40"), "rgba(0,0,0,0)"]}
-            locations={[0, 0.7]}
-            style={StyleSheet.absoluteFill}
+      <Animated.View style={[styles.screen, { direction }, appearStyle]}>
+        {/* The film behind it, darkened — or the moment's colour glowing on
+            the page. Tap it to close. */}
+        {still && (
+          <Image
+            source={{ uri: still }}
+            blurRadius={movie?.backdrop ? 6 : 30}
+            style={[StyleSheet.absoluteFill, styles.still]}
+            resizeMode="cover"
           />
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => close()} accessibilityLabel={t("Close")} />
-        </Animated.View>
+        )}
+        <LinearGradient
+          colors={[withAlpha(colors.background, "B3"), withAlpha(colors.background, "E6"), colors.background]}
+          locations={[0, 0.5, 0.85]}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={[withAlpha(color, "38"), withAlpha(color, "00")]}
+          locations={[0, 0.6]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => close()} accessible={false} />
 
         {headline.confetti && (
           <Confetti palette={[color, colors.accent, colors.rating, colors.success, colors.danger]} />
         )}
 
-        {/* Kept below the status bar: however much there is, the sheet never
-            grows past it — the "also earned" list shrinks and scrolls. */}
-        <View style={[styles.bottom, { paddingTop: insets.top + spacing.sm }]} pointerEvents="box-none">
-          <GestureDetector gesture={pan}>
-            <Animated.View style={[styles.sheetWrap, sheetStyle]}>
-              <Rays color={color} />
-
-              <View style={[styles.card, { paddingBottom: insets.bottom + spacing.md }]} accessibilityViewIsModal>
-                <View style={styles.grabber} />
-                <Text style={[styles.eyebrow, { color }]}>{headline.eyebrow}</Text>
-                <Text style={styles.title} numberOfLines={2} accessibilityRole="header">
-                  {headline.title}
-                </Text>
-                {!!headline.subtitle && (
-                  <Text style={styles.subtitle} numberOfLines={1}>
-                    {headline.subtitle}
-                  </Text>
-                )}
-
-                {headline.also.length > 0 && (
-                  <>
-                    <Text style={styles.alsoLabel}>{t("Also earned")}</Text>
-                    <ScrollView
-                      style={[styles.alsoScroll, { maxHeight: windowHeight * 0.24 }]}
-                      contentContainerStyle={styles.alsoList}
-                      showsVerticalScrollIndicator={false}
-                      bounces={false}
-                    >
-                      {headline.also.map((item, index) => (
-                        <AlsoRow key={item.key} item={item} index={index} color={color} styles={styles} colors={colors} />
-                      ))}
-                    </ScrollView>
-                  </>
-                )}
-
-                {showProgress && (
-                  <TitleProgress
-                    ranksBefore={ranksBefore}
-                    ranksAfter={ranksAfter}
-                    color={colors.rating}
-                    styles={styles}
-                    colors={colors}
-                  />
-                )}
-
-                {/* Always a next goal. */}
-                {upNext && (
-                  <Animated.View
-                    entering={FadeInDown.duration(300).delay(ROWS_DELAY + 200)}
-                    style={styles.upNext}
-                  >
-                    <TrendingUp size={15} color={colors.textSecondary} strokeWidth={2.2} />
-                    <Text style={styles.upNextText} numberOfLines={1}>
-                      {describeNext(upNext)}
-                      <Text style={styles.upNextTrack}>{` · ${t(upNext.title)}`}</Text>
-                    </Text>
-                  </Animated.View>
-                )}
-
-                <PrimaryButton label={primary.label} icon={primary.icon} onPress={primary.onPress} style={styles.primary} />
-                <View style={styles.links}>
-                  <Pressable onPress={openRanks} hitSlop={8} style={styles.link} accessibilityRole="button">
-                    <Text style={styles.linkText}>{t("See your ranks")}</Text>
-                    <ChevronRight size={15} color={colors.textSecondary} style={rtl && styles.flipped} />
-                  </Pressable>
-                  {primary.dismissible && (
-                    <Pressable onPress={() => close()} hitSlop={8} style={styles.link} accessibilityRole="button">
-                      <Text style={styles.linkMuted}>{t("Later")}</Text>
-                    </Pressable>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.heroWrap} pointerEvents="none">
-                {hero}
-              </View>
+        <View
+          style={[
+            styles.content,
+            { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.md },
+          ]}
+          pointerEvents="box-none"
+          accessibilityViewIsModal
+        >
+          {/* The hero over its rays, then what it is. */}
+          <View style={styles.middle} pointerEvents="box-none">
+            <View style={styles.heroWrap} pointerEvents="none">
+              <ProjectorBeam />
+              {hero}
+            </View>
+            {/* Wrapped, so the app's Text (and its Arabic font) draws them. */}
+            <Animated.View entering={FadeInDown.duration(320).delay(220)}>
+              <Text style={[styles.eyebrow, { color }]}>{headline.eyebrow}</Text>
             </Animated.View>
-          </GestureDetector>
+            <Animated.View entering={FadeInDown.duration(320).delay(280)}>
+              <Text style={styles.title} numberOfLines={2} accessibilityRole="header">
+                {headline.title}
+              </Text>
+            </Animated.View>
+            {!!headline.subtitle && (
+              <Animated.View entering={FadeInDown.duration(320).delay(330)}>
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {headline.subtitle}
+                </Text>
+              </Animated.View>
+            )}
+
+            {headline.also.length > 0 && (
+              <View style={styles.alsoBlock}>
+                <Text style={styles.alsoLabel}>{t("Also earned")}</Text>
+                <ScrollView
+                  style={[styles.alsoScroll, { maxHeight: windowHeight * 0.2 }]}
+                  contentContainerStyle={styles.alsoList}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                >
+                  {headline.also.map((item, index) => (
+                    <AlsoRow key={item.key} item={item} index={index} color={color} styles={styles} colors={colors} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {showProgress && (
+              <TitleProgress
+                ranksBefore={ranksBefore}
+                ranksAfter={ranksAfter}
+                color={colors.rating}
+                styles={styles}
+                colors={colors}
+              />
+            )}
+
+            {/* Always a next goal. */}
+            {upNext && (
+              <Animated.View
+                entering={FadeInDown.duration(300).delay(ROWS_DELAY + 200)}
+                style={styles.upNext}
+              >
+                <TrendingUp size={15} color={colors.textSecondary} strokeWidth={2.2} />
+                <Text style={styles.upNextText} numberOfLines={1}>
+                  {describeNext(upNext)}
+                  <Text style={styles.upNextTrack}>{` · ${t(upNext.title)}`}</Text>
+                </Text>
+              </Animated.View>
+            )}
+          </View>
+
+          {/* The two actions: white, then grey. */}
+          <Animated.View entering={FadeIn.duration(300).delay(500)} style={styles.actions}>
+            <Pressable
+              style={({ pressed }) => [styles.button, styles.buttonMain, pressed && styles.pressed]}
+              onPress={primary.onPress}
+              accessibilityRole="button"
+            >
+              {primary.icon}
+              <Text style={[styles.buttonText, styles.buttonMainText]}>{primary.label}</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.button, styles.buttonQuiet, pressed && styles.pressed]}
+              onPress={secondary.onPress}
+              accessibilityRole="button"
+            >
+              <Text style={styles.buttonText}>{secondary.label}</Text>
+            </Pressable>
+          </Animated.View>
         </View>
-      </GestureHandlerRootView>
+
+        {/* ✕, top corner. */}
+        <Pressable
+          style={({ pressed }) => [styles.close, { top: insets.top + spacing.sm }, pressed && styles.pressed]}
+          onPress={() => close()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("Close")}
+        >
+          <X size={20} color={colors.textPrimary} strokeWidth={2.2} />
+        </Pressable>
+      </Animated.View>
     </Modal>
   );
 };
 
-// Layout-only styles the Rays component needs outside createStyles.
+// Layout-only styles the beam needs outside createStyles: it reaches up
+// from the hero's foot, past its top, towards the top of the screen.
 const styles_ = StyleSheet.create({
-  rays: {
+  beam: {
     position: "absolute",
-    top: HERO_HEIGHT / 2 - RAYS_SIZE / 2,
+    bottom: 0,
     alignSelf: "center",
-    width: RAYS_SIZE,
-    height: RAYS_SIZE,
   },
 });
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    scrim: {
-      backgroundColor: "rgba(2, 0, 2, 0.72)",
-    },
-    backdropImage: {
-      opacity: 0.35,
-    },
-    bottom: {
+    screen: {
       flex: 1,
-      justifyContent: "flex-end",
+      backgroundColor: colors.background,
     },
-    sheetWrap: {
-      paddingTop: HERO_HEIGHT - HERO_OVERLAP,
-      flexShrink: 1,
-      minHeight: 0,
+    still: {
+      opacity: 0.55,
     },
-    heroWrap: {
-      position: "absolute",
-      top: 0,
-      start: 0,
-      end: 0,
-      height: HERO_HEIGHT,
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.md,
+    },
+    middle: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
     },
-    card: {
-      flexShrink: 1,
-      minHeight: 0,
+    heroWrap: {
+      height: HERO_HEIGHT,
+      alignSelf: "stretch",
       alignItems: "center",
-      backgroundColor: colors.cardElevated,
-      paddingTop: HERO_OVERLAP + spacing.md,
-      paddingHorizontal: spacing.md,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
-      borderRadius: shape.card,
+      justifyContent: "center",
+      marginBottom: spacing.lg,
     },
-    grabber: {
+    close: {
       position: "absolute",
-      top: spacing.sm,
-      width: 36,
-      height: 4,
-      backgroundColor: colors.border,
+      end: spacing.md,
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      borderRadius: 19,
+    },
+    pressed: {
+      opacity: 0.75,
     },
 
     // Hero
@@ -769,7 +800,7 @@ const createStyles = (colors) =>
     },
     stampTile: {
       padding: 3,
-      backgroundColor: colors.cardElevated,
+      backgroundColor: colors.background,
       borderRadius: shape.card,
     },
     stampCheck: {
@@ -779,19 +810,19 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 3,
-      borderColor: colors.cardElevated,
+      borderColor: colors.background,
     },
 
     // Heading: what kind of moment, what you earned, where
     eyebrow: {
       ...typography.label,
-      fontSize: 12,
-      letterSpacing: 1.4,
+      fontSize: 13,
+      letterSpacing: 1.6,
     },
     title: {
       ...typography.display,
-      fontSize: 30,
-      lineHeight: 36,
+      fontSize: 34,
+      lineHeight: 40,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.xs,
@@ -804,9 +835,11 @@ const createStyles = (colors) =>
     },
 
     // Also earned
+    alsoBlock: {
+      alignSelf: "stretch",
+    },
     alsoLabel: {
       ...typography.caption,
-      alignSelf: "stretch",
       color: colors.textMuted,
       marginTop: spacing.lg,
       marginBottom: spacing.sm,
@@ -827,7 +860,7 @@ const createStyles = (colors) =>
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm + 4,
       backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.card,
+      borderRadius: shape.control,
     },
     alsoIcon: {
       width: 34,
@@ -860,7 +893,7 @@ const createStyles = (colors) =>
       padding: spacing.sm + 4,
       backgroundColor: colors.surfaceSoft,
       gap: spacing.sm + 2,
-      borderRadius: shape.card,
+      borderRadius: shape.control,
     },
     titleTop: {
       flexDirection: "row",
@@ -924,37 +957,32 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
 
-    // Actions
-    primary: {
-      alignSelf: "stretch",
-      marginTop: spacing.md + 4,
+    // Actions: white, then grey, full width.
+    actions: {
+      gap: spacing.sm,
     },
-    links: {
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: spacing.xl,
-      marginTop: spacing.sm + 4,
-    },
-    link: {
+    button: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 2,
-      paddingVertical: spacing.xs,
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 50,
+      borderRadius: shape.control,
     },
-    linkText: {
+    buttonMain: {
+      backgroundColor: colors.textPrimary,
+    },
+    buttonQuiet: {
+      backgroundColor: colors.buttonFill,
+    },
+    buttonText: {
       ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 19,
-      color: colors.textSecondary,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.textPrimary,
     },
-    linkMuted: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 19,
-      color: colors.textMuted,
-    },
-    flipped: {
-      transform: [{ scaleX: -1 }],
+    buttonMainText: {
+      color: colors.background,
     },
   });
 

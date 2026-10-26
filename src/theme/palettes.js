@@ -1,11 +1,13 @@
-// Two palettes. Dark is built on three colours — #1A1B1E (the card and
-// tab-track grey-black), #667688 (slate: every selected state and the main
-// buttons, white text on it) and #7E8E9E (muted text) — with the page a
-// step darker and sheets, fills and edges a step lighter, all neutral.
-// Light is neutral too. Colour carries meaning on top: `rating` (a light
-// slate) for ranks, scores and collections, `success` green for done / saved / matched, `danger`
-// red for hard dares, poor scores and destructive actions. `isDark` lets
-// the few theme-specific bits (status bar, blur tint) pick their side.
+// Two palettes. Dark: a grey page (#1A1B1E) under near-black bars, cards
+// and sheets a step lighter; #667688 slate for selected states (the open
+// tab, a picked chip); the main buttons the page's contrast colour (white).
+// Text is white, then two slate-blue greys — textSecondary, and textMuted
+// (also the tabs not open) — and light mode uses the same slate tone, every
+// grey readable at 4.5 : 1 or better on the page, cards and sheets. Colour
+// carries meaning on top: `rating` (a light slate) for ranks, scores and
+// collections, `success` green for done / saved / matched, `danger` red for
+// hard dares, poor scores and destructive actions. `isDark` lets the few
+// theme-specific bits (status bar, blur tint) pick their side.
 export const darkColors = {
   isDark: true,
 
@@ -51,8 +53,10 @@ export const darkColors = {
 
   surfaceSoft: "rgba(255, 255, 255, 0.06)",
 
-  // Small square icon buttons (shuffle, trailer): a raised tile.
-  buttonFill: "#2C2E33",
+  // Every grey button (Sign in, skips, ⇄, the sheets' actions…): a
+  // neutral grey a clear step above the page and the sheets alike, text
+  // in textPrimary.
+  buttonFill: "#3A3D43",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
@@ -63,7 +67,8 @@ export const darkColors = {
   segmentTrack: "#1A1B1E",
   segmentOn: "#667688",
   segmentOnText: "#FFFFFF",
-  segmentText: "#7E8E9E",
+  // The tabs not open: the same grey as textMuted.
+  segmentText: "#909EAC",
 
   // Every poster's thin frame.
   posterEdge: "#2A2C31",
@@ -85,12 +90,13 @@ export const lightColors = {
 
   textPrimary: "#111214",
 
-  textSecondary: "#4A4C52",
+  // The greys share dark mode's slate tone.
+  textSecondary: "#46505C",
 
-  textMuted: "#8A8C92",
+  textMuted: "#5F6B78",
 
   accent: "#111214",
-  accentLight: "#4A4C52",
+  accentLight: "#46505C",
 
   accentContrast: "#FFFFFF",
 
@@ -110,13 +116,14 @@ export const lightColors = {
 
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 
-  buttonFill: "#F2F2F3",
+  buttonFill: "#E8E9EC",
 
   ringFill: "#F7F7F8",
 
   segmentTrack: "#EDEEF0",
   segmentOn: "#667688",
   segmentOnText: "#FFFFFF",
+  // The tabs not open: the same grey as textMuted.
   segmentText: "#5F6B78",
 
   posterEdge: "rgba(0, 0, 0, 0.1)",

@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { Text } from "../components/AppText";
+import { EmptyState } from "../components/EmptyState";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -261,23 +262,13 @@ export const FriendsScreen = ({ navigation, route }) => {
 
       {/* No friends yet: one way forward. */}
       {loaded && friends.length === 0 && !needle && (
-        <View style={styles.empty}>
-          <View style={styles.emptyRing}>
-            <Users size={26} color={colors.textPrimary} strokeWidth={1.5} />
-          </View>
-          <Text style={styles.emptyTitle}>{t("No friends yet")}</Text>
-          <Text style={styles.emptyText}>
-            {t("Share your handle — once they add you, you can compare tiers and see what they're watching.")}
-          </Text>
-          <Pressable
-            style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}
-            onPress={invite}
-            accessibilityRole="button"
-          >
-            <Share2 size={16} color={colors.selectedText} strokeWidth={2} />
-            <Text style={styles.emptyButtonText}>{t("Invite a friend")}</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          Icon={Users}
+          title={t("No friends yet")}
+          subtitle={t("Share your handle — once they add you, you can compare tiers and see what they're watching.")}
+          actionLabel={t("Invite a friend")}
+          onAction={invite}
+        />
       )}
 
       {!needle && (
@@ -400,15 +391,11 @@ export const FriendsScreen = ({ navigation, route }) => {
       )}
 
       {requestCount === 0 && (
-        <View style={styles.empty}>
-          <View style={styles.emptyRing}>
-            <UserPlus size={26} color={colors.textPrimary} strokeWidth={1.5} />
-          </View>
-          <Text style={styles.emptyTitle}>{t("No requests")}</Text>
-          <Text style={styles.emptyText}>
-            {t("When someone adds you, they'll wait here for you to accept.")}
-          </Text>
-        </View>
+        <EmptyState
+          Icon={UserPlus}
+          title={t("No requests")}
+          subtitle={t("When someone adds you, they'll wait here for you to accept.")}
+        />
       )}
     </>
   );
@@ -668,49 +655,6 @@ const createStyles = (colors) =>
       lineHeight: 20,
       flex: 1,
       color: colors.textPrimary,
-    },
-    empty: {
-      alignItems: "center",
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.xl,
-    },
-    emptyRing: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: colors.card,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    emptyTitle: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginTop: spacing.md,
-    },
-    emptyText: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.textMuted,
-      textAlign: "center",
-      marginTop: spacing.xs,
-      maxWidth: 290,
-    },
-    emptyButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-      paddingHorizontal: spacing.md + 4,
-      minHeight: 42,
-      backgroundColor: colors.selected,
-      borderRadius: shape.control,
-    },
-    emptyButtonText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.selectedText,
     },
     footnote: {
       ...typography.caption,

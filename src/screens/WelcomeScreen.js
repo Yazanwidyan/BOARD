@@ -275,21 +275,21 @@ export const WelcomeScreen = ({ navigation }) => {
             onPress={() => continueWith("google", getGoogleCredentials)}
             busy={busy === "google"}
             disabled={!!busy}
-            style={appleSignInSupported ? styles.slate : styles.filled}
-            textStyle={appleSignInSupported ? styles.slateText : styles.filledText}
+            style={appleSignInSupported ? styles.grey : styles.filled}
+            textStyle={appleSignInSupported ? styles.greyText : styles.filledText}
             colors={colors}
             styles={styles}
           />
           <SignInButton
             label={t("Sign up with email")}
-            icon={<Mail size={18} color={colors.segmentOnText} strokeWidth={2.2} />}
+            icon={<Mail size={18} color={colors.textPrimary} strokeWidth={2.2} />}
             onPress={() => {
               setIsSignUpOpen(false);
               navigation.navigate("EmailAuth", { mode: "register" });
             }}
             disabled={!!busy}
-            style={styles.slate}
-            textStyle={styles.slateText}
+            style={styles.grey}
+            textStyle={styles.greyText}
             colors={colors}
             styles={styles}
           />
@@ -395,12 +395,12 @@ const createStyles = (colors) =>
     neutralText: {
       color: colors.textPrimary,
     },
-    // The other ways in: slate, white text.
-    slate: {
-      backgroundColor: colors.segmentOn,
+    // The other ways in: the button grey, normal text.
+    grey: {
+      backgroundColor: colors.buttonFill,
     },
-    slateText: {
-      color: colors.segmentOnText,
+    greyText: {
+      color: colors.textPrimary,
     },
     pressed: {
       opacity: 0.8,

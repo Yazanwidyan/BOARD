@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Bell, Play, Shuffle } from "lucide-react-native";
+import { Bell, Shuffle } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
@@ -18,6 +18,7 @@ import {
 import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
+import { TonightIcon } from "../components/icons/TonightIcon";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -106,7 +107,7 @@ const DecideHeroCard = ({
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// Up to seven to step through — the dots under the card show which.
+// Up to seven to step through, then round again.
 const SUGGESTION_PAGES = 7;
 // How long each "thinking" line shows before the next film.
 const THINK_STEP_MS = 340;
@@ -214,13 +215,12 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
       tag={tag}
       saga={suggestion.saga}
       forecast={suggestion.forecast}
-      pages={{ count: pageCount, index: page }}
       onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
       actions={
         <>
           <PrimaryButton
             label={t("Make it tonight's pick")}
-            icon={<Play size={16} color={colors.selectedText} fill={colors.selectedText} />}
+            icon={<TonightIcon size={18} color={colors.background} strokeWidth={2} />}
             onPress={() => {
               Haptics.selectionAsync();
               togglePickedMovie(movie.id);
@@ -567,7 +567,6 @@ export const HomeScreen = ({ navigation }) => {
         hairline={false}
         refreshing={refreshing}
         title={t("ReelBoard")}
-        italicTitle
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
           <HeaderIconButton

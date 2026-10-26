@@ -43,13 +43,13 @@ export const BoardNameSheet = ({ visible, onClose, onSave, initialName }) => {
       visible={visible}
       onClose={onClose}
       size="auto"
-      title={isRename ? t("Rename board") : t("New board")}
+      title={isRename ? t("Rename list") : t("New list")}
       subtitle={
         isRename ? undefined : t("Your own list — for a mood, a person, a night")
       }
       footer={
         <PrimaryButton
-          label={isRename ? t("Save") : t("Create board")}
+          label={isRename ? t("Save") : t("Create list")}
           disabled={!trimmed}
           onPress={save}
         />
@@ -59,7 +59,7 @@ export const BoardNameSheet = ({ visible, onClose, onSave, initialName }) => {
         value={name}
         onChangeText={setName}
         onSubmitEditing={save}
-        placeholder={t("Board name")}
+        placeholder={t("List name")}
         placeholderTextColor={colors.textMuted}
         maxLength={BOARD_NAME_MAX}
         returnKeyType="done"

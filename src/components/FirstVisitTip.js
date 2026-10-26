@@ -27,7 +27,7 @@ const TIPS = {
   },
   profile: {
     title: "Profile",
-    body: "Your tier list, boards and taste. Pick your top ten and share your taste card.",
+    body: "Your tier list, lists and taste. Pick your top ten and share your taste card.",
   },
 };
 

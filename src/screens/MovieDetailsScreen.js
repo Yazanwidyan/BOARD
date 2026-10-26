@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Clapperboard,
   Ellipsis,
   Eye,
   LayoutGrid,
@@ -41,6 +40,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
+import { TonightIcon } from "../components/icons/TonightIcon";
 import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
 import { TasteMatchSheet } from "../components/TasteMatchSheet";
@@ -555,7 +555,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const headerTop = insets.top + spacing.sm;
   // The actions' icons: white on the slate; the page colour on the white
   // of an "on" one.
-  const actionIcon = (on) => (on ? colors.background : colors.segmentOnText);
+  const actionIcon = (on) => (on ? colors.background : colors.textPrimary);
   // Close the ⋯ sheet, then (once it's slid away) do `action` — so a sheet
   // it opens doesn't stack on this one.
   const thenClose = (action) => () => {
@@ -1165,7 +1165,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             styles={styles}
             active={isWatched}
             label={t("Watched")}
-            onPress={handleToggleWatched}
+            // Marking it watched opens the reward moment — close this sheet
+            // first; un-marking just toggles in place.
+            onPress={isWatched ? handleToggleWatched : thenClose(handleToggleWatched)}
             icon={
               isWatched ? (
                 <CheckCircle size={22} color={actionIcon(true)} />
@@ -1209,7 +1211,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               active={isPicked}
               label={t("Tonight")}
               onPress={() => togglePickedMovie(movie.id)}
-              icon={<Clapperboard size={22} color={actionIcon(isPicked)} />}
+              icon={<TonightIcon size={22} color={actionIcon(isPicked)} />}
             />
           )}
         </View>
@@ -1227,7 +1229,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           >
             <LayoutGrid size={20} color={colors.textSecondary} strokeWidth={1.9} />
             <Text style={styles.sheetRowText}>
-              {isOnABoard ? t("On a board · change") : t("Add to a board")}
+              {isOnABoard ? t("On a list · change") : t("Add to a list")}
             </Text>
           </Pressable>
           {isWatched && (
@@ -1737,7 +1739,7 @@ const createStyles = (colors) =>
       gap: 6,
       minHeight: 72,
       paddingHorizontal: spacing.xs,
-      backgroundColor: colors.segmentOn,
+      backgroundColor: colors.buttonFill,
       borderRadius: shape.control,
     },
     // On (watched, saved, on a board, tonight's pick): white, dark text.
@@ -1751,7 +1753,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 14,
       lineHeight: 18,
-      color: colors.segmentOnText,
+      color: colors.textPrimary,
       flexShrink: 1,
     },
     actionLabelOn: {

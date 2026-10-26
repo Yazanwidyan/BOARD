@@ -228,7 +228,7 @@ export const ProfileScreen = ({ navigation }) => {
         ) : (
           <SectionEmpty
             line={t("Group films your way — rainy day, date night, comfort picks.")}
-            actionLabel={t("New board")}
+            actionLabel={t("New list")}
             onPress={() => openLibraryTab("boards")}
           />
         )}

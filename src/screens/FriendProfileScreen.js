@@ -230,7 +230,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             line={
               boards.isLoading
                 ? t("Loading…")
-                : t("{name} hasn't made any boards yet.", { name: firstName })
+                : t("{name} hasn't made any lists yet.", { name: firstName })
             }
           />
         )}

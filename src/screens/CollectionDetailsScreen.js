@@ -61,6 +61,9 @@ import { getTastePicks } from "../utils/tasteEngine";
 import { TIERS, getTier } from "../utils/tiers";
 import { t } from "../i18n";
 
+// A rank's node on the ladder.
+const NODE = 22;
+
 const TYPE_LABELS = {
   franchise: "Franchise",
   director: "Director",
@@ -328,17 +331,11 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         formatRuntime(totalMinutes),
         completedAt ? t("finished {date}", { date: formatShortDate(completedAt) }) : null,
       ]
-    : [
-        saga?.current ? saga.current.title : null,
+    : // Where you are among the ranks (and what's next) is the ladder's
+      // to say — this line is just the films and the time left.
+      [
         t("{watched} of {total} watched", { watched: watchedCount, total }),
-        saga?.next
-          ? t("{count} more to {rank}", {
-              count: saga.next.at - watchedCount,
-              rank: saga.next.title,
-            })
-          : minutesLeft > 0
-            ? t("{time} to go", { time: formatRuntime(minutesLeft) })
-            : null,
+        minutesLeft > 0 ? t("{time} to go", { time: formatRuntime(minutesLeft) }) : null,
       ];
 
   const tiersSection = watchedEntries.length > 0 && (
@@ -448,46 +445,68 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.progressText} numberOfLines={1}>
                 {progressLine.filter(Boolean).join(" · ")}
               </Text>
-              {saga && (
-                <View style={[styles.xpChip, isComplete && styles.xpChipEarned]}>
-                  <Text style={[styles.xpText, isComplete && styles.xpTextEarned]}>
-                    {isComplete
-                      ? t("{count} ranks earned", { count: saga.reached.length })
-                      : t("{count} of {total} ranks", {
-                          count: saga.reached.length,
-                          total: collection.ranks.length,
-                        })}
-                  </Text>
-                </View>
-              )}
             </View>
 
-            {/* The ranks you climb, in order — the ones you've reached lit. */}
+            {/* The ranks you climb, as a ladder: a node on a line for each —
+                ticked once reached, ringed for the next one — its name in
+                full, how many films it takes, and how many more for the
+                next. */}
             {saga && collection.ranks.length > 0 && (
-              <View style={styles.ranks}>
-                {collection.ranks.map((rank) => {
+              <View style={styles.ladder}>
+                {collection.ranks.map((rank, index) => {
                   const reached = watchedCount >= rank.at;
                   const isCurrent = saga.current?.title === rank.title;
+                  const isNext = saga.next?.title === rank.title;
+                  const lineAboveLit = reached;
+                  const lineBelowLit = watchedCount >= (collection.ranks[index + 1]?.at ?? Infinity);
                   return (
-                    <View
-                      key={rank.title}
-                      style={[
-                        styles.rank,
-                        reached && styles.rankReached,
-                        isCurrent && styles.rankCurrent,
-                      ]}
-                    >
-                      <Text
-                        style={[styles.rankTitle, reached && styles.rankTitleReached]}
-                        numberOfLines={1}
-                      >
-                        {rank.title}
-                      </Text>
-                      <Text style={[styles.rankAt, reached && styles.rankAtReached]}>
-                        {rank.at === total
-                          ? t("All {total}", { total })
-                          : t("{count} films", { count: rank.at })}
-                      </Text>
+                    <View key={rank.title} style={styles.step}>
+                      <View style={styles.rail}>
+                        <View
+                          style={[
+                            styles.railLine,
+                            index === 0 && styles.railLineHidden,
+                            lineAboveLit && styles.railLineLit,
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.node,
+                            reached && styles.nodeReached,
+                            isNext && styles.nodeNext,
+                          ]}
+                        >
+                          {reached && <Check size={13} color={colors.selectedText} strokeWidth={3} />}
+                        </View>
+                        <View
+                          style={[
+                            styles.railLine,
+                            index === collection.ranks.length - 1 && styles.railLineHidden,
+                            lineBelowLit && styles.railLineLit,
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.stepText}>
+                        <Text style={[styles.stepTitle, !reached && styles.stepTitleAhead]}>
+                          {rank.title}
+                        </Text>
+                        <Text style={styles.stepMeta}>
+                          {rank.at === total
+                            ? t("All {total}", { total })
+                            : t("{count} films", { count: rank.at })}
+                          {isNext && (
+                            <Text style={styles.stepMore}>
+                              {" · "}
+                              {t("{count} more", { count: rank.at - watchedCount })}
+                            </Text>
+                          )}
+                        </Text>
+                      </View>
+                      {isCurrent && (
+                        <View style={styles.herePill}>
+                          <Text style={styles.hereText}>{t("You're here")}</Text>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -765,41 +784,83 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    // A saga's ranks: a step each, side by side; reached ones slate.
-    ranks: {
-      flexDirection: "row",
-      gap: 2,
+    // A saga's ranks as a ladder: a rail of nodes down the side, joined
+    // by a line — slate up to where you are, grey beyond.
+    ladder: {
       marginTop: spacing.md,
     },
-    rank: {
+    step: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 52,
+    },
+    rail: {
+      width: NODE,
+      alignSelf: "stretch",
+      alignItems: "center",
+    },
+    railLine: {
       flex: 1,
+      width: 2,
+      backgroundColor: colors.border,
+    },
+    railLineHidden: {
+      backgroundColor: "transparent",
+    },
+    railLineLit: {
+      backgroundColor: colors.selected,
+    },
+    node: {
+      width: NODE,
+      height: NODE,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: NODE / 2,
+      borderWidth: 2,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    nodeReached: {
+      borderColor: colors.selected,
+      backgroundColor: colors.selected,
+    },
+    // The next one to reach: ringed in slate, still empty.
+    nodeNext: {
+      borderColor: colors.selected,
+    },
+    stepText: {
+      flex: 1,
+      gap: 1,
       paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      backgroundColor: colors.card,
-      gap: 2,
-      borderRadius: shape.card,
     },
-    rankReached: {
-      backgroundColor: `${colors.rating}29`,
-    },
-    rankCurrent: {
-      backgroundColor: colors.rating,
-    },
-    rankTitle: {
+    stepTitle: {
       ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
-    },
-    rankTitleReached: {
+      fontSize: 15,
+      lineHeight: 20,
       color: colors.textPrimary,
     },
-    rankAt: {
-      ...typography.micro,
+    stepTitleAhead: {
+      color: colors.textSecondary,
+    },
+    stepMeta: {
+      ...typography.caption,
       color: colors.textMuted,
     },
-    rankAtReached: {
+    stepMore: {
       color: colors.textSecondary,
+    },
+    herePill: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      backgroundColor: colors.selected,
+      borderRadius: shape.control - 2,
+    },
+    hereText: {
+      ...typography.bodyBold,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.selectedText,
     },
     // The film strip: a frame per film, 2px apart.
     strip: {
@@ -828,24 +889,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       flex: 1,
       color: colors.textSecondary,
-    },
-    xpChip: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
-    },
-    xpChipEarned: {
-      backgroundColor: colors.rating,
-    },
-    xpText: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textPrimary,
-    },
-    xpTextEarned: {
-      color: colors.background,
     },
 
     // ---- Sections

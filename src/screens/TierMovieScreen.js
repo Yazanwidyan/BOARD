@@ -35,10 +35,13 @@ import { TIERS, getTier } from "../utils/tiers";
 // follows it continuously: the whole screen takes the tier's colour, the
 // face changes — from F's small eyes and deep frown, through C's flat
 // "fine", to S's big shining eyes and wide grin — and the tier's letter
-// shows huge, what it means in a small line under it. Let go and it snaps to the nearest tier, with a tick
-// at every tier you pass — or tap a letter under it to jump straight there.
+// shows huge, what it means in a small line under it. Let go and it snaps
+// to the nearest tier, with a tick at every tier you pass. A film not
+// tiered yet starts with no thumb at all; it appears with your first touch.
 //
-// Nothing is saved by sliding — "Save" confirms the tier.
+// Nothing is saved by sliding — "Save" confirms the tier. Screen readers
+// get the slider as one adjustable control (swipe up / down to move a
+// tier).
 
 // F → S, left to right.
 const STOPS = [...TIERS].reverse();
@@ -65,7 +68,6 @@ const MOUTH_Y = 128;
 
 const SNAP = { damping: 18, stiffness: 220 };
 const THUMB = 44;
-const STOP_BUTTON = 36;
 // The face, as wide as fits (with the page margins), up to 320.
 const FACE_MAX = 320;
 
@@ -146,6 +148,8 @@ export const TierMovieScreen = ({ navigation, route }) => {
   const [shown, setShown] = useState(currentIndex >= 0 ? currentIndex : null);
   // Once saved the screen is on its way out: no more changes.
   const [locked, setLocked] = useState(false);
+  // Whether a tier has been touched yet — until then, no thumb.
+  const [touched, setTouched] = useState(currentIndex >= 0);
 
   // Where the slider is, 0 (F) … 5 (S). An untiered movie starts between
   // B and C, nothing chosen yet.
@@ -166,6 +170,7 @@ export const TierMovieScreen = ({ navigation, route }) => {
 
   const settle = (index) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTouched(true);
     setShown(index);
     setChosen(STOPS[index].key);
   };
@@ -176,6 +181,7 @@ export const TierMovieScreen = ({ navigation, route }) => {
     .enabled(!!entry && !locked && trackWidth > 0)
     .onBegin((event) => {
       position.value = Math.min(LAST, Math.max(0, (event.x / trackWidth) * LAST));
+      runOnJS(setTouched)(true);
     })
     .onUpdate((event) => {
       position.value = Math.min(LAST, Math.max(0, (event.x / trackWidth) * LAST));
@@ -204,6 +210,13 @@ export const TierMovieScreen = ({ navigation, route }) => {
     navigation.goBack();
   };
 
+  // For screen readers: the slider as one adjustable control.
+  const adjust = (event) => {
+    const from = shown ?? (event.nativeEvent.actionName === "increment" ? 1 : 4);
+    if (event.nativeEvent.actionName === "increment") jumpTo(Math.min(LAST, from + 1));
+    if (event.nativeEvent.actionName === "decrement") jumpTo(Math.max(0, from - 1));
+  };
+
   // Everything takes the colour of where the slider is.
   const backgroundStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(position.value, INDEXES, BACKGROUNDS),
@@ -222,6 +235,11 @@ export const TierMovieScreen = ({ navigation, route }) => {
     transform: [{ translateX: (position.value / LAST) * trackWidth - THUMB / 2 }],
     backgroundColor: interpolateColor(position.value, INDEXES, INKS),
   }));
+  // No thumb (and no fill) until a tier's been touched.
+  const thumbShownStyle = useAnimatedStyle(
+    () => ({ opacity: withTiming(touched ? 1 : 0, { duration: 160 }) }),
+    [touched],
+  );
   const buttonStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(position.value, INDEXES, INKS),
     opacity: withTiming(canSave ? 1 : 0.35, { duration: 160 }),
@@ -289,37 +307,30 @@ export const TierMovieScreen = ({ navigation, route }) => {
           <View
             style={styles.track}
             onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel={t("Tier")}
+            accessibilityValue={{
+              text: shownTier
+                ? `${t("{tier} tier", { tier: shownTier.key })}, ${t(shownTier.meaning)}`
+                : t("Not tiered yet"),
+            }}
+            accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+            onAccessibilityAction={adjust}
           >
             <View style={styles.trackLine} />
-            <Animated.View style={[styles.trackFill, fillStyle]} />
+            <Animated.View style={[styles.trackFill, fillStyle, thumbShownStyle]} />
             {STOPS.map((tier, index) => (
               <View
                 key={tier.key}
                 style={[styles.stop, { left: (index / LAST) * trackWidth - 3 }]}
               />
             ))}
-            <Animated.View style={[styles.thumb, thumbStyle]}>
-              <Text style={styles.thumbLetter}>{shownTier?.key ?? "?"}</Text>
+            <Animated.View style={[styles.thumb, thumbStyle, thumbShownStyle]}>
+              <Text style={styles.thumbLetter}>{shownTier?.key ?? ""}</Text>
             </Animated.View>
           </View>
         </GestureDetector>
-        <View style={styles.stopLabels}>
-          {STOPS.map((tier, index) => (
-            <Pressable
-              key={tier.key}
-              onPress={() => jumpTo(index)}
-              hitSlop={6}
-              style={[styles.stopButton, { left: (index / LAST) * trackWidth - STOP_BUTTON / 2 }]}
-              accessibilityRole="button"
-              accessibilityLabel={t("{tier} tier", { tier: tier.key })}
-              accessibilityState={{ selected: shown === index }}
-            >
-              <Text style={[styles.stopLabel, shown === index && styles.stopLabelOn]}>
-                {tier.key}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
 
       {/* The room left over goes here, so the slider sits right under
@@ -343,8 +354,6 @@ export const TierMovieScreen = ({ navigation, route }) => {
     </Animated.View>
   );
 };
-
-const INK_TEXT = "#0C1014";
 
 const styles = StyleSheet.create({
   container: {
@@ -460,29 +469,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
     color: "#FFFFFF",
-  },
-  // Tappable letters under the track, each centred on its stop.
-  stopLabels: {
-    height: STOP_BUTTON,
-    marginTop: 2,
-  },
-  stopButton: {
-    position: "absolute",
-    width: STOP_BUTTON,
-    height: STOP_BUTTON,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stopLabel: {
-    ...typography.bodyBold,
-    fontSize: 16,
-    color: INK_TEXT,
-    opacity: 0.45,
-  },
-  stopLabelOn: {
-    fontFamily: fonts.extraBold,
-    fontSize: 18,
-    opacity: 1,
   },
   spacer: {
     flex: 1,

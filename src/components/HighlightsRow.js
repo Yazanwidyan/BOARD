@@ -39,7 +39,7 @@ const Cover = ({ cover, colors, styles }) => {
 
 // Instagram-style highlights under a profile's card: a row of ringed
 // circles, each named — tap one to watch it (the Highlight viewer). A
-// placeholder (`empty`, e.g. "New board") gets a dashed grey ring instead.
+// placeholder (`empty`, e.g. "New list") gets a dashed grey ring instead.
 // `highlights` from utils/highlights.
 export const HighlightsRow = ({ highlights, onOpen }) => {
   const colors = useColors();

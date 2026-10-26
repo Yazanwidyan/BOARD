@@ -29,6 +29,7 @@ import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { useLayoutDirection } from "../i18n";
+import { useSheetStore } from "../store/sheetStore";
 
 // Plain eased timing, no springs — the sheet glides into place without
 // overshooting.
@@ -85,6 +86,13 @@ export const BottomSheet = ({
         : { maxHeight: windowHeight * MAX_AUTO_FRACTION };
 
   const [isMounted, setIsMounted] = useState(visible);
+  // Counted as open while its Modal is mounted (store/sheetStore), so the
+  // reward moment waits for it to be fully gone.
+  useEffect(() => {
+    if (!isMounted) return undefined;
+    useSheetStore.getState().opened();
+    return () => useSheetStore.getState().closed();
+  }, [isMounted]);
   // Starts off-screen by a full window height, so it works before the
   // sheet's real (auto) height has been measured.
   const translateY = useSharedValue(windowHeight);

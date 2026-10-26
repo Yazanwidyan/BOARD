@@ -21,7 +21,7 @@ export const SOURCES = [
   { key: "anything", label: "Anything", hint: "Any good film you haven't seen" },
   { key: "outside", label: "Outside my taste", hint: "Good films that aren't your usual" },
   { key: "watchlist", label: "Watchlist", hint: "What you've saved" },
-  { key: "board", label: "A board", hint: "One of your boards" },
+  { key: "board", label: "A list", hint: "One of your lists" },
   { key: "filters", label: "Filters", hint: "By genre, decade and runtime" },
 ];
 

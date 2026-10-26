@@ -25,7 +25,8 @@ export const radius = {
 // edges, sitting a small gap above the safe area (screens add insets.bottom
 // to this separately) — clearance needs to cover that gap plus the pill's
 // own content height so the last scrollable item isn't hidden behind it.
-export const TAB_BAR_HEIGHT = 70;
+// (navigation/tabBars/BottomTabBar: a 60pt pill, at least 16pt up.)
+export const TAB_BAR_HEIGHT = 88;
 export const TAB_BAR_BOTTOM_OFFSET = 0;
 export const TAB_BAR_CLEARANCE = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 

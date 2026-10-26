@@ -135,7 +135,7 @@ const describeFilters = (preferences) => {
 // Where Swipe or Wildcard draws from, as big Settings-style rows edge to
 // edge: an icon, the source and a line about it, a fan of three of its
 // posters, and a chevron. Tapping one goes (`onGo(source, boardId)`);
-// "A board" opens your boards under it and "Filters" the genre / decade /
+// "A list" opens your boards under it and "Filters" the genre / decade /
 // runtime chips with a go button (`goLabel(count)`). The last one you used
 // is marked. `kind`: "swipe" or "wildcard"; `least`: how many films a
 // source needs to be usable.
@@ -156,14 +156,14 @@ export const SourceList = ({ kind, active, least = 1, onGo, goLabel }) => {
   const blockedBy = (key) => {
     if (TASTE_SOURCES.includes(key) && coldStart) return t("Tier a few movies first");
     if (key === "watchlist" && summaries.watchlist.count < least) return t("Save a few movies first");
-    if (key === "board" && boards.length === 0) return t("No boards with films to pick yet");
+    if (key === "board" && boards.length === 0) return t("No lists with films to pick yet");
     return null;
   };
 
   const lineFor = (key) => {
     const { count } = summaries[key];
     if (key === "watchlist") return t("{count} saved, unwatched", { count });
-    if (key === "board") return t("{count} boards", { count: boards.length });
+    if (key === "board") return t("{count} lists", { count: boards.length });
     if (key === "filters") return describeFilters(preferences) ?? t(SOURCES.find((item) => item.key === key).hint);
     return t(SOURCES.find((item) => item.key === key).hint);
   };
@@ -319,7 +319,7 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    // Board rows sit under "A board", indented past its icon.
+    // Board rows sit under "A list", indented past its icon.
     subRow: {
       flexDirection: "row",
       alignItems: "center",

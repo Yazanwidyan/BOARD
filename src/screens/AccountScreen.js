@@ -44,7 +44,7 @@ export const AccountScreen = ({ navigation }) => {
     Alert.alert(
       t("Delete account?"),
       t(
-        "This permanently deletes your account and everything in it — watched, tiers, boards, friends. This can't be undone.",
+        "This permanently deletes your account and everything in it — watched, tiers, lists, friends. This can't be undone.",
       ),
       [
         { text: t("Cancel"), style: "cancel" },
