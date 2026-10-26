@@ -90,6 +90,9 @@ const BACKDROP_HEIGHT = 0.82;
 // How far the title and poster reach up onto the backdrop's fade.
 const POSTER_OVERLAP = 56;
 const SIMILAR_COUNT = 10;
+// A "More like this" poster: about three and a half across, so the next one
+// peeks in.
+const SIMILAR_POSTER = 104;
 // A cast card's width; its photo is a portrait under the name.
 const CAST_CARD = 112;
 
@@ -1023,7 +1026,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           <>
             {collections.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, styles.railLabel]}>
+                <Text style={[styles.sectionLabel, styles.railLabel, styles.railFirst]}>
                   {t("Part of")}
                 </Text>
                 <ScrollView
@@ -1063,7 +1066,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                           />
                         </View>
                         <Text style={styles.collectionChipStat}>
-                          {watchedCount} / {total} watched
+                          {t("{watched} of {total} watched", { watched: watchedCount, total })}
                         </Text>
                       </Pressable>
                     );
@@ -1075,7 +1078,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <>
                 {/* "See all" opens Decide's "More like…" for this movie: how
                     similar each is, and why. */}
-                <View style={styles.railHeader}>
+                <View style={[styles.railHeader, collections.length === 0 && styles.railFirst]}>
                   <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
                     {t("More like this")}
                   </Text>
@@ -1838,6 +1841,12 @@ const createStyles = (colors) =>
       marginHorizontal: 0,
       paddingHorizontal: spacing.md,
     },
+    // The tab's first section: the tabs' underline is its line.
+    railFirst: {
+      marginTop: spacing.lg,
+      paddingTop: 0,
+      borderTopWidth: 0,
+    },
     railHeader: {
       flexDirection: "row",
       alignItems: "center",
@@ -1870,16 +1879,18 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
     },
-    // Poster rails: the same 2px hairline gap as Library's grid.
+    // Poster rails: a little air between posters, a peek of the next one.
     posterRailContent: {
       paddingHorizontal: spacing.md,
-      gap: 2,
+      gap: spacing.sm + 2,
     },
+    // A collection it's part of: a card — its name, how far you are.
     collectionChip: {
-      width: 180,
-      padding: spacing.sm + 2,
+      width: 200,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
       backgroundColor: colors.card,
-      borderRadius: shape.chip,
+      borderRadius: shape.card,
     },
     collectionChipHeader: {
       flexDirection: "row",
@@ -1909,10 +1920,10 @@ const createStyles = (colors) =>
       marginTop: 4,
     },
     similarCard: {
-      width: 120,
+      width: SIMILAR_POSTER,
     },
     similarPoster: {
-      width: 120,
+      width: SIMILAR_POSTER,
       aspectRatio: 2 / 3,
     },
     similarTitle: {
@@ -1920,7 +1931,7 @@ const createStyles = (colors) =>
       fontSize: 13,
       lineHeight: 18,
       color: colors.textPrimary,
-      marginTop: spacing.xs,
+      marginTop: spacing.sm,
     },
     similarYear: {
       ...typography.caption,

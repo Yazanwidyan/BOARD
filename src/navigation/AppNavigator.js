@@ -39,7 +39,6 @@ import { ClubDetailsScreen } from "../screens/ClubDetailsScreen";
 import { ClubsScreen } from "../screens/ClubsScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
-import { EmailAuthScreen } from "../screens/EmailAuthScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { startNotifications } from "../services/notifications";
 import { startSync } from "../services/sync";
@@ -136,7 +135,6 @@ export const AppNavigator = () => {
         {!signedIn ? (
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
-            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
           </>
         ) : !accountReady ? (
           <Stack.Screen name="AccountLoading" component={AccountLoadingScreen} />

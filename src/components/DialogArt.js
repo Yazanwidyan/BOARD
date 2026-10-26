@@ -26,7 +26,7 @@ import { fonts } from "../theme/typography";
 // (A new rank without a movie shows the rank's own tile — see RankBadge.)
 
 // Highlight → base → shade of the slate (matches `rating`).
-const SHINE = ["#F4F5F6", "#C9CBCF", "#8E9196"];
+const SHINE = ["#E3F6FF", "#40BCF4", "#1F6C8F"];
 const INK = "#0C1014";
 
 const toRgb = (hex) => {

@@ -280,7 +280,7 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: "rgba(255, 255, 255, 0.8)",
     },
-    // The search: a filled field, a step lighter than the sheet.
+    // The search: a field sunk a step darker than the sheet.
     search: {
       flexDirection: "row",
       alignItems: "center",
@@ -288,7 +288,7 @@ const createStyles = (colors) =>
       minHeight: 42,
       marginTop: spacing.md,
       paddingHorizontal: spacing.sm + 4,
-      backgroundColor: colors.buttonFill,
+      backgroundColor: colors.card,
       borderRadius: shape.control,
     },
     searchInput: {

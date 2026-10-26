@@ -341,7 +341,7 @@ export const FriendsScreen = ({ navigation, route }) => {
                 accessibilityRole="button"
                 accessibilityLabel={t("Decline")}
               >
-                <X size={18} color={colors.textSecondary} strokeWidth={2.2} />
+                <X size={18} color={colors.textPrimary} strokeWidth={2.2} />
               </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.acceptButton, pressed && styles.pressed]}
@@ -653,7 +653,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.textPrimary,
     },
     meRow: {
       flexDirection: "row",

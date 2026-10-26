@@ -16,6 +16,7 @@ import Animated, {
   FadeInDown,
   FadeOut,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -27,6 +28,7 @@ import {
 
 import { Text } from "../components/AppText";
 import { BottomSheet } from "../components/BottomSheet";
+import { EmailAuthSheet } from "../components/EmailAuthSheet";
 import { AppleLogo, GoogleLogo } from "../components/icons/BrandIcons";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { t } from "../i18n";
@@ -43,18 +45,56 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { SIGN_IN_WALL, WALL_SIZE, getSignInWallMovies } from "../utils/posterWalls";
 
+// How long a sheet takes to slide away before the next one rises.
+const SHEET_HANDOFF_MS = 260;
+
 // Each still shows this long, drifting slowly closer, then fades into the
 // next.
 const STILL_MS = 7000;
 const FADE_MS = 1400;
 const DRIFT_MS = 14000;
+// The beat's words: up to two lines of the big line (28) and one of the
+// quiet one (21), and the gap between.
+const BEAT_HEIGHT = 28 * 2 + 21 + 4;
+// The longest film title the landing will name.
+const MAX_TITLE = 15;
+// The mark turns like a reel, slowly: one full turn this long.
+const SPIN_MS = 16000;
 
-// What ReelBoard does, a line each.
-const LINES = [
-  "Tier the films you watch.",
-  "See how well every film fits your taste.",
-  "Let it pick tonight's movie.",
+// What ReelBoard does, one beat per still, told with the film on screen
+// (`title`) — or, before the films load, without one.
+const BEATS = [
+  {
+    line: (title) => (title ? t("Tier {title}.", { title }) : t("Tier the films you watch.")),
+    sub: "S to F, your way. Your tier list becomes your profile.",
+  },
+  {
+    line: (title) =>
+      title ? t("See how {title} fits your taste.", { title }) : t("See how films fit your taste."),
+    sub: "Every film gets a match, and the reasons why.",
+  },
+  {
+    line: (title) => (title ? t("Tonight: {title}.", { title }) : t("Let it pick tonight.")),
+    sub: "One film for tonight, picked from your taste.",
+  },
 ];
+
+// The ReelBoard mark, turning slowly like a reel on a projector — still
+// with Reduce Motion on.
+const SpinningMark = ({ size, color }) => {
+  const reduceMotion = useReducedMotion();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    if (reduceMotion) return;
+    turn.value = withRepeat(withTiming(360, { duration: SPIN_MS, easing: Easing.linear }), -1, false);
+  }, [reduceMotion, turn]);
+  const spinStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  return (
+    <Animated.View style={spinStyle}>
+      <ReelBoardIcon size={size} color={color} />
+    </Animated.View>
+  );
+};
 
 // One full-width button: filled, no edge.
 const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, colors, styles }) => (
@@ -72,13 +112,12 @@ const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, 
 
 // The film stills behind everything, one at a time: each drifts slowly
 // closer, then fades into the next — the last one stays put underneath
-// while the next fades in over it, so it never dips dark between them —
-// with its film named small at the still's foot, as a credit. The stills
-// fade into the page colour itself at their foot, so there's no seam.
-const Stills = ({ movies, styles, background }) => {
-  // How many times it has moved on: the open still is that one, the one
-  // under it the one before.
-  const [tick, setTick] = useState(0);
+// while the next fades in over it, so it never dips dark between them. The
+// stills fade into the page colour itself at their foot, so there's no
+// seam. (The film is named in the words under the mark, not on the still.)
+// `tick`: how many times it has moved on (the screen keeps the time) — the
+// open still is that one, the one under it the one before.
+const Stills = ({ movies, tick, styles, background }) => {
   const drift = useSharedValue(0);
 
   useEffect(() => {
@@ -90,9 +129,6 @@ const Stills = ({ movies, styles, background }) => {
   }, [drift]);
   useEffect(() => {
     movies.forEach((movie) => Image.prefetch(movie.backdrop).catch(() => {}));
-    if (movies.length < 2) return undefined;
-    const timer = setInterval(() => setTick((value) => value + 1), STILL_MS);
-    return () => clearInterval(timer);
   }, [movies]);
 
   const driftStyle = useAnimatedStyle(() => ({
@@ -135,24 +171,16 @@ const Stills = ({ movies, styles, background }) => {
         locations={[0, 0.22, 0.45, 0.68, 0.86, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.Text
-        key={`credit-${movie.id}`}
-        entering={FadeIn.duration(FADE_MS)}
-        exiting={FadeOut.duration(FADE_MS / 2)}
-        style={styles.credit}
-        numberOfLines={1}
-      >
-        {movie.title}
-        {movie.year ? ` (${movie.year})` : ""}
-      </Animated.Text>
     </View>
   );
 };
 
 // The way in — the first thing anyone sees, Letterboxd-style: film stills
-// crossfading across the top two-thirds (each credited at its foot), then
-// the ReelBoard mark and name, what it does in three short lines, and two
-// buttons: Get started (Apple, Google or email, in a sheet) and Sign in.
+// crossfading across the top two-thirds, then the ReelBoard mark and name,
+// a line about the film on screen that changes with it (tier it, see how
+// it fits you, tonight's pick), and two buttons: Get started (Apple,
+// Google or email, in a sheet) and Sign in.
+// Email sign-in and sign-up open in a sheet too, over the stills.
 export const WelcomeScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -162,12 +190,18 @@ export const WelcomeScreen = ({ navigation }) => {
     () => getSignInWallMovies().length >= WALL_SIZE,
   );
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  // The email sheet: closed, or open to "signIn" / "register".
+  const [emailMode, setEmailMode] = useState(null);
+  const [lastEmailMode, setLastEmailMode] = useState("signIn");
+  const openEmail = (mode) => {
+    setLastEmailMode(mode);
+    setEmailMode(mode);
+  };
   const [busy, setBusy] = useState(null); // "google" | "apple" | null
   const [message, setMessage] = useState(null);
 
   // Light status-bar icons over the stills (even in light mode) — only
-  // while this screen is in front, so the app's own style comes back on
-  // the email screen.
+  // while this screen is in front.
   const isFocused = useIsFocused();
 
   useEffect(() => {
@@ -178,10 +212,24 @@ export const WelcomeScreen = ({ navigation }) => {
   }, [wallReady]);
 
   // The same list each render, so the stills keep their place.
+  // Only short titles, so the line about each film stays short.
   const stillMovies = useMemo(
-    () => (wallReady ? getSignInWallMovies().filter((movie) => movie.backdrop) : []),
+    () =>
+      wallReady
+        ? getSignInWallMovies().filter(
+            (movie) => movie.backdrop && movie.title.length <= MAX_TITLE,
+          )
+        : [],
     [wallReady],
   );
+  // The story's clock: a new still — and a new beat — every few seconds.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((value) => value + 1), STILL_MS);
+    return () => clearInterval(timer);
+  }, []);
+  const beat = BEATS[tick % BEATS.length];
+  const beatMovie = stillMovies.length ? stillMovies[tick % stillMovies.length] : null;
 
   const continueWith = async (provider, getCredentials) => {
     setBusy(provider);
@@ -202,21 +250,31 @@ export const WelcomeScreen = ({ navigation }) => {
     // No top inset: the stills run up behind the (see-through) status bar.
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       {isFocused && <StatusBar style="light" />}
-      <Stills movies={stillMovies} styles={styles} background={colors.background} />
+      <Stills movies={stillMovies} tick={tick} styles={styles} background={colors.background} />
 
       <View style={[styles.content, { paddingTop: insets.top }]}>
         {/* The mark and the name, then what it does. */}
         <Animated.View entering={FadeInDown.delay(200).duration(700)} style={styles.brand}>
           <View style={styles.brandRow}>
-            <ReelBoardIcon size={40} color={colors.textPrimary} />
+            <SpinningMark size={40} color={colors.textPrimary} />
             <Text style={styles.brandName}>ReelBoard</Text>
           </View>
-          <View style={styles.lines}>
-            {LINES.map((line) => (
-              <Text key={line} style={styles.line}>
-                {t(line)}
+          {/* The beat: one line about the film on screen, a quiet one under
+              it — crossfading with the still. */}
+          <View style={styles.beat}>
+            <Animated.View
+              key={tick}
+              entering={FadeIn.duration(FADE_MS / 2)}
+              exiting={FadeOut.duration(FADE_MS / 3)}
+              style={styles.beatWords}
+            >
+              <Text style={styles.beatLine} numberOfLines={2}>
+                {beat.line(beatMovie?.title)}
               </Text>
-            ))}
+              <Text style={styles.beatSub} numberOfLines={1}>
+                {t(beat.sub)}
+              </Text>
+            </Animated.View>
           </View>
         </Animated.View>
 
@@ -232,7 +290,7 @@ export const WelcomeScreen = ({ navigation }) => {
           />
           <SignInButton
             label={t("Sign in")}
-            onPress={() => navigation.navigate("EmailAuth", { mode: "signIn" })}
+            onPress={() => openEmail("signIn")}
             disabled={!!busy}
             style={styles.neutral}
             textStyle={styles.neutralText}
@@ -284,8 +342,9 @@ export const WelcomeScreen = ({ navigation }) => {
             label={t("Sign up with email")}
             icon={<Mail size={18} color={colors.textPrimary} strokeWidth={2.2} />}
             onPress={() => {
+              // This sheet goes first; the email one rises once it's gone.
               setIsSignUpOpen(false);
-              navigation.navigate("EmailAuth", { mode: "register" });
+              setTimeout(() => openEmail("register"), SHEET_HANDOFF_MS);
             }}
             disabled={!!busy}
             style={styles.grey}
@@ -295,6 +354,13 @@ export const WelcomeScreen = ({ navigation }) => {
           />
         </View>
       </BottomSheet>
+
+      {/* Email: sign in or create an account, over the stills. */}
+      <EmailAuthSheet
+        visible={emailMode != null}
+        mode={emailMode ?? lastEmailMode}
+        onClose={() => setEmailMode(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -314,23 +380,13 @@ const createStyles = (colors) =>
       height: "66%",
       overflow: "hidden",
     },
-    // The film's name, small and quiet, at the still's foot.
-    credit: {
-      position: "absolute",
-      bottom: spacing.sm,
-      end: spacing.md,
-      maxWidth: "70%",
-      fontFamily: fonts.medium,
-      fontSize: 11,
-      lineHeight: 14,
-      color: "rgba(255, 255, 255, 0.6)",
-    },
     content: {
       flex: 1,
       justifyContent: "flex-end",
     },
+    // The same side margins as the buttons under it.
     brand: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.md,
       gap: spacing.md,
     },
     brandRow: {
@@ -345,20 +401,37 @@ const createStyles = (colors) =>
       letterSpacing: -0.6,
       color: colors.textPrimary,
     },
-    lines: {
-      gap: 2,
+    // A fixed height — two lines, then one — so the mark and the buttons
+    // never move as the beats change; the old and new beats sit on top of
+    // each other while they crossfade.
+    beat: {
+      height: BEAT_HEIGHT,
     },
-    line: {
+    beatWords: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
+      gap: 4,
+    },
+    beatLine: {
+      ...typography.title,
+      fontSize: 22,
+      lineHeight: 28,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
+    },
+    beatSub: {
       ...typography.body,
-      fontSize: 17,
-      lineHeight: 25,
+      fontSize: 15,
+      lineHeight: 21,
       color: colors.textSecondary,
     },
     footer: {
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xl,
-      paddingBottom: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
     },
     sheetButtons: {
       gap: spacing.sm,
@@ -388,14 +461,14 @@ const createStyles = (colors) =>
     filledText: {
       color: colors.background,
     },
-    // Sign in: a quiet neutral grey.
+    // Sign in: the panel grey (#2C3440), quieter than the button slate.
     neutral: {
-      backgroundColor: colors.buttonFill,
+      backgroundColor: colors.cardElevatedLight,
     },
     neutralText: {
       color: colors.textPrimary,
     },
-    // The other ways in: the button grey, normal text.
+    // The other ways in: the button slate, white text.
     grey: {
       backgroundColor: colors.buttonFill,
     },
