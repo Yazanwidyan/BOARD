@@ -1578,6 +1578,19 @@ const ar = {
   "Starring": "بطولة",
   "Your library, tiers, lists and collection ranks, on any phone.": "مكتبتك وتصنيفاتك وقوائمك ورتب مجموعاتك، على أي هاتف.",
   "Pick up where you left off.": "تابع من حيث توقفت.",
+  // Ranks screen
+  "Craft": "الحِرفة",
+  "Your title": "لقبك",
+  "{percent}% have it": "{percent}% لديهم",
+  // Taste match sheet
+  "Taste match": "توافق الذوق",
+  "Strong match": "توافق قوي",
+  "Worth a look": "يستحق نظرة",
+  "A stretch for you": "بعيد عن ذوقك",
+  "Based on your {count} tiers": "بناءً على {count} من تصنيفاتك",
+  "Based on {count} films you've watched": "بناءً على {count} أفلام شاهدتها",
+  "Pulls it up": "يرفعه",
+  "Holds it back": "يخفضه",
   // Welcome
   "Tier {title}.": "صنّف {title}.",
   "See how {title} fits your taste.": "اعرف مدى تطابق {title} مع ذوقك.",

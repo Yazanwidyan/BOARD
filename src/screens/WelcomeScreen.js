@@ -31,6 +31,7 @@ import { BottomSheet } from "../components/BottomSheet";
 import { EmailAuthSheet } from "../components/EmailAuthSheet";
 import { AppleLogo, GoogleLogo } from "../components/icons/BrandIcons";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
+import { Wordmark } from "../components/Wordmark";
 import { t } from "../i18n";
 import { loadWallMovies } from "../services/movieData";
 import {
@@ -41,7 +42,7 @@ import {
 } from "../services/socialAuth";
 import { signInWith } from "../services/sync";
 import { shape, spacing } from "../theme/spacing";
-import { fonts, typography } from "../theme/typography";
+import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { SIGN_IN_WALL, WALL_SIZE, getSignInWallMovies } from "../utils/posterWalls";
 
@@ -257,7 +258,7 @@ export const WelcomeScreen = ({ navigation }) => {
         <Animated.View entering={FadeInDown.delay(200).duration(700)} style={styles.brand}>
           <View style={styles.brandRow}>
             <SpinningMark size={40} color={colors.textPrimary} />
-            <Text style={styles.brandName}>ReelBoard</Text>
+            <Wordmark size={46} style={styles.brandName} />
           </View>
           {/* The beat: one line about the film on screen, a quiet one under
               it — crossfading with the still. */}
@@ -394,11 +395,10 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm + 2,
     },
+    // The wordmark (components/Wordmark): marquee capitals, opened up a
+    // touch, centred on the reel beside it.
     brandName: {
-      fontFamily: fonts.extraBold,
-      fontSize: 34,
-      lineHeight: 40,
-      letterSpacing: -0.6,
+      letterSpacing: 1,
       color: colors.textPrimary,
     },
     // A fixed height — two lines, then one — so the mark and the buttons

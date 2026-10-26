@@ -1,12 +1,13 @@
-import { ChevronDown, ChevronUp } from "lucide-react-native";
-import { useState } from "react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react-native";
+import { Fragment, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
 import { RankBadge } from "../components/RankBadge";
 import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
+import { UnderlineTabs } from "../components/UnderlineTabs";
 import { t } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -18,14 +19,15 @@ const CLOSE_TO_NEXT = 3;
 
 // Everything you can earn, in one place — the only progress screen:
 //
-//   your title     how many ranks, the bar to the next title, the ladder
-//   close to next  the tracks one or two steps from a rank
-//   craft          how you watch (decades, genres, directors…)
-//   milestones     how much (films watched, films tiered)
+//   your title   how many ranks, the bar to the next title, the ladder of
+//                titles
+//   then tabs    Next up (the tracks closest to a rank) · Craft (how you
+//                watch: decades, genres, directors…) · Milestones (how
+//                much: films watched, films tiered) — each track once
 //
-// Each track shows where you are and what's next; tap one to see its whole
-// ladder, with how rare each rank is. (Sagas have their own ladders, in
-// Library — they aren't ranks.)
+// Each track shows where you are and what's next; tap one for its whole
+// ladder, with how many watchers have each rank. (Sagas have their own
+// ladders, on their collection pages — they aren't ranks.)
 export const RanksScreen = ({ navigation }) => {
   const headerScroll = useStackHeaderScroll();
   const colors = useColors();
@@ -39,16 +41,25 @@ export const RanksScreen = ({ navigation }) => {
   const craft = tracks.filter((track) => track.kind === "craft");
   const milestones = tracks.filter((track) => track.kind === "milestone");
   const closest = getClosestRanks(tracks, CLOSE_TO_NEXT);
+  const tabs = [
+    closest.length > 0 && { key: "next", label: t("Next up"), list: closest },
+    { key: "craft", label: t("Craft"), list: craft },
+    { key: "milestones", label: t("Milestones"), list: milestones },
+  ].filter(Boolean);
+  const [tab, setTab] = useState(tabs[0].key);
+  const shown = (tabs.find((item) => item.key === tab) ?? tabs[0]).list;
+  const haveIt = (id) =>
+    rarity[id] != null ? t("{percent}% have it", { percent: rarity[id] }) : null;
 
-  const renderTrack = (track) => {
+  const renderTrack = (track, index) => {
     const isOpen = open === track.id;
-    const onPress = () => setOpen(isOpen ? null : track.id);
     const Chevron = isOpen ? ChevronUp : ChevronDown;
+    const have = track.current ? haveIt(track.current.id) : null;
     return (
-      <View key={track.id}>
+      <View key={track.id} style={index > 0 && styles.trackDivider}>
         <Pressable
           style={({ pressed }) => [styles.track, pressed && styles.pressed]}
-          onPress={onPress}
+          onPress={() => setOpen(isOpen ? null : track.id)}
           accessibilityRole="button"
           accessibilityState={{ expanded: isOpen }}
         >
@@ -58,18 +69,11 @@ export const RanksScreen = ({ navigation }) => {
               <Text style={styles.trackTitle} numberOfLines={1}>
                 {t(track.title)}
               </Text>
-              {track.current && rarity[track.current.id] != null && (
-                <Text style={styles.rarity}>
-                  {t("{percent}%", { percent: rarity[track.current.id] })}
-                </Text>
-              )}
+              <Text style={styles.trackValue}>{formatAmount(track.value, track.unit)}</Text>
             </View>
             <Text style={styles.trackRank} numberOfLines={1}>
               {track.current ? t(track.current.title) : t("Not yet")}
-              <Text style={styles.trackValue}>
-                {"  ·  "}
-                {formatAmount(track.value, track.unit)}
-              </Text>
+              {!!have && <Text style={styles.trackHave}>{`  ·  ${have}`}</Text>}
             </Text>
             <View style={styles.bar}>
               <View
@@ -86,37 +90,37 @@ export const RanksScreen = ({ navigation }) => {
           <Chevron size={18} color={colors.textMuted} />
         </Pressable>
 
-        {/* The whole ladder: each rank, what it needs, how rare it is. */}
+        {/* The whole ladder: each rank, what it takes, how many have it. */}
         {isOpen && (
-          <View style={styles.ladder}>
+          <Animated.View entering={FadeIn.duration(180)} style={styles.ladder}>
             {!!track.hint && <Text style={styles.ladderHint}>{t(track.hint)}</Text>}
-            {track.steps.map((step) => {
+            {track.steps.map((step, stepIndex) => {
               const reached = track.value >= step.at;
+              const stepHave = haveIt(step.id);
               return (
-                <View key={step.id} style={styles.step}>
-                  <RankBadge track={track} step={reached ? step : null} size={28} />
-                  <Text style={[styles.stepTitle, !reached && styles.stepLocked]} numberOfLines={1}>
-                    {t(step.title)}
-                  </Text>
-                  <Text style={styles.stepAt}>{formatAmount(step.at, track.unit)}</Text>
-                  <Text style={styles.stepRarity}>
-                    {rarity[step.id] != null ? t("{percent}%", { percent: rarity[step.id] }) : "—"}
-                  </Text>
-                </View>
+                <Fragment key={step.id}>
+                  {stepIndex > 0 && <View style={styles.stepDivider} />}
+                  <View style={styles.step}>
+                    <RankBadge track={track} step={reached ? step : null} size={28} />
+                    <View style={styles.stepText}>
+                      <Text style={[styles.stepTitle, !reached && styles.stepLocked]} numberOfLines={1}>
+                        {t(step.title)}
+                      </Text>
+                      <Text style={styles.stepMeta} numberOfLines={1}>
+                        {formatAmount(step.at, track.unit)}
+                        {stepHave ? `  ·  ${stepHave}` : ""}
+                      </Text>
+                    </View>
+                    {reached && <Check size={16} color={colors.success} strokeWidth={2.6} />}
+                  </View>
+                </Fragment>
               );
             })}
-          </View>
+          </Animated.View>
         )}
       </View>
     );
   };
-
-  const Section = ({ label, children }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionLabel}>{label}</Text>
-      <View style={styles.sectionBody}>{children}</View>
-    </View>
-  );
 
   return (
     <View style={styles.container}>
@@ -131,39 +135,42 @@ export const RanksScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
-        {/* Your title */}
+        {/* Your title, how far to the next, and the ladder of titles. */}
         <View style={styles.hero}>
-          <Text style={styles.heroEyebrow}>
-            {t("{count} ranks", { count: title.count })}
-          </Text>
+          <Text style={styles.eyebrow}>{t("Your title")}</Text>
           <Text style={styles.heroTitle}>{t(title.name)}</Text>
-          <View style={styles.heroBar}>
-            <View style={[styles.heroFill, { width: `${Math.round(title.progress * 100)}%` }]} />
-          </View>
-          <Text style={styles.heroNext}>
+          <Text style={styles.heroMeta}>
+            {t("{count} ranks", { count: title.count })}
+            {"  ·  "}
             {title.next
               ? t("{count} ranks to {title}", { count: title.toNext, title: t(title.next.name) })
               : t("The top title")}
           </Text>
+          <View style={styles.heroBar}>
+            <View style={[styles.heroFill, { width: `${Math.round(title.progress * 100)}%` }]} />
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.ladderRail}
+            style={styles.titlesRail}
             contentContainerStyle={styles.titles}
           >
             {TITLES.map((item, index) => {
               const current = index + 1 === title.step;
               const reached = index + 1 < title.step;
               return (
-                <View
-                  key={item.name}
-                  style={[styles.titleChip, current && styles.titleChipOn, reached && styles.titleChipPast]}
-                >
-                  <Text style={[styles.titleChipText, current && styles.titleChipTextOn]}>
+                <View key={item.name} style={[styles.titleChip, current && styles.titleChipOn]}>
+                  <Text
+                    style={[
+                      styles.titleChipText,
+                      reached && styles.titleChipTextPast,
+                      current && styles.titleChipTextOn,
+                    ]}
+                  >
                     {t(item.name)}
                   </Text>
-                  <Text style={[styles.titleChipAt, current && styles.titleChipTextOn]}>
-                    {item.at}
+                  <Text style={[styles.titleChipAt, current && styles.titleChipAtOn]}>
+                    {t("{count} ranks", { count: item.at })}
                   </Text>
                 </View>
               );
@@ -171,9 +178,19 @@ export const RanksScreen = ({ navigation }) => {
           </ScrollView>
         </View>
 
-        {closest.length > 0 && <Section label={t("Close to next")}>{closest.map(renderTrack)}</Section>}
-        <Section label={t("Craft · how you watch")}>{craft.map(renderTrack)}</Section>
-        <Section label={t("Milestones")}>{milestones.map(renderTrack)}</Section>
+        {/* Next up / Craft / Milestones. */}
+        <UnderlineTabs
+          tabs={tabs.map(({ key, label }) => ({ key, label }))}
+          value={tab}
+          onChange={(key) => {
+            setTab(key);
+            setOpen(null);
+          }}
+          style={styles.tabs}
+        />
+        <View key={tab} style={styles.list}>
+          {shown.map(renderTrack)}
+        </View>
       </Animated.ScrollView>
     </View>
   );
@@ -192,77 +209,87 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
     },
-    heroEyebrow: {
-      ...typography.caption,
+    eyebrow: {
+      ...typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
       color: colors.textSecondary,
     },
     heroTitle: {
       ...typography.display,
-      color: colors.rating,
+      color: colors.textPrimary,
+      marginTop: 4,
+    },
+    heroMeta: {
+      ...typography.body,
+      color: colors.textSecondary,
       marginTop: 2,
     },
     heroBar: {
-      height: 8,
+      height: 6,
       marginTop: spacing.md,
       backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.chip,
+      borderRadius: 3,
+      overflow: "hidden",
     },
     heroFill: {
       height: "100%",
       backgroundColor: colors.rating,
-      borderRadius: shape.chip,
+      borderRadius: 3,
     },
-    heroNext: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.sm,
-    },
-    ladderRail: {
+    // The titles, left to right: yours in the accent, the ones behind you
+    // white, the ones ahead grey.
+    titlesRail: {
       marginHorizontal: -spacing.md,
       marginTop: spacing.md,
     },
     titles: {
-      gap: 2,
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
     },
     titleChip: {
       paddingHorizontal: spacing.sm + 4,
       paddingVertical: spacing.sm,
+      gap: 1,
       backgroundColor: colors.card,
-      gap: 2,
-      borderRadius: shape.chip,
-    },
-    titleChipPast: {
-      backgroundColor: `${colors.rating}29`,
+      borderRadius: shape.tab,
     },
     titleChipOn: {
-      backgroundColor: colors.rating,
+      backgroundColor: colors.segmentOn,
     },
     titleChipText: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.textMuted,
+    },
+    titleChipTextPast: {
+      color: colors.textPrimary,
     },
     titleChipTextOn: {
-      color: colors.background,
+      color: colors.segmentOnText,
     },
     titleChipAt: {
       ...typography.caption,
       fontSize: 11,
+      lineHeight: 14,
       color: colors.textMuted,
     },
-    section: {
+    titleChipAtOn: {
+      color: colors.segmentOnText,
+      opacity: 0.8,
+    },
+    tabs: {
       marginTop: spacing.lg,
     },
-    sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
+    // The tracks: one full-width band, split by hairlines.
+    list: {
+      backgroundColor: colors.card,
     },
-    sectionBody: {
-      gap: 2,
+    trackDivider: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
     track: {
       flexDirection: "row",
@@ -270,7 +297,6 @@ const createStyles = (colors) =>
       gap: spacing.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
-      backgroundColor: colors.card,
     },
     trackText: {
       flex: 1,
@@ -289,9 +315,12 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       flexShrink: 1,
     },
-    rarity: {
-      ...typography.caption,
-      color: colors.rating,
+    trackValue: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+      fontVariant: ["tabular-nums"],
     },
     trackRank: {
       ...typography.bodyBold,
@@ -299,62 +328,65 @@ const createStyles = (colors) =>
       lineHeight: 18,
       color: colors.rating,
     },
-    trackValue: {
+    trackHave: {
       ...typography.caption,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     bar: {
       height: 4,
       marginTop: 3,
       backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.chip,
+      borderRadius: 2,
+      overflow: "hidden",
     },
     barFill: {
       height: "100%",
       backgroundColor: colors.rating,
-      borderRadius: shape.chip,
+      borderRadius: 2,
     },
     trackNext: {
       ...typography.caption,
       color: colors.textMuted,
     },
+    // The ladder under an open track: a shade deeper, each rank a row.
     ladder: {
-      paddingHorizontal: spacing.md,
+      paddingStart: spacing.md + 44 + spacing.md,
+      paddingEnd: spacing.md,
       paddingBottom: spacing.md,
-      paddingTop: spacing.xs,
-      gap: spacing.sm,
-      backgroundColor: colors.card,
-      overflow: "hidden",
+      backgroundColor: colors.cardElevated,
     },
     ladderHint: {
       ...typography.caption,
       color: colors.textSecondary,
-      marginBottom: spacing.xs,
+      paddingTop: spacing.sm + 2,
+      paddingBottom: spacing.xs,
+    },
+    stepDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
     },
     step: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 4,
+      paddingVertical: spacing.sm,
+    },
+    stepText: {
+      flex: 1,
+      gap: 1,
     },
     stepTitle: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
       color: colors.textPrimary,
-      flex: 1,
     },
     stepLocked: {
       color: colors.textMuted,
     },
-    stepAt: {
+    stepMeta: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    stepRarity: {
-      ...typography.caption,
-      color: colors.textMuted,
-      minWidth: 34,
-      textAlign: "right",
     },
   });
 

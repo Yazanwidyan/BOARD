@@ -8,6 +8,11 @@ import { I18nManager } from "react-native";
 // Android ignore the custom font and fall back to the system one.
 export const isArabicLayout = I18nManager.isRTL;
 
+// The "ReelBoard" wordmark's own face: Bebas Neue — tall condensed
+// capitals, like a cinema marquee. Latin only (the name stays in Latin
+// letters in Arabic too), capitals only, and used for the name alone.
+export const WORDMARK_FONT = "BebasNeue_400Regular";
+
 export const fonts = isArabicLayout
   ? {
       regular: "IBMPlexSansArabic_400Regular",

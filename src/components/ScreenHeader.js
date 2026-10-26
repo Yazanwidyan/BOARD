@@ -15,12 +15,15 @@ import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
+import { Wordmark } from "./Wordmark";
 import { BackButton } from "./BackButton";
 import { SpinningLogo, useRefreshSpin } from "./RefreshSpin";
 
 export const HEADER_BAR_HEIGHT = 40;
 // The hairline under a header fades in over this much scroll — at the very
 // top the bar melts into the page; once anything goes under it, it's a bar.
+// The wordmark's size in Home's header.
+const WORDMARK_SIZE = 28;
 const BORDER_FADE_DISTANCE = 16;
 // An `overlay` header (over Home's backdrop) turns solid over this much
 // scroll.
@@ -188,7 +191,8 @@ export const HeaderIconButton = ({
 
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
 // greeting) on the left, every action on the right — `left`'s, then
-// `right`'s. `back`: a back button, first, before the title.
+// `right`'s. `back`: a back button, first, before the title. `wordmark`:
+// the title is the app's name — set in its own face (Home).
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
@@ -205,6 +209,7 @@ export const DockHeader = ({
   back,
   left,
   right,
+  wordmark = false,
   scrollY,
   offset,
   refreshing,
@@ -279,16 +284,22 @@ export const DockHeader = ({
               ) : (
                 logo
               )}
-              <Text
-                style={[
-                  eyebrow ? styles.leftTitle : styles.title,
-                  subtitle && styles.titleWithSubtitle,
-                  styles.titleShrink,
-                ]}
-                numberOfLines={1}
-              >
-                {title}
-              </Text>
+              {wordmark ? (
+                <Wordmark size={WORDMARK_SIZE} style={styles.titleWordmark}>
+                  {title}
+                </Wordmark>
+              ) : (
+                <Text
+                  style={[
+                    eyebrow ? styles.leftTitle : styles.title,
+                    subtitle && styles.titleWithSubtitle,
+                    styles.titleShrink,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+              )}
             </View>
           )}
           {!!subtitle && (
@@ -481,6 +492,11 @@ const createStyles = (colors) =>
     },
     titleShrink: {
       flexShrink: 1,
+    },
+    // The wordmark (components/Wordmark), centred on the logo beside it.
+    titleWordmark: {
+      letterSpacing: 0.8,
+      color: colors.textPrimary,
     },
     // The title, from the left, taking the room the actions leave.
     leftTitleBlock: {

@@ -571,6 +571,7 @@ export const HomeScreen = ({ navigation }) => {
         hairline={false}
         refreshing={refreshing}
         title={t("ReelBoard")}
+        wordmark
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
           <HeaderIconButton

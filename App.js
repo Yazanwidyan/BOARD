@@ -9,6 +9,7 @@ import { Roboto_500Medium } from "@expo-google-fonts/roboto/500Medium";
 import { Roboto_600SemiBold } from "@expo-google-fonts/roboto/600SemiBold";
 import { Roboto_700Bold } from "@expo-google-fonts/roboto/700Bold";
 import { Roboto_800ExtraBold } from "@expo-google-fonts/roboto/800ExtraBold";
+import { BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue/400Regular";
 import { IBMPlexSansArabic_400Regular } from "@expo-google-fonts/ibm-plex-sans-arabic/400Regular";
 import { IBMPlexSansArabic_500Medium } from "@expo-google-fonts/ibm-plex-sans-arabic/500Medium";
 import { IBMPlexSansArabic_600SemiBold } from "@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold";
@@ -46,6 +47,8 @@ export default function App() {
     IBMPlexSansArabic_500Medium,
     IBMPlexSansArabic_600SemiBold,
     IBMPlexSansArabic_700Bold,
+    // The "ReelBoard" wordmark only (see typography's `wordmark`).
+    BebasNeue_400Regular,
   });
 
   const onLayoutRootView = useCallback(() => {
