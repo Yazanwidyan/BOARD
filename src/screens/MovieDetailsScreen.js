@@ -45,6 +45,7 @@ import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
 import { TasteMatchSheet } from "../components/TasteMatchSheet";
 import { TierHistogram } from "../components/TierHistogram";
+import { UnderlineTabs } from "../components/UnderlineTabs";
 import { BottomSheet } from "../components/BottomSheet";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
@@ -271,7 +272,7 @@ const TrailerButton = ({ onPress, styles, colors }) => (
     accessibilityRole="button"
     accessibilityLabel={t("Trailer")}
   >
-    <Play size={12} color={colors.segmentOnText} fill={colors.segmentOnText} />
+    <Play size={10} color={colors.segmentOnText} fill={colors.segmentOnText} />
     <Text style={styles.trailerText}>{t("Trailer")}</Text>
   </Pressable>
 );
@@ -650,7 +651,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 <TrailerButton onPress={handleWatchTrailer} styles={styles} colors={colors} />
                 {!!movie.runtime && (
                   <Text style={styles.meta} numberOfLines={1}>
-                    {t("{count} mins", { count: movie.runtime })}
+                    {formatRuntime(movie.runtime)}
                   </Text>
                 )}
                 {details?.rated && (
@@ -659,17 +660,21 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   </View>
                 )}
               </View>
-              {/* Your taste match — tap it for why. */}
+            </View>
+            {/* The poster, and your taste match under it — tap it for why. */}
+            <Animated.View style={[styles.posterColumn, posterStyle]}>
+              <MoviePoster uri={movie.poster} style={styles.poster} shadow />
               {tasteMatch && (
                 <Pressable
                   style={({ pressed }) => [styles.matchPill, pressed && styles.actionPressed]}
                   onPress={() => setIsMatchOpen(true)}
                   hitSlop={6}
                   accessibilityRole="button"
+                  accessibilityLabel={t("{match}% your taste", { match: tasteMatch.match })}
                   accessibilityHint={t("Why it fits you")}
                 >
-                  <Text style={styles.matchText}>
-                    {t("{match}% your taste", { match: tasteMatch.match })}
+                  <Text style={styles.matchText} numberOfLines={1}>
+                    {t("{match}% taste", { match: tasteMatch.match })}
                   </Text>
                   <ChevronRight
                     size={14}
@@ -679,34 +684,20 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   />
                 </Pressable>
               )}
-            </View>
-            <Animated.View style={posterStyle}>
-              <MoviePoster uri={movie.poster} style={styles.poster} shadow />
             </Animated.View>
           </View>
         </View>
 
         <View style={styles.content}>
-          {/* Overview / Cast & Crew / Reviews / Similar: a dark track,
-              the open one a slate pill. */}
-          <View style={styles.tabs} accessibilityRole="tablist">
-            {TABS.map((item) => {
-              const selected = item.key === tab;
-              return (
-                <Pressable
-                  key={item.key}
-                  style={[styles.tab, selected && styles.tabOn]}
-                  onPress={() => setTab(item.key)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                >
-                  <Text style={[styles.tabText, selected && styles.tabTextOn]} numberOfLines={1}>
-                    {t(item.label)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {/* Overview / Tiering / Cast & Crew / Similar: word tabs, the
+              open one white and underlined — like the Profile's. They run
+              edge to edge, so they step out of the page's margins. */}
+          <UnderlineTabs
+            tabs={TABS.map((item) => ({ key: item.key, label: t(item.label) }))}
+            value={tab}
+            onChange={setTab}
+            style={styles.tabs}
+          />
 
           {tab === "overview" && (
             <>
@@ -1317,16 +1308,20 @@ const createStyles = (colors) =>
     flipped: {
       transform: [{ scaleX: -1 }],
     },
+    // Under the poster, as wide as it.
+    posterColumn: {
+      width: HERO_POSTER,
+      gap: spacing.sm,
+    },
     matchPill: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
       gap: 2,
-      alignSelf: "flex-start",
-      marginTop: spacing.sm + 2,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 4,
       backgroundColor: colors.successSoft,
-      borderRadius: shape.control - 4,
+      borderRadius: shape.control - 2,
     },
     matchText: {
       ...typography.bodyBold,
@@ -1625,20 +1620,21 @@ const createStyles = (colors) =>
       gap: spacing.sm + 4,
       marginTop: spacing.md,
     },
+    // Dense: a small capsule beside the runtime.
     trailerButton: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      height: 32,
-      paddingHorizontal: spacing.sm + 4,
+      gap: 4,
+      height: 26,
+      paddingHorizontal: spacing.sm + 2,
       backgroundColor: colors.segmentOn,
-      borderRadius: shape.control,
+      borderRadius: shape.control - 2,
     },
     trailerText: {
       ...typography.label,
-      fontSize: 13,
-      lineHeight: 16,
-      letterSpacing: 1.4,
+      fontSize: 11,
+      lineHeight: 14,
+      letterSpacing: 1.2,
       textTransform: "uppercase",
       color: colors.segmentOnText,
     },
@@ -1664,44 +1660,20 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginBottom: spacing.md,
     },
-    // "188 mins", beside the trailer.
+    // "1h 47m", beside the trailer — small, to sit with it.
     meta: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 20,
+      ...typography.caption,
+      fontSize: 13,
+      lineHeight: 18,
       flexShrink: 1,
       color: colors.textSecondary,
     },
     tabs: {
-      flexDirection: "row",
-      gap: 2,
-      padding: 2,
-      // On the page, so the card colour (the dark track would vanish).
-      backgroundColor: colors.card,
-      borderRadius: 6,
+      marginHorizontal: -spacing.md,
     },
     // The Overview tab's opening: the same gap the other tabs' headings get.
     overviewTop: {
       marginTop: spacing.lg,
-    },
-    tab: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
-    },
-    tabOn: {
-      backgroundColor: colors.segmentOn,
-    },
-    tabText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    tabTextOn: {
-      color: colors.segmentOnText,
     },
     tabEmpty: {
       ...typography.body,

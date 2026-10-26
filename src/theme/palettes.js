@@ -1,53 +1,55 @@
-// Two palettes — "Midnight Teal". Dark: a blue-black page (#151D21) under
-// near-black bars, cards and sheets a step lighter; #23807A teal for
-// selected states (the open tab, a picked chip); the main buttons the
-// page's contrast colour (white). Text is white, then two blue-grey greys —
-// textSecondary, and textMuted (also the tabs not open) — and light mode
-// uses the same tone, every grey readable at 4.5 : 1 or better on the page,
-// cards and sheets. Colour carries meaning on top: `rating` (a light teal)
-// for ranks, scores and collections, `success` green for done / saved / matched, `danger` red for
-// hard dares, poor scores and destructive actions. `isDark` lets the few
-// theme-specific bits (status bar, blur tint) pick their side.
+// Two palettes — "Silver Screen": no hue, so the posters and the tier
+// colours are the only colour on screen. Dark: a neutral grey page
+// (#18191B) under near-black bars, cards and sheets a step lighter; the
+// selected state (the open tab, a picked chip) a white pill with near-black
+// text; the main buttons white too. Text is white, then two neutral greys —
+// textSecondary, and textMuted (also the tabs not open). Light mode mirrors
+// it: a near-black pill with white text. Every grey reads at 4.5 : 1 or
+// better on the page, cards, sheets and grey buttons. Colour carries meaning
+// on top: `rating` (a light silver) for ranks, scores and collections,
+// `success` green for done / saved / matched, `danger` red for hard dares,
+// poor scores and destructive actions. `isDark` lets the few theme-specific
+// bits (status bar, blur tint) pick their side.
 export const darkColors = {
   isDark: true,
 
-  // The page under the header: a blue-black, not black.
-  background: "#151D21",
+  // The page under the header: a dark neutral grey, not black.
+  background: "#18191B",
 
   // The header bars (and the tab bars pinned under them): near-black.
-  headerBackground: "#080B0D",
+  headerBackground: "#0B0B0C",
 
-  card: "#1B2429",
+  card: "#202124",
 
-  cardElevated: "#202A30",
+  cardElevated: "#25262A",
 
   // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#28343B",
+  cardElevatedLight: "#2D2E32",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#B3C5CB",
+  textSecondary: "#BDBFC4",
 
-  textMuted: "#97A9AF",
+  textMuted: "#A1A4AA",
 
   accent: "#FFFFFF",
-  accentLight: "#B3C5CB",
+  accentLight: "#BDBFC4",
 
-  accentContrast: "#080B0D",
+  accentContrast: "#0B0B0C",
 
   success: "#4ED08A",
 
-  // Ranks, scores, collections: a light teal.
-  rating: "#6FD1C7",
+  // Ranks, scores, collections: a light silver.
+  rating: "#D6D8DC",
 
   danger: "#FF8585",
 
-  border: "#2A363C",
+  border: "#2C2E32",
 
-  // Selected tabs and chips: teal, white text.
-  selected: "#23807A",
+  // Selected tabs and chips: a white pill, near-black text.
+  selected: "#E8E9EB",
 
-  selectedText: "#FFFFFF",
+  selectedText: "#111214",
 
   successSoft: "rgba(78, 208, 138, 0.16)",
 
@@ -56,22 +58,22 @@ export const darkColors = {
   // Every grey button (Sign in, skips, ⇄, the sheets' actions…): a
   // neutral grey a clear step above the page and the sheets alike, text
   // in textPrimary.
-  buttonFill: "#2F3C43",
+  buttonFill: "#36383C",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#1B2429",
+  ringFill: "#202124",
 
   // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
-  // open one a teal pill with white text.
-  segmentTrack: "#151D21",
-  segmentOn: "#23807A",
-  segmentOnText: "#FFFFFF",
+  // open one a white pill with near-black text.
+  segmentTrack: "#18191B",
+  segmentOn: "#E8E9EB",
+  segmentOnText: "#111214",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#97A9AF",
+  segmentText: "#A1A4AA",
 
   // Every poster's thin frame.
-  posterEdge: "#253036",
+  posterEdge: "#2A2B2F",
 };
 
 export const lightColors = {
@@ -90,19 +92,19 @@ export const lightColors = {
 
   textPrimary: "#111214",
 
-  // The greys share dark mode's blue-grey tone.
-  textSecondary: "#3F5257",
+  // The greys are neutral, like dark mode's.
+  textSecondary: "#45474C",
 
-  textMuted: "#566A70",
+  textMuted: "#5E6166",
 
   accent: "#111214",
-  accentLight: "#3F5257",
+  accentLight: "#45474C",
 
   accentContrast: "#FFFFFF",
 
   success: "#1F9D55",
 
-  rating: "#1F6F6A",
+  rating: "#3A3C41",
 
   danger: "#D64545",
 
@@ -121,10 +123,10 @@ export const lightColors = {
   ringFill: "#F7F7F8",
 
   segmentTrack: "#EDEEF0",
-  segmentOn: "#1F7873",
+  segmentOn: "#111214",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#566A70",
+  segmentText: "#5E6166",
 
   posterEdge: "rgba(0, 0, 0, 0.1)",
 };

@@ -433,8 +433,20 @@ export const FriendsScreen = ({ navigation, route }) => {
               >
                 <Text style={[styles.tabText, selected && styles.tabTextOn]}>{item.label}</Text>
                 {item.count > 0 && (
-                  <View style={[styles.tabCount, item.alert && styles.tabCountAlert]}>
-                    <Text style={[styles.tabCountText, item.alert && styles.tabCountTextAlert]}>
+                  <View
+                    style={[
+                      styles.tabCount,
+                      selected && styles.tabCountOn,
+                      item.alert && styles.tabCountAlert,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabCountText,
+                        selected && styles.tabCountTextOn,
+                        item.alert && styles.tabCountTextAlert,
+                      ]}
+                    >
                       {item.count}
                     </Text>
                   </View>
@@ -510,6 +522,13 @@ const createStyles = (colors) =>
       alignItems: "center",
       backgroundColor: colors.surfaceSoft,
       borderRadius: shape.chip,
+    },
+    // In the open tab (the accent pill): a darker tint, its own text.
+    tabCountOn: {
+      backgroundColor: "rgba(0, 0, 0, 0.12)",
+    },
+    tabCountTextOn: {
+      color: colors.segmentOnText,
     },
     // Someone's waiting on you: red, so it's not missed.
     tabCountAlert: {

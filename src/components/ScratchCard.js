@@ -123,10 +123,10 @@ export const ScratchCard = ({ width, height, children, onReveal, onScratchStart,
             <Svg width={width} height={height}>
               <Defs>
                 <LinearGradient id="foil" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#D9F3F0" />
-                  <Stop offset="0.35" stopColor="#4FA9A1" />
-                  <Stop offset="0.6" stopColor="#A6E3DC" />
-                  <Stop offset="1" stopColor="#23807A" />
+                  <Stop offset="0" stopColor="#F4F5F6" />
+                  <Stop offset="0.35" stopColor="#A7AAAF" />
+                  <Stop offset="0.6" stopColor="#DCDEE1" />
+                  <Stop offset="1" stopColor="#7C7F85" />
                 </LinearGradient>
                 <Pattern id="foilHatch" width={10} height={10} patternUnits="userSpaceOnUse">
                   <Line x1={0} y1={0} x2={10} y2={10} stroke={INK} strokeOpacity={0.14} strokeWidth={1} />
