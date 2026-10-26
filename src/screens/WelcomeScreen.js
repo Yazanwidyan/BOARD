@@ -44,7 +44,11 @@ import { signInWith } from "../services/sync";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { SIGN_IN_WALL, WALL_SIZE, getSignInWallMovies } from "../utils/posterWalls";
+import {
+  SIGN_IN_WALL,
+  WALL_SIZE,
+  getSignInWallMovies,
+} from "../utils/posterWalls";
 
 // How long a sheet takes to slide away before the next one rises.
 const SHEET_HANDOFF_MS = 260;
@@ -66,16 +70,20 @@ const SPIN_MS = 16000;
 // (`title`) — or, before the films load, without one.
 const BEATS = [
   {
-    line: (title) => (title ? t("Tier {title}.", { title }) : t("Tier the films you watch.")),
+    line: (title) =>
+      title ? t("Tier {title}.", { title }) : t("Tier the films you watch."),
     sub: "S to F, your way. Your tier list becomes your profile.",
   },
   {
     line: (title) =>
-      title ? t("See how {title} fits your taste.", { title }) : t("See how films fit your taste."),
+      title
+        ? t("See how {title} fits your taste.", { title })
+        : t("See how films fit your taste."),
     sub: "Every film gets a match, and the reasons why.",
   },
   {
-    line: (title) => (title ? t("Tonight: {title}.", { title }) : t("Let it pick tonight.")),
+    line: (title) =>
+      title ? t("Tonight: {title}.", { title }) : t("Let it pick tonight."),
     sub: "One film for tonight, picked from your taste.",
   },
 ];
@@ -87,9 +95,15 @@ const SpinningMark = ({ size, color }) => {
   const turn = useSharedValue(0);
   useEffect(() => {
     if (reduceMotion) return;
-    turn.value = withRepeat(withTiming(360, { duration: SPIN_MS, easing: Easing.linear }), -1, false);
+    turn.value = withRepeat(
+      withTiming(360, { duration: SPIN_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
   }, [reduceMotion, turn]);
-  const spinStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${turn.value}deg` }],
+  }));
   return (
     <Animated.View style={spinStyle}>
       <ReelBoardIcon size={size} color={color} />
@@ -98,15 +112,34 @@ const SpinningMark = ({ size, color }) => {
 };
 
 // One full-width button: filled, no edge.
-const SignInButton = ({ label, icon, onPress, busy, disabled, style, textStyle, colors, styles }) => (
+const SignInButton = ({
+  label,
+  icon,
+  onPress,
+  busy,
+  disabled,
+  style,
+  textStyle,
+  colors,
+  styles,
+}) => (
   <Pressable
     onPress={onPress}
     disabled={disabled}
-    style={({ pressed }) => [styles.button, style, pressed && styles.pressed, disabled && !busy && styles.dimmed]}
+    style={({ pressed }) => [
+      styles.button,
+      style,
+      pressed && styles.pressed,
+      disabled && !busy && styles.dimmed,
+    ]}
     accessibilityRole="button"
     accessibilityLabel={label}
   >
-    {busy ? <ActivityIndicator color={textStyle?.color ?? colors.textPrimary} /> : icon}
+    {busy ? (
+      <ActivityIndicator color={textStyle?.color ?? colors.textPrimary} />
+    ) : (
+      icon
+    )}
     <Text style={[styles.buttonText, textStyle]}>{label}</Text>
   </Pressable>
 );
@@ -230,7 +263,9 @@ export const WelcomeScreen = ({ navigation }) => {
     return () => clearInterval(timer);
   }, []);
   const beat = BEATS[tick % BEATS.length];
-  const beatMovie = stillMovies.length ? stillMovies[tick % stillMovies.length] : null;
+  const beatMovie = stillMovies.length
+    ? stillMovies[tick % stillMovies.length]
+    : null;
 
   const continueWith = async (provider, getCredentials) => {
     setBusy(provider);
@@ -242,7 +277,10 @@ export const WelcomeScreen = ({ navigation }) => {
       // On success the navigator moves on by itself (the session is set).
       await signInWith(provider, credentials);
     } catch (error) {
-      setMessage({ text: error.message, isError: !(error instanceof SignInUnavailable) });
+      setMessage({
+        text: error.message,
+        isError: !(error instanceof SignInUnavailable),
+      });
       setBusy(null);
     }
   };
@@ -251,11 +289,19 @@ export const WelcomeScreen = ({ navigation }) => {
     // No top inset: the stills run up behind the (see-through) status bar.
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       {isFocused && <StatusBar style="light" />}
-      <Stills movies={stillMovies} tick={tick} styles={styles} background={colors.background} />
+      <Stills
+        movies={stillMovies}
+        tick={tick}
+        styles={styles}
+        background={colors.background}
+      />
 
       <View style={[styles.content, { paddingTop: insets.top }]}>
         {/* The mark and the name, then what it does. */}
-        <Animated.View entering={FadeInDown.delay(200).duration(700)} style={styles.brand}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(700)}
+          style={styles.brand}
+        >
           <View style={styles.brandRow}>
             <SpinningMark size={40} color={colors.textPrimary} />
             <Wordmark size={46} style={styles.brandName} />
@@ -279,7 +325,10 @@ export const WelcomeScreen = ({ navigation }) => {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeIn.delay(500).duration(700)} style={styles.footer}>
+        <Animated.View
+          entering={FadeIn.delay(500).duration(700)}
+          style={styles.footer}
+        >
           <SignInButton
             label={t("Get started")}
             onPress={() => setIsSignUpOpen(true)}
@@ -311,7 +360,9 @@ export const WelcomeScreen = ({ navigation }) => {
       >
         <View style={styles.sheetButtons}>
           {!!message && (
-            <Text style={[styles.message, message.isError && styles.messageError]}>
+            <Text
+              style={[styles.message, message.isError && styles.messageError]}
+            >
               {message.text}
             </Text>
           )}
@@ -335,13 +386,17 @@ export const WelcomeScreen = ({ navigation }) => {
             busy={busy === "google"}
             disabled={!!busy}
             style={appleSignInSupported ? styles.grey : styles.filled}
-            textStyle={appleSignInSupported ? styles.greyText : styles.filledText}
+            textStyle={
+              appleSignInSupported ? styles.greyText : styles.filledText
+            }
             colors={colors}
             styles={styles}
           />
           <SignInButton
             label={t("Sign up with email")}
-            icon={<Mail size={18} color={colors.textPrimary} strokeWidth={2.2} />}
+            icon={
+              <Mail size={18} color={colors.textPrimary} strokeWidth={2.2} />
+            }
             onPress={() => {
               // This sheet goes first; the email one rises once it's gone.
               setIsSignUpOpen(false);

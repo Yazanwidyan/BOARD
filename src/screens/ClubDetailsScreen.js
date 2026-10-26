@@ -17,6 +17,7 @@ import { ClubEditSheet } from "../components/ClubEditSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { ReportSheet } from "../components/ReportSheet";
 import {
   StackHeader,
   useStackHeaderScroll,
@@ -69,6 +70,7 @@ export const ClubDetailsScreen = ({ navigation, route }) => {
   const me = useAuthStore((state) => state.user?.id);
   const actions = useClubActions();
   const [editing, setEditing] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   useRefetchOnFocus(refetch);
   useRefetchOnFocus(refetchActivity);
 
@@ -464,28 +466,42 @@ export const ClubDetailsScreen = ({ navigation, route }) => {
               </Pressable>
             </>
           ) : (
-            <Pressable
-              style={styles.row}
-              onPress={() =>
-                confirm(
-                  t("Leave {name}?", { name: club.name }),
-                  t("You can join again with the invite code."),
-                  t("Leave"),
-                  () =>
-                    run(async () => {
-                      await actions.leaveClub(clubId);
-                      navigation.goBack();
-                    }),
-                )
-              }
-            >
-              <Text style={[styles.rowLabel, styles.danger]}>
-                {t("Leave club")}
-              </Text>
-            </Pressable>
+            <>
+              <Pressable
+                style={styles.row}
+                onPress={() => setIsReportOpen(true)}
+              >
+                <Text style={styles.rowLabel}>{t("Report club")}</Text>
+              </Pressable>
+              <Pressable
+                style={styles.row}
+                onPress={() =>
+                  confirm(
+                    t("Leave {name}?", { name: club.name }),
+                    t("You can join again with the invite code."),
+                    t("Leave"),
+                    () =>
+                      run(async () => {
+                        await actions.leaveClub(clubId);
+                        navigation.goBack();
+                      }),
+                  )
+                }
+              >
+                <Text style={[styles.rowLabel, styles.danger]}>
+                  {t("Leave club")}
+                </Text>
+              </Pressable>
+            </>
           )}
         </View>
       </Animated.ScrollView>
+
+      <ReportSheet
+        visible={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targets={[{ type: "club", id: clubId, label: club.name }]}
+      />
 
       <ClubEditSheet
         visible={editing}

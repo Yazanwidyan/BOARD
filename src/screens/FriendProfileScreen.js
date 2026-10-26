@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, Ellipsis } from "lucide-react-native";
+import { ChevronLeft, Ellipsis, Flag, UserMinus } from "lucide-react-native";
 import { useState } from "react";
 import {
   Alert,
@@ -16,9 +16,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
 import { AvatarRankRing } from "../components/AvatarRankRing";
+import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import { PosterMosaic } from "../components/PosterMosaic";
+import { ReportSheet } from "../components/ReportSheet";
 import { ProfileActivity } from "../components/ProfileActivity";
 import {
   BoardsRail,
@@ -65,6 +67,8 @@ const FAVOURITES = 4;
 const FAVOURITE_GAP = 8;
 const AVATAR = 84;
 const POSTER_ITEM = 104;
+// How long the ⋯ sheet takes to leave before the next one opens.
+const SHEET_HANDOFF_MS = 260;
 
 // The Profile tab's own tabs, as on yours.
 const SECTIONS = [
@@ -82,7 +86,7 @@ const TierChip = ({ tier, styles }) => (
 );
 
 // A friend's page, laid out exactly like your Profile: their name in the
-// header (back left, ⋯ right — to remove them) and Profile / Stats under it.
+// header (back left, ⋯ right — to report or remove them) and Profile / Stats under it.
 //   Profile: their cover behind their avatar (its ring to their next
 //   title), their films and how close your taste is, their bio, their top
 //   four, then Activity / Films / Diary / Lists / Collections.
@@ -104,6 +108,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const friend = friends.find((item) => item.id === friendId);
   const [topTab, setTopTab] = useState("profile");
   const [section, setSection] = useState("activity");
+  // ⋯: report them (or one of their lists), or remove them.
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   // Their profile (with the definitions of the sagas they've finished,
   // remembered by services/api) and their boards.
   useQuery({
@@ -158,6 +165,12 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         },
       ],
     );
+
+  // Close the ⋯ sheet, then do it (one sheet at a time).
+  const thenClose = (action) => () => {
+    setIsMenuOpen(false);
+    setTimeout(action, SHEET_HANDOFF_MS);
+  };
 
   const firstName = friend.name.split(" ")[0];
   const theirWatched = friend.watched ?? [];
@@ -470,17 +483,47 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       >
         {topTab === "profile" ? profileTab : statsTab}
       </Animated.ScrollView>
-      {/* Their name in the middle; back left, ⋯ (remove) right. */}
+      {/* Their name in the middle; back left, ⋯ (report, remove) right. */}
       <DockHeader
         {...header.props}
         hairline={false}
         title={friend.name}
         back={back}
         right={
-          <HeaderIconButton onPress={confirmRemove} accessibilityLabel={t("More")}>
+          <HeaderIconButton onPress={() => setIsMenuOpen(true)} accessibilityLabel={t("More")}>
             <Ellipsis size={22} color={colors.textPrimary} strokeWidth={1.9} />
           </HeaderIconButton>
         }
+      />
+
+      <BottomSheet visible={isMenuOpen} onClose={() => setIsMenuOpen(false)} size="auto" flush>
+        <View style={styles.menu}>
+          <Pressable
+            style={({ pressed }) => [styles.menuRow, pressed && styles.rowPressed]}
+            onPress={thenClose(() => setIsReportOpen(true))}
+            accessibilityRole="button"
+          >
+            <Flag size={20} color={colors.textSecondary} strokeWidth={1.9} />
+            <Text style={styles.menuText}>{t("Report")}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.menuRow, pressed && styles.rowPressed]}
+            onPress={thenClose(confirmRemove)}
+            accessibilityRole="button"
+          >
+            <UserMinus size={20} color={colors.danger} strokeWidth={1.9} />
+            <Text style={[styles.menuText, styles.menuDanger]}>{t("Remove friend")}</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
+
+      <ReportSheet
+        visible={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targets={[
+          { type: "user", id: friend.id, label: friend.name },
+          ...theirBoards.map((board) => ({ type: "list", id: board.id, label: board.name })),
+        ]}
       />
     </View>
   );
@@ -497,6 +540,24 @@ const createStyles = (colors) =>
     },
     rowPressed: {
       backgroundColor: colors.cardElevated,
+    },
+    // The ⋯ sheet's rows.
+    menu: {
+      paddingBottom: spacing.sm,
+    },
+    menuRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    menuText: {
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    menuDanger: {
+      color: colors.danger,
     },
     flipped: {
       transform: [{ scaleX: -1 }],
