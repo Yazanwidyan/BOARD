@@ -187,7 +187,8 @@ export const HeaderIconButton = ({
 };
 
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
-// greeting) in the middle, with `left` and `right` actions either side.
+// greeting) on the left, every action on the right — `left`'s, then
+// `right`'s. `back`: a back button, first, before the title.
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
@@ -201,6 +202,7 @@ export const DockHeader = ({
   eyebrow,
   subtitle,
   onPressTitle,
+  back,
   left,
   right,
   scrollY,
@@ -241,8 +243,7 @@ export const DockHeader = ({
     >
       {overlay && <OverlayFill scrollY={scrollY} styles={styles} />}
       <Animated.View style={[styles.barRow, rowStyle]}>
-        {/* Equal sides, so the title stays in the middle. */}
-        <View style={[styles.side, styles.sideStart]}>{left}</View>
+        {back}
         <View style={styles.leftTitleBlock}>
           {!!eyebrow && (
             <Text style={styles.leftEyebrow} numberOfLines={1}>
@@ -296,7 +297,12 @@ export const DockHeader = ({
             </Text>
           )}
         </View>
-        <View style={[styles.side, styles.sideEnd]}>{right}</View>
+        {(left || right) && (
+          <View style={styles.actions}>
+            {left}
+            {right}
+          </View>
+        )}
       </Animated.View>
       {hairline && <HeaderHairline scrollY={scrollY} styles={styles} />}
     </Animated.View>
@@ -340,8 +346,8 @@ export const StackHeader = ({
 
   return (
     <View style={[styles.stackBar, { paddingTop: insets.top + spacing.xs }]}>
-      {/* Equal-width sides keep the title centred on the screen. */}
-      <View style={styles.stackSide}>
+      {/* Back, then the title beside it; actions on the right. */}
+      <View style={styles.stackLeading}>
         {close ? (
           <HeaderIconButton onPress={onBack}>
             <X size={22} strokeWidth={1.75} color={colors.textPrimary} />
@@ -355,9 +361,7 @@ export const StackHeader = ({
           {title}
         </Text>
       </Animated.View>
-      <View style={[styles.stackSide, styles.stackSideRight]}>
-        {right ? <View style={styles.right}>{right}</View> : null}
-      </View>
+      {right ? <View style={styles.right}>{right}</View> : null}
       <HeaderHairline scrollY={scrollY} styles={styles} />
     </View>
   );
@@ -423,14 +427,13 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.xs,
     },
-    // Bold, in the middle.
+    // Bold, on the left.
     title: {
       ...typography.title,
       fontSize: 20,
       lineHeight: 26,
       letterSpacing: -0.3,
       color: colors.textPrimary,
-      textAlign: "center",
     },
     stackBar: {
       flexDirection: "row",
@@ -441,13 +444,9 @@ const createStyles = (colors) =>
       backgroundColor: colors.headerBackground,
       zIndex: 10,
     },
-    stackSide: {
-      width: 64,
+    stackLeading: {
       flexDirection: "row",
       alignItems: "center",
-    },
-    stackSideRight: {
-      justifyContent: "flex-end",
     },
     stackTitleWrap: {
       flex: 1,
@@ -457,7 +456,6 @@ const createStyles = (colors) =>
       fontSize: 18,
       lineHeight: 24,
       letterSpacing: -0.3,
-      textAlign: "center",
       color: colors.textPrimary,
     },
     titleButton: {
@@ -484,24 +482,17 @@ const createStyles = (colors) =>
     titleShrink: {
       flexShrink: 1,
     },
-    // The title, centred between the two sides.
+    // The title, from the left, taking the room the actions leave.
     leftTitleBlock: {
       flex: 1,
-      alignItems: "center",
+      alignItems: "flex-start",
     },
-    // Each side holds up to two buttons; the same width both ways keeps
-    // the title centred.
-    side: {
-      width: 80,
+    // Every action, together on the right.
+    actions: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
-    },
-    sideStart: {
-      justifyContent: "flex-start",
-    },
-    sideEnd: {
-      justifyContent: "flex-end",
+      marginStart: spacing.sm,
     },
     leftEyebrow: {
       ...typography.caption,

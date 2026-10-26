@@ -87,10 +87,10 @@ const getHandle = (name) =>
       .replace(/[^a-z0-9]+/g, "") || "you"
   }`;
 
-// Your profile, Letterboxd-style. Your name in the header (Settings left,
-// Share right) and Profile / Stats under it.
+// Your profile, Letterboxd-style. "Profile" in the header (Settings and
+// Share on the right) and Profile / Stats under it.
 //   Profile: your cover (if you chose one) behind your avatar (its ring to
-//   your next title), your friends and films, your bio, your top four
+//   your next title), your name, your friends and films, your bio, your top four
 //   favourites, then Activity / Films / Diary / Lists /
 //   Collections.
 //   Stats: your numbers, your title and how far to the next, your tiers,
@@ -286,6 +286,10 @@ export const ProfileScreen = ({ navigation }) => {
             <Image source={avatarSource} style={styles.avatar} />
           )}
         </Pressable>
+        {/* Your name, under your avatar. */}
+        <Text style={styles.name} numberOfLines={2} accessibilityRole="header">
+          {displayName}
+        </Text>
         <Pressable onPress={() => navigation.navigate("Friends")} hitSlop={6}>
           <Text style={styles.counts}>
             {t("{count} friends", { count: friends.length })} ·{" "}
@@ -408,7 +412,7 @@ export const ProfileScreen = ({ navigation }) => {
       <View style={[styles.tabsBar, { paddingTop: header.barBottom }]}>
         <View style={styles.tabs} accessibilityRole="tablist">
           {[
-            { key: "profile", label: t("Profile") },
+            { key: "profile", label: t("Overview") },
             { key: "stats", label: t("Stats") },
           ].map((tab) => {
             const selected = tab.key === topTab;
@@ -445,11 +449,11 @@ export const ProfileScreen = ({ navigation }) => {
       </Animated.ScrollView>
       <ScreenBottomFade />
       <FirstVisitTip id="profile" />
-      {/* Your name in the middle; Settings left, Share right. */}
+      {/* "Profile" in the header; Settings and Share on the right. */}
       <DockHeader
         {...header.props}
         hairline={false}
-        title={displayName}
+        title={t("Profile")}
         left={
           <HeaderIconButton onPress={() => navigation.navigate("Settings")} accessibilityLabel={t("Settings")}>
             <SettingsIcon size={22} color={colors.textPrimary} strokeWidth={1.75} />
@@ -547,12 +551,19 @@ const createStyles = (colors) =>
       borderRadius: AVATAR / 2,
       backgroundColor: colors.card,
     },
+    name: {
+      ...typography.hero,
+      fontSize: 24,
+      lineHeight: 30,
+      color: colors.textPrimary,
+      textAlign: "center",
+      marginTop: spacing.xs,
+    },
     counts: {
       ...typography.caption,
       fontSize: 13,
       lineHeight: 18,
       color: colors.textSecondary,
-      marginTop: spacing.xs,
     },
     bio: {
       ...typography.body,

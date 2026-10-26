@@ -133,7 +133,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   if (!friend) {
     return (
       <View style={styles.container}>
-        <DockHeader {...header.props} title={t("Friend")} left={back} />
+        <DockHeader {...header.props} title={t("Friend")} back={back} />
       </View>
     );
   }
@@ -435,7 +435,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       <View style={[styles.tabsBar, { paddingTop: header.barBottom }]}>
         <View style={styles.tabs} accessibilityRole="tablist">
           {[
-            { key: "profile", label: t("Profile") },
+            { key: "profile", label: t("Overview") },
             { key: "stats", label: t("Stats") },
           ].map((tab) => {
             const selected = tab.key === topTab;
@@ -475,7 +475,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         {...header.props}
         hairline={false}
         title={friend.name}
-        left={back}
+        back={back}
         right={
           <HeaderIconButton onPress={confirmRemove} accessibilityLabel={t("More")}>
             <Ellipsis size={22} color={colors.textPrimary} strokeWidth={1.9} />

@@ -1575,6 +1575,7 @@ const ar = {
   "Search your films": "ابحث في أفلامك",
   "No film by that name.": "لا يوجد فيلم بهذا الاسم.",
   "{match}% taste": "ذوق {match}%",
+  "Starring": "بطولة",
   // Welcome
   "Add your name": "أضف اسمك",
   "Add your email": "أضف بريدك الإلكتروني",

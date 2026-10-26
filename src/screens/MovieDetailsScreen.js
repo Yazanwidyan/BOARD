@@ -1312,6 +1312,7 @@ const createStyles = (colors) =>
     posterColumn: {
       width: HERO_POSTER,
       gap: spacing.sm,
+      marginTop: -spacing.lg,
     },
     matchPill: {
       flexDirection: "row",
