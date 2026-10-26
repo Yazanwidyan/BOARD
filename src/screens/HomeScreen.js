@@ -61,8 +61,9 @@ const BOX_ITEM = 142;
 
 // Section labels as the little tags clipped to a store shelf, with an
 // optional link on the right.
-const ShelfTag = ({ label, right, styles }) => (
-  <View style={styles.tagRow}>
+// `inset`: already inside the page's margins (no padding of its own).
+const ShelfTag = ({ label, right, styles, inset = false }) => (
+  <View style={[styles.tagRow, inset && styles.tagRowInset]}>
     <View style={styles.tag}>
       <Text style={styles.tagText}>{label}</Text>
     </View>
@@ -101,8 +102,12 @@ const DecideHeroCard = ({
     );
   }
 
+  // Its name above it, as a section label — like "Decide another way".
   return (
-    <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />
+    <>
+      <ShelfTag label={t("Suggested for tonight")} styles={styles} inset />
+      <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />
+    </>
   );
 };
 
@@ -200,7 +205,6 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
       posterUri={movie.poster}
       backdropUri={movie.backdrop}
       logo={movie.details?.logo}
-      eyebrow={t("Suggested for tonight")}
       title={movie.title}
       meta={[
         movie.year,
@@ -668,6 +672,9 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm + 2,
+    },
+    tagRowInset: {
+      paddingHorizontal: 0,
     },
     // Section titles: bold, sentence case, tight — matching the headers.
     tag: {

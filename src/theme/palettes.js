@@ -1,4 +1,4 @@
-// Two palettes — "Midnight Teal". Dark: a blue-black page (#0F1518) under
+// Two palettes — "Midnight Teal". Dark: a blue-black page (#151D21) under
 // near-black bars, cards and sheets a step lighter; #23807A teal for
 // selected states (the open tab, a picked chip); the main buttons the
 // page's contrast colour (white). Text is white, then two blue-grey greys —
@@ -12,26 +12,26 @@ export const darkColors = {
   isDark: true,
 
   // The page under the header: a blue-black, not black.
-  background: "#0F1518",
+  background: "#151D21",
 
   // The header bars (and the tab bars pinned under them): near-black.
   headerBackground: "#080B0D",
 
-  card: "#161E22",
+  card: "#1B2429",
 
-  cardElevated: "#1B2429",
+  cardElevated: "#202A30",
 
   // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#233038",
+  cardElevatedLight: "#28343B",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#A9BDC4",
+  textSecondary: "#B3C5CB",
 
-  textMuted: "#8FA2A8",
+  textMuted: "#97A9AF",
 
   accent: "#FFFFFF",
-  accentLight: "#A9BDC4",
+  accentLight: "#B3C5CB",
 
   accentContrast: "#080B0D",
 
@@ -42,7 +42,7 @@ export const darkColors = {
 
   danger: "#FF8585",
 
-  border: "#243036",
+  border: "#2A363C",
 
   // Selected tabs and chips: teal, white text.
   selected: "#23807A",
@@ -56,22 +56,22 @@ export const darkColors = {
   // Every grey button (Sign in, skips, ⇄, the sheets' actions…): a
   // neutral grey a clear step above the page and the sheets alike, text
   // in textPrimary.
-  buttonFill: "#2A363C",
+  buttonFill: "#2F3C43",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#161E22",
+  ringFill: "#1B2429",
 
   // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
   // open one a teal pill with white text.
-  segmentTrack: "#0F1518",
+  segmentTrack: "#151D21",
   segmentOn: "#23807A",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#8FA2A8",
+  segmentText: "#97A9AF",
 
   // Every poster's thin frame.
-  posterEdge: "#1F2A30",
+  posterEdge: "#253036",
 };
 
 export const lightColors = {
