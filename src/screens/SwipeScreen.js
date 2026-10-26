@@ -10,7 +10,13 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  Extrapolation,
+  FadeIn,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
@@ -196,6 +202,16 @@ export const SwipeScreen = ({ navigation }) => {
   const activeMovie = roundMovies[roundIndex];
   const waiting = roundMovies.slice(roundIndex, roundIndex + CARDS_RENDERED);
   const frontCardRef = useRef(null);
+  // The front card's drag (see StorySwipeCard): up toward keep is negative.
+  const dragY = useSharedValue(0);
+  // Green rises from the top as you drag up to keep; red from the bottom as
+  // you drag down to pass — full at the line.
+  const keepGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dragY.value, [-1, -0.08], [1, 0], Extrapolation.CLAMP),
+  }));
+  const passGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dragY.value, [0.08, 1], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const handleKeep = useCallback(() => swipe("right"), [swipe]);
   const handlePass = useCallback(() => swipe("left"), [swipe]);
@@ -396,6 +412,22 @@ export const SwipeScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
       <Backdrop uri={activeMovie?.poster} colors={colors} />
+      {/* Keep / pass, felt at the screen's edges: green at the top, red at
+          the bottom, following the drag. */}
+      <Animated.View pointerEvents="none" style={[styles.glowTop, keepGlowStyle]}>
+        <LinearGradient
+          colors={[`${colors.success}8C`, `${colors.success}26`, `${colors.success}00`]}
+          locations={[0, 0.45, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[styles.glowBottom, passGlowStyle]}>
+        <LinearGradient
+          colors={[`${colors.danger}00`, `${colors.danger}26`, `${colors.danger}8C`]}
+          locations={[0, 0.55, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
       <StoryBars
         count={roundMovies.length}
         index={roundIndex}
@@ -427,6 +459,7 @@ export const SwipeScreen = ({ navigation }) => {
                 onKeep={handleKeep}
                 onPass={handlePass}
                 onPress={() => openDetails(movie)}
+                dragY={front ? dragY : undefined}
               />
             );
           })}
@@ -545,6 +578,21 @@ const createStyles = (colors) =>
     },
 
     // Swiping
+    // The keep / pass glows: the top and bottom 40% of the screen.
+    glowTop: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
+      height: "40%",
+    },
+    glowBottom: {
+      position: "absolute",
+      bottom: 0,
+      start: 0,
+      end: 0,
+      height: "40%",
+    },
     stage: {
       flex: 1,
       alignItems: "center",

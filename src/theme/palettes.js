@@ -1,51 +1,51 @@
-// Two palettes. Dark: a grey page (#1A1B1E) under near-black bars, cards
-// and sheets a step lighter; #667688 slate for selected states (the open
-// tab, a picked chip); the main buttons the page's contrast colour (white).
-// Text is white, then two slate-blue greys — textSecondary, and textMuted
-// (also the tabs not open) — and light mode uses the same slate tone, every
-// grey readable at 4.5 : 1 or better on the page, cards and sheets. Colour
-// carries meaning on top: `rating` (a light slate) for ranks, scores and
-// collections, `success` green for done / saved / matched, `danger` red for
+// Two palettes — "Midnight Teal". Dark: a blue-black page (#0F1518) under
+// near-black bars, cards and sheets a step lighter; #23807A teal for
+// selected states (the open tab, a picked chip); the main buttons the
+// page's contrast colour (white). Text is white, then two blue-grey greys —
+// textSecondary, and textMuted (also the tabs not open) — and light mode
+// uses the same tone, every grey readable at 4.5 : 1 or better on the page,
+// cards and sheets. Colour carries meaning on top: `rating` (a light teal)
+// for ranks, scores and collections, `success` green for done / saved / matched, `danger` red for
 // hard dares, poor scores and destructive actions. `isDark` lets the few
 // theme-specific bits (status bar, blur tint) pick their side.
 export const darkColors = {
   isDark: true,
 
-  // The page under the header: a dark grey, not black.
-  background: "#1A1B1E",
+  // The page under the header: a blue-black, not black.
+  background: "#0F1518",
 
   // The header bars (and the tab bars pinned under them): near-black.
-  headerBackground: "#0E0F11",
+  headerBackground: "#080B0D",
 
-  card: "#222327",
+  card: "#161E22",
 
-  cardElevated: "#27292D",
+  cardElevated: "#1B2429",
 
   // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#2C2E33",
+  cardElevatedLight: "#233038",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#B4BEC8",
+  textSecondary: "#A9BDC4",
 
-  textMuted: "#909EAC",
+  textMuted: "#8FA2A8",
 
   accent: "#FFFFFF",
-  accentLight: "#B4BEC8",
+  accentLight: "#A9BDC4",
 
-  accentContrast: "#0E0F11",
+  accentContrast: "#080B0D",
 
   success: "#4ED08A",
 
-  // Ranks, scores, collections: a light slate, bluer than the greys.
-  rating: "#9FB3C8",
+  // Ranks, scores, collections: a light teal.
+  rating: "#6FD1C7",
 
   danger: "#FF8585",
 
-  border: "#34363B",
+  border: "#243036",
 
-  // Selected tabs and chips, and the main buttons: slate, white text.
-  selected: "#667688",
+  // Selected tabs and chips: teal, white text.
+  selected: "#23807A",
 
   selectedText: "#FFFFFF",
 
@@ -56,22 +56,22 @@ export const darkColors = {
   // Every grey button (Sign in, skips, ⇄, the sheets' actions…): a
   // neutral grey a clear step above the page and the sheets alike, text
   // in textPrimary.
-  buttonFill: "#3A3D43",
+  buttonFill: "#2A363C",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#222327",
+  ringFill: "#161E22",
 
-  // Segmented tabs (For you / Friends, Browse / Reels / Trending…): a dark
-  // track, the open one a slate pill with white text.
-  segmentTrack: "#1A1B1E",
-  segmentOn: "#667688",
+  // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
+  // open one a teal pill with white text.
+  segmentTrack: "#0F1518",
+  segmentOn: "#23807A",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#909EAC",
+  segmentText: "#8FA2A8",
 
   // Every poster's thin frame.
-  posterEdge: "#2A2C31",
+  posterEdge: "#1F2A30",
 };
 
 export const lightColors = {
@@ -90,19 +90,19 @@ export const lightColors = {
 
   textPrimary: "#111214",
 
-  // The greys share dark mode's slate tone.
-  textSecondary: "#46505C",
+  // The greys share dark mode's blue-grey tone.
+  textSecondary: "#3F5257",
 
-  textMuted: "#5F6B78",
+  textMuted: "#566A70",
 
   accent: "#111214",
-  accentLight: "#46505C",
+  accentLight: "#3F5257",
 
   accentContrast: "#FFFFFF",
 
   success: "#1F9D55",
 
-  rating: "#4E5D6E",
+  rating: "#1F6F6A",
 
   danger: "#D64545",
 
@@ -121,10 +121,10 @@ export const lightColors = {
   ringFill: "#F7F7F8",
 
   segmentTrack: "#EDEEF0",
-  segmentOn: "#667688",
+  segmentOn: "#1F7873",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#5F6B78",
+  segmentText: "#566A70",
 
   posterEdge: "rgba(0, 0, 0, 0.1)",
 };
