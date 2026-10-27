@@ -4,7 +4,7 @@
 //
 // Served by GET /api/movies/reels (with the clips' movies) and loaded by
 // services/movieData.js once a day; the list is maintained in the
-// backend's data/catalog.json. Any clip that's wrong or taken down just shows "Clip
+// backend's data/curation.json (`reelClips`). Any clip that's wrong or taken down just shows "Clip
 // unavailable" in the feed.
 
 // [{ movieId, youtubeId, start, end }] — filled in place.

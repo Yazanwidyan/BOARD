@@ -43,6 +43,9 @@ const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 // Sign in with Apple is built into iPhones; on Android it would need a
 // separate web-based setup, so the button is iPhone-only.
 export const appleSignInSupported = Platform.OS === "ios";
+// The Google button shows only once the build has its client ids — so
+// nobody meets a sign-in that can't work.
+export const googleSignInConfigured = Boolean(GOOGLE_WEB_CLIENT_ID);
 
 export const getGoogleCredentials = async () => {
   if (!GOOGLE_WEB_CLIENT_ID) {

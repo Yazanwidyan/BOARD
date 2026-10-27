@@ -14,6 +14,7 @@ import {
   Smartphone,
   Sun,
 } from "lucide-react-native";
+import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -59,7 +60,8 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
-const APP_VERSION = "1.0.0";
+// The app's version, from app.json (one place to change it).
+const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 // The language switch (English / العربية) — off for now; flip to bring it back.
 const SHOW_LANGUAGE = false;
 const AVATAR_SIZE = 60;

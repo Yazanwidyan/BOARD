@@ -13,7 +13,8 @@ import { getMovieById } from "./movies";
 //
 // Then a few themes (keys of THEMES below). The model itself is defined
 // here; each movie's own values come with the catalog from the server
-// (movie.vibe — maintained in the backend's data/catalog.json).
+// (movie.vibe — hand-tuned in the admin site, kept in the backend's
+// data/curation.json; the rest estimated by `npm run build-pool`).
 
 export const DIMENSIONS = [
   { key: "dark", low: "light-hearted", high: "dark" },

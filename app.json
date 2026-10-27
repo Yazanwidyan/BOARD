@@ -20,7 +20,10 @@
         "backgroundImage": "./assets/reelboard-android-background.png",
         "monochromeImage": "./assets/reelboard-android-monochrome.png"
       },
-      "package": "com.yazanwidyan.reelboard"
+      "package": "com.yazanwidyan.reelboard",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/reelboard-favicon.png"
@@ -61,6 +64,12 @@
         "projectId": "6fc42e1a-0829-4fc9-8c42-86e81ed6408e"
       }
     },
-    "owner": "yazanw"
+    "owner": "yazanw",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6fc42e1a-0829-4fc9-8c42-86e81ed6408e"
+    }
   }
 }

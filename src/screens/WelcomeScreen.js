@@ -39,6 +39,7 @@ import {
   appleSignInSupported,
   getAppleCredentials,
   getGoogleCredentials,
+  googleSignInConfigured,
 } from "../services/socialAuth";
 import { signInWith } from "../services/sync";
 import { shape, spacing } from "../theme/spacing";
@@ -379,19 +380,21 @@ export const WelcomeScreen = ({ navigation }) => {
               styles={styles}
             />
           )}
-          <SignInButton
-            label={t("Continue with Google")}
-            icon={<GoogleLogo size={18} />}
-            onPress={() => continueWith("google", getGoogleCredentials)}
-            busy={busy === "google"}
-            disabled={!!busy}
-            style={appleSignInSupported ? styles.grey : styles.filled}
-            textStyle={
-              appleSignInSupported ? styles.greyText : styles.filledText
-            }
-            colors={colors}
-            styles={styles}
-          />
+          {googleSignInConfigured && (
+            <SignInButton
+              label={t("Continue with Google")}
+              icon={<GoogleLogo size={18} />}
+              onPress={() => continueWith("google", getGoogleCredentials)}
+              busy={busy === "google"}
+              disabled={!!busy}
+              style={appleSignInSupported ? styles.grey : styles.filled}
+              textStyle={
+                appleSignInSupported ? styles.greyText : styles.filledText
+              }
+              colors={colors}
+              styles={styles}
+            />
+          )}
           <SignInButton
             label={t("Sign up with email")}
             icon={
