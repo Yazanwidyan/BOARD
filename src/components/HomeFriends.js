@@ -171,11 +171,9 @@ const createStyles = (colors) =>
     flipped: {
       transform: [{ scaleX: -1 }],
     },
+    // One even gap above each section, as on For you.
     section: {
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: 20,
     },
     padded: {
       paddingHorizontal: spacing.md,
@@ -185,10 +183,7 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm + 2,
     },
     title: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
+      ...typography.section,
       color: colors.textSecondary,
     },
   });

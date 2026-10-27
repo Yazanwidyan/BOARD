@@ -1,7 +1,7 @@
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 14,
+  md: 12,
   lg: 16,
   xl: 28,
   xxl: 32,
@@ -11,7 +11,7 @@ export const spacing = {
 // tabs and filter chips (the Library tab's pill), round pills and tags,
 // posters, and sheets' tops.
 export const shape = {
-  card: 10,
+  card: 16,
   control: 8,
   tab: 7,
   chip: 999,

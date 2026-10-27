@@ -58,7 +58,6 @@ export const TasteMatchSheet = ({ visible, onClose, match, title }) => {
     );
     return (
       <Fragment key={factor.key}>
-        {index > 0 && <View style={styles.divider} />}
         <View style={styles.factor}>
           <View style={styles.factorTop}>
             <Text style={styles.factorLabel}>{t(factor.label)}</Text>
@@ -141,7 +140,6 @@ export const TasteMatchSheet = ({ visible, onClose, match, title }) => {
             <View style={styles.rows}>
               {match.reasons.map((reason, index) => (
                 <Fragment key={reason}>
-                  {index > 0 && <View style={styles.divider} />}
                   <View style={styles.reason}>
                     <Sparkles
                       size={16}
@@ -219,10 +217,6 @@ const createStyles = (colors) =>
     // Rows straight on the sheet, a hairline apart.
     rows: {
       paddingHorizontal: spacing.md,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
     },
     factor: {
       gap: spacing.xs + 2,

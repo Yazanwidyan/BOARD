@@ -162,8 +162,8 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginTop: spacing.lg,
       marginBottom: spacing.xs,
       paddingHorizontal: spacing.md,

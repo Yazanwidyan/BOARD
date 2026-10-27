@@ -19,10 +19,8 @@ import { AvatarRankRing } from "../components/AvatarRankRing";
 import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
-import { PosterMosaic } from "../components/PosterMosaic";
 import { ProBadge } from "../components/ProBadge";
 import { ReportSheet } from "../components/ReportSheet";
-import { ProfileActivity } from "../components/ProfileActivity";
 import {
   BoardsRail,
   FinishedSagasRail,
@@ -35,7 +33,6 @@ import {
 import {
   DockHeader,
   HeaderIconButton,
-  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
@@ -72,14 +69,13 @@ const POSTER_ITEM = 104;
 // How long the ⋯ sheet takes to leave before the next one opens.
 const SHEET_HANDOFF_MS = 260;
 
-// The Profile tab's own tabs, as on yours.
+// Their things, under the rest — the only place you can see them.
 const SECTIONS = [
-  { key: "activity", label: "Activity" },
   { key: "films", label: "Films" },
-  { key: "diary", label: "Diary" },
   { key: "lists", label: "Lists" },
   { key: "collections", label: "Collections" },
 ];
+const RECS_SHOWN = 3;
 
 const TierChip = ({ tier, styles }) => (
   <View style={[styles.tierChip, { backgroundColor: getTierInfo(tier).color }]}>
@@ -87,13 +83,14 @@ const TierChip = ({ tier, styles }) => (
   </View>
 );
 
-// A friend's page, laid out exactly like your Profile: their name in the
-// header (back left, ⋯ right — to report or remove them) and Profile / Stats under it.
-//   Profile: their cover behind their avatar (its ring to their next
-//   title), their films and how close your taste is, their bio, their top
-//   four, then Activity / Films / Diary / Lists / Collections.
-//   Stats: their numbers, their title, their tiers, their Taste DNA, then
-//   you and them — what you both loved and what they say you should watch.
+// A friend's page, like your Profile: their name in the header (back left,
+// ⋯ right — to report or remove them) and Overview / Taste under it.
+//   Overview: their cover behind their avatar (its ring to their next
+//   title), their handle, their numbers — films, ranks, and how close your
+//   taste is (each once, here) — their bio, their top four, you and them
+//   (what you both loved, what they say you should watch), then their
+//   Films (each dated, with their tier) / Lists / Collections.
+//   Taste: their hours, their title, their tiers and their Taste DNA.
 export const FriendProfileScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -109,7 +106,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const { friends, removeFriend } = useFriends();
   const friend = friends.find((item) => item.id === friendId);
   const [topTab, setTopTab] = useState("profile");
-  const [section, setSection] = useState("activity");
+  const [section, setSection] = useState("films");
   // ⋯: report them (or one of their lists), or remove them.
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -202,31 +199,27 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const favouriteWidth = Math.floor(
     (screenWidth - spacing.md * 2 - FAVOURITE_GAP * (FAVOURITES - 1)) / FAVOURITES,
   );
-  const watchedByRecent = [...theirWatched]
-    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
-    .map((entry) => ({ movie: getMovieById(entry.movieId) }))
-    .filter((item) => item.movie);
+  // Their numbers, once: films, ranks, and your match (which opens Taste).
+  const counts = [
+    { key: "films", value: theirWatched.length, label: theirWatched.length === 1 ? t("film") : t("films") },
+    { key: "ranks", value: friend.ranks ?? 0, label: (friend.ranks ?? 0) === 1 ? t("rank") : t("ranks") },
+    match != null && {
+      key: "match",
+      value: `${match}%`,
+      label: t("match"),
+      onPress: () => setTopTab("stats"),
+    },
+  ].filter(Boolean);
 
   const sectionBody = {
-    activity: (
-      <ProfileActivity
-        watched={theirWatched}
-        name={firstName}
-        avatar={<FriendAvatar friend={friend} size={28} style={styles.activityAvatar} />}
-        onOpen={openMovie}
-      />
-    ),
-    films:
-      watchedByRecent.length > 0 ? (
-        <PosterMosaic items={watchedByRecent} onPressMovie={(movie) => openMovie(movie.id)} />
-      ) : (
-        <View style={styles.padded}>
-          <SectionEmpty line={t("{name} hasn't watched anything yet.", { name: firstName })} />
-        </View>
-      ),
-    diary: (
+    // Their films, newest first — each dated, with the tier they gave it.
+    films: (
       <View style={styles.padded}>
-        <RecentPosters entries={theirWatched} count={40} onOpen={openMovie} />
+        {theirWatched.length > 0 ? (
+          <RecentPosters entries={theirWatched} count={60} onOpen={openMovie} />
+        ) : (
+          <SectionEmpty line={t("{name} hasn't watched anything yet.", { name: firstName })} />
+        )}
       </View>
     ),
     lists: (
@@ -294,12 +287,22 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           <FriendAvatar friend={friend} size={AVATAR} style={styles.ringAvatar} />
         </AvatarRankRing>
         {friend.pro && <ProBadge accent={friend.accent} style={styles.proBadge} />}
-        <Text style={styles.counts}>
-          {friend.handle} · {t("{count} films", { count: theirWatched.length })}
-          {match != null && (
-            <Text style={styles.match}> · {t("{match}% match", { match })}</Text>
-          )}
-        </Text>
+        <Text style={styles.handle}>{friend.handle}</Text>
+        {/* Their numbers — here and nowhere else. */}
+        <View style={styles.counts}>
+          {counts.map(({ key, value, label, onPress }) => (
+            <Pressable
+              key={key}
+              style={({ pressed }) => [styles.count, pressed && onPress && styles.pressed]}
+              onPress={onPress}
+              disabled={!onPress}
+              hitSlop={6}
+            >
+              <Text style={[styles.countValue, key === "match" && styles.countMatch]}>{value}</Text>
+              <Text style={styles.countLabel}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
         {!!friend.bio && (
           <Text style={styles.bio} numberOfLines={3}>
             {friend.bio}
@@ -331,6 +334,65 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             <SectionEmpty line={t("{name} hasn't tiered anything yet.", { name: firstName })} />
           )}
         </ProfileSection>
+
+        {/* You and them: what you both loved… */}
+        {bothLoved.length > 0 && (
+          <ProfileSection title={t("You both loved")} rail>
+            <ShelfRail
+              itemWidth={POSTER_ITEM}
+              items={bothLoved.map((movie) => ({
+                key: movie.id,
+                onPress: () => openMovie(movie.id),
+                content: <MoviePoster uri={movie.poster} style={styles.railPoster} />,
+              }))}
+            />
+          </ProfileSection>
+        )}
+
+        {/* …and what they loved that you haven't seen. */}
+        {recommendations.length > 0 && (
+          <ProfileSection title={t("{value} says watch these", { value: firstName })}>
+            <View style={styles.recList}>
+              {recommendations.slice(0, RECS_SHOWN).map(({ movie, tier }) => {
+                const saved = savedIds.has(movie.id);
+                return (
+                  <Pressable
+                    key={movie.id}
+                    style={({ pressed }) => [styles.recRow, pressed && styles.rowPressed]}
+                    onPress={() => openMovie(movie.id)}
+                    accessibilityRole="button"
+                  >
+                    <MoviePoster uri={movie.poster} style={styles.recPoster} />
+                    <View style={styles.recText}>
+                      <Text style={styles.recTitle} numberOfLines={1}>
+                        {movie.title}
+                        {!!movie.year && <Text style={styles.recYear}> {movie.year}</Text>}
+                      </Text>
+                      <View style={styles.recMetaRow}>
+                        <Text style={styles.recMeta}>{t("They tiered it")}</Text>
+                        <TierChip tier={tier} styles={styles} />
+                      </View>
+                    </View>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.saveButton,
+                        saved && styles.saveButtonSaved,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => toggleBucketListWithFeedback(movie.id)}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.saveText, saved && styles.saveTextSaved]}>
+                        {saved ? t("Saved") : t("+ Watchlist")}
+                      </Text>
+                    </Pressable>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ProfileSection>
+        )}
       </View>
 
       <UnderlineTabs
@@ -343,23 +405,12 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     </>
   );
 
-  const stats = [
-    { value: theirWatched.length, label: theirWatched.length === 1 ? "film" : "films" },
-    { value: `${hours}h`, label: "watched" },
-    { value: finishedSagas.length, label: "collections" },
-    { value: match != null ? `${match}%` : "—", label: "match" },
-  ];
+  // Taste: what their watching says — no counts (they're under their name).
   const statsTab = (
     <View style={styles.padded}>
-      {/* Their numbers, evenly across. */}
-      <View style={styles.statsRow}>
-        {stats.map(({ value, label }) => (
-          <View key={label} style={styles.stat}>
-            <Text style={styles.statValue}>{value}</Text>
-            <Text style={styles.statLabel}>{t(label)}</Text>
-          </View>
-        ))}
-      </View>
+      {hours > 0 && (
+        <Text style={styles.hours}>{t("{hours} hours of film, all time", { hours })}</Text>
+      )}
 
       {/* Their title, and how far to the next. */}
       <View style={styles.rankRow}>
@@ -383,65 +434,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         )}
       </ProfileSection>
 
-      {/* You and them. */}
-      <ProfileSection title={t("You both loved")} rail={bothLoved.length > 0}>
-        {bothLoved.length > 0 ? (
-          <ShelfRail
-            itemWidth={POSTER_ITEM}
-            items={bothLoved.map((movie) => ({
-              key: movie.id,
-              onPress: () => openMovie(movie.id),
-              content: <MoviePoster uri={movie.poster} style={styles.railPoster} />,
-            }))}
-          />
-        ) : (
-          <SectionEmpty line={t("Nothing in common yet. Tier more movies and it'll fill in.")} />
-        )}
-      </ProfileSection>
-
-      {recommendations.length > 0 && (
-        <ProfileSection title={t("{value} says watch these", { value: firstName })}>
-          <View style={[styles.bleed, styles.list]}>
-            {recommendations.map(({ movie, tier }) => {
-              const saved = savedIds.has(movie.id);
-              return (
-                <Pressable
-                  key={movie.id}
-                  style={({ pressed }) => [styles.recRow, pressed && styles.rowPressed]}
-                  onPress={() => openMovie(movie.id)}
-                  accessibilityRole="button"
-                >
-                  <MoviePoster uri={movie.poster} style={styles.recPoster} />
-                  <View style={styles.recText}>
-                    <Text style={styles.recTitle} numberOfLines={1}>
-                      {movie.title}
-                      {!!movie.year && <Text style={styles.recYear}> {movie.year}</Text>}
-                    </Text>
-                    <View style={styles.recMetaRow}>
-                      <Text style={styles.recMeta}>{t("They tiered it")}</Text>
-                      <TierChip tier={tier} styles={styles} />
-                    </View>
-                  </View>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.saveButton,
-                      saved && styles.saveButtonSaved,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => toggleBucketListWithFeedback(movie.id)}
-                    hitSlop={6}
-                    accessibilityRole="button"
-                  >
-                    <Text style={[styles.saveText, saved && styles.saveTextSaved]}>
-                      {saved ? t("Saved") : t("+ Watchlist")}
-                    </Text>
-                  </Pressable>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ProfileSection>
-      )}
     </View>
   );
 
@@ -452,7 +444,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         <View style={styles.tabs} accessibilityRole="tablist">
           {[
             { key: "profile", label: t("Overview") },
-            { key: "stats", label: t("Stats") },
+            { key: "stats", label: t("Taste") },
           ].map((tab) => {
             const selected = tab.key === topTab;
             return (
@@ -472,7 +464,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             );
           })}
         </View>
-        <ScrollHairline scrollY={header.scrollY} />
       </View>
 
       <Animated.ScrollView
@@ -489,7 +480,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       {/* Their name in the middle; back left, ⋯ (report, remove) right. */}
       <DockHeader
         {...header.props}
-        hairline={false}
         title={friend.name}
         back={back}
         right={
@@ -568,6 +558,11 @@ const createStyles = (colors) =>
     padded: {
       paddingHorizontal: spacing.md,
     },
+    // Their picks: rows in one rounded card.
+    recList: {
+      borderRadius: shape.card,
+      overflow: "hidden",
+    },
     bleed: {
       marginHorizontal: -spacing.md,
     },
@@ -580,17 +575,17 @@ const createStyles = (colors) =>
     tabs: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       marginHorizontal: spacing.md,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     tab: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     tabOn: {
       backgroundColor: colors.segmentOn,
@@ -624,17 +619,37 @@ const createStyles = (colors) =>
     proBadge: {
       marginTop: spacing.xs,
     },
-    counts: {
+    handle: {
       ...typography.caption,
       fontSize: 13,
       lineHeight: 18,
       color: colors.textSecondary,
       marginTop: spacing.xs,
-      textAlign: "center",
     },
-    match: {
+    // Films · ranks · match, evenly across under their handle.
+    counts: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.xl,
+      marginTop: spacing.xs,
+    },
+    count: {
+      alignItems: "center",
+      minWidth: 56,
+    },
+    countValue: {
+      ...typography.bodyBold,
+      fontSize: 18,
+      lineHeight: 24,
+      color: colors.textPrimary,
+      fontVariant: ["tabular-nums"],
+    },
+    countMatch: {
       color: colors.success,
-      fontFamily: typography.bodyBold.fontFamily,
+    },
+    countLabel: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     bio: {
       ...typography.body,
@@ -651,35 +666,19 @@ const createStyles = (colors) =>
     sectionBody: {
       paddingTop: spacing.md,
     },
-    activityAvatar: {
-      borderWidth: 0,
-    },
-    // Stats
-    statsRow: {
-      flexDirection: "row",
-      justifyContent: "space-around",
-      paddingVertical: spacing.sm,
-    },
-    stat: {
-      alignItems: "center",
-      gap: 2,
-    },
-    statValue: {
-      ...typography.hero,
-      fontSize: 22,
-      lineHeight: 28,
-      color: colors.textPrimary,
-    },
-    statLabel: {
-      ...typography.caption,
+    // Taste
+    hours: {
+      ...typography.body,
       color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: spacing.sm,
     },
     rankRow: {
       gap: 2,
       marginTop: spacing.md,
       padding: spacing.md,
-      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     rankName: {
       ...typography.bodyBold,
@@ -694,10 +693,6 @@ const createStyles = (colors) =>
     railPoster: {
       width: POSTER_ITEM - 2,
       aspectRatio: 2 / 3,
-    },
-    // Full-width bands, a hairline of page between them.
-    list: {
-      gap: StyleSheet.hairlineWidth * 2,
     },
     recRow: {
       flexDirection: "row",
@@ -741,7 +736,7 @@ const createStyles = (colors) =>
     tierChipText: {
       ...typography.label,
       fontSize: 12,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     // + Watchlist: a small filled button; Saved: slate.
     saveButton: {

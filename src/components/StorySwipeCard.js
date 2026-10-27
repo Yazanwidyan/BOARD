@@ -34,7 +34,7 @@ const SETTLE_DURATION = 220;
 const BEHIND_SCALE = 0.94;
 const BEHIND_OPACITY = 0.45;
 // The words on the green / red bars.
-const INK = "#0C1014";
+const INK = "#0C0C0C";
 
 // One movie in Swipe's story mode: a big poster, square corners. Swipe up to
 // keep (it flies up and away), down to pass (it drops off the bottom), tap
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   card: {
     position: "absolute",
     overflow: "hidden",
-    backgroundColor: "#14181C",
+    backgroundColor: "#1C1C1C",
   },
   // A bar across the poster with the word — green for keep, red for pass
   // (set where it's drawn); the word and icon a near-black ink on it.

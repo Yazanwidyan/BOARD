@@ -261,7 +261,7 @@ export const TierMovieScreen = ({ navigation, route }) => {
           accessibilityRole="button"
           accessibilityLabel={t("Close")}
         >
-          <X size={24} color="#0C1014" strokeWidth={2} />
+          <X size={24} color="#0C0C0C" strokeWidth={2} />
         </Pressable>
       </View>
 

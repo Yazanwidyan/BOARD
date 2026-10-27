@@ -52,17 +52,20 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
   const mood =
     pickMood?.movieId === pickedMovie.id ? getMood(pickMood.mood) : null;
 
-  // Where it came from — the most specific wins. The saga it moves along
-  // has its own line (PickInsight).
+  const insight = getPickInsight(pickedMovie, watched, dares);
+  // Where it came from, or what it does for you — the most specific wins.
   const tag =
     activeChallenge?.targetMovieId === pickedMovie.id
       ? { text: t("Your active dare"), color: colors.textPrimary }
       : mood
         ? { text: `${mood.emoji} ${t(mood.label)}` }
-        : bucketList.some((entry) => entry.movieId === pickedMovie.id)
-          ? { text: t("From your watchlist") }
-          : null;
-  const insight = getPickInsight(pickedMovie, watched, dares);
+        : insight.forecast.gained.length > 0
+          ? { text: t("Earns a rank tonight"), color: colors.rating }
+          : insight.saga?.type === "rank" || insight.saga?.type === "progress"
+            ? { text: t("Next in a collection") }
+            : bucketList.some((entry) => entry.movieId === pickedMovie.id)
+              ? { text: t("From your watchlist") }
+              : null;
   const endsAt = getEndTime(pickedMovie);
 
   const openDetails = () =>
@@ -124,11 +127,8 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       ]
         .filter(Boolean)
         .join(" · ")}
-      reason={insight.reason}
       match={insight.match}
       tag={tag}
-      saga={insight.saga}
-      forecast={insight.forecast}
       onPress={openDetails}
       onDismiss={clearPickedMovie}
       scrollY={scrollY}

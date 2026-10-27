@@ -265,7 +265,6 @@ const joinWords = (words) =>
   words.length === 2
     ? t("{first} and {second}", { first: t(words[0]), second: t(words[1]) })
     : t(words[0]);
-const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 // Score one candidate, keeping each signal's contribution and its reason.
 const scoreMovie = (movie, model, context) => {
@@ -286,20 +285,8 @@ const scoreMovie = (movie, model, context) => {
     const value = WEIGHTS.vibe * (fit - 0.65) * 5;
     let reason = null;
     if (value > 0) {
-      // Its most distinctive qualities that you also lean towards…
-      const shared = vibe.dims
-        .map((dim, index) => ({
-          index,
-          lean: dim - 3,
-          yours: model.fingerprint[index] - 3,
-        }))
-        .filter(({ lean, yours }) => Math.abs(lean) >= 1 && lean * yours > 0)
-        .sort((a, b) => Math.abs(b.lean) - Math.abs(a.lean))
-        .slice(0, 2)
-        .map(({ index, lean }) =>
-          lean > 0 ? DIMENSIONS[index].high : DIMENSIONS[index].low,
-        );
-      // …and the movie you loved that it feels most like.
+      // The movie you loved that it feels most like — plainly, without
+      // naming the vibe's qualities ("intimate", "grounded"…).
       const nearest = model.lovedMovies
         .map((loved) => ({ loved, similarity: vibeSimilarity(loved, movie) }))
         .sort((a, b) => b.similarity - a.similarity)[0];
@@ -307,13 +294,6 @@ const scoreMovie = (movie, model, context) => {
         reason = t("Feels like {title}, which you tiered {tier}.", {
           title: nearest.loved.title,
           tier: tierOf.get(nearest.loved.id),
-        });
-        if (shared.length) {
-          reason = `${capitalize(joinWords(shared))} — ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`;
-        }
-      } else if (shared.length) {
-        reason = t("{qualities} — right on your wavelength.", {
-          qualities: capitalize(joinWords(shared)),
         });
       }
     }

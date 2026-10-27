@@ -19,7 +19,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { showToast } from "../store/toastStore";
 import { DEFAULT_PREFERENCES, useUserStore } from "../store/userStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -287,8 +287,8 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
     },
     sectionHint: {
       ...typography.caption,
@@ -322,8 +322,6 @@ const createStyles = (colors) =>
       paddingTop: spacing.sm,
       gap: spacing.sm,
       backgroundColor: colors.card,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
     },
     matchText: {
       ...typography.caption,

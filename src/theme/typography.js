@@ -83,6 +83,14 @@ export const typography = {
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
+  // Every section's heading: small capitals, spaced (grey, at the use).
+  section: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
 };
 
 // Arabic letters join up, so letter spacing (and uppercase) would break

@@ -2,7 +2,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
@@ -72,8 +72,6 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
       borderRadius: shape.card,
       marginHorizontal: spacing.md,
     },

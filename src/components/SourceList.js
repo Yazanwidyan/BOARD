@@ -187,7 +187,6 @@ export const SourceList = ({ kind, active, least = 1, onGo, goLabel }) => {
           source.key === "board" ? summaries.board.movies : summaries[source.key].movies;
         return (
           <Fragment key={source.key}>
-            {index > 0 && <View style={styles.separator} />}
             <Pressable
               style={({ pressed }) => [styles.row, pressed && !blocked && styles.rowPressed, blocked && styles.rowOff]}
               onPress={() => {
@@ -265,13 +264,10 @@ export const SourceList = ({ kind, active, least = 1, onGo, goLabel }) => {
 const createStyles = (colors) =>
   StyleSheet.create({
     list: {
+      marginHorizontal: spacing.md,
+      borderRadius: shape.card,
       backgroundColor: colors.card,
       overflow: "hidden",
-    },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-      marginStart: spacing.md + ICON + spacing.md,
     },
     row: {
       flexDirection: "row",
@@ -329,8 +325,6 @@ const createStyles = (colors) =>
       paddingEnd: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.background,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
     },
     subLabel: {
       ...typography.body,

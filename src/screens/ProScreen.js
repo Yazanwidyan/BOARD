@@ -61,7 +61,6 @@ export const ProScreen = ({ navigation }) => {
         <View style={styles.perks}>
           {PERKS.map((perk, index) => (
             <Fragment key={perk.title}>
-              {index > 0 && <View style={styles.divider} />}
               <View style={styles.perk}>
                 <Text style={styles.perkTitle}>{t(perk.title)}</Text>
                 <Text style={styles.perkBody}>{t(perk.body)}</Text>
@@ -133,10 +132,6 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderRadius: shape.card,
       overflow: "hidden",
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
     },
     perk: {
       gap: 4,

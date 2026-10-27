@@ -224,7 +224,7 @@ export const SimilarScreen = ({ navigation, route }) => {
                 {search.results.map(({ movie }, index) => (
                   <Pressable
                     key={movie.id}
-                    style={({ pressed }) => [styles.result, index > 0 && styles.resultDivider, pressed && styles.rowPressed]}
+                    style={({ pressed }) => [styles.result, pressed && styles.rowPressed]}
                     onPress={() => choose(movie.id)}
                   >
                     <MoviePoster uri={movie.poster} style={styles.resultPoster} />
@@ -296,7 +296,6 @@ export const SimilarScreen = ({ navigation, route }) => {
                 <View style={styles.list}>
                   {similar.map((item, index) => (
                     <Animated.View key={item.id} entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(220)}>
-                      {index > 0 && <View style={styles.separator} />}
                       <SimilarRow
                         target={target}
                         item={item}
@@ -377,7 +376,9 @@ const createStyles = (colors) =>
     },
     results: {
       marginTop: 2,
+      marginHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       overflow: "hidden",
     },
     result: {
@@ -386,10 +387,6 @@ const createStyles = (colors) =>
       gap: spacing.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-    },
-    resultDivider: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
     },
     resultPoster: {
       width: 40,
@@ -430,13 +427,10 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     list: {
+      marginHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       overflow: "hidden",
-    },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-      marginStart: spacing.md + 52 + spacing.md,
     },
     rowWrap: {},
     row: {

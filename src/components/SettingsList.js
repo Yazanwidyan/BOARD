@@ -3,23 +3,20 @@ import { Children, Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { useIsRTL } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
 
 // The pieces of Settings-style screens: groups of rows under a small
 // title, each row an icon, a label (and a hint under it), then what it's
-// set to and a chevron when it opens something. Groups are filled bands
-// edge to edge with square corners, rows split by a hairline that starts
-// after the icon.
+// set to and a chevron when it opens something. Each group is a rounded
+// card inside the page's margins; its rows sit straight on it.
 
 const ICON = 20;
 const ICON_GAP = spacing.md;
 
-// `inset`: where the hairlines start, for rows that lead with something
-// wider than an icon (an avatar).
-export const SettingsGroup = ({ title, footnote, inset, children }) => {
+export const SettingsGroup = ({ title, footnote, children }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const rows = Children.toArray(children).filter(Boolean);
@@ -29,9 +26,6 @@ export const SettingsGroup = ({ title, footnote, inset, children }) => {
       <View style={styles.groupBody}>
         {rows.map((row, index) => (
           <Fragment key={row.key ?? index}>
-            {index > 0 && (
-              <View style={[styles.separator, inset != null && { marginStart: inset }]} />
-            )}
             {row}
           </Fragment>
         ))}
@@ -136,13 +130,15 @@ const createStyles = (colors) =>
       marginTop: spacing.lg,
     },
     groupTitle: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
     },
     groupBody: {
+      marginHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       overflow: "hidden",
     },
     footnote: {
@@ -151,18 +147,13 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
       paddingHorizontal: spacing.md,
     },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-      marginStart: SEPARATOR_START,
-    },
     row: {
       flexDirection: "row",
       alignItems: "center",
       gap: ICON_GAP,
-      minHeight: 52,
+      minHeight: 56,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 4,
+      paddingVertical: spacing.md,
     },
     rowPressed: {
       backgroundColor: colors.cardElevated,
@@ -202,9 +193,9 @@ const createStyles = (colors) =>
     segments: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     segment: {
       flex: 1,
@@ -212,8 +203,8 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     segmentOn: {
       backgroundColor: colors.segmentOn,

@@ -56,7 +56,7 @@ export const RanksScreen = ({ navigation }) => {
     const Chevron = isOpen ? ChevronUp : ChevronDown;
     const have = track.current ? haveIt(track.current.id) : null;
     return (
-      <View key={track.id} style={index > 0 && styles.trackDivider}>
+      <View key={track.id}>
         <Pressable
           style={({ pressed }) => [styles.track, pressed && styles.pressed]}
           onPress={() => setOpen(isOpen ? null : track.id)}
@@ -99,7 +99,6 @@ export const RanksScreen = ({ navigation }) => {
               const stepHave = haveIt(step.id);
               return (
                 <Fragment key={step.id}>
-                  {stepIndex > 0 && <View style={styles.stepDivider} />}
                   <View style={styles.step}>
                     <RankBadge track={track} step={reached ? step : null} size={28} />
                     <View style={styles.stepText}>
@@ -283,13 +282,12 @@ const createStyles = (colors) =>
     tabs: {
       marginTop: spacing.lg,
     },
-    // The tracks: one full-width band, split by hairlines.
+    // The tracks: one rounded card inside the page's margins.
     list: {
+      marginHorizontal: spacing.md,
       backgroundColor: colors.card,
-    },
-    trackDivider: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     track: {
       flexDirection: "row",
@@ -360,10 +358,6 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       paddingTop: spacing.sm + 2,
       paddingBottom: spacing.xs,
-    },
-    stepDivider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
     },
     step: {
       flexDirection: "row",

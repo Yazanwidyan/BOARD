@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
@@ -133,21 +133,21 @@ export const WatchDateSheet = ({ visible, timestamp, onSave, onClose }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Like Library's tabs: a dark track, the chosen day a slate pill.
+    // Like Library's tabs: a dark track, the chosen day a white pill.
     quickRow: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     quick: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
+      paddingVertical: 6,
       paddingHorizontal: spacing.xs,
-      borderRadius: 7,
+      borderRadius: shape.chip,
     },
     quickActive: {
       backgroundColor: colors.segmentOn,

@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Bell, Shuffle } from "lucide-react-native";
+import { Bell, Check, Flame, Play, Plus, Shuffle, ThumbsDown } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
@@ -15,19 +15,15 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { ChallengeCard, ChallengePrompt } from "../components/ChallengeCard";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
-import { TonightIcon } from "../components/icons/TonightIcon";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
-import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { QuickPickBento } from "../components/QuickPickBento";
+import { DecideWays } from "../components/QuickPickBento";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
   DockHeader,
   HeaderIconButton,
-  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
@@ -35,18 +31,20 @@ import { SwipeSheet } from "../components/SwipeSheet";
 import { WildcardSheet } from "../components/WildcardSheet";
 import { SPIN_STOP_MS } from "../components/RefreshSpin";
 import { TonightsPickCard } from "../components/TonightsPickCard";
-import { getMovieById, useMoviesVersion } from "../data/movies";
+import { useMoviesVersion } from "../data/movies";
 import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useMovieStore } from "../store/movieStore";
+import { recordPass } from "../store/tasteStore";
 import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
+import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { getInProgressCollections } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { formatRuntime } from "../utils/movieFilters";
-import { getEndTime, getTonightSuggestions } from "../utils/tonightPick";
+import { getTonightSuggestions } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { t } from "../i18n";
@@ -54,9 +52,9 @@ import { useFriends, useNotificationCount } from "../store/friendsStore";
 import { FirstVisitTip } from "../components/FirstVisitTip";
 import { HomeFriends } from "../components/HomeFriends";
 
-const WATCHLIST_COUNT = 10;
-// Shelf rail item widths (each includes its own side padding).
-const POSTER_ITEM = 122;
+// The space between Home's sections.
+const SECTION_GAP = 20;
+// Shelf rail item width (it includes its own side padding).
 const BOX_ITEM = 142;
 
 // Section labels as the little tags clipped to a store shelf, with an
@@ -102,13 +100,8 @@ const DecideHeroCard = ({
     );
   }
 
-  // Its name above it, as a section label — like "Decide another way".
-  return (
-    <>
-      <ShelfTag label={t("Suggested for tonight")} styles={styles} inset />
-      <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />
-    </>
-  );
+  // Its name is inside the card, as its eyebrow.
+  return <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -125,6 +118,29 @@ const timeAgo = (timestamp) => {
   if (days < 60) return t("{count} weeks ago", { count: Math.round(days / 7) });
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
+
+// One of the suggestion's actions: its icon in a circle, its name under.
+// `a11yLabel`: a fuller name for screen readers, when the label's short.
+const RoundAction = ({ Icon, label, a11yLabel, onPress, styles, colors }) => (
+  <Pressable
+    style={styles.roundAction}
+    onPress={onPress}
+    hitSlop={4}
+    accessibilityRole="button"
+    accessibilityLabel={a11yLabel ?? label}
+  >
+    {({ pressed }) => (
+      <>
+        <View style={[styles.heroRound, pressed && styles.heroRoundPressed]}>
+          <Icon size={18} color={colors.textPrimary} strokeWidth={1.9} />
+        </View>
+        <Text style={styles.roundLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </>
+    )}
+  </Pressable>
+);
 
 // Home's slot when there's no Tonight's Pick: one suggestion at a time, in
 // the same card as Tonight's pick (HomeHero) — the best fits for your taste
@@ -181,7 +197,11 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
   const page = step % pageCount;
   const suggestion = candidates[page];
   const { movie, savedAt, angle } = suggestion;
-  const endsAt = getEndTime(movie);
+  const isSaved = bucketList.some((entry) => entry.movieId === movie.id);
+  const next = () => {
+    Haptics.selectionAsync();
+    thinkThenNext();
+  };
   // Why it's here, as its tag — a watchlist save says when.
   const tag =
     angle.key === "saved"
@@ -191,11 +211,6 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
             : t("On your watchlist"),
         }
       : { text: t(angle.label), color: angle.key === "rank" ? colors.rating : undefined };
-  // Why it fits you (with too little history, that it's well liked).
-  const why =
-    suggestion.reason ??
-    (suggestion.match == null && !suggestion.saved ? t("Highly rated, and you haven't seen it") : null);
-
   return (
     // Keyed on the film, so each new one fades in fresh (its logo too).
     <Animated.View key={movie.id} entering={FadeIn.duration(350)}>
@@ -205,96 +220,55 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
       posterUri={movie.poster}
       backdropUri={movie.backdrop}
       logo={movie.details?.logo}
+      eyebrow={t("Suggested for tonight")}
+      eyebrowIcon={Flame}
       title={movie.title}
-      meta={[
-        movie.year,
-        movie.genres?.[0],
-        movie.runtime ? formatRuntime(movie.runtime) : null,
-        endsAt && t("ends {time}", { time: endsAt }),
-      ]
+      meta={[movie.year, movie.genres?.[0] && t(movie.genres[0]), movie.runtime ? formatRuntime(movie.runtime) : null]
         .filter(Boolean)
         .join(" · ")}
-      reason={why}
+      rated={movie.details?.rated}
+      description={movie.description}
       match={suggestion.match}
       tag={tag}
-      saga={suggestion.saga}
-      forecast={suggestion.forecast}
       onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
       actions={
         <>
-          <PrimaryButton
-            label={t("Make it tonight's pick")}
-            icon={<TonightIcon size={18} color={colors.background} strokeWidth={2} />}
+          <RoundAction
+            Icon={Play}
+            label={t("Tonight")}
+            a11yLabel={t("Pick for tonight")}
             onPress={() => {
               Haptics.selectionAsync();
               togglePickedMovie(movie.id);
             }}
-            style={styles.heroMain}
-            contentStyle={styles.heroSquare}
+            styles={styles}
+            colors={colors}
+          />
+          <RoundAction
+            Icon={isSaved ? Check : Plus}
+            label={isSaved ? t("Saved") : t("Watchlist")}
+            onPress={() => toggleBucketListWithFeedback(movie.id)}
+            styles={styles}
+            colors={colors}
+          />
+          <RoundAction
+            Icon={ThumbsDown}
+            label={t("Not for me")}
+            onPress={() => {
+              // A pass: weighs against films like it, then the next one.
+              recordPass(movie.id);
+              next();
+            }}
+            styles={styles}
+            colors={colors}
           />
           {pageCount > 1 && (
-            <Pressable
-              style={({ pressed }) => [styles.heroRound, pressed && styles.heroRoundPressed]}
-              onPress={() => {
-                Haptics.selectionAsync();
-                thinkThenNext();
-              }}
-              hitSlop={4}
-              accessibilityLabel={t("Suggest another")}
-            >
-              <Shuffle size={18} color={colors.textPrimary} />
-            </Pressable>
+            <RoundAction Icon={Shuffle} label={t("Try another")} onPress={next} styles={styles} colors={colors} />
           )}
         </>
       }
     />
     </Animated.View>
-  );
-};
-
-// Newest-saved first — the freshest "I want to see that" is the likeliest
-// pick for tonight.
-const WatchlistRail = ({ bucketList, navigation }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  if (bucketList.length === 0) return null;
-
-  const movies = [...bucketList]
-    .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
-    .slice(0, WATCHLIST_COUNT)
-    .map((entry) => getMovieById(entry.movieId))
-    .filter(Boolean);
-
-  return (
-    <View style={styles.railSection}>
-      <ShelfTag
-        label={t("From your watchlist")}
-        styles={styles}
-        right={
-          <Pressable
-            hitSlop={8}
-            onPress={() =>
-              navigation.navigate("Library", { initialTab: "bucketlist" })
-            }
-          >
-            <Text style={styles.seeAllText}>{t("See all")}</Text>
-          </Pressable>
-        }
-      />
-      <ShelfRail
-        itemWidth={POSTER_ITEM}
-        items={movies.map((movie) => ({
-          key: movie.id,
-          onPress: () =>
-            navigation.navigate("MovieDetails", { movieId: movie.id }),
-          content: (
-            <MoviePoster uri={movie.poster} shadow style={styles.railPoster} />
-          ),
-          title: movie.title,
-          meta: String(movie.year),
-        }))}
-      />
-    </View>
   );
 };
 
@@ -399,7 +373,6 @@ export const HomeScreen = ({ navigation }) => {
             );
           })}
         </View>
-        <ScrollHairline scrollY={header.scrollY} />
       </View>
       <Animated.ScrollView
         onScroll={header.onScroll}
@@ -421,8 +394,8 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={{
-          // The usual gap under the tabs, as on every tab.
-          paddingTop: spacing.md,
+          // For you's top card meets the tabs; Friends keeps the usual gap.
+          paddingTop: homeTab === "you" ? 0 : spacing.md,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
       >
@@ -430,7 +403,7 @@ export const HomeScreen = ({ navigation }) => {
           <HomeFriends navigation={navigation} />
         ) : (
         <>
-        <View style={[styles.section, styles.firstSection]}>
+        <View style={[styles.section, styles.firstSection, styles.heroSection]}>
           {pickedMovieId ? (
             <TonightsPickCard
               navigation={navigation}
@@ -448,57 +421,24 @@ export const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Not that one? The other ways to choose. */}
+        {/* Not that one? The other ways to choose, and your dare. */}
         {!isFreshAccount && (
           <View style={styles.railSection}>
             <ShelfTag label={t("Decide another way")} styles={styles} />
-            <View style={styles.bento}>
-              <QuickPickBento
-                onSwipe={() => setIsSwipeOpen(true)}
-                onWildcard={() => setIsWildcardOpen(true)}
-                onSimilar={() => navigation.navigate("Similar")}
-              />
-            </View>
+            <DecideWays
+              onWildcard={() => setIsWildcardOpen(true)}
+              onSwipe={() => setIsSwipeOpen(true)}
+              onSimilar={() => navigation.navigate("Similar")}
+              dare={activeChallenge}
+              onDare={() =>
+                activeChallenge
+                  ? navigation.navigate("MovieDetails", { movieId: activeChallenge.targetMovieId })
+                  : startDare()
+              }
+              onNewDare={startDare}
+            />
           </View>
         )}
-
-        {/* Your dare — or the way to get one. */}
-        {!isFreshAccount && (
-          <View style={styles.section}>
-            {activeChallenge ? (
-              <ChallengeCard
-                challenge={activeChallenge}
-                mode="active"
-                onContinue={() =>
-                  navigation.navigate("MovieDetails", {
-                    movieId: activeChallenge.targetMovieId,
-                  })
-                }
-                onNewChallenge={startDare}
-              />
-            ) : (
-              <ChallengePrompt onStart={startDare} />
-            )}
-          </View>
-        )}
-
-        {/* First week of the month: last month's recap is ready. */}
-        {lastMonthRecap && (
-          <Pressable
-            style={({ pressed }) => [styles.recapBanner, pressed && { opacity: 0.8 }]}
-            onPress={() => navigation.navigate("Recap", { period: "last-month" })}
-            accessibilityRole="button"
-          >
-            <Text style={styles.recapTitle}>
-              {t("Your {month} recap is ready", { month: lastMonthRecap.name })}
-            </Text>
-            <Text style={styles.recapHint}>
-              {t("{count} movies · see your favourites", { count: lastMonthRecap.count })} ›
-            </Text>
-          </Pressable>
-        )}
-
-        <WatchlistRail bucketList={bucketList} navigation={navigation} />
 
         {inProgressCollections.length > 0 && (
           <View style={styles.railSection}>
@@ -547,6 +487,23 @@ export const HomeScreen = ({ navigation }) => {
             />
           </View>
         )}
+
+        {/* First week of the month: last month's recap is ready. */}
+        {lastMonthRecap && (
+          <Pressable
+            style={({ pressed }) => [styles.recapBanner, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate("Recap", { period: "last-month" })}
+            accessibilityRole="button"
+          >
+            <Text style={styles.recapTitle}>
+              {t("Your {month} recap is ready", { month: lastMonthRecap.name })}
+            </Text>
+            <Text style={styles.recapHint}>
+              {t("{count} movies · see your favourites", { count: lastMonthRecap.count })} ›
+            </Text>
+          </Pressable>
+        )}
+
         </>
         )}
       </Animated.ScrollView>
@@ -568,7 +525,6 @@ export const HomeScreen = ({ navigation }) => {
       />
       <DockHeader
         {...header.props}
-        hairline={false}
         refreshing={refreshing}
         title={t("ReelBoard")}
         wordmark
@@ -597,43 +553,34 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     // A section: a hairline across the page above it.
+    // Sections: one even gap above each.
     section: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: SECTION_GAP,
     },
     railSection: {
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
-    },
-    // The cards sit inside the page's margins.
-    bento: {
-      paddingHorizontal: spacing.md,
+      marginTop: SECTION_GAP,
     },
     tabsBar: {
       zIndex: 1,
       paddingBottom: spacing.sm,
       backgroundColor: colors.headerBackground,
     },
-    // For you / Friends: a dark track, the open one a slate pill.
+    // For you / Friends: a dark track, the open one a white pill.
     tabs: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
       marginHorizontal: spacing.md,
     },
     tab: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     tabOn: {
       backgroundColor: colors.segmentOn,
@@ -650,8 +597,10 @@ const createStyles = (colors) =>
     // The first under the tabs: no line.
     firstSection: {
       marginTop: 0,
-      paddingTop: 0,
-      borderTopWidth: 0,
+    },
+    // Home's top card runs edge to edge.
+    heroSection: {
+      paddingHorizontal: 0,
     },
     recapBanner: {
       marginHorizontal: spacing.md,
@@ -686,10 +635,7 @@ const createStyles = (colors) =>
     },
     // Section names: small grey capitals, so the content leads.
     tagText: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
+      ...typography.section,
       color: colors.textSecondary,
     },
     seeAllText: {
@@ -697,10 +643,6 @@ const createStyles = (colors) =>
       fontSize: 13,
       lineHeight: 18,
       color: colors.textSecondary,
-    },
-    railPoster: {
-      width: POSTER_ITEM - 2,
-      aspectRatio: 2 / 3,
     },
     heroMain: {
       flex: 1,
@@ -710,17 +652,33 @@ const createStyles = (colors) =>
       borderRadius: shape.control,
       minHeight: 48,
     },
-    // ⇄ beside it: a raised square, like Tonight's pick's.
+    // The suggestion's actions share the row evenly: a circle, its name
+    // under.
+    roundAction: {
+      flex: 1,
+      alignItems: "center",
+      gap: 6,
+    },
     heroRound: {
-      width: 48,
-      height: 48,
+      width: 42,
+      height: 42,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.buttonFill,
-      borderRadius: shape.control + 2,
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: 21,
     },
     heroRoundPressed: {
       opacity: 0.7,
+    },
+    // On the card's image: white, with a soft shadow to keep it readable.
+    roundLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: "#FFFFFF",
+      textShadowColor: "rgba(0, 0, 0, 0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
     },
   });
 

@@ -710,8 +710,6 @@ const createStyles = (colors) =>
     headerBarFill: {
       ...StyleSheet.absoluteFill,
       backgroundColor: colors.background,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
     headerTitle: {
       ...typography.title,
@@ -877,7 +875,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.textPrimary,
     },
     frameComplete: {
-      backgroundColor: colors.rating,
+      backgroundColor: colors.success,
     },
     progressRow: {
       flexDirection: "row",
@@ -903,8 +901,8 @@ const createStyles = (colors) =>
       marginBottom: spacing.sm,
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm,
     },
@@ -989,15 +987,15 @@ const createStyles = (colors) =>
     sorts: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       // On the page, so the card colour (the dark track would vanish).
       backgroundColor: colors.card,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     sort: {
       paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     sortActive: {
       backgroundColor: colors.segmentOn,
@@ -1037,7 +1035,7 @@ const createStyles = (colors) =>
       color: colors.textMuted,
     },
     boardTierTextOnColor: {
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     boardItems: {
       gap: 2,

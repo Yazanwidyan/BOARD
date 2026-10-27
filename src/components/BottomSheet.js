@@ -25,7 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { useLayoutDirection } from "../i18n";
@@ -330,8 +330,6 @@ const createStyles = (colors) =>
     footer: {
       paddingTop: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
       backgroundColor: colors.cardElevated,
     },
   });

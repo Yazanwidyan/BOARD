@@ -86,10 +86,8 @@ export const TierListRows = ({ entries, onOpen, onSeeUntiered, sOrder = [], onOr
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Cancels the page's side padding: edge to edge, rows split by a thin
-    // line of page colour.
+    // Rounded rows inside the page's margins, a thin gap between.
     list: {
-      marginHorizontal: -spacing.md,
       gap: 2,
     },
     row: {

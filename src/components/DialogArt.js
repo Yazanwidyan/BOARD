@@ -27,7 +27,7 @@ import { fonts } from "../theme/typography";
 
 // Highlight → base → shade of the slate (matches `rating`).
 const SHINE = ["#E3F6FF", "#40BCF4", "#1F6C8F"];
-const INK = "#0C1014";
+const INK = "#0C0C0C";
 
 const toRgb = (hex) => {
   const value = parseInt(hex.slice(1), 16);

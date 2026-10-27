@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "./AppText";
 
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -462,22 +462,22 @@ const createStyles = (colors) =>
       marginHorizontal: spacing.md,
       marginVertical: spacing.sm + 2,
     },
-    // Like Library's tabs: a dark track, the open one a slate pill.
+    // Like Library's tabs: a dark track, the open one a white pill.
     chips: {
       flexGrow: 1,
       gap: 2,
-      padding: 2,
+      padding: 3,
       // On the page, so the card colour (the dark track would vanish).
       backgroundColor: colors.card,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     chip: {
       flexGrow: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
+      paddingVertical: 6,
       paddingHorizontal: spacing.sm + 4,
-      borderRadius: 7,
+      borderRadius: shape.chip,
     },
     chipActive: {
       backgroundColor: colors.segmentOn,
@@ -522,9 +522,8 @@ const createStyles = (colors) =>
       backgroundColor: colors.cardElevated,
     },
     tagText: {
-      ...typography.label,
+      ...typography.section,
       color: colors.textSecondary,
-      letterSpacing: 1.2,
     },
     tagCount: {
       ...typography.caption,

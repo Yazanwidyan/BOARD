@@ -339,10 +339,7 @@ const createStyles = (colors) =>
     section: {
       marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: 20,
     },
     tagRow: {
       flexDirection: "row",
@@ -353,10 +350,7 @@ const createStyles = (colors) =>
     },
     // Section names: small grey capitals, so the content leads.
     tagText: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
+      ...typography.section,
       color: colors.textSecondary,
       flexShrink: 1,
     },
@@ -407,7 +401,7 @@ const createStyles = (colors) =>
       ...typography.label,
       fontSize: 11,
       lineHeight: 14,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     recentDate: {
       ...typography.caption,
@@ -459,7 +453,7 @@ const createStyles = (colors) =>
     tierBoxText: {
       ...typography.label,
       fontSize: 13,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     tierBoxTextEmpty: {
       color: colors.textMuted,
@@ -493,8 +487,6 @@ const createStyles = (colors) =>
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
     },
     recapText: {
       flex: 1,

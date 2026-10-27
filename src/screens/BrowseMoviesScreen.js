@@ -11,7 +11,7 @@ import { StackHeader } from "../components/ScreenHeader";
 import { MoviePoster } from "../components/MoviePoster";
 import { MOVIES, getMovieById, useMoviesVersion } from "../data/movies";
 import { useMovieStore } from "../store/movieStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -156,17 +156,18 @@ const createStyles = (colors) =>
       ...typography.body,
     },
     listContent: {
+      gap: spacing.xs + 2,
       paddingTop: spacing.md,
+      paddingHorizontal: spacing.md,
     },
-    // Full-width rows split by hairlines.
+    // Each film a rounded row.
     row: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
     rowPoster: {
       width: 64,

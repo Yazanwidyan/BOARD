@@ -8,7 +8,7 @@ import { MoviePoster } from "./MoviePoster";
 import { t } from "../i18n";
 
 // A collection as a square poster collage (its first four posters, 2 × 2)
-// with a slim progress bar along the bottom edge. Finished sets get a slate
+// with a slim progress bar along the bottom edge. Finished sets get a green
 // bar and a small "Complete" tag; untouched ones sit slightly dimmed.
 export const CollectionCollage = ({ collection, watchedIds, size }) => {
   const colors = useColors();
@@ -34,7 +34,7 @@ export const CollectionCollage = ({ collection, watchedIds, size }) => {
             styles.fill,
             {
               width: `${Math.round(progress * 100)}%`,
-              backgroundColor: isComplete ? colors.rating : colors.accentLight,
+              backgroundColor: isComplete ? colors.success : colors.accentLight,
             },
           ]}
         />
@@ -77,7 +77,7 @@ const createStyles = (colors) =>
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: shape.chip,
-      backgroundColor: colors.rating,
+      backgroundColor: colors.success,
     },
     completeText: {
       ...typography.label,

@@ -197,22 +197,22 @@ const createStyles = (colors) =>
       padding: spacing.md,
       gap: spacing.md,
     },
-    // Like Library's tabs: a dark track, the open one a slate pill.
+    // Like Library's tabs: a dark track, the open one a white pill.
     periods: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       // On the page, so the card colour (the dark track would vanish).
       backgroundColor: colors.card,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     period: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
+      paddingVertical: 6,
       paddingHorizontal: spacing.xs,
-      borderRadius: 7,
+      borderRadius: shape.chip,
     },
     periodSelected: {
       backgroundColor: colors.segmentOn,
@@ -281,8 +281,8 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginTop: spacing.sm,
     },
     posters: {
@@ -308,7 +308,7 @@ const createStyles = (colors) =>
     tierText: {
       ...typography.label,
       fontSize: 12,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     line: {
       ...typography.body,

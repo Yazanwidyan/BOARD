@@ -99,7 +99,7 @@ export const ReportSheet = ({ visible, onClose, targets }) => {
         {targets.length > 1 && (
           <>
             <Text style={styles.label}>{t("What are you reporting?")}</Text>
-            <View style={styles.group}>
+            <View>
               {targets.map((item, index) => (
                 <Choice
                   styles={styles}
@@ -116,7 +116,7 @@ export const ReportSheet = ({ visible, onClose, targets }) => {
         )}
 
         <Text style={styles.label}>{t("What's wrong?")}</Text>
-        <View style={styles.group}>
+        <View>
           {REASONS.map((item) => (
             <Choice styles={styles} colors={colors} key={item.key} selected={reason === item.key} label={t(item.label)} onPress={() => setReason(item.key)} />
           ))}
@@ -148,11 +148,6 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       marginTop: spacing.md,
       marginBottom: spacing.sm,
-    },
-    // Full-width rows, a hairline apart.
-    group: {
-      gap: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
     },
     choice: {
       flexDirection: "row",

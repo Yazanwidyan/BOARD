@@ -228,8 +228,8 @@ const createStyles = (colors) =>
       borderRadius: shape.card,
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
     },
     genreRow: {
       flexDirection: "row",

@@ -57,7 +57,7 @@ import { shareLink } from "../services/shareLinks";
 import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -253,27 +253,24 @@ const TABS = [
   { key: "similar", label: "Similar" },
 ];
 
-// One of the ⋯ sheet's big actions: its icon over a short label in a
-// slate tile, white when it's "on" (watched, saved, tonight's pick).
+// One of the ⋯ sheet's big actions: its icon in a circle, a short label
+// under — green when it's "on" (watched, saved, tonight's pick), like Home's
+// round buttons.
 const ActionButton = ({ icon, label, active, onPress, styles }) => (
   <Pressable
-    style={({ pressed }) => [
-      styles.actionButton,
-      active && styles.actionButtonOn,
-      pressed && styles.actionPressed,
-    ]}
+    style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
     onPress={onPress}
     accessibilityRole="button"
     accessibilityState={{ selected: !!active }}
   >
-    {icon}
+    <View style={[styles.actionCircle, active && styles.actionCircleOn]}>{icon}</View>
     <Text style={[styles.actionLabel, active && styles.actionLabelOn]} numberOfLines={1}>
       {label}
     </Text>
   </Pressable>
 );
 
-// Under the director: ▶ TRAILER, a small slate button.
+// Under the director: ▶ TRAILER, a small grey pill.
 const TrailerButton = ({ onPress, styles, colors }) => (
   <Pressable
     style={({ pressed }) => [styles.trailerButton, pressed && styles.actionPressed]}
@@ -281,7 +278,7 @@ const TrailerButton = ({ onPress, styles, colors }) => (
     accessibilityRole="button"
     accessibilityLabel={t("Trailer")}
   >
-    <Play size={10} color={colors.segmentOnText} fill={colors.segmentOnText} />
+    <Play size={10} color={colors.textPrimary} fill={colors.textPrimary} />
     <Text style={styles.trailerText}>{t("Trailer")}</Text>
   </Pressable>
 );
@@ -583,7 +580,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const headerTop = insets.top + spacing.sm;
   // The actions' icons: white on the slate; the page colour on the white
   // of an "on" one.
-  const actionIcon = (on) => (on ? colors.background : colors.textPrimary);
+  const actionIcon = (on) => (on ? colors.success : colors.textPrimary);
   // Close the ⋯ sheet, then (once it's slid away) do `action` — so a sheet
   // it opens doesn't stack on this one.
   const thenClose = (action) => () => {
@@ -766,7 +763,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                     <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
                   </Pressable>
                 )}
-                {!!sagaLine && !!rankLine && <View style={styles.gainDivider} />}
                 {!!rankLine && (
                   <Pressable
                     style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
@@ -950,7 +946,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   key={fact.label}
                   style={[
                     styles.factRow,
-                    index === facts.length - 1 && styles.factRowLast,
                   ]}
                 >
                   <Text style={styles.factLabel}>{fact.label}</Text>
@@ -1452,7 +1447,7 @@ const createStyles = (colors) =>
       ...typography.hero,
       fontSize: 28,
       lineHeight: 34,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     tierTileLetterEmpty: {
       color: colors.textMuted,
@@ -1577,20 +1572,15 @@ const createStyles = (colors) =>
       color: colors.rating,
     },
     factsCard: {
-      marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       overflow: "hidden",
     },
     factRow: {
       flexDirection: "row",
       gap: spacing.md,
       paddingVertical: spacing.sm + 2,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.background,
-    },
-    factRowLast: {
-      borderBottomWidth: 0,
     },
     factLabel: {
       ...typography.caption,
@@ -1711,8 +1701,8 @@ const createStyles = (colors) =>
       gap: 4,
       height: 26,
       paddingHorizontal: spacing.sm + 2,
-      backgroundColor: colors.segmentOn,
-      borderRadius: shape.control - 2,
+      backgroundColor: colors.buttonFill,
+      borderRadius: shape.chip,
     },
     trailerText: {
       ...typography.label,
@@ -1720,7 +1710,7 @@ const createStyles = (colors) =>
       lineHeight: 14,
       letterSpacing: 1.2,
       textTransform: "uppercase",
-      color: colors.segmentOnText,
+      color: colors.textPrimary,
     },
     // The tagline: caps, spaced, grey, over the overview.
     tagline: {
@@ -1773,11 +1763,6 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
     },
-    gainDivider: {
-      height: StyleSheet.hairlineWidth,
-      marginStart: spacing.md + 16 + spacing.sm + 2,
-      backgroundColor: colors.border,
-    },
     gainIcon: {
       marginTop: 2,
     },
@@ -1813,7 +1798,7 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
       paddingHorizontal: spacing.md,
     },
-    // The ⋯ sheet's three big actions: equal tiles across.
+    // The ⋯ sheet's three big actions: round buttons, spread across.
     sheetTiles: {
       flexDirection: "row",
       gap: spacing.sm,
@@ -1822,34 +1807,36 @@ const createStyles = (colors) =>
     actionButton: {
       flex: 1,
       alignItems: "center",
-      justifyContent: "center",
       gap: 6,
-      minHeight: 72,
-      paddingHorizontal: spacing.xs,
-      backgroundColor: colors.buttonFill,
-      borderRadius: shape.control,
     },
-    // On (watched, saved, on a board, tonight's pick): white, dark text.
-    actionButtonOn: {
-      backgroundColor: colors.textPrimary,
+    actionCircle: {
+      width: 56,
+      height: 56,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.buttonFill,
+      borderRadius: 28,
+    },
+    // On (watched, saved, tonight's pick): a green tint, a green icon.
+    actionCircleOn: {
+      backgroundColor: colors.successSoft,
     },
     actionPressed: {
       opacity: 0.7,
     },
     actionLabel: {
       ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: 13,
+      lineHeight: 17,
       color: colors.textPrimary,
       flexShrink: 1,
     },
     actionLabelOn: {
-      color: colors.background,
+      color: colors.success,
     },
     // The rest, as full-width rows under the tiles.
     sheetRows: {
       marginTop: spacing.md,
-      gap: StyleSheet.hairlineWidth * 2,
     },
     sheetRow: {
       flexDirection: "row",
@@ -1920,20 +1907,13 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       textDecorationLine: "underline",
     },
-    // A section's name: small grey capitals under a hairline across the
-    // page (it reaches past the page's margins).
+    // A section's name: small grey capitals, one even gap above.
     sectionLabel: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
+      ...typography.section,
       color: colors.textSecondary,
       marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: 20,
       marginBottom: spacing.sm + 2,
     },
     // Straight under the hero.
@@ -1952,11 +1932,9 @@ const createStyles = (colors) =>
       marginHorizontal: 0,
       paddingHorizontal: spacing.md,
     },
-    // The tab's first section: the tabs' underline is its line.
+    // The tab's first section, just under the tabs.
     railFirst: {
       marginTop: spacing.lg,
-      paddingTop: 0,
-      borderTopWidth: 0,
     },
     railHeader: {
       flexDirection: "row",
@@ -1964,20 +1942,16 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: 20,
       marginBottom: spacing.sm + 2,
     },
-    // Inside a rail's header row, which has the line.
+    // Inside a rail's header row, which has the gap.
     railHeaderLabel: {
       flexShrink: 1,
       marginHorizontal: 0,
       paddingHorizontal: 0,
       marginTop: 0,
       paddingTop: 0,
-      borderTopWidth: 0,
       marginBottom: 0,
     },
     railHeaderLink: {
@@ -2068,8 +2042,6 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.headerBackground,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
     stickyPoster: {
       width: 28,

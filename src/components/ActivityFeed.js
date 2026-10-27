@@ -5,10 +5,10 @@ import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { useFriends } from "../store/friendsStore";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { ActivityEvent, EVENT_INSET } from "./ActivityEvent";
+import { ActivityEvent } from "./ActivityEvent";
 import { Text } from "./AppText";
 import { EmptyState } from "./EmptyState";
 import { SettingsGroup } from "./SettingsList";
@@ -92,7 +92,7 @@ export const ActivityFeed = ({ navigation }) => {
       )}
 
       {groups.map((group) => (
-        <SettingsGroup key={group.key} title={t(group.label)} inset={EVENT_INSET}>
+        <SettingsGroup key={group.key} title={t(group.label)}>
           {group.items.map((event) => (
             <ActivityEvent
               key={event.id}
@@ -131,22 +131,22 @@ const createStyles = (colors) =>
       flexGrow: 0,
       marginHorizontal: spacing.md,
     },
-    // Like Library's tabs: a dark track, the open one a slate pill.
+    // Like Library's tabs: a dark track, the open one a white pill.
     chipRowContent: {
       flexGrow: 1,
       gap: 2,
-      padding: 2,
+      padding: 3,
       // On the page, so the card colour (the dark track would vanish).
       backgroundColor: colors.card,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     chip: {
       flexGrow: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
+      paddingVertical: 6,
       paddingHorizontal: spacing.sm + 4,
-      borderRadius: 7,
+      borderRadius: shape.chip,
     },
     chipOn: {
       backgroundColor: colors.segmentOn,

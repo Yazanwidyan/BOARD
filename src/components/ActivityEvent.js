@@ -15,8 +15,6 @@ import { MoviePoster } from "./MoviePoster";
 
 const AVATAR = 40;
 const BADGE = 18;
-// Where a feed's hairlines start: after the avatar.
-export const EVENT_INSET = spacing.md + AVATAR + spacing.md;
 
 // A translated sentence with its {placeholders} swapped for bold pieces —
 // so word order follows the language, not the code.
@@ -143,7 +141,6 @@ export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => 
     <Pressable
       style={({ pressed }) => [
         styles.event,
-        divider && styles.eventDivider,
         pressed && onPress && styles.pressed,
       ]}
       onPress={onPress}
@@ -174,10 +171,6 @@ const createStyles = (colors) =>
       minHeight: 64,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-    },
-    eventDivider: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
     },
     eventBody: {
       flex: 1,
@@ -225,7 +218,7 @@ const createStyles = (colors) =>
       fontFamily: fonts.extraBold,
       fontSize: 9,
       lineHeight: 11,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     eventPoster: {
       width: 40,

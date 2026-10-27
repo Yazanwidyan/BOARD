@@ -94,7 +94,6 @@ export const TasteStats = ({ watched, isPro, onSeePro }) => {
               const info = getTierInfo(group.tier);
               return (
                 <Fragment key={group.name}>
-                  {index > 0 && <View style={styles.divider} />}
                   <View style={styles.row}>
                     <View style={[styles.tier, { backgroundColor: info.color }]}>
                       <Text style={styles.tierText}>{group.tier}</Text>
@@ -139,11 +138,6 @@ const createStyles = (colors) =>
       borderRadius: shape.card,
       overflow: "hidden",
     },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-      marginStart: spacing.md + 28 + spacing.md,
-    },
     row: {
       flexDirection: "row",
       alignItems: "center",
@@ -162,7 +156,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 14,
       lineHeight: 18,
-      color: "#14181C",
+      color: "#141414",
     },
     rowText: {
       flex: 1,

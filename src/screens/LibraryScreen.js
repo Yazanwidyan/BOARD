@@ -43,7 +43,6 @@ import {
   DockHeader,
   HEADER_BAR_HEIGHT,
   HeaderIconButton,
-  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -51,7 +50,7 @@ import { t } from "../i18n";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { TAB_BAR_CLEARANCE, radius, shape, spacing } from "../theme/spacing";
+import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -799,12 +798,10 @@ export const LibraryScreen = ({ navigation, route }) => {
               )}
             </ScrollView>
           )}
-          <ScrollHairline scrollY={header.scrollY} />
         </Animated.View>
       )}
       <DockHeader
         {...header.props}
-        hairline={false}
         title={t("Library")}
         // Search on the left (Watchlist and Watched); ＋ on the right.
         left={
@@ -1095,20 +1092,20 @@ const createStyles = (colors) =>
     scrollContent: {
       flexGrow: 1,
     },
-    // The four sections: a dark track, the open one a slate pill.
+    // The four sections: a dark track, the open one a white pill.
     sectionTrack: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     sectionChip: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     sectionChipOn: {
       backgroundColor: colors.segmentOn,
@@ -1256,8 +1253,8 @@ const createStyles = (colors) =>
       marginTop: spacing.lg,
     },
     sectionTitle: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginBottom: spacing.sm,
     },
     collectionCard: {

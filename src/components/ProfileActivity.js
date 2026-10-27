@@ -2,7 +2,7 @@ import { Image, Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById } from "../data/movies";
 import { t } from "../i18n";
-import { spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTier, getTierInfo } from "../utils/tiers";
@@ -115,9 +115,10 @@ export const ProfileActivity = ({
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Full-width rows, a hairline of page between them.
+    // The rows in one rounded card.
     list: {
-      gap: StyleSheet.hairlineWidth * 2,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     row: {
       flexDirection: "row",
@@ -175,7 +176,7 @@ const createStyles = (colors) =>
       ...typography.label,
       fontSize: 11,
       lineHeight: 14,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     poster: {
       width: 56,

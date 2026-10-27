@@ -6,7 +6,7 @@ import { useProfileStore } from "../store/profileStore";
 // PRO badge and an accent colour friends see too. The accents' keys are the
 // server's (lib/pro.js); their colours are here.
 export const PRO_ACCENTS = [
-  { key: "slate", label: "Slate", color: "#99AABB" },
+  { key: "slate", label: "Slate", color: "#ABABAB" },
   { key: "green", label: "Green", color: "#00E054" },
   { key: "orange", label: "Orange", color: "#FF8000" },
   { key: "blue", label: "Blue", color: "#40BCF4" },

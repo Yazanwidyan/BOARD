@@ -939,12 +939,12 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
-    // The three answers: full-width rows, a hairline of page between.
+    // The three answers: rows in one rounded card.
     tierButtons: {
       alignSelf: "stretch",
-      gap: StyleSheet.hairlineWidth * 2,
       marginTop: spacing.lg,
-      marginHorizontal: -spacing.md,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     tierAnswer: {
       flexDirection: "row",
@@ -968,7 +968,7 @@ const createStyles = (colors) =>
       ...typography.title,
       fontSize: 18,
       lineHeight: 22,
-      color: "#0C1014",
+      color: "#0C0C0C",
     },
     tierAnswerText: {
       ...typography.bodyBold,
@@ -1049,8 +1049,8 @@ const createStyles = (colors) =>
       lineHeight: 21,
       minHeight: 52,
       paddingHorizontal: spacing.md,
-      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
       color: colors.textPrimary,
     },
     shareRow: {
@@ -1063,11 +1063,11 @@ const createStyles = (colors) =>
     },
 
     // Tonight
-    // Full-width rows; the chosen one lifts a shade, with a slate check.
+    // Rows in one rounded card; the chosen one lifts a shade, with a check.
     pickList: {
-      gap: StyleSheet.hairlineWidth * 2,
       marginTop: spacing.lg,
-      marginHorizontal: -spacing.md,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     pickRow: {
       flexDirection: "row",

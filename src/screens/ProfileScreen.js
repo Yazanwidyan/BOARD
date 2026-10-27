@@ -24,14 +24,11 @@ import { AvatarRankRing } from "../components/AvatarRankRing";
 import { ProBadge } from "../components/ProBadge";
 import { TasteStats } from "../components/TasteStats";
 import { MoviePoster } from "../components/MoviePoster";
-import { PosterMosaic } from "../components/PosterMosaic";
 import { ProfileActivity } from "../components/ProfileActivity";
 import {
-  BoardsRail,
   FinishedSagasRail,
   ProfileSection,
   RecapBanner,
-  RecentPosters,
   SectionEmpty,
   TasteSnapshot,
   TierSummary,
@@ -39,18 +36,15 @@ import {
 import {
   DockHeader,
   HeaderIconButton,
-  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TasteShareSheet } from "../components/TasteShareSheet";
-import { UnderlineTabs } from "../components/UnderlineTabs";
 import { useAuthStore } from "../store/authStore";
-import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { accentColor, useIsPro } from "../utils/pro";
-import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
+import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -73,15 +67,6 @@ const AVATAR = 84;
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
-// The Profile tab's own tabs, under your favourites.
-const SECTIONS = [
-  { key: "activity", label: "Activity" },
-  { key: "films", label: "Films" },
-  { key: "diary", label: "Diary" },
-  { key: "lists", label: "Lists" },
-  { key: "collections", label: "Collections" },
-];
-
 const getHandle = (name) =>
   `@${
     name
@@ -92,10 +77,12 @@ const getHandle = (name) =>
 
 // Your profile, Letterboxd-style. "Profile" in the header (Settings and
 // Share on the right) and Profile / Stats under it.
-//   Profile: your cover (if you chose one) behind your avatar (its ring to
-//   your next title), your name, your friends and films, your bio, your top four
-//   favourites, then Activity / Films / Diary / Lists /
-//   Collections.
+//   Profile — who you are, not a second Library: your cover (if you chose
+//   one) behind your avatar (its ring to your next title), your name, your
+//   friends and films, your bio, your top four favourites, your library in
+//   three numbers (each opens its Library tab), your trophies (collections
+//   you've finished) and your recent activity. (A friend's page keeps
+//   their films and lists, since it's the only way to see them.)
 //   Stats: your numbers, your title and how far to the next, your tiers,
 //   your Taste DNA and this month's recap.
 export const ProfileScreen = ({ navigation }) => {
@@ -108,7 +95,6 @@ export const ProfileScreen = ({ navigation }) => {
   const { width: screenWidth } = useWindowDimensions();
   const { friends } = useFriends();
   const ranks = useRankSummary();
-  const boards = useBoardStore((state) => state.boards);
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const displayName = useProfileStore((state) => state.displayName);
@@ -120,7 +106,6 @@ export const ProfileScreen = ({ navigation }) => {
   const accountHandle = useAuthStore((state) => state.user?.handle);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [topTab, setTopTab] = useState("profile");
-  const [section, setSection] = useState("activity");
 
   // Your cover: a watched film's still across the top, behind your avatar
   // (chosen in Edit profile, with your photo).
@@ -194,71 +179,28 @@ export const ProfileScreen = ({ navigation }) => {
     navigation.navigate("Library", { initialTab, openedAt: Date.now() });
   const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
 
-  const watchedByRecent = [...watched]
-    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
-    .map((entry) => ({ movie: getMovieById(entry.movieId), watchCount: entry.watchCount }))
-    .filter((item) => item.movie);
-
-  const sectionBody = {
-    activity: (
-      <ProfileActivity
-        watched={watched}
-        bucketList={bucketList}
-        avatarSource={avatarSource}
-        onOpen={openMovie}
-      />
-    ),
-    films:
-      watchedByRecent.length > 0 ? (
-        <PosterMosaic items={watchedByRecent} onPressMovie={(movie) => openMovie(movie.id)} />
-      ) : (
-        <View style={styles.padded}>
-          <SectionEmpty line={t("Mark a movie as watched and it shows here.")} />
-        </View>
-      ),
-    diary: (
-      <View style={styles.padded}>
-        <RecentPosters entries={watched} count={40} onOpen={openMovie} />
-      </View>
-    ),
-    lists: (
-      <View style={styles.padded}>
-        {boards.length > 0 ? (
-          <View style={styles.bleed}>
-            <BoardsRail
-              boards={boards}
-              onOpen={(board) => navigation.navigate("BoardDetails", { boardId: board.id })}
-              onCreate={() => openLibraryTab("boards")}
-            />
-          </View>
-        ) : (
-          <SectionEmpty
-            line={t("Group films your way — rainy day, date night, comfort picks.")}
-            actionLabel={t("New list")}
-            onPress={() => openLibraryTab("boards")}
-          />
-        )}
-      </View>
-    ),
-    collections: (
-      <View style={styles.padded}>
-        {completedSets.length > 0 ? (
-          <View style={styles.bleed}>
-            <FinishedSagasRail
-              watched={watched}
-              onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
-            />
-          </View>
-        ) : (
-          <SectionEmpty
-            line={t("Finish every film in a collection and it shows here.")}
-            actionLabel={t("Browse collections")}
-            onPress={() => openLibraryTab("collections")}
-          />
-        )}
-      </View>
-    ),
-  };
+  // Your three numbers, under your name — the only place they show.
+  const rankCount = ranks.title?.count ?? 0;
+  const counts = [
+    {
+      key: "films",
+      value: watchedCount,
+      label: watchedCount === 1 ? t("film") : t("films"),
+      onPress: () => openLibraryTab("watched"),
+    },
+    {
+      key: "friends",
+      value: friends.length,
+      label: friends.length === 1 ? t("friend") : t("friends"),
+      onPress: () => navigation.navigate("Friends"),
+    },
+    {
+      key: "ranks",
+      value: rankCount,
+      label: rankCount === 1 ? t("rank") : t("ranks"),
+      onPress: () => navigation.navigate("Ranks"),
+    },
+  ];
 
   const profileTab = (
     <>
@@ -304,12 +246,21 @@ export const ProfileScreen = ({ navigation }) => {
           </Text>
           {isPro && <ProBadge accent={accent} />}
         </View>
-        <Pressable onPress={() => navigation.navigate("Friends")} hitSlop={6}>
-          <Text style={styles.counts}>
-            {t("{count} friends", { count: friends.length })} ·{" "}
-            {t("{count} films", { count: watchedCount })}
-          </Text>
-        </Pressable>
+        {/* Your numbers — here and nowhere else — each opening its place. */}
+        <View style={styles.counts}>
+          {counts.map(({ key, value, label, onPress }) => (
+            <Pressable
+              key={key}
+              style={({ pressed }) => [styles.count, pressed && styles.pressed]}
+              onPress={onPress}
+              hitSlop={6}
+              accessibilityRole="button"
+            >
+              <Text style={styles.countValue}>{value}</Text>
+              <Text style={styles.countLabel}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
         <Pressable onPress={() => navigation.navigate("EditProfile")} hitSlop={6}>
           <Text style={[styles.bio, !bio && styles.bioEmpty]} numberOfLines={3}>
             {bio ? bio : t("Add your take — a short bio")}
@@ -341,36 +292,39 @@ export const ProfileScreen = ({ navigation }) => {
             <SectionEmpty line={t("Tier films S and your top four show here.")} />
           )}
         </ProfileSection>
-      </View>
 
-      {/* Activity / Films / Diary / Lists / Collections, underlined. */}
-      <UnderlineTabs
-        tabs={SECTIONS.map((item) => ({ key: item.key, label: t(item.label) }))}
-        value={section}
-        onChange={setSection}
-        style={styles.sections}
-      />
-      <View style={styles.sectionBody}>{sectionBody[section]}</View>
+        {/* Trophies: the collections you've finished. */}
+        {completedSets.length > 0 && (
+          <ProfileSection title={t("Trophies")} rail>
+            <FinishedSagasRail
+              watched={watched}
+              onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
+            />
+          </ProfileSection>
+        )}
+
+        {/* What you've been up to. */}
+        <ProfileSection title={t("Recent activity")}>
+          <View>
+            <ProfileActivity
+              watched={watched}
+              bucketList={bucketList}
+              avatarSource={avatarSource}
+              onOpen={openMovie}
+            />
+          </View>
+        </ProfileSection>
+      </View>
     </>
   );
 
-  const stats = [
-    { value: watchedCount, label: watchedCount === 1 ? "film" : "films" },
-    { value: `${hours}h`, label: "watched" },
-    { value: completedSets.length, label: "collections", onPress: () => openLibraryTab("collections") },
-    { value: friends.length, label: friends.length === 1 ? "friend" : "friends", onPress: () => navigation.navigate("Friends") },
-  ];
+  // Taste: what your watching says about you — no counts (they're under
+  // your name).
   const statsTab = (
     <View style={styles.padded}>
-      {/* Your numbers, evenly across. */}
-      <View style={styles.statsRow}>
-        {stats.map(({ value, label, onPress }) => (
-          <Pressable key={label} style={styles.stat} onPress={onPress} disabled={!onPress} hitSlop={6}>
-            <Text style={styles.statValue}>{value}</Text>
-            <Text style={styles.statLabel}>{t(label)}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {hours > 0 && (
+        <Text style={styles.hours}>{t("{hours} hours of film, all time", { hours })}</Text>
+      )}
 
       {/* Your title, and how far to the next. */}
       {ranks.title && (
@@ -432,7 +386,7 @@ export const ProfileScreen = ({ navigation }) => {
         <View style={styles.tabs} accessibilityRole="tablist">
           {[
             { key: "profile", label: t("Overview") },
-            { key: "stats", label: t("Stats") },
+            { key: "stats", label: t("Taste") },
           ].map((tab) => {
             const selected = tab.key === topTab;
             return (
@@ -452,7 +406,6 @@ export const ProfileScreen = ({ navigation }) => {
             );
           })}
         </View>
-        <ScrollHairline scrollY={header.scrollY} />
       </View>
 
       <Animated.ScrollView
@@ -471,7 +424,6 @@ export const ProfileScreen = ({ navigation }) => {
       {/* "Profile" in the header; Settings and Share on the right. */}
       <DockHeader
         {...header.props}
-        hairline={false}
         title={t("Profile")}
         left={
           <HeaderIconButton onPress={() => navigation.navigate("Settings")} accessibilityLabel={t("Settings")}>
@@ -527,17 +479,17 @@ const createStyles = (colors) =>
     tabs: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       marginHorizontal: spacing.md,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     tab: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     tabOn: {
       backgroundColor: colors.segmentOn,
@@ -585,10 +537,26 @@ const createStyles = (colors) =>
       textAlign: "center",
       flexShrink: 1,
     },
+    // Films · friends · ranks, evenly across under your name.
     counts: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.xl,
+      marginTop: spacing.xs,
+    },
+    count: {
+      alignItems: "center",
+      minWidth: 56,
+    },
+    countValue: {
+      ...typography.bodyBold,
+      fontSize: 18,
+      lineHeight: 24,
+      color: colors.textPrimary,
+      fontVariant: ["tabular-nums"],
+    },
+    countLabel: {
       ...typography.caption,
-      fontSize: 13,
-      lineHeight: 18,
       color: colors.textSecondary,
     },
     bio: {
@@ -604,31 +572,12 @@ const createStyles = (colors) =>
       flexDirection: "row",
       gap: FAVOURITE_GAP,
     },
-    sections: {
-      marginTop: spacing.lg,
-    },
-    sectionBody: {
-      paddingTop: spacing.md,
-    },
-    // Stats
-    statsRow: {
-      flexDirection: "row",
-      justifyContent: "space-around",
-      paddingVertical: spacing.sm,
-    },
-    stat: {
-      alignItems: "center",
-      gap: 2,
-    },
-    statValue: {
-      ...typography.hero,
-      fontSize: 22,
-      lineHeight: 28,
-      color: colors.textPrimary,
-    },
-    statLabel: {
-      ...typography.caption,
+    // Taste
+    hours: {
+      ...typography.body,
       color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: spacing.sm,
     },
     rankRow: {
       flexDirection: "row",
@@ -636,8 +585,8 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       marginTop: spacing.md,
       padding: spacing.md,
-      marginHorizontal: -spacing.md,
       backgroundColor: colors.card,
+      borderRadius: shape.card,
     },
     rankText: {
       flex: 1,

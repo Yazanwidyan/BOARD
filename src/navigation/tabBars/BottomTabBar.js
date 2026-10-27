@@ -1,38 +1,25 @@
 import * as Haptics from "expo-haptics";
-import { CirclePlus, User } from "lucide-react-native";
+import { Bookmark, House, Plus, User } from "lucide-react-native";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  CompassIcon,
-  CompassOutlineIcon,
-  LibraryIcon,
-  LibraryOutlineIcon,
-  ReelBoardIcon,
-} from "../../components/icons/TabIcons";
+import { SearchTabIcon } from "../../components/icons/TabIcons";
 import { t } from "../../i18n";
 import { useProfileStore } from "../../store/profileStore";
 import { useColors } from "../../theme/useColors";
 
-// The pill: each tab a wide, low slot; the open one's icon on a grey
-// capsule.
-// The capsule sits close to the pill's edge — about 6pt in.
-const BAR_PADDING = 4;
-const SLOT_WIDTH = 66;
-const SLOT_HEIGHT = 50;
-const ACTIVE_WIDTH = 60;
-const ACTIVE_HEIGHT = 46;
-const ICON = 25;
-// It floats a touch into the home-indicator area, clear of the bottom
-// edge.
-const BOTTOM_TRIM = 6;
-const BOTTOM_MIN = 16;
+// The bar's own height, above the home indicator.
+const BAR_HEIGHT = 52;
+const ICON = 24;
+// Lines: thin at rest, a touch bolder on the open tab.
+const STROKE = 1.7;
+const STROKE_OPEN = 2.2;
 
 // The Profile tab: your photo if you've set one (ringed in white when it's
 // the open tab), else the person outline.
-const ProfileTabIcon = ({ size, color, open }) => {
+const ProfileTabIcon = ({ size, color, open, strokeWidth }) => {
   const avatarUri = useProfileStore((state) => state.avatarUri);
-  if (!avatarUri) return <User size={size} color={color} strokeWidth={1.8} />;
+  if (!avatarUri) return <User size={size} color={color} strokeWidth={strokeWidth} />;
   const ring = size + 4;
   return (
     <View
@@ -46,42 +33,29 @@ const ProfileTabIcon = ({ size, color, open }) => {
         justifyContent: "center",
       }}
     >
-      <Image
-        source={{ uri: avatarUri }}
-        style={{ width: size - 2, height: size - 2, borderRadius: (size - 2) / 2 }}
-      />
+      <Image source={{ uri: avatarUri }} style={{ width: size - 2, height: size - 2, borderRadius: (size - 2) / 2 }} />
     </View>
   );
 };
 
-// Each tab's icon — its outline, and (where it has one) its filled
-// version for when it's open — and its name (for screen readers; nothing
-// is written under the icons). The ＋ (Log) is an action, not a place:
-// never open.
+// Each tab's icon — simple line icons — and its name (for screen readers;
+// nothing is written under the icons). The ＋ (Log) is an action, not a
+// place: it opens quick log, and is never the open tab.
 const TABS = {
-  Home: {
-    label: "Home",
-    // The ReelBoard reel: one mark, the same open or not.
-    Icon: ReelBoardIcon,
-  },
-  Discover: { label: "Discover", Icon: CompassOutlineIcon, ActiveIcon: CompassIcon },
-  Log: {
-    label: "Add",
-    action: true,
-    Icon: ({ size, color }) => <CirclePlus size={size} color={color} strokeWidth={1.8} />,
-  },
-  Library: { label: "Library", Icon: LibraryOutlineIcon, ActiveIcon: LibraryIcon },
+  Home: { label: "Home", Icon: House },
+  Discover: { label: "Discover", Icon: SearchTabIcon },
+  Log: { label: "Add", Icon: Plus, action: true },
+  Library: { label: "Library", Icon: Bookmark },
   Profile: { label: "Profile", Icon: ProfileTabIcon },
 };
 
-// The app's bottom tabs: a dark pill floating over the page, centred and
-// only as wide as its icons. Icons only, all white — the open tab's on a
-// grey capsule — and the ＋ in the middle.
+// The app's bottom tabs: a plain bar along the bottom, its icons evenly
+// across, the ＋ in the middle. The open tab's icon is white and a little
+// bolder; the rest grey.
 export const BottomTabBar = ({ state, navigation }) => {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
-  const bottom = Math.max(BOTTOM_MIN, insets.bottom - BOTTOM_TRIM);
 
   const select = (route, index) => {
     const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -90,80 +64,53 @@ export const BottomTabBar = ({ state, navigation }) => {
   };
 
   return (
-    <View style={[styles.dock, { bottom }]} pointerEvents="box-none">
-      <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
       {state.routes.map((route, index) => {
         const tab = TABS[route.name];
         if (!tab) return null;
         const open = state.index === index && !tab.action;
-        // White, all of them; the open one on its grey capsule.
-        const color = colors.textPrimary;
-        const Icon = open && tab.ActiveIcon ? tab.ActiveIcon : tab.Icon;
+        const { Icon } = tab;
         return (
           <Pressable
             key={route.key}
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
             onPress={() => select(route, index)}
-            accessibilityRole="button"
+            accessibilityRole="tab"
             accessibilityLabel={t(tab.label)}
             accessibilityState={{ selected: open }}
           >
-            <View style={[styles.iconWrap, open && styles.iconWrapOn]}>
-              <Icon size={ICON} color={color} open={open} />
-            </View>
+            <Icon
+              size={ICON}
+              color={open ? colors.textPrimary : colors.textMuted}
+              strokeWidth={open ? STROKE_OPEN : STROKE}
+              open={open}
+            />
           </Pressable>
         );
       })}
-      </View>
     </View>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Spans the width only to centre the pill; touches pass through.
-    dock: {
+    // Along the bottom, edge to edge.
+    bar: {
       position: "absolute",
       start: 0,
       end: 0,
-      alignItems: "center",
-    },
-    // The pill: near-black like the header, a faint edge, a soft shadow.
-    bar: {
+      bottom: 0,
       flexDirection: "row",
-      alignItems: "center",
-      padding: BAR_PADDING,
       backgroundColor: colors.headerBackground,
-      borderRadius: (SLOT_HEIGHT + BAR_PADDING * 2) / 2,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)",
-      shadowColor: "#000",
-      shadowOpacity: colors.isDark ? 0.5 : 0.18,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
-      // Above the page's cards on Android.
-      elevation: 14,
     },
     item: {
-      width: SLOT_WIDTH,
-      height: SLOT_HEIGHT,
+      flex: 1,
+      height: BAR_HEIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
     pressed: {
-      opacity: 0.7,
-    },
-    iconWrap: {
-      width: ACTIVE_WIDTH,
-      height: ACTIVE_HEIGHT,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: ACTIVE_HEIGHT / 2,
-    },
-    // The open tab: a grey capsule behind its icon, a few steps lighter
-    // than the pill.
-    iconWrapOn: {
-      backgroundColor: colors.cardElevatedLight,
+      opacity: 0.6,
     },
   });
 

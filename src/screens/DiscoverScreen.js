@@ -21,15 +21,13 @@ import { MoviePoster } from "../components/MoviePoster";
 import { ReelsFeed } from "../components/ReelsFeed";
 import {
   DockHeader,
-  HeaderIconButton,
-  ScrollHairline,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useTrending } from "../store/communityStore";
 import { useMovieStore } from "../store/movieStore";
 import { useUserStore } from "../store/userStore";
-import { spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
+import { shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
@@ -144,13 +142,21 @@ export const DiscoverScreen = ({ navigation }) => {
         );
       })}
     </View>
-    <ScrollHairline scrollY={header.scrollY} />
+    {/* Browse's search: a field that opens Search (it types there). */}
+    {mode === "browse" && (
+      <Pressable
+        style={({ pressed }) => [styles.searchBar, pressed && styles.searchBarPressed]}
+        onPress={() => navigation.navigate("Search")}
+        accessibilityRole="search"
+        accessibilityLabel={t("Search")}
+      >
+        <Search size={18} color={colors.textMuted} strokeWidth={2} />
+        <Text style={styles.searchPlaceholder} numberOfLines={1}>
+          {t("Search films and people")}
+        </Text>
+      </Pressable>
+    )}
     </View>
-  );
-  const searchButton = (
-    <HeaderIconButton onPress={() => navigation.navigate("Search")} accessibilityLabel={t("Search")}>
-      <Search size={22} color={colors.textPrimary} strokeWidth={1.75} />
-    </HeaderIconButton>
   );
 
   if (mode === "reels") {
@@ -164,7 +170,7 @@ export const DiscoverScreen = ({ navigation }) => {
             bottomInset={insets.bottom + TAB_BAR_CLEARANCE}
           />
         </View>
-        <DockHeader title={t("Discover")} right={searchButton} hairline={false} />
+        <DockHeader title={t("Discover")} />
         <FirstVisitTip id="discover" />
       </SafeAreaView>
     );
@@ -212,10 +218,8 @@ export const DiscoverScreen = ({ navigation }) => {
       <FirstVisitTip id="discover" />
       <DockHeader
         {...header.props}
-        hairline={false}
         refreshing={refreshing}
         title={t("Discover")}
-        right={searchButton}
       />
     </SafeAreaView>
   );
@@ -234,7 +238,7 @@ const createStyles = (colors) =>
     reelsArea: {
       flex: 1,
     },
-    // Browse / Reels: a dark track, the open one a slate pill.
+    // Browse / Reels: a dark track, the open one a white pill.
     modeBar: {
       zIndex: 1,
       paddingHorizontal: spacing.md,
@@ -244,16 +248,16 @@ const createStyles = (colors) =>
     modeSwitch: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       backgroundColor: colors.segmentTrack,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     modeOption: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     modeOptionActive: {
       backgroundColor: colors.segmentOn,
@@ -267,17 +271,31 @@ const createStyles = (colors) =>
     modeTextActive: {
       color: colors.segmentOnText,
     },
-    // A rail: a hairline across the page above it.
+    // Search, under Browse / Reels: looks like a field, opens Search.
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 1,
+      backgroundColor: colors.card,
+      borderRadius: shape.control,
+    },
+    searchBarPressed: {
+      backgroundColor: colors.cardElevated,
+    },
+    searchPlaceholder: {
+      ...typography.body,
+      flex: 1,
+      color: colors.textMuted,
+    },
+    // A rail: one even gap above it.
     rail: {
-      marginTop: spacing.md + 4,
-      paddingTop: spacing.md + 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      marginTop: 20,
     },
     railFirst: {
       marginTop: 0,
-      paddingTop: 0,
-      borderTopWidth: 0,
     },
     railHeader: {
       flexDirection: "row",
@@ -288,10 +306,7 @@ const createStyles = (colors) =>
     },
     // Rail names: small grey capitals, so the posters lead.
     railTitle: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
+      ...typography.section,
       color: colors.textSecondary,
       flex: 1,
     },

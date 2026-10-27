@@ -20,11 +20,8 @@ import { BackButton } from "./BackButton";
 import { SpinningLogo, useRefreshSpin } from "./RefreshSpin";
 
 export const HEADER_BAR_HEIGHT = 40;
-// The hairline under a header fades in over this much scroll — at the very
-// top the bar melts into the page; once anything goes under it, it's a bar.
 // The wordmark's size in Home's header.
 const WORDMARK_SIZE = 28;
-const BORDER_FADE_DISTANCE = 16;
 // An `overlay` header (over Home's backdrop) turns solid over this much
 // scroll.
 const OVERLAY_FADE_DISTANCE = 90;
@@ -108,40 +105,13 @@ export const useDockHeader = ({ hideOnScroll = false } = {}) => {
 };
 
 // For pushed pages with a <StackHeader>: the scroll position, handed to
-// the header (`scrollY`) so its hairline fades in once you scroll.
+// the header (`scrollY`) for `titleRevealAt`.
 export const useStackHeaderScroll = () => {
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
   return { scrollY, onScroll };
-};
-
-// The hairline under a header: always on without a scroll position, else
-// faded in as the page starts to scroll.
-const HeaderHairline = ({ scrollY, styles }) => {
-  const style = useAnimatedStyle(() => ({
-    opacity: scrollY
-      ? interpolate(
-          scrollY.value,
-          [0, BORDER_FADE_DISTANCE],
-          [0, 1],
-          Extrapolation.CLAMP,
-        )
-      : 1,
-  }));
-  return (
-    <Animated.View pointerEvents="none" style={[styles.hairline, style]} />
-  );
-};
-
-// The same line for a bar that sits under the header (a row of tabs): it
-// fades in as the page scrolls, along the bar's bottom edge. Give the
-// header `hairline={false}` so there's just the one line, under the tabs.
-export const ScrollHairline = ({ scrollY }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  return <HeaderHairline scrollY={scrollY} styles={styles} />;
 };
 
 // An overlay header's background: none at the top of the page — the
@@ -214,7 +184,6 @@ export const DockHeader = ({
   offset,
   refreshing,
   overlay = false,
-  hairline = true,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -315,7 +284,6 @@ export const DockHeader = ({
           </View>
         )}
       </Animated.View>
-      {hairline && <HeaderHairline scrollY={scrollY} styles={styles} />}
     </Animated.View>
   );
 };
@@ -325,8 +293,8 @@ export const DockHeader = ({
 // the tab headers, plus a leading back button — or a ✕ for modal-style
 // flows (`close`). It sits in normal layout flow, not absolute.
 //
-// Pass `scrollY` (from useStackHeaderScroll) and the hairline fades in as
-// the page scrolls. `titleRevealAt` hides the title until the page has
+// Pass `scrollY` (from useStackHeaderScroll) with `titleRevealAt`, which
+// hides the title until the page has
 // scrolled that far — for pages with their own big title at the top, so
 // the bar picks the title up as that one scrolls away.
 export const StackHeader = ({
@@ -373,7 +341,6 @@ export const StackHeader = ({
         </Text>
       </Animated.View>
       {right ? <View style={styles.right}>{right}</View> : null}
-      <HeaderHairline scrollY={scrollY} styles={styles} />
     </View>
   );
 };
@@ -409,7 +376,7 @@ const createStyles = (colors) =>
       end: 0,
       zIndex: 100,
       elevation: 16,
-      // Near-black, darker than the page, a hairline underneath.
+      // Near-black, darker than the page.
       backgroundColor: colors.headerBackground,
     },
     barOverlay: {
@@ -424,14 +391,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: spacing.md,
-    },
-    hairline: {
-      position: "absolute",
-      start: 0,
-      end: 0,
-      bottom: 0,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
     },
     right: {
       flexDirection: "row",

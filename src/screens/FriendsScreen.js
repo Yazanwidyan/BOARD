@@ -48,8 +48,6 @@ import { t, useIsRTL } from "../i18n";
 const AVATAR = 44;
 const MY_AVATAR = 40;
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
-// Hairlines in a list of people start after the avatar.
-const PEOPLE_INSET = spacing.md + AVATAR + spacing.md;
 const HANDLE_PATTERN = /^[a-zA-Z0-9_.]{3,20}$/;
 
 // "@sam · Critic · 15 ranks" — who they are, under their name.
@@ -226,7 +224,6 @@ export const FriendsScreen = ({ navigation, route }) => {
               ? t("Matches · {count}", { count: shown.length })
               : t("Friends · {count}", { count: friends.length })
           }
-          inset={PEOPLE_INSET}
         >
           {shown.map((friend) => (
             <Pressable
@@ -298,7 +295,6 @@ export const FriendsScreen = ({ navigation, route }) => {
       {incoming.length > 0 && (
         <SettingsGroup
           title={t("Waiting on you · {count}", { count: incoming.length })}
-          inset={PEOPLE_INSET}
         >
           {incoming.map(({ user }) => (
             <View key={user.id} style={styles.personRow}>
@@ -342,7 +338,7 @@ export const FriendsScreen = ({ navigation, route }) => {
 
       {/* Requests you sent, until they answer. */}
       {outgoing.length > 0 && (
-        <SettingsGroup title={t("Sent")} inset={PEOPLE_INSET}>
+        <SettingsGroup title={t("Sent")}>
           {outgoing.map(({ user }) => (
             <View key={user.id} style={styles.personRow}>
               <FriendAvatar friend={user} size={AVATAR} style={{ borderColor: colors.card }} />
@@ -465,12 +461,12 @@ const createStyles = (colors) =>
     tabs: {
       flexDirection: "row",
       gap: 2,
-      padding: 2,
+      padding: 3,
       marginTop: spacing.md,
       marginHorizontal: spacing.md,
       // On the page, so the card colour (the dark track would vanish).
       backgroundColor: colors.card,
-      borderRadius: 6,
+      borderRadius: shape.chip,
     },
     tab: {
       flex: 1,
@@ -478,8 +474,8 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      paddingVertical: 4,
-      borderRadius: 7,
+      paddingVertical: 6,
+      borderRadius: shape.chip,
     },
     tabOn: {
       backgroundColor: colors.segmentOn,
@@ -543,7 +539,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.md,
       minHeight: 56,
-      marginTop: StyleSheet.hairlineWidth * 2,
       paddingHorizontal: spacing.md,
       backgroundColor: colors.card,
     },

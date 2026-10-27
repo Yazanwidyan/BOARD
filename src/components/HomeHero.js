@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Crown, Layers, Sparkles, TrendingUp, X } from "lucide-react-native";
+import { Clover, Sparkles, Star, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
@@ -18,18 +18,18 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
-import { describeForecast } from "../utils/ranks";
-import { describeSagaStep } from "../utils/tonightPick";
 
 // The card's height for its width.
 const CARD_RATIO = 0.82;
 // The film's title art fits inside this box, keeping its shape.
-const LOGO_MAX_HEIGHT = 64;
+const LOGO_MAX_HEIGHT = 76;
 // On a pull to refresh the still zooms in a little, inside the card.
 const PULL_ZOOM = 0.18;
 const PULL_DISTANCE = 160;
+// The eyebrow's pill: a strong red, white on it (5 : 1).
+const EYEBROW_RED = "#D62828";
 
-// Home's top card: the film's still filling a rounded card, darkened from
+// Home's top card: the film's still filling an edge-to-edge card, darkened from
 // the left, with a small label, the title (or the film's logo), one line of
 // meta, why it fits you and how well — then the actions under the card and,
 // when there are several to step through, dots for which one this is.
@@ -52,10 +52,13 @@ const ThinkingMark = ({ color }) => {
   );
 };
 
-// `match`: how well it fits your taste (0–100). `tag`: { text, color? } —
-// why it's here ("From your watchlist", "Finishes a collection"), beside
-// the match. `saga` and `forecast` (utils/tonightPick) add a slate line each
-// for what it does for a collection and for your ranks.
+// (Why a film fits you isn't said here — that's on its page, in the taste
+// match.) `eyebrow`: the card's name, in a red pill at its top-left, with
+// `eyebrowIcon` (a lucide icon, in white). `rated`: its age rating, boxed
+// after `meta`. `description`: what it's about, three lines. `match`: how
+// well it fits your taste (0–100). `tag`: { text, color? } —
+// why it's here ("From your watchlist", "Next in a collection"), beside
+// the match.
 // `thinking`: a line to show over the card while the next one's being
 // found (the ✦ pulses over the dimmed card), or null.
 export const HomeHero = ({
@@ -63,13 +66,13 @@ export const HomeHero = ({
   backdropUri,
   logo,
   eyebrow,
+  eyebrowIcon: EyebrowIcon,
   title,
   meta,
-  reason,
+  rated,
+  description,
   match,
   tag,
-  saga,
-  forecast,
   actions,
   onPress,
   onDismiss,
@@ -79,12 +82,9 @@ export const HomeHero = ({
   const colors = useColors();
   const styles = createStyles(colors);
   const { width } = useWindowDimensions();
-  // What it does for a collection, and for your ranks — a line each.
-  const sagaLine = describeSagaStep(saga);
-  const isRankStep = saga?.type === "rank";
-  const rankLine = forecast ? describeForecast(forecast) : null;
-  const earnsRank = (forecast?.gained?.length ?? 0) > 0;
-  const cardWidth = width - spacing.md * 2;
+  // Edge to edge.
+  const cardWidth = width;
+  const tagColor = tag?.color ?? colors.textPrimary;
   const image = backdropUri ?? posterUri;
   // The movie's own title art (TMDB's) in place of the title — dark mode
   // only, as most logos are white; the plain title if it doesn't load.
@@ -92,7 +92,7 @@ export const HomeHero = ({
   const logoSize =
     colors.isDark && logo?.url && logo.aspect > 0 && !logoFailed
       ? (() => {
-          const logoWidth = Math.min(cardWidth * 0.62, LOGO_MAX_HEIGHT * logo.aspect);
+          const logoWidth = Math.min(cardWidth * 0.68, LOGO_MAX_HEIGHT * logo.aspect);
           return { width: logoWidth, height: logoWidth / logo.aspect };
         })()
       : null;
@@ -113,7 +113,11 @@ export const HomeHero = ({
     <View>
       <Pressable
         // At least this tall; taller when there's more to say.
-        style={[styles.card, image && { minHeight: Math.round(cardWidth * CARD_RATIO) }]}
+        style={[
+          styles.card,
+          image && { minHeight: Math.round(cardWidth * CARD_RATIO) },
+          (!!eyebrow || !!onDismiss) && styles.cardWithTop,
+        ]}
         onPress={onPress}
         disabled={!onPress}
       >
@@ -148,6 +152,14 @@ export const HomeHero = ({
           </>
         )}
 
+        {/* The card's name, stuck in its top-left corner. */}
+        {!!eyebrow && (
+          <View style={styles.eyebrowTab}>
+            {EyebrowIcon && <EyebrowIcon size={13} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />}
+            <Text style={styles.eyebrow}>{eyebrow}</Text>
+          </View>
+        )}
+
         {onDismiss && (
           <Pressable
             style={styles.dismiss}
@@ -160,7 +172,6 @@ export const HomeHero = ({
         )}
 
         <View style={styles.words}>
-          {!!eyebrow && <Text style={styles.eyebrow}>{eyebrow}</Text>}
           {logoSize ? (
             <Image
               source={{ uri: logo.url }}
@@ -176,26 +187,37 @@ export const HomeHero = ({
               {title}
             </Text>
           )}
-          {!!meta && (
-            <Text style={styles.meta} numberOfLines={1}>
-              {meta}
-            </Text>
+          {(!!meta || !!rated) && (
+            <View style={styles.metaRow}>
+              {!!meta && (
+                <Text style={styles.meta} numberOfLines={1}>
+                  {meta}
+                </Text>
+              )}
+              {!!rated && (
+                <View style={styles.rated}>
+                  <Text style={styles.ratedText}>{rated}</Text>
+                </View>
+              )}
+            </View>
           )}
-          {!!reason && (
-            <Text style={styles.reason} numberOfLines={2}>
-              {reason}
+          {!!description && (
+            <Text style={styles.description} numberOfLines={3}>
+              {description}
             </Text>
           )}
           {(match != null || tag) && (
             <View style={styles.chips}>
               {match != null && (
                 <View style={styles.match}>
+                  <Clover size={14} color={colors.success} strokeWidth={2.2} />
                   <Text style={styles.matchText}>{t("{match}% match", { match })}</Text>
                 </View>
               )}
               {tag && (
-                <View style={styles.tag}>
-                  <Text style={[styles.tagText, tag.color && { color: tag.color }]} numberOfLines={1}>
+                <View style={[styles.tag, { backgroundColor: `${tagColor}2E` }]}>
+                  <Star size={13} color={tagColor} fill={tagColor} />
+                  <Text style={[styles.tagText, { color: tagColor }]} numberOfLines={1}>
                     {tag.text}
                   </Text>
                 </View>
@@ -204,36 +226,8 @@ export const HomeHero = ({
           )}
         </View>
 
-        {/* What it does for a collection and your ranks: the card's full
-            width, under the words. */}
-        {(!!sagaLine || !!rankLine) && (
-          <View style={styles.notes}>
-            {!!sagaLine && (
-              <View style={styles.note}>
-                {isRankStep ? (
-                  <Crown size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
-                ) : (
-                  <Layers size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
-                )}
-                <Text style={styles.noteText}>
-                  {sagaLine}
-                </Text>
-              </View>
-            )}
-            {!!rankLine && (
-              <View style={styles.note}>
-                {earnsRank ? (
-                  <Crown size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
-                ) : (
-                  <TrendingUp size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
-                )}
-                <Text style={styles.noteText}>
-                  {rankLine}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+        {/* The buttons, inside the card at its foot. */}
+        {actions && <View style={styles.actions}>{actions}</View>}
 
         {!!thinking && (
           <Animated.View
@@ -249,9 +243,6 @@ export const HomeHero = ({
           </Animated.View>
         )}
       </Pressable>
-
-      {actions && <View style={styles.actions}>{actions}</View>}
-
     </View>
   );
 };
@@ -262,15 +253,17 @@ const createStyles = (colors) =>
       justifyContent: "flex-end",
       padding: spacing.md + 2,
       backgroundColor: colors.card,
-      borderRadius: shape.card,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
       overflow: "hidden",
+    },
+    // Room for the eyebrow and the ✕, so tall words never run under them.
+    cardWithTop: {
+      paddingTop: spacing.md * 2 + 30,
     },
     // A small round ✕ on the image.
     dismiss: {
       position: "absolute",
-      top: spacing.sm + 2,
+      // Level with the eyebrow.
+      top: spacing.md - 2,
       end: spacing.sm + 2,
       zIndex: 2,
       width: 30,
@@ -284,33 +277,71 @@ const createStyles = (colors) =>
       maxWidth: "72%",
       gap: 4,
     },
+    // The card's name ("Suggested for tonight"): small white capitals with
+    // its icon, in a red pill set in from the top-left corner.
+    eyebrowTab: {
+      position: "absolute",
+      top: spacing.md + 2,
+      start: spacing.md + 2,
+      zIndex: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 5,
+      backgroundColor: EYEBROW_RED,
+      borderRadius: shape.chip,
+    },
     eyebrow: {
       ...typography.label,
-      fontSize: 11,
-      letterSpacing: 1,
-      color: colors.textSecondary,
+      fontSize: 10,
+      lineHeight: 13,
+      letterSpacing: 1.1,
+      textTransform: "uppercase",
+      color: "#FFFFFF",
     },
     title: {
       ...typography.display,
-      fontSize: 30,
-      lineHeight: 34,
-      letterSpacing: -0.6,
+      fontSize: 24,
+      lineHeight: 28,
+      letterSpacing: -0.5,
       color: colors.textPrimary,
     },
     logo: {
       marginVertical: 4,
     },
+    // Year · genre · length, then its age rating in a small box.
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
     meta: {
       ...typography.caption,
+      fontSize: 12,
       lineHeight: 16,
       color: colors.textSecondary,
+      flexShrink: 1,
     },
-    reason: {
-      ...typography.body,
-      fontSize: 13,
-      lineHeight: 18,
+    rated: {
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      borderRadius: 4,
+    },
+    ratedText: {
+      ...typography.bodyBold,
+      fontSize: 10,
+      lineHeight: 13,
       color: colors.textSecondary,
-      marginTop: 2,
+    },
+    // What it's about, in three lines.
+    description: {
+      ...typography.body,
+      fontSize: 12.5,
+      lineHeight: 17,
+      color: colors.textSecondary,
+      marginTop: 4,
     },
     chips: {
       flexDirection: "row",
@@ -321,54 +352,34 @@ const createStyles = (colors) =>
     },
     // Why it's here, beside the match.
     tag: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
       paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      paddingVertical: 4,
       borderRadius: shape.control - 4,
       maxWidth: "100%",
     },
+    // Tinted by the tag's colour, set inline.
     tagText: {
       ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textPrimary,
-    },
-    // What it does for a collection or your ranks, in slate.
-    notes: {
-      marginTop: 2,
-    },
-    // A line with its icon; long lines wrap, the icon by the first.
-    note: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 6,
-      marginTop: 4,
-    },
-    noteText: {
-      ...typography.caption,
-      lineHeight: 16,
-      color: colors.rating,
-      flexShrink: 1,
-      // Past the words' column the image is brighter: a soft shadow keeps
-      // the line readable.
-      textShadowColor: "rgba(0, 0, 0, 0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 3,
-    },
-    noteIcon: {
-      marginTop: 1.5,
+      fontSize: 11,
+      lineHeight: 14,
     },
     match: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
       alignSelf: "flex-start",
       paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
+      paddingVertical: 4,
       backgroundColor: colors.successSoft,
       borderRadius: shape.control - 4,
     },
     matchText: {
       ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: 11,
+      lineHeight: 14,
       color: colors.success,
     },
     // While it's finding the next one: the card dimmed, the ✦ and a line.
@@ -384,9 +395,11 @@ const createStyles = (colors) =>
       lineHeight: 20,
       color: colors.textSecondary,
     },
+    // Inside the card, at its foot: the main button, then round actions
+    // with their names under them.
     actions: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: spacing.sm,
       marginTop: spacing.md,
     },

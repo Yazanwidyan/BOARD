@@ -92,8 +92,6 @@ const createStyles = (colors) =>
       gap: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.cardElevated,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
       borderRadius: shape.card,
     },
     text: {

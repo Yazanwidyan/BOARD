@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/reelboard-icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0E1013",
+    "backgroundColor": "#161616",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yazanwidyan.reelboard",
@@ -36,10 +36,10 @@
           "image": "./assets/reelboard-splash.png",
           "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#0E1013",
+          "backgroundColor": "#161616",
           "dark": {
             "image": "./assets/reelboard-splash.png",
-            "backgroundColor": "#0E1013"
+            "backgroundColor": "#161616"
           }
         }
       ],
@@ -55,7 +55,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0E1013"
+          "color": "#161616"
         }
       ]
     ],

@@ -8,7 +8,7 @@ import { BottomTabBar } from "./tabBars/BottomTabBar";
 
 const Tab = createBottomTabNavigator();
 
-// The ＋ tab never shows a page of its own — pressing it opens Log.
+// The ＋ tab never shows a page of its own — pressing it opens quick log.
 const LogTab = () => null;
 
 export const TabNavigator = () => (

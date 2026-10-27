@@ -191,7 +191,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
         <Section label={t("Or start one — who's watching")} styles={styles}>
           <View style={styles.people}>
             <View style={[styles.person, styles.personOn]}>
-              <Text style={styles.personText}>{me}</Text>
+              <Text style={[styles.personText, styles.personTextOn]}>{me}</Text>
             </View>
             {friends.map((friend) => {
               const on = friendIds.includes(friend.id);
@@ -204,7 +204,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
                   accessibilityState={{ checked: on }}
                 >
                   <FriendAvatar friend={friend} size={22} />
-                  <Text style={styles.personText} numberOfLines={1}>
+                  <Text style={[styles.personText, on && styles.personTextOn]} numberOfLines={1}>
                     {friend.name.split(" ")[0]}
                   </Text>
                 </Pressable>
@@ -217,8 +217,8 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
                 onPress={() => setGuests((current) => current.filter((_, i) => i !== index))}
                 accessibilityLabel={t("Remove {name}", { name: guest })}
               >
-                <Text style={styles.personText}>{guest}</Text>
-                <X size={14} color={colors.textSecondary} strokeWidth={2.2} />
+                <Text style={[styles.personText, styles.personTextOn]}>{guest}</Text>
+                <X size={14} color={colors.segmentOnText} strokeWidth={2.2} />
               </Pressable>
             ))}
           </View>
@@ -459,6 +459,9 @@ const createStyles = (colors) =>
       flexShrink: 1,
       paddingStart: 4,
     },
+    personTextOn: {
+      color: colors.segmentOnText,
+    },
     guestRow: {
       flexDirection: "row",
       gap: spacing.sm,
@@ -509,8 +512,6 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
       backgroundColor: colors.background,
     },
     footnote: {

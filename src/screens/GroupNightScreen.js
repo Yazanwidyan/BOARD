@@ -584,8 +584,8 @@ const createStyles = (colors) =>
       alignSelf: "stretch",
     },
     sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginTop: spacing.sm,
     },
     members: {
