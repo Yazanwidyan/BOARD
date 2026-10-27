@@ -43,7 +43,7 @@ const Choice = ({ selected, label, sublabel, onPress, styles, colors }) => (
 // Reports queue): what — when there's a choice, like a person or one of
 // their lists — then why, and a note if they want. Nobody is told who
 // reported them.
-// `targets`: [{ type: "user" | "list" | "club", id, label }].
+// `targets`: [{ type: "user" | "list", id, label }].
 export const ReportSheet = ({ visible, onClose, targets }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -107,7 +107,7 @@ export const ReportSheet = ({ visible, onClose, targets }) => {
                   key={`${item.type}:${item.id}`}
                   selected={index === targetIndex}
                   label={item.label}
-                  sublabel={item.type === "user" ? t("Their profile") : item.type === "list" ? t("A list") : t("The club")}
+                  sublabel={item.type === "user" ? t("Their profile") : t("A list")}
                   onPress={() => setTargetIndex(index)}
                 />
               ))}

@@ -575,7 +575,10 @@ export const HomeScreen = ({ navigation }) => {
         logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
           <HeaderIconButton
-            onPress={() => navigation.navigate("Activity")}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setHomeTab("friends");
+            }}
             accessibilityLabel={t("Activity")}
             badge={notificationCount}
           >

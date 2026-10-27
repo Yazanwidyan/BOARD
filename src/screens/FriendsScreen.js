@@ -1,7 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import {
-  Activity,
   Check,
   ChevronRight,
   Copy,
@@ -32,10 +31,9 @@ import {
   useStackHeaderScroll,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { SettingsGroup, SettingsRow } from "../components/SettingsList";
+import { SettingsGroup } from "../components/SettingsList";
 import { useMoviesVersion } from "../data/movies";
 import { useAuthStore } from "../store/authStore";
-import { useClubs } from "../store/clubsStore";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -68,7 +66,8 @@ const describe = (person) =>
 // someone's waiting on you, or when opened with `tab: "requests"`).
 //   Friends: one field that finds a friend as you type — or, for a handle
 //   that isn't one yet, adds them — then your friends, closest taste first,
-//   where to go together (Activity, Clubs) and your own handle to copy.
+//   and your own handle to copy. (What friends are doing — activity,
+//   watching together — is Home's Friends tab.)
 //   Requests: the ones waiting on you (accept / decline) and the ones you
 //   sent (cancel).
 // Invite is the header's share button.
@@ -95,7 +94,6 @@ export const FriendsScreen = ({ navigation, route }) => {
     acceptRequest,
     dropRequest,
   } = useFriends();
-  const { clubs } = useClubs();
   const [query, setQuery] = useState("");
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState(
@@ -269,27 +267,6 @@ export const FriendsScreen = ({ navigation, route }) => {
           actionLabel={t("Invite a friend")}
           onAction={invite}
         />
-      )}
-
-      {!needle && (
-        <SettingsGroup title={t("Together")}>
-          <SettingsRow
-            Icon={Activity}
-            label={t("Activity")}
-            hint={t("What your friends are watching and tiering")}
-            onPress={() => navigation.navigate("Activity")}
-          />
-          <SettingsRow
-            Icon={Users}
-            label={t("Clubs")}
-            hint={
-              clubs.length > 0
-                ? t("{count} clubs · watch together", { count: clubs.length })
-                : t("Watch together — start a club or join one")
-            }
-            onPress={() => navigation.navigate("Clubs")}
-          />
-        </SettingsGroup>
       )}
 
       {/* You: the handle friends add you by. */}

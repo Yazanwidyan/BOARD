@@ -11,7 +11,6 @@ import { AchievementModal } from "../components/AchievementModal";
 import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { AccountScreen } from "../screens/AccountScreen";
-import { ActivityScreen } from "../screens/ActivityScreen";
 import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
@@ -19,6 +18,7 @@ import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
+import { WatchTogetherScreen } from "../screens/WatchTogetherScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
 import { ProScreen } from "../screens/ProScreen";
 import { RanksScreen } from "../screens/RanksScreen";
@@ -35,8 +35,6 @@ import { TierMovieScreen } from "../screens/TierMovieScreen";
 import { WildcardScreen } from "../screens/WildcardScreen";
 import { SimilarScreen } from "../screens/SimilarScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
-import { ClubDetailsScreen } from "../screens/ClubDetailsScreen";
-import { ClubsScreen } from "../screens/ClubsScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
@@ -204,15 +202,13 @@ export const AppNavigator = () => {
               component={SearchScreen}
               options={{ animation: "slide_from_bottom" }}
             />
-            <Stack.Screen name="Activity" component={ActivityScreen} />
             <Stack.Screen name="Friends" component={FriendsScreen} />
-            <Stack.Screen name="Clubs" component={ClubsScreen} />
-            <Stack.Screen name="ClubDetails" component={ClubDetailsScreen} />
             <Stack.Screen
               name="FriendProfile"
               component={FriendProfileScreen}
             />
             <Stack.Screen name="Ranks" component={RanksScreen} />
+            <Stack.Screen name="WatchTogether" component={WatchTogetherScreen} />
             <Stack.Screen name="Pro" component={ProScreen} />
             <Stack.Screen name="TierList" component={TierListScreen} />
             <Stack.Screen name="Taste" component={TasteScreen} />

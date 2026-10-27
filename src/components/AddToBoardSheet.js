@@ -12,7 +12,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { BOARD_NAME_MAX, useBoardStore } from "../store/boardStore";
-import { useClubActions, useClubs } from "../store/clubsStore";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -34,8 +33,6 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
   const boards = useBoardStore((state) => state.boards);
   const createBoard = useBoardStore((state) => state.createBoard);
   const toggleBoardMovie = useBoardStore((state) => state.toggleBoardMovie);
-  const { clubs } = useClubs();
-  const { toggleClubMovie } = useClubActions();
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
@@ -115,37 +112,6 @@ export const AddToBoardSheet = ({ visible, onClose, movieId }) => {
           );
         })}
 
-        {/* Clubs: the same tick puts it on the club's shared board. */}
-        {clubs.length > 0 && (
-          <Text style={styles.sectionLabel}>{t("Clubs")}</Text>
-        )}
-        {clubs.map((club) => {
-          const isOn = club.movieIds.includes(movieId);
-          const movies = club.movieIds.map(getMovieById).filter(Boolean);
-          return (
-            <Pressable
-              key={club.id}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-              onPress={() => toggleClubMovie(club.id, movieId, !isOn)}
-              accessibilityState={{ checked: isOn }}
-            >
-              <BoardCover movies={movies} size={COVER_SIZE} />
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
-                  {club.name}
-                </Text>
-                <Text style={styles.rowMeta}>
-                  {t("Club · {count} members", { count: club.memberCount })}
-                </Text>
-              </View>
-              {isOn ? (
-                <CheckCircle size={22} color={colors.success} />
-              ) : (
-                <Circle size={22} color={colors.textMuted} />
-              )}
-            </Pressable>
-          );
-        })}
       </ScrollView>
     </BottomSheet>
   );

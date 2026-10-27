@@ -131,7 +131,7 @@ const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   return null;
 };
 
-// One row of a feed (Activity, a club's feed): who, what, when, and the
+// One row of the activity feed: who, what, when, and the
 // poster or crown. `onPress` opens the person; without it the row is plain.
 // `divider`: a line above it, for feeds not inside a SettingsGroup.
 export const ActivityEvent = ({ event, now, divider, onPress, onOpenMovie }) => {

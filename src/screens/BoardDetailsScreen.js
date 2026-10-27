@@ -113,8 +113,8 @@ export const BoardDetailsScreen = ({ route, navigation }) => {
     },
     unwatched.length >= MOVIE_NIGHT_MIN && {
       key: "night",
-      label: t("Movie night"),
-      onPress: () => navigation.navigate("MovieNight", { boardId: board.id }),
+      label: t("Watch together"),
+      onPress: () => navigation.navigate("WatchTogether", { boardId: board.id }),
     },
   ].filter(Boolean);
 

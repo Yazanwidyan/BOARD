@@ -10,7 +10,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
@@ -22,12 +21,8 @@ import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { StorySwipeCard } from "../components/StorySwipeCard";
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { generateRecommendations } from "../services/recommendations";
-import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
-import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
-import { useUserStore } from "../store/userStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -35,22 +30,23 @@ import { formatRuntime } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
 import { t } from "../i18n";
 
-// Movie night: two people swipe the same stack, one after the other, on
-// one phone — the app hands it over in between so neither sees the
-// other's picks — then reveals the movies you both kept.
+// Movie night on one phone: everyone in the room (2–6) swipes the same
+// stack, one after the other — the app hands it over in between so nobody
+// sees anyone else's picks — then reveals the films you all kept, the best
+// fit for the group first.
 //
-//   setup → handoff (A) → swipe (A) → handoff (B) → swipe (B) → reveal → results
+//   handoff (1) → swipe (1) → … → handoff (n) → swipe (n) → reveal → results
 //
+// Opened from Watch together, which picks the stack for the group:
+// params { movieIds, players: [names], fits: { [movieId]: 0–100 } }.
 // Everything lives in this screen's state: a movie night is one sitting,
-// so nothing is persisted. No matches? Swipe the maybes (anything either
-// of you kept) together for another go.
+// so nothing is persisted. No match? Swipe the maybes (what most of you
+// kept) together for another go.
 
-const SIZES = [10, 15, 20];
-const MIN_STACK = 4;
 const CARDS_RENDERED = 3;
 const POSTER_ASPECT = 1.5;
 // Each person's colour — decorative, on dark avatars, so fixed.
-const PLAYER_COLORS = ["#8FD3F5", "#F5B38F"];
+const PLAYER_COLORS = ["#8FD3F5", "#F5B38F", "#A4E59B", "#F2A7C3", "#C9B6F2", "#F8E08E"];
 
 const initial = (name) => (name.trim()[0] ?? "?").toUpperCase();
 
@@ -61,7 +57,7 @@ const Avatar = ({ name, index, size = 44, styles }) => (
       {
         width: size,
         height: size,
-        backgroundColor: PLAYER_COLORS[index],
+        backgroundColor: PLAYER_COLORS[index % PLAYER_COLORS.length],
       },
     ]}
   >
@@ -94,22 +90,6 @@ const Backdrop = ({ uri, colors }) => (
   </View>
 );
 
-const Chip = ({ label, selected, disabled, onPress, styles }) => (
-  <Pressable
-    onPress={onPress}
-    disabled={disabled}
-    style={[
-      styles.chip,
-      selected && styles.chipSelected,
-      disabled && styles.chipDisabled,
-    ]}
-  >
-    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-      {label}
-    </Text>
-  </Pressable>
-);
-
 // A labelled row of small posters — the near misses on the results.
 const PosterStrip = ({ label, movies, onPress, styles }) =>
   movies.length === 0 ? null : (
@@ -135,79 +115,36 @@ export const MovieNightScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const displayName = useProfileStore((state) => state.displayName);
-  const preferences = useUserStore((state) => state.preferences);
-  const watched = useMovieStore((state) => state.watched);
-  const bucketList = useMovieStore((state) => state.bucketList);
   const pickedMovie = useMovieStore((state) => state.pickedMovie);
   const setPickedMovie = useMovieStore((state) => state.setPickedMovie);
-  const boards = useBoardStore((state) => state.boards);
 
-  const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const unwatchedOf = (ids) =>
-    ids
-      .map(getMovieById)
-      .filter((movie) => movie && !watchedIds.has(movie.id));
+  const params = route?.params ?? {};
+  const players = params.players?.length >= 2 ? params.players : [t("Player 1"), t("Player 2")];
+  const fits = params.fits ?? {};
+  const byFit = (a, b) => (fits[b.id] ?? 0) - (fits[a.id] ?? 0);
 
-  // Where the stack comes from: fresh picks (your Swipe filters), your
-  // watchlist, or one of your boards — lists only if there's enough in them.
-  const sources = [
-    { key: "fresh", label: t("Fresh picks") },
-    {
-      key: "watchlist",
-      label: t("Watchlist"),
-      movies: unwatchedOf(bucketList.map((entry) => entry.movieId)),
-    },
-    ...boards.map((board) => ({
-      key: `board:${board.id}`,
-      label: board.name,
-      movies: unwatchedOf(board.movieIds),
-    })),
-  ].filter((source) => !source.movies || source.movies.length >= MIN_STACK);
-
-  const [names, setNames] = useState([
-    displayName && displayName !== "You" ? displayName : "",
-    "",
-  ]);
-  const [sourceKey, setSourceKey] = useState(() => {
-    const wanted = route?.params?.boardId && `board:${route.params.boardId}`;
-    return sources.some((source) => source.key === wanted) ? wanted : "fresh";
-  });
-  const [size, setSize] = useState(SIZES[0]);
-  const [phase, setPhase] = useState("setup");
+  const [phase, setPhase] = useState("handoff");
   const [player, setPlayer] = useState(0);
-  const [stack, setStack] = useState([]);
+  const [stack, setStack] = useState(() => (params.movieIds ?? []).map(getMovieById).filter(Boolean));
   const [index, setIndex] = useState(0);
-  const [kept, setKept] = useState([[], []]);
+  const [kept, setKept] = useState(() => players.map(() => []));
   const [round, setRound] = useState(1);
   const [chosenId, setChosenId] = useState(null);
   const [stage, setStage] = useState(null);
   const frontCardRef = useRef(null);
 
-  const playerName = (which) =>
-    names[which].trim() || (which === 0 ? t("Player 1") : t("Player 2"));
-  const source = sources.find((item) => item.key === sourceKey) ?? sources[0];
-  const sourceMax = source.movies ? source.movies.length : Infinity;
+  const playerName = (which) => players[which];
+  const everyone = players.length;
 
   const beginRound = (movies, roundNumber) => {
     setStack(movies);
-    setKept([[], []]);
+    setKept(players.map(() => []));
     setIndex(0);
     setPlayer(0);
     setRound(roundNumber);
     setChosenId(null);
     setPhase("handoff");
   };
-
-  // The stack from the chosen source and size.
-  const pickStack = () => {
-    const count = Math.min(size, sourceMax);
-    return source.movies
-      ? shuffle(source.movies).slice(0, count)
-      : generateRecommendations(preferences, count, [], [...watchedIds]);
-  };
-
-  const handleStart = () => beginRound(pickStack(), 1);
 
   const record = useCallback(
     (keep) => {
@@ -224,29 +161,28 @@ export const MovieNightScreen = ({ navigation, route }) => {
       const next = index + 1;
       if (next < stack.length) {
         setIndex(next);
-      } else if (player === 0) {
-        setPlayer(1);
+      } else if (player < everyone - 1) {
+        setPlayer(player + 1);
         setIndex(0);
         setPhase("handoff");
       } else {
         setPhase("reveal");
       }
     },
-    [stack, index, player],
+    [stack, index, player, everyone],
   );
   const handleKeep = useCallback(() => record(true), [record]);
   const handlePass = useCallback(() => record(false), [record]);
 
-  const matches = stack.filter(
-    (movie) => kept[0].includes(movie.id) && kept[1].includes(movie.id),
-  );
-  const onlyA = stack.filter(
-    (movie) => kept[0].includes(movie.id) && !kept[1].includes(movie.id),
-  );
-  const onlyB = stack.filter(
-    (movie) => kept[1].includes(movie.id) && !kept[0].includes(movie.id),
-  );
-  const maybes = [...onlyA, ...onlyB];
+  // How many kept each film; matches are the ones everyone kept — the
+  // group's best fit first.
+  const keptBy = (movie) => kept.filter((ids) => ids.includes(movie.id)).length;
+  const matches = stack.filter((movie) => keptBy(movie) === everyone).sort(byFit);
+  // Near misses: everyone but one. Maybes for another round: what most kept.
+  const almost = stack.filter((movie) => keptBy(movie) === everyone - 1 && everyone > 2).sort(byFit);
+  const maybes = stack
+    .filter((movie) => keptBy(movie) < everyone && keptBy(movie) >= Math.max(1, Math.ceil(everyone / 2)))
+    .sort(byFit);
   const chosen =
     matches.find((movie) => movie.id === chosenId) ?? matches[0] ?? null;
 
@@ -255,7 +191,7 @@ export const MovieNightScreen = ({ navigation, route }) => {
 
   // Mid-game, leaving throws the picks away — ask first.
   const handleBack = useCallback(() => {
-    if (phase === "setup" || phase === "results") {
+    if (phase === "results") {
       navigation.goBack();
       return;
     }
@@ -296,117 +232,6 @@ export const MovieNightScreen = ({ navigation, route }) => {
     </View>
   );
 
-  // ---------- Setup ----------
-  if (phase === "setup") {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
-        {topBar(t("Movie night"))}
-        <ScrollView
-          contentContainerStyle={styles.setupContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.hero}>{t("Swipe together")}</Text>
-          <Text style={styles.message}>
-            {t(
-              "You both swipe the same movies, one after the other on this phone. Then we show the ones you both kept.",
-            )}
-          </Text>
-
-          <Text style={styles.sectionLabel}>{t("Who's watching")}</Text>
-          {[0, 1].map((which) => (
-            <View key={which} style={styles.nameRow}>
-              <Avatar
-                name={playerName(which)}
-                index={which}
-                size={36}
-                styles={styles}
-              />
-              <TextInput
-                value={names[which]}
-                onChangeText={(text) =>
-                  setNames((current) =>
-                    current.map((name, i) => (i === which ? text : name)),
-                  )
-                }
-                placeholder={which === 0 ? t("Your name") : t("Their name")}
-                placeholderTextColor={colors.textMuted}
-                maxLength={20}
-                style={styles.nameInput}
-              />
-            </View>
-          ))}
-
-          <Text style={styles.sectionLabel}>{t("Pick from")}</Text>
-          <View style={styles.chipRow}>
-            {sources.map((item) => (
-              <Chip
-                key={item.key}
-                label={item.label}
-                selected={item.key === source.key}
-                onPress={() => setSourceKey(item.key)}
-                styles={styles}
-              />
-            ))}
-          </View>
-          {source.key === "fresh" && (
-            <Text style={styles.hint}>
-              {t("Uses your Swipe filters and skips what you've watched.")}
-            </Text>
-          )}
-
-          <Text style={styles.sectionLabel}>{t("How many")}</Text>
-          <View style={styles.chipRow}>
-            {SIZES.map((option) => (
-              <Chip
-                key={option}
-                label={String(option)}
-                selected={size === option && option <= sourceMax}
-                disabled={option > sourceMax && option !== SIZES[0]}
-                onPress={() => setSize(option)}
-                styles={styles}
-              />
-            ))}
-          </View>
-          {sourceMax < size && (
-            <Text style={styles.hint}>
-              {t("This list has {count} unwatched — you'll swipe all of them.", {
-                count: sourceMax,
-              })}
-            </Text>
-          )}
-
-          {/* Or each on their own phone, up to 8 people (GroupNightScreen). */}
-          <Text style={styles.sectionLabel}>{t("Not on the same couch?")}</Text>
-          <Text style={styles.hint}>
-            {t("Everyone swipes on their own phone, up to 8 people. Same stack as above.")}
-          </Text>
-          <View style={styles.chipRow}>
-            <Chip
-              label={t("Host on everyone's phones")}
-              onPress={() =>
-                navigation.navigate("GroupNight", {
-                  movieIds: pickStack().map((movie) => movie.id),
-                })
-              }
-              styles={styles}
-            />
-            <Chip
-              label={t("Join with a code")}
-              onPress={() => navigation.navigate("GroupNight")}
-              styles={styles}
-            />
-          </View>
-        </ScrollView>
-        <View
-          style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
-        >
-          <PrimaryButton label={t("Start movie night")} onPress={handleStart} />
-        </View>
-      </View>
-    );
-  }
-
   // ---------- Pass the phone ----------
   if (phase === "handoff") {
     const name = playerName(player);
@@ -422,7 +247,7 @@ export const MovieNightScreen = ({ navigation, route }) => {
           <Text style={styles.caption}>
             {player === 0
               ? t("First up")
-              : t("{name} is done", { name: playerName(0) })}
+              : t("{name} is done", { name: playerName(player - 1) })}
           </Text>
           <Text style={styles.bigTitle}>
             {t("Pass the phone to {name}", { name })}
@@ -446,21 +271,24 @@ export const MovieNightScreen = ({ navigation, route }) => {
     );
   }
 
-  // ---------- Both done ----------
+  // ---------- Everyone done ----------
   if (phase === "reveal") {
     return (
       <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
         {topBar(t("Movie night"))}
         <Animated.View entering={FadeIn.duration(300)} style={styles.centerBody}>
           <View style={styles.avatarPair}>
-            <Avatar name={playerName(0)} index={0} size={72} styles={styles} />
-            <View style={styles.avatarOverlap}>
-              <Avatar name={playerName(1)} index={1} size={72} styles={styles} />
-            </View>
+            {players.map((name, which) => (
+              <View key={which} style={which > 0 && styles.avatarOverlap}>
+                <Avatar name={name} index={which} size={everyone > 3 ? 56 : 72} styles={styles} />
+              </View>
+            ))}
           </View>
-          <Text style={styles.bigTitle}>{t("You're both done")}</Text>
+          <Text style={styles.bigTitle}>
+            {everyone === 2 ? t("You're both done") : t("You're all done")}
+          </Text>
           <Text style={styles.message}>
-            {t("Put the phone where you can both see it.")}
+            {t("Put the phone where everyone can see it.")}
           </Text>
           <PrimaryButton
             label={t("Reveal matches")}
@@ -522,16 +350,18 @@ export const MovieNightScreen = ({ navigation, route }) => {
                 </View>
               </Pressable>
               <Text style={styles.caption}>
-                {matches.length === 1
-                  ? t("You both want to watch")
-                  : t("One of your {count} matches", { count: matches.length })}
+                {matches.length > 1
+                  ? t("Your best match of {count}", { count: matches.length })
+                  : everyone === 2
+                    ? t("You both want to watch")
+                    : t("All {count} of you want to watch", { count: everyone })}
               </Text>
               <Text style={styles.bigTitle} numberOfLines={2}>
                 {chosen.title}
               </Text>
               <Text style={styles.meta}>
-                {chosen.year} · {formatRuntime(chosen.runtime)} · IMDb{" "}
-                {chosen.rating.toFixed(1)}
+                {chosen.year} · {formatRuntime(chosen.runtime)}
+                {fits[chosen.id] != null ? ` · ${t("{fit}% group fit", { fit: fits[chosen.id] })}` : ""}
               </Text>
             </Animated.View>
           ) : (
@@ -539,8 +369,8 @@ export const MovieNightScreen = ({ navigation, route }) => {
               <Text style={styles.bigTitle}>{t("No matches this time")}</Text>
               <Text style={styles.message}>
                 {maybes.length >= 2
-                  ? t("But you each liked a few. Swipe those together and meet in the middle.")
-                  : t("Nothing you both liked. Try a different stack?")}
+                  ? t("But most of you liked a few. Swipe those together and meet in the middle.")
+                  : t("Nothing you all liked. Try a different night?")}
               </Text>
             </Animated.View>
           )}
@@ -568,18 +398,21 @@ export const MovieNightScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          <PosterStrip
-            label={t("Only {name} kept", { name: playerName(0) })}
-            movies={onlyA}
-            onPress={openDetails}
-            styles={styles}
-          />
-          <PosterStrip
-            label={t("Only {name} kept", { name: playerName(1) })}
-            movies={onlyB}
-            onPress={openDetails}
-            styles={styles}
-          />
+          {everyone === 2 ? (
+            <PosterStrip
+              label={t("Only one of you kept")}
+              movies={maybes}
+              onPress={openDetails}
+              styles={styles}
+            />
+          ) : (
+            <PosterStrip
+              label={t("Everyone but one kept")}
+              movies={almost}
+              onPress={openDetails}
+              styles={styles}
+            />
+          )}
         </ScrollView>
 
         <View
@@ -611,9 +444,9 @@ export const MovieNightScreen = ({ navigation, route }) => {
                   />
                 )}
                 <PrimaryButton
-                  label={t("Play again")}
+                  label={t("New night")}
                   variant="secondary"
-                  onPress={() => setPhase("setup")}
+                  onPress={() => navigation.goBack()}
                   style={styles.flex}
                 />
               </View>
@@ -629,9 +462,9 @@ export const MovieNightScreen = ({ navigation, route }) => {
                 />
               )}
               <PrimaryButton
-                label={t("Try a new stack")}
+                label={t("Try a different night")}
                 variant={maybes.length >= 2 ? "secondary" : "primary"}
-                onPress={() => setPhase("setup")}
+                onPress={() => navigation.goBack()}
               />
             </>
           )}
@@ -801,77 +634,6 @@ const createStyles = (colors) =>
       marginTop: -3,
     },
 
-    // Setup
-    setupContent: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.xl,
-    },
-    hero: {
-      ...typography.hero,
-      color: colors.textPrimary,
-    },
-    sectionLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    nameRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm + 4,
-      backgroundColor: colors.card,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: spacing.sm,
-      marginBottom: 2,
-      borderRadius: shape.card,
-      marginHorizontal: spacing.md,
-    },
-    nameInput: {
-      ...typography.bodyBold,
-      flex: 1,
-      color: colors.textPrimary,
-      paddingVertical: spacing.xs,
-    },
-    chipRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-    },
-    chip: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      backgroundColor: colors.card,
-      borderRadius: shape.tab,
-    },
-    chipSelected: {
-      backgroundColor: colors.selected,
-    },
-    chipDisabled: {
-      opacity: 0.4,
-    },
-    chipText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    chipTextSelected: {
-      color: colors.selectedText,
-    },
-    hint: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.sm,
-    },
-    footer: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      backgroundColor: colors.card,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
-    },
 
     // Handoff / reveal
     centerBody: {

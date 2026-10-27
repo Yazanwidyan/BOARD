@@ -589,6 +589,20 @@ export const getMovieMatch = (watched, movie) => {
   };
 };
 
+// How well a movie fits anyone's taste from a model of their tiers
+// (buildTasteModel) — a friend's, for picking for a group (utils/groupPick).
+// The same score as the picks, without shuffle or session signals; null
+// with too little history to say.
+const NO_SESSION = {
+  watchlistIds: new Set(),
+  rejectedGenres: new Set(),
+  rejectedDirectors: new Set(),
+  random: () => 0,
+  jitter: 0,
+};
+export const matchForModel = (model, movie) =>
+  model.watchedCount < 3 ? null : toMatch(scoreMovie(movie, model, NO_SESSION).score);
+
 // What the "thinking" screen says it's doing — real numbers from your data.
 export const getThinkingSteps = (watched, watchlist) => {
   const model = buildMyTasteModel(watched);
