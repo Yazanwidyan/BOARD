@@ -55,6 +55,12 @@
           "color": "#0E1013"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6fc42e1a-0829-4fc9-8c42-86e81ed6408e"
+      }
+    },
+    "owner": "yazanw"
   }
 }

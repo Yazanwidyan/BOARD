@@ -1,11 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
-import { Share2 } from "lucide-react-native";
+import { Link2, Share2 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
+import { shareLink } from "../services/shareLinks";
 import { useProfileStore } from "../store/profileStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -77,12 +78,24 @@ export const BoardShareSheet = ({ visible, onClose, board, movies }) => {
       title={t("Share list")}
       subtitle={t("This is the image that gets shared")}
       footer={
-        <PrimaryButton
-          label={isSharing ? t("Preparing…") : t("Share image")}
-          icon={<Share2 size={16} color={colors.accentContrast} />}
-          disabled={isSharing || movies.length === 0}
-          onPress={shareImage}
-        />
+        <View style={styles.footerRow}>
+          <PrimaryButton
+            label={t("Share link")}
+            variant="secondary"
+            icon={<Link2 size={16} color={colors.textPrimary} />}
+            onPress={() =>
+              shareLink({ type: "list", id: board.id, message: `${board.name} — ${t("a list on ReelBoard")}` })
+            }
+            style={styles.footerButton}
+          />
+          <PrimaryButton
+            label={isSharing ? t("Preparing…") : t("Share image")}
+            icon={<Share2 size={16} color={colors.accentContrast} />}
+            disabled={isSharing || movies.length === 0}
+            onPress={shareImage}
+            style={styles.footerButton}
+          />
+        </View>
       }
     >
       <ScrollView
@@ -142,6 +155,14 @@ export const BoardShareSheet = ({ visible, onClose, board, movies }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // Two ways to share, side by side: the link, and the image.
+    footerRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    footerButton: {
+      flex: 1,
+    },
     previewWrap: {
       alignItems: "center",
       paddingBottom: spacing.md,

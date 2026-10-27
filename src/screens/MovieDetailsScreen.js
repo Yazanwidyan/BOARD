@@ -26,7 +26,6 @@ import {
   Linking,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -54,6 +53,7 @@ import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
 import { getKnownMovies, getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
+import { shareLink } from "../services/shareLinks";
 import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
@@ -567,8 +567,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
   };
 
+  // With a link to its page, which anyone can open.
   const handleShare = () => {
-    Share.share({
+    shareLink({
+      type: "movie",
+      id: movie.id,
       message: t("Check out {title} ({year}) on ReelBoard — rated {value}.", {
         title: movie.title,
         year: movie.year,

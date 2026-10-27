@@ -1,11 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
-import { Share2, Trophy } from "lucide-react-native";
+import { Link2, Share2, Trophy } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
+import { shareLink } from "../services/shareLinks";
 import { useMovieStore } from "../store/movieStore";
 import { useShareCardStore } from "../store/shareCardStore";
 import { radius, shape, spacing } from "../theme/spacing";
@@ -131,12 +132,29 @@ export const CompletionShareSheet = () => {
       title={t("Share your completion")}
       subtitle={t("This is the image that gets shared")}
       footer={
-        <PrimaryButton
-          label={isSharing ? t("Preparing…") : t("Share image")}
-          icon={<Share2 size={16} color={colors.accentContrast} />}
-          disabled={isSharing}
-          onPress={shareImage}
-        />
+        <View style={styles.footerRow}>
+          <PrimaryButton
+            label={t("Share link")}
+            variant="secondary"
+            icon={<Link2 size={16} color={colors.textPrimary} />}
+            disabled={!collection}
+            onPress={() =>
+              shareLink({
+                type: "collection",
+                id: collection.id,
+                message: t("{collection} 🏆 — on ReelBoard", { collection: bragHeadline(collection) }),
+              })
+            }
+            style={styles.footerButton}
+          />
+          <PrimaryButton
+            label={isSharing ? t("Preparing…") : t("Share image")}
+            icon={<Share2 size={16} color={colors.accentContrast} />}
+            disabled={isSharing}
+            onPress={shareImage}
+            style={styles.footerButton}
+          />
+        </View>
       }
     >
       {collection && (
@@ -182,6 +200,14 @@ export const CompletionShareSheet = () => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // Two ways to share, side by side: the link, and the image.
+    footerRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    footerButton: {
+      flex: 1,
+    },
     previewWrap: {
       alignItems: "center",
       paddingBottom: spacing.md,

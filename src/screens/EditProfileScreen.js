@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../components/AppText";
 import { AvatarCropper } from "../components/AvatarCropper";
 import { CoverPickerSheet } from "../components/CoverPickerSheet";
+import { ProBadge } from "../components/ProBadge";
 import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t, useIsRTL } from "../i18n";
@@ -16,6 +17,7 @@ import { queryClient, queryKeys } from "../services/queryClient";
 import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
+import { PRO_ACCENTS, useIsPro } from "../utils/pro";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -53,6 +55,9 @@ export const EditProfileScreen = ({ navigation }) => {
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
+  const accent = useProfileStore((state) => state.accent);
+  const setAccent = useProfileStore((state) => state.setAccent);
+  const isPro = useIsPro();
   const setAvatarUri = useProfileStore((state) => state.setAvatarUri);
   const account = useAuthStore((state) => state.user);
   const watched = useMovieStore((state) => state.watched);
@@ -243,6 +248,40 @@ export const EditProfileScreen = ({ navigation }) => {
           />
         </View>
         <Text style={styles.help}>{t("Shown on your profile, as a quote.")}</Text>
+
+        {/* Pro: an accent for your ring and your PRO badge. */}
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, styles.labelInRow]}>{t("Accent")}</Text>
+          <ProBadge accent={accent} />
+        </View>
+        <View style={[styles.accents, !isPro && styles.accentsLocked]}>
+          <Pressable
+            style={[styles.accent, styles.accentNone, !accent && styles.accentOn]}
+            onPress={() => isPro && setAccent(null)}
+            disabled={!isPro}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: !accent, disabled: !isPro }}
+            accessibilityLabel={t("None")}
+          />
+          {PRO_ACCENTS.map((item) => (
+            <Pressable
+              key={item.key}
+              style={[styles.accent, { backgroundColor: item.color }, accent === item.key && styles.accentOn]}
+              onPress={() => isPro && setAccent(item.key)}
+              disabled={!isPro}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: accent === item.key, disabled: !isPro }}
+              accessibilityLabel={t(item.label)}
+            />
+          ))}
+        </View>
+        {isPro ? (
+          <Text style={styles.help}>{t("Colours your ring and your PRO badge. Friends see it too.")}</Text>
+        ) : (
+          <Pressable onPress={() => navigation.navigate("Pro")} hitSlop={6}>
+            <Text style={[styles.help, styles.helpLink]}>{t("Part of ReelBoard Pro — see what's in it")}</Text>
+          </Pressable>
+        )}
       </Animated.ScrollView>
 
       <CoverPickerSheet
@@ -430,6 +469,34 @@ const createStyles = (colors) =>
     },
     helpError: {
       color: colors.danger,
+    },
+    helpLink: {
+      color: colors.textSecondary,
+      textDecorationLine: "underline",
+    },
+    // The accent swatches: none, then each colour; the chosen one ringed.
+    accents: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+    },
+    accentsLocked: {
+      opacity: 0.45,
+    },
+    accent: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    accentNone: {
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+    },
+    accentOn: {
+      borderColor: colors.textPrimary,
     },
   });
 

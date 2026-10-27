@@ -20,6 +20,7 @@ import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import { PosterMosaic } from "../components/PosterMosaic";
+import { ProBadge } from "../components/ProBadge";
 import { ReportSheet } from "../components/ReportSheet";
 import { ProfileActivity } from "../components/ProfileActivity";
 import {
@@ -54,6 +55,7 @@ import {
   getTasteMatch,
   getTheyLovedYouHavent,
 } from "../utils/friends";
+import { accentColor } from "../utils/pro";
 import { getTitle } from "../utils/ranks";
 import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
@@ -288,9 +290,10 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           coverImage && { paddingTop: Math.round(coverHeight * COVER_ABOVE_AVATAR) },
         ]}
       >
-        <AvatarRankRing title={title} avatarSize={AVATAR}>
+        <AvatarRankRing title={title} avatarSize={AVATAR} color={(friend.pro && accentColor(friend.accent)) || undefined}>
           <FriendAvatar friend={friend} size={AVATAR} style={styles.ringAvatar} />
         </AvatarRankRing>
+        {friend.pro && <ProBadge accent={friend.accent} style={styles.proBadge} />}
         <Text style={styles.counts}>
           {friend.handle} · {t("{count} films", { count: theirWatched.length })}
           {match != null && (
@@ -617,6 +620,9 @@ const createStyles = (colors) =>
     // Their initials fill the ring's middle, no ring of their own.
     ringAvatar: {
       borderWidth: 0,
+    },
+    proBadge: {
+      marginTop: spacing.xs,
     },
     counts: {
       ...typography.caption,

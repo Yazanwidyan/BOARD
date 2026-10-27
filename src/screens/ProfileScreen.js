@@ -21,6 +21,8 @@ import Animated from "react-native-reanimated";
 
 import { Text } from "../components/AppText";
 import { AvatarRankRing } from "../components/AvatarRankRing";
+import { ProBadge } from "../components/ProBadge";
+import { TasteStats } from "../components/TasteStats";
 import { MoviePoster } from "../components/MoviePoster";
 import { PosterMosaic } from "../components/PosterMosaic";
 import { ProfileActivity } from "../components/ProfileActivity";
@@ -47,6 +49,7 @@ import { useAuthStore } from "../store/authStore";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
+import { accentColor, useIsPro } from "../utils/pro";
 import { TAB_BAR_CLEARANCE, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -111,6 +114,9 @@ export const ProfileScreen = ({ navigation }) => {
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
+  // Pro: a badge by your name, your accent on your ring (utils/pro).
+  const isPro = useIsPro();
+  const accent = useProfileStore((state) => state.accent);
   const accountHandle = useAuthStore((state) => state.user?.handle);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [topTab, setTopTab] = useState("profile");
@@ -281,15 +287,23 @@ export const ProfileScreen = ({ navigation }) => {
           accessibilityLabel={t("Your ranks")}
         >
           {ranks.title ? (
-            <AvatarRankRing source={avatarSource} title={ranks.title} avatarSize={AVATAR} />
+            <AvatarRankRing
+              source={avatarSource}
+              title={ranks.title}
+              avatarSize={AVATAR}
+              color={(isPro && accentColor(accent)) || undefined}
+            />
           ) : (
             <Image source={avatarSource} style={styles.avatar} />
           )}
         </Pressable>
         {/* Your name, under your avatar. */}
-        <Text style={styles.name} numberOfLines={2} accessibilityRole="header">
-          {displayName}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={2} accessibilityRole="header">
+            {displayName}
+          </Text>
+          {isPro && <ProBadge accent={accent} />}
+        </View>
         <Pressable onPress={() => navigation.navigate("Friends")} hitSlop={6}>
           <Text style={styles.counts}>
             {t("{count} friends", { count: friends.length })} ·{" "}
@@ -400,6 +414,11 @@ export const ProfileScreen = ({ navigation }) => {
           dna={tasteDna}
           onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
         />
+      </ProfileSection>
+
+      {/* Pro: how you tier each genre, decade and director. */}
+      <ProfileSection title={t("Taste stats")}>
+        <TasteStats watched={watched} isPro={isPro} onSeePro={() => navigation.navigate("Pro")} />
       </ProfileSection>
 
       <RecapBanner watched={watched} onOpen={() => navigation.navigate("Recap")} />
@@ -551,13 +570,20 @@ const createStyles = (colors) =>
       borderRadius: AVATAR / 2,
       backgroundColor: colors.card,
     },
+    nameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
     name: {
       ...typography.hero,
       fontSize: 24,
       lineHeight: 30,
       color: colors.textPrimary,
       textAlign: "center",
-      marginTop: spacing.xs,
+      flexShrink: 1,
     },
     counts: {
       ...typography.caption,

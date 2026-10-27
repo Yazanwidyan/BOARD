@@ -20,6 +20,7 @@ import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
+import { ProScreen } from "../screens/ProScreen";
 import { RanksScreen } from "../screens/RanksScreen";
 import { QuickLogScreen } from "../screens/QuickLogScreen";
 import { RecapScreen } from "../screens/RecapScreen";
@@ -52,8 +53,9 @@ import { TabNavigator } from "./TabNavigator";
 const Stack = createNativeStackNavigator();
 
 // Links into the app (the "reelboard" scheme in app.json): a movie night
-// invite (reelboard://night/ABC123) opens straight into the room, and
-// notifications open Friends, the recap or Decide. Only screens that exist
+// invite (reelboard://night/ABC123) opens straight into the room, a movie
+// or a collection (reelboard://movie/155) its page, and notifications open
+// Friends, the recap, Decide or a movie. Only screens that exist
 // right now can be opened: signed out, a link just opens the app.
 const LINKING = {
   prefixes: ["reelboard://"],
@@ -62,6 +64,10 @@ const LINKING = {
       GroupNight: "night/:code",
       Friends: "friends",
       Recap: "recap",
+      // Shared links' pages (the server's /m/:id and /c/:id) open these,
+      // and so do pushes about a film.
+      MovieDetails: "movie/:movieId",
+      CollectionDetails: "collection/:collectionId",
       // Old "decide" links land on Home, where deciding lives now.
       Main: { screens: { Home: "decide" } },
     },
@@ -208,6 +214,7 @@ export const AppNavigator = () => {
               component={FriendProfileScreen}
             />
             <Stack.Screen name="Ranks" component={RanksScreen} />
+            <Stack.Screen name="Pro" component={ProScreen} />
             <Stack.Screen name="TierList" component={TierListScreen} />
             {/* A profile's highlights, story-style: taps, not swipes. */}
             <Stack.Screen

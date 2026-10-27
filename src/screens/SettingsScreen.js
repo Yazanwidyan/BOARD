@@ -1,6 +1,7 @@
 import {
   Bell,
   ChevronRight,
+  Gem,
   Info,
   Languages,
   Lightbulb,
@@ -52,12 +53,15 @@ import { useProfileStore } from "../store/profileStore";
 import { useThemeStore } from "../store/themeStore";
 import { useTipsStore } from "../store/tipsStore";
 import { useLanguageStore } from "../store/languageStore";
+import { useIsPro } from "../utils/pro";
 import { changeLanguage, t, useIsRTL } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
 const APP_VERSION = "1.0.0";
+// The language switch (English / العربية) — off for now; flip to bring it back.
+const SHOW_LANGUAGE = false;
 const AVATAR_SIZE = 60;
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
@@ -78,6 +82,7 @@ export const SettingsScreen = ({ navigation }) => {
   const themeMode = useThemeStore((state) => state.mode);
   const setThemeMode = useThemeStore((state) => state.setMode);
   const language = useLanguageStore((state) => state.language);
+  const isPro = useIsPro();
   const resetTips = useTipsStore((state) => state.resetTips);
   const account = useAuthStore((state) => state.user);
 
@@ -161,6 +166,16 @@ export const SettingsScreen = ({ navigation }) => {
           </View>
         </Pressable>
 
+        <SettingsGroup title={t("ReelBoard Pro")}>
+          <SettingsRow
+            Icon={Gem}
+            label={t("ReelBoard Pro")}
+            hint={t("Deeper taste stats and profile style")}
+            value={isPro ? t("Active") : t("Coming soon")}
+            onPress={() => navigation.navigate("Pro")}
+          />
+        </SettingsGroup>
+
         <SettingsGroup title={t("Your taste")}>
           <SettingsRow
             Icon={SlidersHorizontal}
@@ -183,17 +198,21 @@ export const SettingsScreen = ({ navigation }) => {
             ]}
           />
           {/* Each language in its own script. Switching is instant —
-              Arabic also mirrors the layout right-to-left. */}
-          <SettingsChoice
-            Icon={Languages}
-            label={t("Language")}
-            value={language}
-            onChange={changeLanguage}
-            options={[
-              { key: "en", label: "English" },
-              { key: "ar", label: "العربية" },
-            ]}
-          />
+              Arabic also mirrors the layout right-to-left. Hidden for now
+              (SHOW_LANGUAGE), except to someone already in Arabic, so
+              they can switch back. */}
+          {(SHOW_LANGUAGE || language !== "en") && (
+            <SettingsChoice
+              Icon={Languages}
+              label={t("Language")}
+              value={language}
+              onChange={changeLanguage}
+              options={[
+                { key: "en", label: "English" },
+                { key: "ar", label: "العربية" },
+              ]}
+            />
+          )}
           <SettingsRow
             Icon={Bell}
             label={t("Notifications")}
