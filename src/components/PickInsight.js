@@ -54,10 +54,7 @@ export const PickInsight = ({ insight, tag }) => {
       {!!sagaLine && (
         <View style={styles.saga}>
           <SagaIcon size={14} color={colors.rating} strokeWidth={2} />
-          <Text
-            style={[styles.sagaText, isRank && styles.sagaTextRank]}
-            numberOfLines={2}
-          >
+          <Text style={[styles.sagaText, isRank && styles.sagaTextRank]}>
             {sagaLine}
           </Text>
         </View>
@@ -65,7 +62,7 @@ export const PickInsight = ({ insight, tag }) => {
       {!!rankLine && (
         <View style={styles.saga}>
           <RankIcon size={14} color={colors.rating} strokeWidth={2} />
-          <Text style={[styles.sagaText, earnsRank && styles.sagaTextRank]} numberOfLines={2}>
+          <Text style={[styles.sagaText, earnsRank && styles.sagaTextRank]}>
             {rankLine}
           </Text>
         </View>

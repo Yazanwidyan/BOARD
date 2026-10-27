@@ -202,31 +202,38 @@ export const HomeHero = ({
               )}
             </View>
           )}
-          {!!sagaLine && (
-            <View style={styles.note}>
-              {isRankStep ? (
-                <Crown size={13} color={colors.rating} strokeWidth={2} />
-              ) : (
-                <Layers size={13} color={colors.rating} strokeWidth={2} />
-              )}
-              <Text style={styles.noteText} numberOfLines={1}>
-                {sagaLine}
-              </Text>
-            </View>
-          )}
-          {!!rankLine && (
-            <View style={styles.note}>
-              {earnsRank ? (
-                <Crown size={13} color={colors.rating} strokeWidth={2} />
-              ) : (
-                <TrendingUp size={13} color={colors.rating} strokeWidth={2} />
-              )}
-              <Text style={styles.noteText} numberOfLines={1}>
-                {rankLine}
-              </Text>
-            </View>
-          )}
         </View>
+
+        {/* What it does for a collection and your ranks: the card's full
+            width, under the words. */}
+        {(!!sagaLine || !!rankLine) && (
+          <View style={styles.notes}>
+            {!!sagaLine && (
+              <View style={styles.note}>
+                {isRankStep ? (
+                  <Crown size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
+                ) : (
+                  <Layers size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
+                )}
+                <Text style={styles.noteText}>
+                  {sagaLine}
+                </Text>
+              </View>
+            )}
+            {!!rankLine && (
+              <View style={styles.note}>
+                {earnsRank ? (
+                  <Crown size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
+                ) : (
+                  <TrendingUp size={13} color={colors.rating} strokeWidth={2} style={styles.noteIcon} />
+                )}
+                <Text style={styles.noteText}>
+                  {rankLine}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {!!thinking && (
           <Animated.View
@@ -327,9 +334,13 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     // What it does for a collection or your ranks, in slate.
+    notes: {
+      marginTop: 2,
+    },
+    // A line with its icon; long lines wrap, the icon by the first.
     note: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 6,
       marginTop: 4,
     },
@@ -338,6 +349,14 @@ const createStyles = (colors) =>
       lineHeight: 16,
       color: colors.rating,
       flexShrink: 1,
+      // Past the words' column the image is brighter: a soft shadow keeps
+      // the line readable.
+      textShadowColor: "rgba(0, 0, 0, 0.6)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+    },
+    noteIcon: {
+      marginTop: 1.5,
     },
     match: {
       alignSelf: "flex-start",

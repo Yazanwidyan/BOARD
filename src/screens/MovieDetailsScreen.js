@@ -8,13 +8,16 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Crown,
   Ellipsis,
   Eye,
+  Layers,
   LayoutGrid,
   Play,
   RotateCw,
   Share2,
   Sparkles,
+  TrendingUp,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -68,8 +71,11 @@ import {
   getSagaForPerson,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
+import { describeForecast, makeRankForecast } from "../utils/ranks";
 import { getMovieMatch, getTastePicks } from "../utils/tasteEngine";
 import { getAverageTier, getTier, getTierInfo } from "../utils/tiers";
+import { describeSagaStep, getSagaStep } from "../utils/tonightPick";
+import { countFinishedDares } from "../utils/useRanks";
 import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
@@ -424,6 +430,18 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     () => getMovieMatch(watched, movie),
     [watched, movie],
   );
+  // What watching it would do for you (not for movies you've watched): its
+  // step in a collection ("Makes you Capo in Say Hello"), and for your
+  // ranks — the same lines as Home's pick.
+  const dareHistory = useChallengeStore((state) => state.history);
+  const { sagaStep, forecast } = useMemo(() => {
+    const seen = new Set(watched.map((entry) => entry.movieId));
+    if (!movie || seen.has(movieId)) return { sagaStep: null, forecast: null };
+    return {
+      sagaStep: getSagaStep(movieId, seen),
+      forecast: makeRankForecast(watched, countFinishedDares(dareHistory))(movie),
+    };
+  }, [watched, movie, movieId, dareHistory]);
 
   if (!movie) {
     return (
@@ -450,6 +468,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const similarMovies = getMoreLikeThis(movie, like.data?.similar, watched);
   const directorMovies = getDirectorMovies(movie);
   const directorSaga = getSagaForPerson(movie.director);
+  const sagaLine = describeSagaStep(sagaStep);
+  const rankLine = forecast ? describeForecast(forecast) : null;
+  const earnsRank = (forecast?.gained.length ?? 0) > 0;
   const details = movie.details;
   // The cast with photos and characters comes with the movie's page — read
   // from the page itself, since other copies of the movie (in lists, the
@@ -646,9 +667,25 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.byline} numberOfLines={1}>
                 {t("{year} · Directed by", { year: movie.year })}
               </Text>
-              <Text style={styles.director} numberOfLines={2}>
-                {movie.director}
-              </Text>
+              {/* The director opens their collection, when they have one. */}
+              {directorSaga ? (
+                <Pressable
+                  style={({ pressed }) => pressed && styles.actionPressed}
+                  onPress={() => navigation.push("CollectionDetails", { collectionId: directorSaga.id })}
+                  accessibilityRole="link"
+                  accessibilityHint={t("Opens {title}", { title: directorSaga.title })}
+                  hitSlop={6}
+                >
+                  <Text style={styles.director} numberOfLines={2}>
+                    {movie.director}
+                    <Text style={styles.directorMore}> ›</Text>
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.director} numberOfLines={2}>
+                  {movie.director}
+                </Text>
+              )}
               {/* ▶ TRAILER, then how long (and its rating). */}
               <View style={styles.trailerRow}>
                 <TrailerButton onPress={handleWatchTrailer} styles={styles} colors={colors} />
@@ -707,6 +744,43 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             {/* First: the tagline and the overview, then what's yours (a
                 dare, your history). */}
             <View style={styles.overviewTop}>
+            {/* What watching it does for you: a step in a collection, and
+                for your ranks — each line whole, and a way in. */}
+            {(sagaLine || rankLine) && (
+              <View style={styles.gains}>
+                {!!sagaLine && (
+                  <Pressable
+                    style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
+                    onPress={() => navigation.push("CollectionDetails", { collectionId: sagaStep.collection.id })}
+                    accessibilityRole="button"
+                  >
+                    {sagaStep.type === "rank" ? (
+                      <Crown size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
+                    ) : (
+                      <Layers size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
+                    )}
+                    <Text style={[styles.gainText, sagaStep.type === "rank" && styles.gainTextStrong]}>{sagaLine}</Text>
+                    <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
+                  </Pressable>
+                )}
+                {!!sagaLine && !!rankLine && <View style={styles.gainDivider} />}
+                {!!rankLine && (
+                  <Pressable
+                    style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
+                    onPress={() => navigation.push("Ranks")}
+                    accessibilityRole="button"
+                  >
+                    {earnsRank ? (
+                      <Crown size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
+                    ) : (
+                      <TrendingUp size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
+                    )}
+                    <Text style={[styles.gainText, earnsRank && styles.gainTextStrong]}>{rankLine}</Text>
+                    <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
+                  </Pressable>
+                )}
+              </View>
+            )}
             {/* Its tagline in small caps, then the overview; the chevron for
                 the rest. */}
             {!!details?.tagline && (
@@ -1617,6 +1691,9 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginTop: 2,
     },
+    directorMore: {
+      color: colors.textSecondary,
+    },
     trailerRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -1678,6 +1755,37 @@ const createStyles = (colors) =>
     // The Overview tab's opening: the same gap the other tabs' headings get.
     overviewTop: {
       marginTop: spacing.lg,
+    },
+    // What watching it does for you: a card of lines above the tagline.
+    gains: {
+      marginBottom: spacing.lg,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      overflow: "hidden",
+    },
+    gain: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
+    },
+    gainDivider: {
+      height: StyleSheet.hairlineWidth,
+      marginStart: spacing.md + 16 + spacing.sm + 2,
+      backgroundColor: colors.border,
+    },
+    gainIcon: {
+      marginTop: 2,
+    },
+    gainText: {
+      ...typography.body,
+      flex: 1,
+      color: colors.textSecondary,
+    },
+    gainTextStrong: {
+      ...typography.bodyBold,
+      color: colors.rating,
     },
     tabEmpty: {
       ...typography.body,

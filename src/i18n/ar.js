@@ -1611,6 +1611,7 @@ const ar = {
   "Tell us what you saw": "أخبرنا بما رأيت",
   "Thanks — we'll take a look.": "شكرًا — سنلقي نظرة.",
   "You've already reported this — we're on it.": "سبق أن أبلغت عن هذا — نحن نتابعه.",
+  "Opens {title}": "يفتح {title}",
   // Welcome
   "Tier {title}.": "صنّف {title}.",
   "See how {title} fits your taste.": "اعرف مدى تطابق {title} مع ذوقك.",
