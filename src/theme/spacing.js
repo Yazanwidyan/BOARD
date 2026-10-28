@@ -11,12 +11,12 @@ export const spacing = {
 // tabs and filter chips (the Library tab's pill), round pills and tags,
 // posters, and sheets' tops.
 export const shape = {
-  card: 16,
-  control: 8,
-  tab: 7,
+  card: 12,
+  control: 6,
+  tab: 6,
   chip: 999,
-  poster: 4,
-  sheet: 14,
+  poster: 3,
+  sheet: 12,
 };
 
 export const radius = {

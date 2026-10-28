@@ -77,7 +77,7 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
 
   const ways = [
     { key: "wildcard", Icon: Dices, label: t("Surprise me"), hint: t("One film, a surprise"), onPress: onWildcard },
-    { key: "swipe", Icon: Layers, label: t("Swipe instead"), hint: t("Narrow ten down to one"), onPress: onSwipe },
+    { key: "swipe", Icon: Layers, label: t("Sort a pile"), hint: t("Your watchlist, a genre and more"), onPress: onSwipe },
     { key: "similar", Icon: Heart, label: t("More like…"), hint: t("Films like one you love"), onPress: onSimilar },
     {
       key: "dare",

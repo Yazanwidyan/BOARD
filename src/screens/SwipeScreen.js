@@ -202,15 +202,16 @@ export const SwipeScreen = ({ navigation }) => {
   const activeMovie = roundMovies[roundIndex];
   const waiting = roundMovies.slice(roundIndex, roundIndex + CARDS_RENDERED);
   const frontCardRef = useRef(null);
-  // The front card's drag (see StorySwipeCard): up toward keep is negative.
-  const dragY = useSharedValue(0);
-  // Green rises from the top as you drag up to keep; red from the bottom as
-  // you drag down to pass — full at the line.
+  // The front card's drag (see StorySwipeCard): right toward keep is
+  // positive.
+  const drag = useSharedValue(0);
+  // Green comes in from the right as you drag right to keep; red from the
+  // left as you drag left to pass — full at the line.
   const keepGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(dragY.value, [-1, -0.08], [1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(drag.value, [0.08, 1], [0, 1], Extrapolation.CLAMP),
   }));
   const passGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(dragY.value, [0.08, 1], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(drag.value, [-1, -0.08], [1, 0], Extrapolation.CLAMP),
   }));
 
   const handleKeep = useCallback(() => swipe("right"), [swipe]);
@@ -412,19 +413,23 @@ export const SwipeScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
       <Backdrop uri={activeMovie?.poster} colors={colors} />
-      {/* Keep / pass, felt at the screen's edges: green at the top, red at
-          the bottom, following the drag. */}
-      <Animated.View pointerEvents="none" style={[styles.glowTop, keepGlowStyle]}>
+      {/* Keep / pass, felt at the screen's sides: green on the right, red on
+          the left, following the drag. */}
+      <Animated.View pointerEvents="none" style={[styles.glowRight, keepGlowStyle]}>
         <LinearGradient
-          colors={[`${colors.success}8C`, `${colors.success}26`, `${colors.success}00`]}
-          locations={[0, 0.45, 1]}
+          colors={[`${colors.success}00`, `${colors.success}26`, `${colors.success}8C`]}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.glowBottom, passGlowStyle]}>
+      <Animated.View pointerEvents="none" style={[styles.glowLeft, passGlowStyle]}>
         <LinearGradient
-          colors={[`${colors.danger}00`, `${colors.danger}26`, `${colors.danger}8C`]}
-          locations={[0, 0.55, 1]}
+          colors={[`${colors.danger}8C`, `${colors.danger}26`, `${colors.danger}00`]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
@@ -459,7 +464,7 @@ export const SwipeScreen = ({ navigation }) => {
                 onKeep={handleKeep}
                 onPass={handlePass}
                 onPress={() => openDetails(movie)}
-                dragY={front ? dragY : undefined}
+                drag={front ? drag : undefined}
               />
             );
           })}
@@ -476,7 +481,7 @@ export const SwipeScreen = ({ navigation }) => {
           </Text>
           {roundNumber === 1 && roundIndex === 0 && (
             <Text style={styles.hint}>
-              {t("Swipe up to keep · down to pass")}
+              {t("Swipe right to keep · left to pass")}
             </Text>
           )}
         </View>
@@ -581,19 +586,19 @@ const createStyles = (colors) =>
 
     // Swiping
     // The keep / pass glows: the top and bottom 40% of the screen.
-    glowTop: {
+    glowRight: {
       position: "absolute",
       top: 0,
-      start: 0,
-      end: 0,
-      height: "40%",
-    },
-    glowBottom: {
-      position: "absolute",
       bottom: 0,
-      start: 0,
-      end: 0,
-      height: "40%",
+      right: 0,
+      width: "45%",
+    },
+    glowLeft: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: "45%",
     },
     stage: {
       flex: 1,

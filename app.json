@@ -15,7 +15,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#0E1013",
         "foregroundImage": "./assets/reelboard-android-foreground.png",
         "backgroundImage": "./assets/reelboard-android-background.png",
         "monochromeImage": "./assets/reelboard-android-monochrome.png"

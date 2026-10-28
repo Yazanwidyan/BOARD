@@ -12,10 +12,10 @@ export const darkColors = {
   isDark: true,
 
   // The page under the header: Letterboxd's blue-grey.
-  background: "#14181C",
+  background: "#171c20",
 
   // The header bars (and the tab bars pinned under them): near-black.
-  headerBackground: "#0E1013",
+  headerBackground: "#0d0f13",
 
   card: "#1C2228",
 

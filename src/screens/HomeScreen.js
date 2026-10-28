@@ -1,15 +1,14 @@
 import * as Haptics from "expo-haptics";
-import { Bell, Check, Flame, Plus, Shuffle, ThumbsDown } from "lucide-react-native";
+import { Bell } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
 import { Text } from "../components/AppText";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -17,9 +16,7 @@ import {
 
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
-import { RoundAction } from "../components/RoundAction";
-import { TonightIcon } from "../components/icons/TonightIcon";
-import { ReelBoardIcon } from "../components/icons/TabIcons";
+import { TonightThree, moodFits } from "../components/TonightThree";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DecideWays } from "../components/QuickPickBento";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -38,15 +35,12 @@ import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useMovieStore } from "../store/movieStore";
-import { recordPass, undoPass, useTasteStore } from "../store/tasteStore";
-import { showToast } from "../store/toastStore";
+import { recordPass, useTasteStore } from "../store/tasteStore";
 import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { getInProgressCollections } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
-import { formatRuntime } from "../utils/movieFilters";
 import { getTonightSuggestions } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
@@ -57,8 +51,6 @@ import { HomeFriends } from "../components/HomeFriends";
 
 // The space between Home's sections.
 const SECTION_GAP = 20;
-// How long a pass can be undone.
-const UNDO_MS = 4000;
 // Shelf rail item width (it includes its own side padding).
 const BOX_ITEM = 142;
 
@@ -106,12 +98,14 @@ const DecideHeroCard = ({
   }
 
   // Its name is inside the card, as its eyebrow.
-  return <SuggestionCard navigation={navigation} refreshCount={refreshCount} scrollY={scrollY} />;
+  return <SuggestionCard navigation={navigation} refreshCount={refreshCount} />;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// Up to seven to step through, then round again.
-const SUGGESTION_PAGES = 7;
+// How many suggestions to draw from — enough for a few moods' worth of three.
+const POOL_SIZE = 45;
+// Passed over with "3 more" this many times: a quiet "not for me".
+const QUIET_PASS_AFTER = 2;
 
 const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
@@ -122,137 +116,71 @@ const timeAgo = (timestamp) => {
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
-// Home's slot when there's no Tonight's Pick: one suggestion at a time, in
-// the same card as Tonight's pick (HomeHero) — the best fits for your taste
-// (utils/tonightPick), lifted when they're on your watchlist or move a saga
-// along — with why and how well it fits, a button to make it tonight's
-// pick, and ⇄ (or a pull to refresh) to step to the next, which fades
-// in.
-const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
+// Home's slot when there's no Tonight's Pick: "Your 3 for tonight"
+// (TonightThree) — the best fits for your taste (utils/tonightPick), three
+// at a time, narrowed by a mood. Tap one for its page; "3 more" (or a pull
+// to refresh) brings the next three — and a film you've passed over twice
+// that way counts as a quiet "not for me".
+const SuggestionCard = ({ navigation, refreshCount }) => {
   const colors = useColors();
-  const styles = createStyles(colors);
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const dares = countFinishedDares(useChallengeStore((state) => state.history));
-  const [step, setStep] = useState(0);
   const passes = useTasteStore((state) => state.passes);
-  // After an Undo: the film to bring back into view.
-  const [focusId, setFocusId] = useState(null);
-  const candidates = useMemo(
-    () => getTonightSuggestions(watched, bucketList, dares, passes),
+  const [mood, setMood] = useState("any");
+  const [page, setPage] = useState(0);
+  // How often each film has been shown and passed over with "3 more".
+  const skipped = useRef(new Map());
+  const pool = useMemo(
+    () => getTonightSuggestions(watched, bucketList, dares, passes, POOL_SIZE),
     [watched, bucketList, dares, passes],
   );
-  // Back to the film you undid "Not for me" on, once it's in the list again.
-  useEffect(() => {
-    if (!focusId) return;
-    const index = candidates.findIndex((item) => item.movie.id === focusId);
-    if (index >= 0) setStep(index);
-    setFocusId(null);
-  }, [candidates, focusId]);
+  const fitting = pool.filter((item) => moodFits(item.movie, mood));
+  const pages = Math.max(1, Math.ceil(fitting.length / 3));
+  const shown = fitting.slice((page % pages) * 3, (page % pages) * 3 + 3);
 
-  // A pull to refresh steps on too.
+  const more = () => {
+    Haptics.selectionAsync();
+    shown.forEach(({ movie }) => {
+      const times = (skipped.current.get(movie.id) ?? 0) + 1;
+      skipped.current.set(movie.id, times);
+      if (times >= QUIET_PASS_AFTER) recordPass(movie.id);
+    });
+    setPage((value) => value + 1);
+  };
+  // A pull to refresh: the next three.
   const lastRefresh = useRef(refreshCount);
   useEffect(() => {
     if (refreshCount !== lastRefresh.current) {
       lastRefresh.current = refreshCount;
-      setStep((value) => value + 1);
+      setPage((value) => value + 1);
     }
   }, [refreshCount]);
 
-  if (candidates.length === 0) return null;
+  if (pool.length === 0) return null;
 
-  const pageCount = Math.min(candidates.length, SUGGESTION_PAGES);
-  const page = step % pageCount;
-  const suggestion = candidates[page];
-  const { movie, savedAt, angle } = suggestion;
-  const isSaved = bucketList.some((entry) => entry.movieId === movie.id);
-  const next = () => {
-    Haptics.selectionAsync();
-    setStep((value) => value + 1);
-  };
-  // Why it's here, as its tag — a watchlist save says when.
-  const tag =
+  // One short reason each: why it's here (not the taste engine's "feels
+  // like…" — that's on its page).
+  const reasonOf = ({ angle, savedAt }) =>
     angle.key === "saved"
-      ? {
-          text: savedAt
-            ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
-            : t("On your watchlist"),
-        }
-      : {
-          text: t(angle.label),
-          color:
-            angle.key === "rank" || angle.key === "craft"
-              ? colors.rating
-              : angle.key === "saga"
-                ? colors.collection
-                : undefined,
-        };
+      ? savedAt
+        ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
+        : t("On your watchlist")
+      : t(angle.label);
+
   return (
-    // Keyed on the film, so each new one fades in fresh (its logo too).
-    <Animated.View key={movie.id} entering={FadeIn.duration(350)}>
-    <HomeHero
-      scrollY={scrollY}
-      posterUri={movie.poster}
-      backdropUri={movie.backdrop}
-      logo={movie.details?.logo}
-      eyebrow={t("Suggested for tonight")}
-      eyebrowIcon={Flame}
-      title={movie.title}
-      meta={[movie.year, movie.genres?.[0] && t(movie.genres[0]), movie.runtime ? formatRuntime(movie.runtime) : null]
-        .filter(Boolean)
-        .join(" · ")}
-      rated={movie.details?.rated}
-      description={movie.description}
-      match={suggestion.match}
-      tag={tag}
-      onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-      actions={
-        <>
-          <RoundAction
-            Icon={TonightIcon}
-            label={t("Tonight")}
-            a11yLabel={t("Pick for tonight")}
-            onPress={() => {
-              Haptics.selectionAsync();
-              togglePickedMovie(movie.id);
-            }}
-          />
-          <RoundAction
-            Icon={isSaved ? Check : Plus}
-            on={isSaved}
-            label={isSaved ? t("Saved") : t("Watchlist")}
-            onPress={() => toggleBucketListWithFeedback(movie.id)}
-          />
-          <RoundAction
-            Icon={ThumbsDown}
-            label={t("Not for me")}
-            onPress={() => {
-              // A pass, straight away: this film won't come back, and films
-              // like it drop — the list refreshes, so the next one is
-              // already in its place. Undo takes it back.
-              const passed = movie.id;
-              Haptics.selectionAsync();
-              recordPass(passed);
-              showToast(t("Got it — fewer like this"), {
-                duration: UNDO_MS,
-                action: {
-                  label: t("Undo"),
-                  onPress: () => {
-                    undoPass(passed);
-                    setFocusId(passed);
-                  },
-                },
-              });
-            }}
-          />
-          {pageCount > 1 && (
-            <RoundAction Icon={Shuffle} label={t("Try another")} onPress={next} />
-          )}
-        </>
-      }
+    <TonightThree
+      picks={shown.map((item) => ({ movie: item.movie, match: item.match, reason: reasonOf(item) }))}
+      mood={mood}
+      onMood={(key) => {
+        Haptics.selectionAsync();
+        setMood(key);
+        setPage(0);
+      }}
+      onMore={more}
+      onOpen={(film) => navigation.navigate("MovieDetails", { movieId: film.id })}
     />
-    </Animated.View>
   );
 };
 
@@ -368,11 +296,7 @@ export const HomeScreen = ({ navigation }) => {
             onRefresh={onRefresh}
             // The page starts under the tabs, so the spinner does too.
             progressViewOffset={0}
-            // iOS: no spinner — the header logo spins instead.
-            // Android can't report the pull, so it keeps its spinner.
-            tintColor={
-              Platform.OS === "ios" ? "transparent" : colors.textSecondary
-            }
+            tintColor={colors.textSecondary}
             colors={[colors.textPrimary]}
             progressBackgroundColor={colors.card}
           />
@@ -389,10 +313,7 @@ export const HomeScreen = ({ navigation }) => {
         <>
         <View style={[styles.section, styles.firstSection, styles.heroSection]}>
           {pickedMovieId ? (
-            <TonightsPickCard
-              navigation={navigation}
-              scrollY={header.scrollY}
-            />
+            <TonightsPickCard navigation={navigation} />
           ) : (
             <DecideHeroCard
               isFreshAccount={isFreshAccount}
@@ -509,10 +430,8 @@ export const HomeScreen = ({ navigation }) => {
       />
       <DockHeader
         {...header.props}
-        refreshing={refreshing}
         title={t("ReelBoard")}
         wordmark
-        logo={<ReelBoardIcon size={24} color={colors.textPrimary} />}
         right={
           <HeaderIconButton
             onPress={() => {

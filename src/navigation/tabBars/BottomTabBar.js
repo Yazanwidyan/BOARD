@@ -1,15 +1,17 @@
 import * as Haptics from "expo-haptics";
-import { Bookmark, House, Plus, User } from "lucide-react-native";
+import { Bookmark, Plus, User } from "lucide-react-native";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SearchTabIcon } from "../../components/icons/TabIcons";
+import { ReelBoardIcon, SearchTabIcon } from "../../components/icons/TabIcons";
 import { t } from "../../i18n";
 import { useProfileStore } from "../../store/profileStore";
 import { useColors } from "../../theme/useColors";
 
 // The bar's own height, above the home indicator.
 const BAR_HEIGHT = 52;
+// How far in from each side the icons start — the tabs share the rest.
+const SIDE_INSET = 14;
 const ICON = 24;
 // Lines: thin at rest, a touch bolder on the open tab.
 const STROKE = 1.7;
@@ -38,11 +40,11 @@ const ProfileTabIcon = ({ size, color, open, strokeWidth }) => {
   );
 };
 
-// Each tab's icon — simple line icons — and its name (for screen readers;
-// nothing is written under the icons). The ＋ (Log) is an action, not a
+// Each tab's icon — simple line icons, and the app's own reel for Home —
+// and its name (for screen readers; nothing is written under the icons). The ＋ (Log) is an action, not a
 // place: it opens quick log, and is never the open tab.
 const TABS = {
-  Home: { label: "Home", Icon: House },
+  Home: { label: "Home", Icon: ReelBoardIcon },
   Discover: { label: "Discover", Icon: SearchTabIcon },
   Log: { label: "Add", Icon: Plus, action: true },
   Library: { label: "Library", Icon: Bookmark },
@@ -101,6 +103,8 @@ const createStyles = (colors) =>
       end: 0,
       bottom: 0,
       flexDirection: "row",
+      // In from the sides, so the icons sit closer together.
+      paddingHorizontal: SIDE_INSET,
       backgroundColor: colors.headerBackground,
     },
     item: {

@@ -36,27 +36,28 @@ const BEHIND_OPACITY = 0.45;
 // The words on the green / red bars.
 const INK = "#0C0C0C";
 
-// One movie in Swipe's story mode: a big poster, square corners. Swipe up to
-// keep (it flies up and away), down to pass (it drops off the bottom), tap
-// for details. "Keep" (green) / "Pass" (red) fade in on the poster as you
-// drag, with a tick the moment the drag is far enough to count. The screen
-// drives the same exits from its buttons through the ref (`trigger`), and
-// can follow the drag through `dragY` (a shared value: 0 at rest, -1 at the
-// keep line, 1 at the pass line, beyond as it flies off) — Swipe uses it
-// for the green / red glows at the screen's edges.
+// One movie in Swipe's story mode: a big poster, square corners. Swipe right
+// to keep (it flies off to the right), left to pass (off to the left) — the
+// same as Home's deck — tap for details. "Keep" (green) / "Pass" (red) fade
+// in on the poster as you drag, with a tick the moment the drag is far
+// enough to count. The screen drives the same exits from its buttons
+// through the ref (`trigger`), and can follow the drag through `drag` (a
+// shared value: 0 at rest, 1 at the keep line, -1 at the pass line, beyond
+// as it flies off) — Swipe uses it for the green / red glows at the
+// screen's sides.
 //
 // Each card owns its movement, and the same card instance moves from
 // "behind" to "front" — so nothing flashes or pops between movies.
 export const StorySwipeCard = forwardRef(
-  ({ movie, width, height, front = false, onKeep, onPass, onPress, dragY }, ref) => {
+  ({ movie, width, height, front = false, onKeep, onPass, onPress, drag }, ref) => {
     const colors = useColors();
-    const translateY = useSharedValue(0);
+    const translateX = useSharedValue(0);
     // True while a finger is on the card (not while it flies off).
     const dragging = useSharedValue(false);
     const exitOpacity = useSharedValue(1);
     const depth = useSharedValue(front ? 1 : 0); // 0 = behind, 1 = front
     const exiting = useRef(false);
-    const threshold = height * 0.22;
+    const threshold = width * 0.28;
 
     useEffect(() => {
       depth.value = withTiming(front ? 1 : 0, { duration: SETTLE_DURATION });
@@ -64,27 +65,27 @@ export const StorySwipeCard = forwardRef(
 
     const finish = useCallback(
       (keep) => {
-        if (dragY) dragY.value = withTiming(0, { duration: SETTLE_DURATION });
+        if (drag) drag.value = withTiming(0, { duration: SETTLE_DURATION });
         if (keep) onKeep?.(movie);
         else onPass?.(movie);
       },
-      [movie, onKeep, onPass, dragY],
+      [movie, onKeep, onPass, drag],
     );
 
     // The front card's drag, for the screen's glows.
     useAnimatedReaction(
-      () => (front ? translateY.value / threshold : null),
+      () => (front ? translateX.value / threshold : null),
       (progress) => {
-        if (progress != null && dragY) dragY.value = progress;
+        if (progress != null && drag) drag.value = progress;
       },
-      [front, threshold, dragY],
+      [front, threshold, drag],
     );
     // A tick when a drag crosses the keep or pass line (either way).
     useAnimatedReaction(
       () => {
         if (!dragging.value) return 0;
-        if (translateY.value < -threshold) return -1;
-        if (translateY.value > threshold) return 1;
+        if (translateX.value > threshold) return 1;
+        if (translateX.value < -threshold) return -1;
         return 0;
       },
       (side, previous) => {
@@ -103,13 +104,13 @@ export const StorySwipeCard = forwardRef(
           duration: EXIT_DURATION,
           easing: Easing.in(Easing.quad),
         };
-        translateY.value = withTiming((keep ? -1 : 1) * height * 1.3, timing);
+        translateX.value = withTiming((keep ? 1 : -1) * width * 1.5, timing);
         exitOpacity.value = withTiming(0, timing, (finished) => {
           "worklet";
           if (finished) runOnJS(finish)(keep);
         });
       },
-      [height, translateY, exitOpacity, finish],
+      [width, translateX, exitOpacity, finish],
     );
 
     useImperativeHandle(
@@ -124,24 +125,24 @@ export const StorySwipeCard = forwardRef(
 
     const pan = Gesture.Pan()
       .enabled(front)
-      .activeOffsetY([-12, 12])
-      .failOffsetX([-24, 24])
+      .activeOffsetX([-12, 12])
+      .failOffsetY([-24, 24])
       .onBegin(() => {
         dragging.value = true;
       })
       .onUpdate((event) => {
-        translateY.value = event.translationY;
+        translateX.value = event.translationX;
       })
       .onFinalize(() => {
         dragging.value = false;
       })
       .onEnd((event) => {
-        const keep = event.translationY < -threshold || event.velocityY < -900;
-        const pass = event.translationY > threshold || event.velocityY > 900;
+        const keep = event.translationX > threshold || event.velocityX > 900;
+        const pass = event.translationX < -threshold || event.velocityX < -900;
         if (keep || pass) {
           runOnJS(exit)(keep);
         } else {
-          translateY.value = withTiming(0, { duration: SETTLE_DURATION });
+          translateX.value = withTiming(0, { duration: SETTLE_DURATION });
         }
       });
 
@@ -157,9 +158,9 @@ export const StorySwipeCard = forwardRef(
     const cardStyle = useAnimatedStyle(() => {
       const scale = interpolate(depth.value, [0, 1], [BEHIND_SCALE, 1]);
       const tilt = interpolate(
-        translateY.value,
-        [-height, 0, height],
-        [-3, 0, 3],
+        translateX.value,
+        [-width, 0, width],
+        [-10, 0, 10],
         Extrapolation.CLAMP,
       );
       return {
@@ -167,7 +168,7 @@ export const StorySwipeCard = forwardRef(
           exitOpacity.value *
           interpolate(depth.value, [0, 1], [BEHIND_OPACITY, 1]),
         transform: [
-          { translateY: translateY.value },
+          { translateX: translateX.value },
           { rotate: `${tilt}deg` },
           { scale },
         ],
@@ -176,17 +177,17 @@ export const StorySwipeCard = forwardRef(
 
     const keepStyle = useAnimatedStyle(() => ({
       opacity: interpolate(
-        translateY.value,
-        [-threshold, -12],
-        [1, 0],
+        translateX.value,
+        [12, threshold],
+        [0, 1],
         Extrapolation.CLAMP,
       ),
     }));
     const passStyle = useAnimatedStyle(() => ({
       opacity: interpolate(
-        translateY.value,
-        [12, threshold],
-        [0, 1],
+        translateX.value,
+        [-threshold, -12],
+        [1, 0],
         Extrapolation.CLAMP,
       ),
     }));

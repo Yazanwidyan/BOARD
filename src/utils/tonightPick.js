@@ -143,8 +143,15 @@ const RECENT_PASS_DAYS = 3;
 // history for taste: your watchlist, oldest save first, then well-rated
 // films you haven't seen — each still saying what it does for your ranks.
 // `passes` (tasteStore): films you said "Not for me" to never come back,
-// and the latest few bring fewer like them.
-export const getTonightSuggestions = (watched, bucketList, dares = 0, passes = []) => {
+// and the latest few bring fewer like them. `count`: how many (more, to
+// filter down by mood).
+export const getTonightSuggestions = (
+  watched,
+  bucketList,
+  dares = 0,
+  passes = [],
+  count = SUGGESTION_COUNT,
+) => {
   const passedIds = new Set(passes.map((pass) => pass.movieId));
   const since = Date.now() - RECENT_PASS_DAYS * 86400000;
   const rejected = passes
@@ -216,5 +223,5 @@ export const getTonightSuggestions = (watched, bucketList, dares = 0, passes = [
     .filter((pick) => !passedIds.has(pick.movie.id))
     .sort((a, b) => b.score - a.score)
     .map((pick) => describe(pick.movie, { match: pick.match, reason: pick.reasons[0] ?? null }));
-  return takeTurns(candidates, SUGGESTION_COUNT);
+  return takeTurns(candidates, count);
 };

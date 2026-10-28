@@ -46,6 +46,7 @@ import { useProfileStore } from "../store/profileStore";
 import { accentColor, useIsPro } from "../utils/pro";
 import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
+import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { useColors } from "../theme/useColors";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { getCollectionProgress, getSagas } from "../utils/collections";
@@ -123,6 +124,7 @@ export const ProfileScreen = ({ navigation }) => {
     .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean);
   const header = useDockHeader();
+  const coverStyle = useStretchyBackdropStyle(header.scrollY, coverHeight);
 
   const taste = getTasteProfile(watched);
   const tasteDna = getTasteDna(watched);
@@ -207,16 +209,18 @@ export const ProfileScreen = ({ navigation }) => {
 
   const profileTab = (
     <>
-      {/* Your cover, fading into the page behind your avatar. */}
+      {/* Your cover, fading into the page behind your avatar — it stretches
+          when you pull down and drifts behind the page as you scroll, like
+          a movie's backdrop. */}
       {coverImage && (
-        <View pointerEvents="none" style={[styles.cover, { height: coverHeight }]}>
+        <Animated.View pointerEvents="none" style={[styles.cover, { height: coverHeight }, coverStyle]}>
           <Image source={{ uri: coverImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <LinearGradient
             colors={[`${colors.background}00`, `${colors.background}66`, colors.background]}
             locations={[0, 0.6, 1]}
             style={StyleSheet.absoluteFill}
           />
-        </View>
+        </Animated.View>
       )}
 
       {/* You: your avatar, your friends and films, your bio. */}

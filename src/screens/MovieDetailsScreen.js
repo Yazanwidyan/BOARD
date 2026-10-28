@@ -17,6 +17,7 @@ import {
   Play,
   RotateCw,
   Share2,
+  Star,
   TrendingUp,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
@@ -42,7 +43,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
-import { RoundAction } from "../components/RoundAction";
+import { PrimaryButton } from "../components/PrimaryButton";
 import { TonightIcon } from "../components/icons/TonightIcon";
 import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
@@ -90,12 +91,11 @@ const DESCRIPTION_LINES = 4;
 // How long the ⋯ sheet takes to slide away before what it opens comes in.
 const SHEET_HANDOFF_MS = 260;
 // The hero's poster, on the right of the title.
-const HERO_POSTER = 112;
 // The backdrop runs from the very top (under the status bar) down to this
 // share of the screen's width, scaled to fill, then fades into the page.
-const BACKDROP_HEIGHT = 0.82;
-// How far the title and poster reach up onto the backdrop's fade.
-const POSTER_OVERLAP = 56;
+const BACKDROP_HEIGHT = 1.05;
+// How far the title reaches up onto the backdrop's fade.
+const TITLE_OVERLAP = 132;
 const SIMILAR_COUNT = 10;
 // A "More like this" poster: about three and a half across, so the next one
 // peeks in.
@@ -254,18 +254,31 @@ const TABS = [
   { key: "similar", label: "Similar" },
 ];
 
-// Under the director: ▶ TRAILER, a small grey pill.
-const TrailerButton = ({ onPress, styles, colors }) => (
-  <Pressable
-    style={({ pressed }) => [styles.trailerButton, pressed && styles.actionPressed]}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityLabel={t("Trailer")}
-  >
-    <Play size={10} color={colors.textPrimary} fill={colors.textPrimary} />
-    <Text style={styles.trailerText}>{t("Trailer")}</Text>
-  </Pressable>
-);
+// One of the hero's three actions under Trailer: an icon and a name in a
+// filled box — the signature colour when it's on (saved, tonight's pick),
+// green when done (watched).
+const HeroButton = ({ Icon, label, a11yLabel, on = false, done = false, onPress, styles, colors }) => {
+  const ink = done ? colors.success : on ? colors.brandText : colors.textPrimary;
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.heroButton,
+        on && styles.heroButtonOn,
+        done && styles.heroButtonDone,
+        pressed && styles.actionPressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel ?? label}
+      accessibilityState={{ selected: on || done }}
+    >
+      <Icon size={18} color={ink} strokeWidth={2} />
+      <Text style={[styles.heroButtonText, { color: ink }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+};
 
 // Cinematic hero (the movie's backdrop — a still from the film — fading
 // into the page): the title, year and director with Trailer and Tonight
@@ -392,7 +405,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   // drifts behind the page while the poster eases back under the bar.
   const backdropHeight = Math.round(windowWidth * BACKDROP_HEIGHT);
   const backdropStyle = useStretchyBackdropStyle(scrollY, backdropHeight);
-  const posterStyle = useHeroFadeStyle(scrollY, stickyEnd);
+  const heroFadeStyle = useHeroFadeStyle(scrollY, stickyEnd, { scale: false });
   // The floating back / share fade out as the sticky bar takes over.
   const floatingBarStyle = useAnimatedStyle(
     () => ({
@@ -620,73 +633,78 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           style={[
             styles.stage,
             {
-              // The title and poster start on the backdrop's fade — never
-              // under the header buttons.
+              // The title starts on the backdrop's fade — never under the
+              // header buttons.
               paddingTop: Math.max(
                 headerTop + HEADER_BAR_HEIGHT + spacing.md,
-                backdropHeight - POSTER_OVERLAP,
+                backdropHeight - TITLE_OVERLAP,
               ),
             },
           ]}
         >
-          <View
-            style={styles.heroRow}
+          {/* Its name and facts, over the backdrop's fade. */}
+          <Animated.View
+            style={heroFadeStyle}
             onLayout={(event) => measureTitle("row", event.nativeEvent.layout.y)}
           >
-            <View
-              style={styles.heroInfo}
-              onLayout={(event) => measureTitle("column", event.nativeEvent.layout.y)}
+            <Text
+              style={styles.title}
+              accessibilityRole="header"
+              onLayout={(event) => {
+                const { y, height } = event.nativeEvent.layout;
+                measureTitle("title", y + height);
+              }}
             >
-              <Text
-                style={styles.title}
-                accessibilityRole="header"
-                onLayout={(event) => {
-                  const { y, height } = event.nativeEvent.layout;
-                  measureTitle("title", y + height);
-                }}
-              >
-                {movie.title}
+              {movie.title}
+              {!!movie.year && <Text style={styles.titleYear}>{` (${movie.year})`}</Text>}
+            </Text>
+            {/* ★ rating · length · year. */}
+            <View style={styles.heroFacts}>
+              {movie.rating > 0 && (
+                <View style={styles.heroScore}>
+                  <Star size={14} color={colors.rating} fill={colors.rating} />
+                  <Text style={styles.heroScoreText}>{movie.rating.toFixed(1)}</Text>
+                  <Text style={styles.meta}>/ 10</Text>
+                </View>
+              )}
+              <Text style={styles.meta} numberOfLines={1}>
+                {[movie.runtime ? formatRuntime(movie.runtime) : null, movie.year]
+                  .filter(Boolean)
+                  .join(" · ")}
               </Text>
-              <Text style={styles.byline} numberOfLines={1}>
-                {t("{year} · Directed by", { year: movie.year })}
+            </View>
+            {/* Its age rating, boxed, then its genres. */}
+            <View style={styles.heroFacts}>
+              {details?.rated && (
+                <View style={styles.ageBadge}>
+                  <Text style={styles.ageText}>{details.rated}</Text>
+                </View>
+              )}
+              <Text style={styles.meta} numberOfLines={1}>
+                {(movie.genres ?? []).map((genre) => t(genre)).join(" · ")}
               </Text>
-              {/* The director opens their collection, when they have one. */}
+            </View>
+            {/* The director (their collection, when they have one), and your
+                taste match — tap it for why. */}
+            <View style={styles.heroCredits}>
               {directorSaga ? (
                 <Pressable
-                  style={({ pressed }) => pressed && styles.actionPressed}
+                  style={({ pressed }) => [styles.heroDirector, pressed && styles.actionPressed]}
                   onPress={() => navigation.push("CollectionDetails", { collectionId: directorSaga.id })}
                   accessibilityRole="link"
                   accessibilityHint={t("Opens {title}", { title: directorSaga.title })}
                   hitSlop={6}
                 >
-                  <Text style={styles.director} numberOfLines={2}>
-                    {movie.director}
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {t("Directed by")} <Text style={styles.director}>{movie.director}</Text>
                     <Text style={styles.directorMore}> ›</Text>
                   </Text>
                 </Pressable>
               ) : (
-                <Text style={styles.director} numberOfLines={2}>
-                  {movie.director}
+                <Text style={[styles.meta, styles.heroDirector]} numberOfLines={1}>
+                  {t("Directed by")} <Text style={styles.director}>{movie.director}</Text>
                 </Text>
               )}
-              {/* ▶ TRAILER, then how long (and its rating). */}
-              <View style={styles.trailerRow}>
-                <TrailerButton onPress={handleWatchTrailer} styles={styles} colors={colors} />
-                {!!movie.runtime && (
-                  <Text style={styles.meta} numberOfLines={1}>
-                    {formatRuntime(movie.runtime)}
-                  </Text>
-                )}
-                {details?.rated && (
-                  <View style={styles.ageBadge}>
-                    <Text style={styles.ageText}>{details.rated}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            {/* The poster, and your taste match under it — tap it for why. */}
-            <Animated.View style={[styles.posterColumn, posterStyle]}>
-              <MoviePoster uri={movie.poster} style={styles.poster} shadow />
               {tasteMatch && (
                 <Pressable
                   style={({ pressed }) => [styles.matchPill, pressed && styles.actionPressed]}
@@ -699,62 +717,69 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   <Text style={styles.matchText} numberOfLines={1}>
                     {t("{match}% taste", { match: tasteMatch.match })}
                   </Text>
-                  <ChevronRight
-                    size={14}
-                    color={colors.success}
-                    strokeWidth={2.4}
-                    style={rtl && styles.flipped}
-                  />
+                  <ChevronRight size={14} color={colors.success} strokeWidth={2.4} style={rtl && styles.flipped} />
                 </Pressable>
               )}
-            </Animated.View>
-          </View>
+            </View>
+          </Animated.View>
 
-          {/* What you do with it, out on the page, as equal round buttons:
-              Watched (green once done), Watchlist or Tier, Tonight (amber
-              once it's tonight's pick) or Rewatch — and More for the rest
-              (a list, the date, sharing). */}
+          {/* Trailer, the main button; then Tonight (or Rewatch), Watchlist
+              (or Tier) and Watched — green once done. More (a list, the
+              date) is the ⋯ at the top. */}
+          <PrimaryButton
+            label={t("Trailer")}
+            icon={<Play size={16} color={colors.brandText} fill={colors.brandText} />}
+            onPress={handleWatchTrailer}
+            style={styles.trailerMain}
+            contentStyle={styles.trailerMainContent}
+          />
           <View style={styles.pageActions}>
             {isWatched ? (
-              <RoundAction done Icon={CheckCircle} label={t("Watched")} onPress={handleToggleWatched} />
-            ) : (
-              <RoundAction
-                Icon={Eye}
-                label={t("Watched")}
-                a11yLabel={t("Mark as watched")}
-                onPress={handleToggleWatched}
-              />
-            )}
-            {isWatched ? (
-              <RoundAction
-                Icon={ListOrdered}
-                label={t("Tier")}
-                onPress={() => navigation.navigate("TierMovie", { movieId })}
-              />
-            ) : (
-              <RoundAction
-                Icon={inBucketList ? BookmarkCheck : Bookmark}
-                on={inBucketList}
-                label={inBucketList ? t("Saved") : t("Watchlist")}
-                onPress={() => toggleBucketListWithFeedback(movie.id)}
-              />
-            )}
-            {isWatched ? (
-              <RoundAction
+              <HeroButton
                 Icon={RotateCw}
                 label={t("Rewatch")}
                 onPress={() => rewatchMovieWithFeedback(movieId)}
+                styles={styles}
+                colors={colors}
               />
             ) : (
-              <RoundAction
+              <HeroButton
                 Icon={TonightIcon}
                 on={isPicked}
                 label={t("Tonight")}
                 a11yLabel={t("Pick for tonight")}
                 onPress={() => togglePickedMovie(movie.id)}
+                styles={styles}
+                colors={colors}
               />
             )}
-            <RoundAction Icon={Ellipsis} label={t("More")} onPress={() => setIsActionsOpen(true)} />
+            {isWatched ? (
+              <HeroButton
+                Icon={ListOrdered}
+                label={t("Tier")}
+                onPress={() => navigation.navigate("TierMovie", { movieId })}
+                styles={styles}
+                colors={colors}
+              />
+            ) : (
+              <HeroButton
+                Icon={inBucketList ? BookmarkCheck : Bookmark}
+                on={inBucketList}
+                label={inBucketList ? t("Saved") : t("Watchlist")}
+                onPress={() => toggleBucketListWithFeedback(movie.id)}
+                styles={styles}
+                colors={colors}
+              />
+            )}
+            <HeroButton
+              Icon={isWatched ? CheckCircle : Eye}
+              done={isWatched}
+              label={t("Watched")}
+              a11yLabel={isWatched ? t("Watched") : t("Mark as watched")}
+              onPress={handleToggleWatched}
+              styles={styles}
+              colors={colors}
+            />
           </View>
           {!isWatched && isPicked && (
             <Text style={styles.noteText}>
@@ -1240,6 +1265,26 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         pointerEvents="box-none"
       >
         <BackButton onPress={() => navigation.goBack()} floating />
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [styles.headerRound, pressed && styles.actionPressed]}
+            onPress={handleShare}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={t("Share")}
+          >
+            <Share2 size={18} color={colors.textPrimary} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.headerRound, pressed && styles.actionPressed]}
+            onPress={() => setIsActionsOpen(true)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={t("More")}
+          >
+            <Ellipsis size={20} color={colors.textPrimary} strokeWidth={2} />
+          </Pressable>
+        </View>
       </Animated.View>
 
       {/* More: the less common actions, as rows. One that opens something
@@ -1273,14 +1318,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.sheetRowText}>{t("Change when you watched it")}</Text>
             </Pressable>
           )}
-          <Pressable
-            style={({ pressed }) => [styles.sheetRow, pressed && styles.sheetRowPressed]}
-            onPress={thenClose(handleShare)}
-            accessibilityRole="button"
-          >
-            <Share2 size={20} color={colors.textSecondary} strokeWidth={1.9} />
-            <Text style={styles.sheetRowText}>{t("Share")}</Text>
-          </Pressable>
         </View>
       </BottomSheet>
 
@@ -1347,12 +1384,6 @@ const createStyles = (colors) =>
     // Your taste match, under the title: a pill, and why.
     flipped: {
       transform: [{ scaleX: -1 }],
-    },
-    // Under the poster, as wide as it.
-    posterColumn: {
-      width: HERO_POSTER,
-      gap: spacing.sm,
-      marginTop: -spacing.lg,
     },
     matchPill: {
       flexDirection: "row",
@@ -1593,18 +1624,22 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
+    // Share and ⋯, on the right: round, like the back button.
+    headerActions: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    headerRound: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevated,
+      borderRadius: 20,
+    },
     stage: {
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.lg,
-    },
-    heroRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: spacing.md,
-    },
-    heroInfo: {
-      flex: 1,
-      paddingTop: spacing.xs,
     },
     backdrop: {
       position: "absolute",
@@ -1613,60 +1648,53 @@ const createStyles = (colors) =>
       end: 0,
       overflow: "hidden",
     },
-    poster: {
-      width: HERO_POSTER,
-      aspectRatio: 2 / 3,
-    },
     title: {
       ...typography.hero,
-      fontSize: 28,
-      lineHeight: 34,
+      fontSize: 30,
+      lineHeight: 36,
       color: colors.textPrimary,
     },
-    // "2015 · DIRECTED BY": small grey caps, spaced.
-    byline: {
-      ...typography.label,
-      fontSize: 13,
-      lineHeight: 18,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      color: colors.textSecondary,
-      marginTop: spacing.md,
-    },
-    director: {
-      ...typography.bodyBold,
-      fontSize: 18,
-      lineHeight: 24,
-      color: colors.textPrimary,
-      marginTop: 2,
-    },
-    directorMore: {
+    // "(2025)" after the name, lighter.
+    titleYear: {
+      ...typography.title,
+      fontSize: 24,
       color: colors.textSecondary,
     },
-    trailerRow: {
+    // A line of facts: the score, length and year; the age box and genres.
+    heroFacts: {
       flexDirection: "row",
       alignItems: "center",
-      flexWrap: "wrap",
-      gap: spacing.sm + 4,
-      marginTop: spacing.md,
+      gap: spacing.sm,
+      marginTop: spacing.sm,
     },
-    // Dense: a small capsule beside the runtime.
-    trailerButton: {
+    heroScore: {
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
-      height: 26,
-      paddingHorizontal: spacing.sm + 2,
-      backgroundColor: colors.buttonFill,
-      borderRadius: shape.chip,
     },
-    trailerText: {
-      ...typography.label,
-      fontSize: 11,
-      lineHeight: 14,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
+    heroScoreText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.textPrimary,
+    },
+    // "Directed by …" and the taste match, on one line.
+    heroCredits: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+      marginTop: spacing.sm + 2,
+    },
+    heroDirector: {
+      flexShrink: 1,
+    },
+    director: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    directorMore: {
+      color: colors.textSecondary,
     },
     // The tagline: caps, spaced, grey, over the overview.
     tagline: {
@@ -1753,11 +1781,42 @@ const createStyles = (colors) =>
       textAlign: "center",
       marginTop: spacing.sm,
     },
-    // The page's actions, under the title: round buttons, spread across.
+    // Trailer: the main button, across the page.
+    trailerMain: {
+      marginTop: spacing.lg,
+    },
+    trailerMainContent: {
+      minHeight: 48,
+      borderRadius: shape.control,
+    },
+    // The three under it, sharing the row.
     pageActions: {
       flexDirection: "row",
       gap: spacing.sm,
-      marginTop: spacing.lg,
+      marginTop: spacing.sm,
+    },
+    heroButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      minHeight: 44,
+      paddingHorizontal: spacing.sm,
+      backgroundColor: colors.cardElevated,
+      borderRadius: shape.control,
+    },
+    heroButtonOn: {
+      backgroundColor: colors.brand,
+    },
+    heroButtonDone: {
+      backgroundColor: colors.successSoft,
+    },
+    heroButtonText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      lineHeight: 18,
+      flexShrink: 1,
     },
     actionPressed: {
       opacity: 0.7,
