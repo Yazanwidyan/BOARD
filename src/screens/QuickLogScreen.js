@@ -184,7 +184,7 @@ export const QuickLogScreen = ({ navigation }) => {
             )}
             {fromWatchlist.length > 0 && (
               <>
-                <Text style={styles.label}>{t("From your watchlist")}</Text>
+                <Text style={styles.label}>{t("On your watchlist")}</Text>
                 {fromWatchlist.map((movie) => row(movie))}
               </>
             )}

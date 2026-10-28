@@ -79,7 +79,7 @@ export const BoardMoviesSheet = ({ visible, onClose, boardId }) => {
         keyboardShouldPersistTaps="handled"
       >
         {!trimmed && movies.length > 0 && (
-          <Text style={styles.groupLabel}>{t("From your watchlist")}</Text>
+          <Text style={styles.groupLabel}>{t("On your watchlist")}</Text>
         )}
         {movies.map((movie) => {
           const isOn = board.movieIds.includes(movie.id);

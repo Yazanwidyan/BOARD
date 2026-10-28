@@ -23,7 +23,6 @@ import { ProBadge } from "../components/ProBadge";
 import { ReportSheet } from "../components/ReportSheet";
 import {
   BoardsRail,
-  FinishedSagasRail,
   ProfileSection,
   RecentPosters,
   SectionEmpty,
@@ -36,6 +35,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ShelfRail } from "../components/ShelfRail";
+import { TrophyCabinet } from "../components/TrophyCabinet";
 import { TasteDnaBars } from "../components/TasteDnaBars";
 import { UnderlineTabs } from "../components/UnderlineTabs";
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -126,9 +126,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   });
 
   const back = (
-    <HeaderIconButton onPress={() => navigation.goBack()} accessibilityLabel={t("Back")}>
+    <HeaderIconButton round onPress={() => navigation.goBack()} accessibilityLabel={t("Back")}>
       <ChevronLeft
-        size={24}
+        size={22}
         color={colors.textPrimary}
         strokeWidth={2}
         style={rtl && styles.flipped}
@@ -247,12 +247,10 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     collections: (
       <View style={styles.padded}>
         {finishedSagas.length > 0 ? (
-          <View style={styles.bleed}>
-            <FinishedSagasRail
-              watched={theirWatched}
-              onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
-            />
-          </View>
+          <TrophyCabinet
+            finished={finishedSagas}
+            onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
+          />
         ) : (
           <SectionEmpty
             line={t("{name} hasn't finished a collection yet.", { name: firstName })}
@@ -483,8 +481,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         title={friend.name}
         back={back}
         right={
-          <HeaderIconButton onPress={() => setIsMenuOpen(true)} accessibilityLabel={t("More")}>
-            <Ellipsis size={22} color={colors.textPrimary} strokeWidth={1.9} />
+          <HeaderIconButton round onPress={() => setIsMenuOpen(true)} accessibilityLabel={t("More")}>
+            <Ellipsis size={20} color={colors.textPrimary} strokeWidth={2} />
           </HeaderIconButton>
         }
       />

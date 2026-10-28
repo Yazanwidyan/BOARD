@@ -9,7 +9,7 @@ import { captureRef } from "react-native-view-shot";
 import { shareLink } from "../services/shareLinks";
 import { useMovieStore } from "../store/movieStore";
 import { useShareCardStore } from "../store/shareCardStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -177,7 +177,7 @@ export const CompletionShareSheet = () => {
               ))}
             </View>
             <View style={styles.trophyRow}>
-              <Trophy size={18} color={colors.rating} />
+              <Trophy size={18} color={colors.collection} />
               <Text style={styles.completed}>{t("Completed")}</Text>
             </View>
             <Text style={styles.headline}>{bragHeadline(collection)}</Text>
@@ -234,7 +234,7 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.rating,
+      color: colors.collection,
     },
     headline: {
       ...typography.hero,

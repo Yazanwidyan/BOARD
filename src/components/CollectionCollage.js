@@ -34,14 +34,14 @@ export const CollectionCollage = ({ collection, watchedIds, size }) => {
             styles.fill,
             {
               width: `${Math.round(progress * 100)}%`,
-              backgroundColor: isComplete ? colors.success : colors.accentLight,
+              backgroundColor: isComplete ? colors.success : colors.collection,
             },
           ]}
         />
       </View>
       {isComplete && (
         <View style={styles.completeTag}>
-          <Text style={styles.completeText}>{t("Complete")}</Text>
+          <Text style={styles.completeText}>{t("Completed")}</Text>
         </View>
       )}
     </View>
@@ -81,7 +81,7 @@ const createStyles = (colors) =>
     },
     completeText: {
       ...typography.label,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.background,
     },
   });

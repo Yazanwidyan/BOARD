@@ -224,7 +224,7 @@ export const MovieNightScreen = ({ navigation, route }) => {
 
   const topBar = (title, right) => (
     <View style={styles.topBar}>
-      <BackButton onPress={handleBack} />
+      <BackButton onPress={handleBack} floating />
       <Text style={styles.topTitle} numberOfLines={1}>
         {title}
       </Text>
@@ -427,7 +427,7 @@ export const MovieNightScreen = ({ navigation, route }) => {
                 label={
                   isChosenPicked
                     ? t("Tonight's pick ✓")
-                    : t("Make it tonight's pick")
+                    : t("Pick for tonight")
                 }
                 variant={isChosenPicked ? "secondary" : "primary"}
                 disabled={isChosenPicked}
@@ -593,12 +593,14 @@ const createStyles = (colors) =>
     flex: {
       flex: 1,
     },
+    // The round back button, with a little room under it.
     topBar: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      height: 48,
+      paddingBottom: spacing.sm + 2,
+      height: 48 + spacing.sm + 2,
     },
     topTitle: {
       ...typography.title,

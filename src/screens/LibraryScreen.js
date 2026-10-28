@@ -198,7 +198,6 @@ const CollectionCollage = ({ movies, styles }) => (
       <MoviePoster
         key={movie.id}
         uri={movie.poster}
-        radius={0}
         style={[
           styles.collectionCollagePoster,
           { left: index * 16, zIndex: 3 - index },
@@ -231,7 +230,7 @@ const BrowseCollectionRow = ({
       <CollectionCollage movies={collection.movies} styles={styles} />
       <View style={styles.collectionInfo}>
         <Text style={styles.collectionTitle} numberOfLines={1}>
-          {collection.title}
+          {t(collection.title)}
         </Text>
         <View style={styles.collectionBarTrack}>
           <View
@@ -239,7 +238,7 @@ const BrowseCollectionRow = ({
           />
         </View>
         <Text style={styles.collectionProgressText}>
-          {watchedCount}/{total} watched
+          {t("{seen} of {moviesCount} watched", { seen: watchedCount, moviesCount: total })}
         </Text>
       </View>
       {isUnlocked ? (
@@ -871,7 +870,7 @@ export const LibraryScreen = ({ navigation, route }) => {
               label:
                 rowMenuMovie && pickedMovieId === rowMenuMovie.id
                   ? t("Clear tonight's pick")
-                  : t("Make it tonight's pick"),
+                  : t("Pick for tonight"),
               run: (movie) => togglePickedMovie(movie.id),
             },
             {
@@ -1248,27 +1247,31 @@ const createStyles = (colors) =>
       paddingVertical: 0,
       color: colors.textPrimary,
     },
+    // All Collections: a kind's heading, then its rows, an even gap apart.
     section: {
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.lg,
+      marginTop: 20,
     },
     sectionTitle: {
       ...typography.section,
       color: colors.textSecondary,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
     collectionCard: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
       backgroundColor: colors.card,
-      padding: spacing.sm,
-      marginBottom: 2,
+      paddingVertical: spacing.sm + 2,
+      paddingStart: spacing.sm + 4,
+      paddingEnd: spacing.md,
       borderRadius: shape.card,
     },
+    // Three posters fanned, 16 apart: as tall as one poster (44 × 1.5).
     collectionCollage: {
       width: 76,
-      height: 60,
+      height: 66,
     },
     collectionCollagePoster: {
       position: "absolute",

@@ -13,10 +13,10 @@ import {
   Eye,
   Layers,
   LayoutGrid,
+  ListOrdered,
   Play,
   RotateCw,
   Share2,
-  Sparkles,
   TrendingUp,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
@@ -42,6 +42,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToBoardSheet } from "../components/AddToBoardSheet";
 import { BackButton } from "../components/BackButton";
+import { RoundAction } from "../components/RoundAction";
 import { TonightIcon } from "../components/icons/TonightIcon";
 import { useMovieCommunity } from "../store/communityStore";
 import { ScoreRings } from "../components/ScoreRings";
@@ -253,23 +254,6 @@ const TABS = [
   { key: "similar", label: "Similar" },
 ];
 
-// One of the ⋯ sheet's big actions: its icon in a circle, a short label
-// under — green when it's "on" (watched, saved, tonight's pick), like Home's
-// round buttons.
-const ActionButton = ({ icon, label, active, onPress, styles }) => (
-  <Pressable
-    style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected: !!active }}
-  >
-    <View style={[styles.actionCircle, active && styles.actionCircleOn]}>{icon}</View>
-    <Text style={[styles.actionLabel, active && styles.actionLabelOn]} numberOfLines={1}>
-      {label}
-    </Text>
-  </Pressable>
-);
-
 // Under the director: ▶ TRAILER, a small grey pill.
 const TrailerButton = ({ onPress, styles, colors }) => (
   <Pressable
@@ -444,7 +428,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.container, styles.loading, { paddingTop: insets.top + spacing.sm }]}>
         <View style={styles.loadingBar}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={() => navigation.goBack()} floating />
         </View>
         {page.isError ? (
           <Text style={styles.loadingText}>
@@ -580,7 +564,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const headerTop = insets.top + spacing.sm;
   // The actions' icons: white on the slate; the page colour on the white
   // of an "on" one.
-  const actionIcon = (on) => (on ? colors.success : colors.textPrimary);
   // Close the ⋯ sheet, then (once it's slid away) do `action` — so a sheet
   // it opens doesn't stack on this one.
   const thenClose = (action) => () => {
@@ -726,6 +709,58 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               )}
             </Animated.View>
           </View>
+
+          {/* What you do with it, out on the page, as equal round buttons:
+              Watched (green once done), Watchlist or Tier, Tonight (amber
+              once it's tonight's pick) or Rewatch — and More for the rest
+              (a list, the date, sharing). */}
+          <View style={styles.pageActions}>
+            {isWatched ? (
+              <RoundAction done Icon={CheckCircle} label={t("Watched")} onPress={handleToggleWatched} />
+            ) : (
+              <RoundAction
+                Icon={Eye}
+                label={t("Watched")}
+                a11yLabel={t("Mark as watched")}
+                onPress={handleToggleWatched}
+              />
+            )}
+            {isWatched ? (
+              <RoundAction
+                Icon={ListOrdered}
+                label={t("Tier")}
+                onPress={() => navigation.navigate("TierMovie", { movieId })}
+              />
+            ) : (
+              <RoundAction
+                Icon={inBucketList ? BookmarkCheck : Bookmark}
+                on={inBucketList}
+                label={inBucketList ? t("Saved") : t("Watchlist")}
+                onPress={() => toggleBucketListWithFeedback(movie.id)}
+              />
+            )}
+            {isWatched ? (
+              <RoundAction
+                Icon={RotateCw}
+                label={t("Rewatch")}
+                onPress={() => rewatchMovieWithFeedback(movieId)}
+              />
+            ) : (
+              <RoundAction
+                Icon={TonightIcon}
+                on={isPicked}
+                label={t("Tonight")}
+                a11yLabel={t("Pick for tonight")}
+                onPress={() => togglePickedMovie(movie.id)}
+              />
+            )}
+            <RoundAction Icon={Ellipsis} label={t("More")} onPress={() => setIsActionsOpen(true)} />
+          </View>
+          {!isWatched && isPicked && (
+            <Text style={styles.noteText}>
+              {t("Marking as watched will clear it as tonight's pick.")}
+            </Text>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -757,7 +792,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                     {sagaStep.type === "rank" ? (
                       <Crown size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
                     ) : (
-                      <Layers size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
+                      <Layers size={16} color={colors.collection} strokeWidth={2} style={styles.gainIcon} />
                     )}
                     <Text style={[styles.gainText, sagaStep.type === "rank" && styles.gainTextStrong]}>{sagaLine}</Text>
                     <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
@@ -1205,19 +1240,10 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         pointerEvents="box-none"
       >
         <BackButton onPress={() => navigation.goBack()} floating />
-        <Pressable
-          style={styles.headerIconButton}
-          onPress={() => setIsActionsOpen(true)}
-          hitSlop={6}
-          accessibilityLabel={t("More")}
-        >
-          <Ellipsis size={20} color={colors.textPrimary} strokeWidth={2} />
-        </Pressable>
       </Animated.View>
 
-      {/* ⋯: the big three (Watched, Watchlist or Tier, Tonight or Rewatch)
-          as tiles, then the rest as rows. One that opens something else
-          closes this first. */}
+      {/* More: the less common actions, as rows. One that opens something
+          else closes this first. */}
       <BottomSheet
         visible={isActionsOpen}
         onClose={() => setIsActionsOpen(false)}
@@ -1226,67 +1252,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
         title={movie.title}
         subtitle={`${movie.year} · ${formatRuntime(movie.runtime)}`}
       >
-        <View style={styles.sheetTiles}>
-          <ActionButton
-            styles={styles}
-            active={isWatched}
-            label={t("Watched")}
-            // Marking it watched opens the reward moment — close this sheet
-            // first; un-marking just toggles in place.
-            onPress={isWatched ? handleToggleWatched : thenClose(handleToggleWatched)}
-            icon={
-              isWatched ? (
-                <CheckCircle size={22} color={actionIcon(true)} />
-              ) : (
-                <Eye size={22} color={actionIcon(false)} />
-              )
-            }
-          />
-          {isWatched ? (
-            <ActionButton
-              styles={styles}
-              label={t("Tier")}
-              onPress={thenClose(() => navigation.navigate("TierMovie", { movieId }))}
-              icon={<Sparkles size={22} color={actionIcon(false)} />}
-            />
-          ) : (
-            <ActionButton
-              styles={styles}
-              active={inBucketList}
-              label={inBucketList ? t("Saved") : t("Watchlist")}
-              onPress={() => toggleBucketListWithFeedback(movie.id)}
-              icon={
-                inBucketList ? (
-                  <BookmarkCheck size={22} color={actionIcon(true)} />
-                ) : (
-                  <Bookmark size={22} color={actionIcon(false)} />
-                )
-              }
-            />
-          )}
-          {isWatched ? (
-            <ActionButton
-              styles={styles}
-              label={t("Rewatch")}
-              onPress={thenClose(() => rewatchMovieWithFeedback(movieId))}
-              icon={<RotateCw size={22} color={actionIcon(false)} />}
-            />
-          ) : (
-            <ActionButton
-              styles={styles}
-              active={isPicked}
-              label={t("Tonight")}
-              onPress={() => togglePickedMovie(movie.id)}
-              icon={<TonightIcon size={22} color={actionIcon(isPicked)} />}
-            />
-          )}
-        </View>
-        {!isWatched && isPicked && (
-          <Text style={styles.noteText}>
-            {t("Marking as watched will clear it as tonight's pick.")}
-          </Text>
-        )}
-
         <View style={styles.sheetRows}>
           <Pressable
             style={({ pressed }) => [styles.sheetRow, pressed && styles.sheetRowPressed]}
@@ -1352,7 +1317,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
           stickyBarStyle,
         ]}
       >
-        <BackButton onPress={() => navigation.goBack()} size={36} />
+        <BackButton onPress={() => navigation.goBack()} size={36} floating />
         <Animated.View style={stickyThumbStyle}>
           <MoviePoster uri={movie.poster} style={styles.stickyPoster} />
         </Animated.View>
@@ -1569,7 +1534,7 @@ const createStyles = (colors) =>
     },
     castSaga: {
       ...typography.caption,
-      color: colors.rating,
+      color: colors.collection,
     },
     factsCard: {
       paddingHorizontal: spacing.md,
@@ -1627,15 +1592,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-    },
-    // The same round button as the back one beside it.
-    headerIconButton: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevated,
-      borderRadius: 20,
     },
     stage: {
       paddingHorizontal: spacing.md,
@@ -1796,47 +1752,19 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       textAlign: "center",
       marginTop: spacing.sm,
-      paddingHorizontal: spacing.md,
     },
-    // The ⋯ sheet's three big actions: round buttons, spread across.
-    sheetTiles: {
+    // The page's actions, under the title: round buttons, spread across.
+    pageActions: {
       flexDirection: "row",
       gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    actionButton: {
-      flex: 1,
-      alignItems: "center",
-      gap: 6,
-    },
-    actionCircle: {
-      width: 56,
-      height: 56,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.buttonFill,
-      borderRadius: 28,
-    },
-    // On (watched, saved, tonight's pick): a green tint, a green icon.
-    actionCircleOn: {
-      backgroundColor: colors.successSoft,
+      marginTop: spacing.lg,
     },
     actionPressed: {
       opacity: 0.7,
     },
-    actionLabel: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 17,
-      color: colors.textPrimary,
-      flexShrink: 1,
-    },
-    actionLabelOn: {
-      color: colors.success,
-    },
-    // The rest, as full-width rows under the tiles.
+    // More's rows.
     sheetRows: {
-      marginTop: spacing.md,
+      marginTop: spacing.xs,
     },
     sheetRow: {
       flexDirection: "row",

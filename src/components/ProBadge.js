@@ -28,7 +28,7 @@ const createStyles = (colors) =>
       alignSelf: "center",
     },
     text: {
-      fontSize: 10,
+      fontSize: 11,
       lineHeight: 14,
       fontWeight: "800",
       letterSpacing: 1,

@@ -316,7 +316,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
         footer={
           <View style={styles.sheetButtons}>
             <PrimaryButton
-              label={t("Make it tonight's pick")}
+              label={t("Pick for tonight")}
               onPress={() => {
                 setPickedMovie(current.movie.id);
                 showToast(t("{title} is tonight's pick", { title: current.movie.title }), { tone: "success" });

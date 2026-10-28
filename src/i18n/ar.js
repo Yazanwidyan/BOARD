@@ -15,7 +15,6 @@ const ar = {
   Friend: "صديق",
   Badges: "الشارات",
   Search: "بحث",
-  "Search films and people": "ابحث عن أفلام وأشخاص",
   Back: "رجوع",
   Done: "تم",
   Cancel: "إلغاء",
@@ -49,14 +48,11 @@ const ar = {
   "Start discovering": "ابدأ الاكتشاف",
   "Tonight's pick": "اختيار الليلة",
   "Tonight's pick ✓": "اختيار الليلة ✓",
-  "Make it tonight's pick": "اجعله اختيار الليلة",
   "Pick for tonight": "اختره لليلة",
-  "Watched it": "شاهدته",
-  "Watch the trailer": "شاهد الإعلان",
-  "Swap for another movie": "استبدله بفيلم آخر",
   "Your active dare": "تحدّيك الحالي",
-  "From your watchlist": "من قائمة المشاهدة",
   "On your watchlist": "في قائمة المشاهدة",
+  "Got it — fewer like this": "حسناً — سنقترح أقلّ من هذا النوع",
+  Undo: "تراجع",
   "On your watchlist · saved {addedAt}": "في قائمة المشاهدة · حُفظ {addedAt}",
   "Highly rated, and you haven't seen it": "تقييمه عالٍ ولم تشاهده بعد",
   "{seen} of {moviesCount} watched": "{seen} من {moviesCount} تمت مشاهدتها",
@@ -75,6 +71,7 @@ const ar = {
 
   // ---- Dares / challenges ----
   "Your dare": "تحدّيك",
+  "Change dare": "غيّر التحدّي",
   "Your dare ·": "تحدّيك ·",
   "New dare": "تحدٍّ جديد",
   "Three secret challenges are waiting. Pick one.":
@@ -275,7 +272,7 @@ const ar = {
   "In progress": "قيد التقدّم",
   "Almost there": "قاربت",
   "Not started": "لم تبدأ",
-  "Trophy shelf": "رف الكؤوس",
+  "Completed collections": "المجموعات المكتملة",
   "You might like": "قد يعجبك",
   Track: "تابِع",
   "Browse all collections": "تصفّح كل المجموعات",
@@ -290,7 +287,6 @@ const ar = {
   "{total} movies · {minutesLeft}": "{total} أفلام · {minutesLeft}",
   Completed: "مكتملة",
   " · Completed": " · مكتملة",
-  "Completed {completedAt}": "اكتملت في {completedAt}",
   Collection: "مجموعة",
   "Rewatch marathon": "ماراثون إعادة المشاهدة",
   "Share this collection": "شارك هذه المجموعة",
@@ -599,7 +595,6 @@ const ar = {
   "this week": "هذا الأسبوع",
   "· IMDb": "· IMDb",
 
-  "Nothing else to swap to right now": "لا يوجد ما نبدّل به الآن",
   "Share it": "شاركه",
 
   // ---- Genres ----
@@ -1132,7 +1127,6 @@ const ar = {
   "Your tier list": "قائمة تصنيفك",
   // Tonight's pick
   "Suggested for tonight": "مقترح لليلة",
-  "ends {time}": "ينتهي {time}",
   "{count} of {total} in {saga} · {left} more to {rank}":
     "{count} من {total} في {saga} · {left} للوصول إلى {rank}",
   "{count} of {total} in {saga}": "{count} من {total} في {saga}",
@@ -1219,9 +1213,6 @@ const ar = {
   "Watch a film and its stills show up here.": "شاهد فيلماً وستظهر لقطاته هنا.",
   "Change cover": "تغيير الغلاف",
   "Add a cover": "أضف غلافاً",
-  "Reading your tiers…": "نقرأ تصنيفاتك…",
-  "Matching your taste…": "نطابق ذوقك…",
-  "Picking tonight's film…": "نختار فيلم الليلة…",
   // Profile
   "Tier films S and your top four show here.": "صنّف أفلامًا في الفئة S وستظهر أفضل أربعة هنا.",
   "Stats": "الإحصاءات",

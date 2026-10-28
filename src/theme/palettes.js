@@ -5,7 +5,8 @@
 // the tabs not open), each 4.5 : 1 on the cards. Light mode is the same
 // greys turned over. Colour only carries meaning: green (`success`) for
 // done / saved / matched, `danger` red for hard dares, poor scores and
-// destructive actions; ranks and scores (`rating`) are plain white.
+// destructive actions. Some features have their own: gold for ranks and
+// scores (`rating`), orange for dares, violet for collections.
 // `isDark` lets the few theme-specific bits (status bar, blur tint) pick
 // their side.
 export const darkColors = {
@@ -37,8 +38,14 @@ export const darkColors = {
 
   success: "#00E054",
 
-  // Ranks, scores, collections: white, like the main text.
-  rating: "#FFFFFF",
+  // A colour per feature, used on its icons, chips and "on" states;
+  // everything else stays grey.
+  // Ranks, titles and scores: gold.
+  rating: "#F2C94C",
+  // Dares: orange.
+  dare: "#FF8A3D",
+  // Collections: violet.
+  collection: "#A78BFA",
 
   danger: "#FF8585",
 
@@ -101,7 +108,9 @@ export const lightColors = {
 
   success: "#00873A",
 
-  rating: "#111111",
+  rating: "#8A6A00",
+  dare: "#C2410C",
+  collection: "#6D28D9",
 
   danger: "#D64545",
 
