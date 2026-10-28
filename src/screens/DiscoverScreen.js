@@ -21,6 +21,7 @@ import { MoviePoster } from "../components/MoviePoster";
 import { ReelsFeed } from "../components/ReelsFeed";
 import {
   DockHeader,
+  HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -142,20 +143,6 @@ export const DiscoverScreen = ({ navigation }) => {
         );
       })}
     </View>
-    {/* Browse's search: a field that opens Search (it types there). */}
-    {mode === "browse" && (
-      <Pressable
-        style={({ pressed }) => [styles.searchBar, pressed && styles.searchBarPressed]}
-        onPress={() => navigation.navigate("Search")}
-        accessibilityRole="search"
-        accessibilityLabel={t("Search")}
-      >
-        <Search size={18} color={colors.textMuted} strokeWidth={2} />
-        <Text style={styles.searchPlaceholder} numberOfLines={1}>
-          {t("Search films and people")}
-        </Text>
-      </Pressable>
-    )}
     </View>
   );
 
@@ -220,6 +207,15 @@ export const DiscoverScreen = ({ navigation }) => {
         {...header.props}
         refreshing={refreshing}
         title={t("Discover")}
+        // Browse's search: an icon at the top right that opens Search.
+        right={
+          <HeaderIconButton
+            onPress={() => navigation.navigate("Search")}
+            accessibilityLabel={t("Search")}
+          >
+            <Search size={22} strokeWidth={1.75} color={colors.textPrimary} />
+          </HeaderIconButton>
+        }
       />
     </SafeAreaView>
   );
@@ -270,25 +266,6 @@ const createStyles = (colors) =>
     },
     modeTextActive: {
       color: colors.segmentOnText,
-    },
-    // Search, under Browse / Reels: looks like a field, opens Search.
-    searchBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.sm,
-      paddingHorizontal: spacing.sm + 4,
-      paddingVertical: spacing.sm + 1,
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
-    },
-    searchBarPressed: {
-      backgroundColor: colors.cardElevated,
-    },
-    searchPlaceholder: {
-      ...typography.body,
-      flex: 1,
-      color: colors.textMuted,
     },
     // A rail: one even gap above it.
     rail: {

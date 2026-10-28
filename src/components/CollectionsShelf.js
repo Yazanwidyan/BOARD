@@ -23,6 +23,7 @@ import { formatRuntime } from "../utils/movieFilters";
 import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
 import { MoviePoster } from "./MoviePoster";
+import { TrophyCabinet } from "./TrophyCabinet";
 import { t } from "../i18n";
 import { useMoviesVersion } from "../data/movies";
 
@@ -35,27 +36,9 @@ const TYPE_FILTERS = [
   { key: "director", label: "Directors" },
   { key: "actor", label: "Actors" },
 ];
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 const ALMOST_THERE_MAX_LEFT = 2;
 const CAROUSEL_CARD = 136;
 
-const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
 
 // 2×2 poster cover — the first four movies, cropped into square cells.
 const Cover = ({ movies, size, dimmed, styles }) => {
@@ -127,7 +110,7 @@ const SectionTitle = ({ title, count, icon, color, styles }) => (
 
 // Library's Collections tab as shelves: type chips → In progress carousel
 // (cover + ring + what's left) → Almost there (1–2 left, with the exact
-// movie) → Not started → the slate Trophy shelf of completed ones (with the
+// movie) → Not started → the completed ones, as medals (with the
 // date they were finished) → You might like (untracked collections matching
 // what you watch). The full browser stays one tap away under "See all".
 export const CollectionsShelf = ({
@@ -370,37 +353,20 @@ export const CollectionsShelf = ({
       {completed.length > 0 && (
         <View style={styles.section}>
           <SectionTitle
-            title={t("Trophy shelf")}
+            title={t("Completed collections")}
             count={completed.length}
-            icon={<Trophy size={12} color={colors.rating} />}
-            color={colors.rating}
+            icon={<Trophy size={12} color={colors.collection} />}
+            color={colors.collection}
             styles={styles}
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.flatRow}
-            contentContainerStyle={styles.carousel}
-          >
-            {completed.map((item) => (
-              <ShelfCard
-                key={item.collection.id}
-                item={item}
-                width={CAROUSEL_CARD}
-                meta={
-                  item.completedAt
-                    ? t("Completed {completedAt}", {
-                        completedAt: formatDate(item.completedAt),
-                      })
-                    : t("Completed")
-                }
-                metaColor={colors.rating}
-                watchedIds={watchedIds}
-                onPress={() => onOpen(item.collection.id)}
-                styles={styles}
-              />
-            ))}
-          </ScrollView>
+          <TrophyCabinet
+            row
+            finished={completed.map((item) => ({
+              collection: item.collection,
+              finishedAt: item.completedAt,
+            }))}
+            onOpen={onOpen}
+          />
         </View>
       )}
 

@@ -26,7 +26,6 @@ import { TasteStats } from "../components/TasteStats";
 import { MoviePoster } from "../components/MoviePoster";
 import { ProfileActivity } from "../components/ProfileActivity";
 import {
-  FinishedSagasRail,
   ProfileSection,
   RecapBanner,
   SectionEmpty,
@@ -40,6 +39,7 @@ import {
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { TasteShareSheet } from "../components/TasteShareSheet";
+import { TrophyCabinet, getTrophies } from "../components/TrophyCabinet";
 import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
@@ -62,6 +62,8 @@ import { FirstVisitTip } from "../components/FirstVisitTip";
 const COVER_RATIO = 0.5;
 const COVER_ABOVE_AVATAR = 0.55;
 const FAVOURITES = 4;
+// Trophies shown on the profile, in one row; the rest are in Library.
+const PROFILE_TROPHIES = 4;
 const FAVOURITE_GAP = 8;
 const AVATAR = 84;
 
@@ -128,6 +130,7 @@ export const ProfileScreen = ({ navigation }) => {
   const avatarSource = avatarUri ? { uri: avatarUri } : DEFAULT_AVATAR_SOURCE;
 
   // Fully watched sagas — counted in the stats and named in the share text.
+  const trophies = getTrophies(watched);
   const completedSets = getSagas().filter(
     (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
   );
@@ -293,11 +296,15 @@ export const ProfileScreen = ({ navigation }) => {
           )}
         </ProfileSection>
 
-        {/* Trophies: the collections you've finished. */}
-        {completedSets.length > 0 && (
-          <ProfileSection title={t("Trophies")} rail>
-            <FinishedSagasRail
-              watched={watched}
+        {/* Completed collections. */}
+        {trophies.length > 0 && (
+          <ProfileSection
+            title={t("Completed collections")}
+            onAction={() => navigation.navigate("Library", { initialTab: "collections" })}
+          >
+            <TrophyCabinet
+              finished={trophies.slice(0, PROFILE_TROPHIES)}
+              columns={PROFILE_TROPHIES}
               onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
             />
           </ProfileSection>

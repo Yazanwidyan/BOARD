@@ -1,4 +1,4 @@
-import { ChevronRight, Dices, Heart, Shuffle, Target } from "lucide-react-native";
+import { ChevronRight, Dices, Heart, Layers, RefreshCw, Target } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text } from "./AppText";
 
@@ -52,8 +52,8 @@ export const ActionList = ({ rows }) => {
 
 // Home's ways to decide, as a row of rounded cards you scroll sideways:
 // each its icon in a circle, its name and a line on what it does. The last
-// is your dare — its film and the ranks it earns (a long press swaps it),
-// or what a dare is.
+// is your dare — its film and the ranks it earns, with a small ⟳ to swap
+// it — or what a dare is.
 // `dare`: the active challenge, or null; `onDare` opens it (or starts one).
 export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNewDare }) => {
   const colors = useColors();
@@ -77,17 +77,18 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
 
   const ways = [
     { key: "wildcard", Icon: Dices, label: t("Surprise me"), hint: t("One film, a surprise"), onPress: onWildcard },
-    { key: "swipe", Icon: Shuffle, label: t("Swipe instead"), hint: t("Narrow ten down to one"), onPress: onSwipe },
+    { key: "swipe", Icon: Layers, label: t("Swipe instead"), hint: t("Narrow ten down to one"), onPress: onSwipe },
     { key: "similar", Icon: Heart, label: t("More like…"), hint: t("Films like one you love"), onPress: onSimilar },
     {
       key: "dare",
       Icon: Target,
+      tint: colors.dare,
       label: dare ? t("Your dare") : t("Dare"),
       hint: dare
         ? [movie?.title ?? t(dare.difficultyLabel), reward].filter(Boolean).join(" · ")
         : t("Watch it, earn ranks"),
       onPress: onDare,
-      onLongPress: dare ? onNewDare : undefined,
+      onSwap: dare ? onNewDare : undefined,
     },
   ];
 
@@ -100,7 +101,7 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
       snapToAlignment="start"
       decelerationRate="fast"
     >
-      {ways.map(({ key, Icon, label, hint, onPress, onLongPress }) => (
+      {ways.map(({ key, Icon, label, hint, onPress, onSwap, tint }) => (
         <Pressable
           key={key}
           style={({ pressed }) => [
@@ -109,12 +110,12 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
             pressed && styles.pillPressed,
           ]}
           onPress={onPress}
-          onLongPress={onLongPress}
           accessibilityRole="button"
           accessibilityLabel={`${label}. ${hint}`}
         >
-          <View style={styles.pillIcon}>
-            <Icon size={20} color={colors.textPrimary} strokeWidth={2} />
+          {/* A feature's own colour (the dare's orange) tints its icon. */}
+          <View style={[styles.pillIcon, tint && { backgroundColor: `${tint}2E` }]}>
+            <Icon size={20} color={tint ?? colors.textPrimary} strokeWidth={2} />
           </View>
           <View style={styles.pillWords}>
             <Text style={styles.pillLabel} numberOfLines={1}>
@@ -124,6 +125,17 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
               {hint}
             </Text>
           </View>
+          {onSwap && (
+            <Pressable
+              style={({ pressed }) => [styles.swap, pressed && styles.pillPressed]}
+              onPress={onSwap}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("Change dare")}
+            >
+              <RefreshCw size={15} color={colors.textPrimary} strokeWidth={2} />
+            </Pressable>
+          )}
         </Pressable>
       ))}
     </ScrollView>
@@ -166,6 +178,15 @@ const createStyles = (colors) =>
     pillWords: {
       flex: 1,
       gap: 1,
+    },
+    // Swap the dare: a small round button at the card's end.
+    swap: {
+      width: 32,
+      height: 32,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardElevatedLight,
+      borderRadius: 16,
     },
     pillLabel: {
       ...typography.bodyBold,

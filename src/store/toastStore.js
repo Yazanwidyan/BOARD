@@ -7,14 +7,22 @@ let hideTimer = null;
 // Transient, non-blocking confirmations ("Handle copied", "Coming soon")
 // — the in-app replacement for one-button native Alerts. Mounted once as
 // <Toast /> at the navigation root. A new toast replaces the current one
-// and restarts the timer.
+// and restarts the timer. Options: `tone`, `duration` (ms), and `action`
+// ({ label, onPress }) — a button on the toast, e.g. Undo.
 export const useToastStore = create((set) => ({
   toast: null,
 
   showToast: (message, options = {}) => {
     clearTimeout(hideTimer);
-    set({ toast: { message, tone: options.tone ?? 'info', id: Date.now() } });
-    hideTimer = setTimeout(() => set({ toast: null }), TOAST_DURATION_MS);
+    set({
+      toast: {
+        message,
+        tone: options.tone ?? 'info',
+        action: options.action ?? null,
+        id: Date.now(),
+      },
+    });
+    hideTimer = setTimeout(() => set({ toast: null }), options.duration ?? TOAST_DURATION_MS);
   },
   hideToast: () => {
     clearTimeout(hideTimer);

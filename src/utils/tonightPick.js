@@ -34,7 +34,7 @@ export const ANGLES = [
     label: "Next in a collection",
     fits: (item) => item.saga?.type === "rank" || item.saga?.type === "progress",
   },
-  { key: "saved", label: "From your watchlist", fits: (item) => item.saved },
+  { key: "saved", label: "On your watchlist", fits: (item) => item.saved },
   { key: "craft", label: "Moves a rank along", fits: (item) => item.forecast.advanced.length > 0 },
 ];
 
@@ -133,13 +133,28 @@ const takeTurns = (candidates, count) => {
   return chosen;
 };
 
+// Your latest passes count as "not this one" for a while: their genres and
+// directors drop (getTastePicks' `rejected`) — "fewer like that".
+const RECENT_PASSES = 5;
+const RECENT_PASS_DAYS = 3;
+
 // Suggestions for tonight: { movie, match, reason, saga, forecast, saved,
 // savedAt, angle }, in turns (see ANGLES). With too little
 // history for taste: your watchlist, oldest save first, then well-rated
 // films you haven't seen — each still saying what it does for your ranks.
-export const getTonightSuggestions = (watched, bucketList, dares = 0) => {
+// `passes` (tasteStore): films you said "Not for me" to never come back,
+// and the latest few bring fewer like them.
+export const getTonightSuggestions = (watched, bucketList, dares = 0, passes = []) => {
+  const passedIds = new Set(passes.map((pass) => pass.movieId));
+  const since = Date.now() - RECENT_PASS_DAYS * 86400000;
+  const rejected = passes
+    .filter((pass) => (pass.at ?? 0) >= since)
+    .slice(0, RECENT_PASSES)
+    .map((pass) => pass.movieId);
+  // Watched or passed: either way, not suggested.
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const saved = bucketList.filter((entry) => !watchedIds.has(entry.movieId));
+  const goneIds = new Set([...watchedIds, ...passedIds]);
+  const saved = bucketList.filter((entry) => !goneIds.has(entry.movieId));
   const savedAt = new Map(saved.map((entry) => [entry.movieId, entry.addedAt ?? null]));
   const forecastFor = makeRankForecast(watched, dares);
   const describe = (movie, extra) => {
@@ -162,7 +177,7 @@ export const getTonightSuggestions = (watched, bucketList, dares = 0) => {
     const movies =
       fromWatchlist.length > 0
         ? fromWatchlist
-        : MOVIES.filter((movie) => !watchedIds.has(movie.id))
+        : MOVIES.filter((movie) => !goneIds.has(movie.id))
             .sort(byWeightedRating)
             .slice(0, FALLBACK_POOL);
     return movies.map((movie) =>
@@ -170,7 +185,7 @@ export const getTonightSuggestions = (watched, bucketList, dares = 0) => {
         match: null,
         reason: null,
         angle: savedAt.has(movie.id)
-          ? { key: "saved", label: "From your watchlist" }
+          ? { key: "saved", label: "On your watchlist" }
           : { key: "popular", label: "Loved by everyone" },
       }),
     );
@@ -181,10 +196,10 @@ export const getTonightSuggestions = (watched, bucketList, dares = 0) => {
   // in both places. Besides your best picks: your watchlist, and the best
   // of the films that would help a rank (a decade you haven't seen, a
   // classic, an epic, a third film by a director…).
-  const options = { random: () => 0 };
+  const options = { random: () => 0, rejected };
   const savedMovies = saved.map((entry) => getMovieById(entry.movieId)).filter(Boolean);
   const rankFriendly = MOVIES.filter((movie) => {
-    if (watchedIds.has(movie.id)) return false;
+    if (goneIds.has(movie.id)) return false;
     const forecast = forecastFor(movie);
     return forecast.advanced.length > 0 || forecast.gained.some((rank) => rank.track.kind === "craft");
   });
@@ -198,6 +213,7 @@ export const getTonightSuggestions = (watched, bucketList, dares = 0) => {
   });
 
   const candidates = [...picks.values()]
+    .filter((pick) => !passedIds.has(pick.movie.id))
     .sort((a, b) => b.score - a.score)
     .map((pick) => describe(pick.movie, { match: pick.match, reason: pick.reasons[0] ?? null }));
   return takeTurns(candidates, SUGGESTION_COUNT);

@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import { ChevronDown, X } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -130,20 +131,32 @@ const OverlayFill = ({ scrollY, styles }) => {
   );
 };
 
-// The round icon button every tab's header actions use. `badge`: a count
-// for a red dot on its corner (nothing when 0; "9+" past 9).
+// Inner pages' headers (StackHeader) draw their buttons round and filled,
+// like Movie details'; tab headers keep them flat.
+const RoundHeaderButtons = createContext(false);
+
+// The icon button every header's actions use. `badge`: a count for a red
+// dot on its corner (nothing when 0; "9+" past 9). `round`: a filled
+// circle, as on inner pages — on by default inside a StackHeader.
 export const HeaderIconButton = ({
   onPress,
   children,
   style,
   accessibilityLabel,
   badge = 0,
+  round,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
+  const inInnerHeader = useContext(RoundHeaderButtons);
   return (
     <Pressable
-      style={[styles.iconButton, style]}
+      style={({ pressed }) => [
+        styles.iconButton,
+        (round ?? inInnerHeader) && styles.iconButtonRound,
+        pressed && styles.iconButtonPressed,
+        style,
+      ]}
       onPress={onPress}
       hitSlop={6}
       accessibilityRole="button"
@@ -324,24 +337,27 @@ export const StackHeader = ({
   }, [titleRevealAt]);
 
   return (
-    <View style={[styles.stackBar, { paddingTop: insets.top + spacing.xs }]}>
-      {/* Back, then the title beside it; actions on the right. */}
-      <View style={styles.stackLeading}>
-        {close ? (
-          <HeaderIconButton onPress={onBack}>
-            <X size={22} strokeWidth={1.75} color={colors.textPrimary} />
-          </HeaderIconButton>
-        ) : (
-          <BackButton onPress={onBack} />
-        )}
+    <RoundHeaderButtons.Provider value>
+      <View style={[styles.stackBar, { paddingTop: insets.top + spacing.xs }]}>
+        {/* Back (or ✕), then the title beside it; actions on the right —
+            all round, filled buttons, like Movie details'. */}
+        <View style={styles.stackLeading}>
+          {close ? (
+            <HeaderIconButton onPress={onBack} accessibilityLabel={t("Close")}>
+              <X size={20} strokeWidth={2} color={colors.textPrimary} />
+            </HeaderIconButton>
+          ) : (
+            <BackButton onPress={onBack} floating />
+          )}
+        </View>
+        <Animated.View style={[styles.stackTitleWrap, titleStyle]}>
+          <Text style={styles.stackTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        </Animated.View>
+        {right ? <View style={styles.right}>{right}</View> : null}
       </View>
-      <Animated.View style={[styles.stackTitleWrap, titleStyle]}>
-        <Text style={styles.stackTitle} numberOfLines={1}>
-          {title}
-        </Text>
-      </Animated.View>
-      {right ? <View style={styles.right}>{right}</View> : null}
-    </View>
+    </RoundHeaderButtons.Provider>
   );
 };
 
@@ -410,7 +426,8 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xs,
+      // A little room under the round buttons.
+      paddingBottom: spacing.sm + 2,
       backgroundColor: colors.headerBackground,
       zIndex: 10,
     },
@@ -487,6 +504,16 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
     },
+    // Inner pages: a filled circle, like Movie details' buttons.
+    iconButtonRound: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.cardElevated,
+    },
+    iconButtonPressed: {
+      opacity: 0.7,
+    },
     // Ringed in the page colour so it stands off the icon.
     badge: {
       position: "absolute",
@@ -504,8 +531,8 @@ const createStyles = (colors) =>
     },
     badgeText: {
       ...typography.bodyBold,
-      fontSize: 10,
-      lineHeight: 12,
+      fontSize: 11,
+      lineHeight: 13,
       color: "#FFFFFF",
       fontVariant: ["tabular-nums"],
     },

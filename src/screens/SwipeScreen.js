@@ -267,7 +267,7 @@ export const SwipeScreen = ({ navigation }) => {
 
   const topBar = (title, right) => (
     <View style={styles.topBar}>
-      <BackButton onPress={handleBack} />
+      <BackButton onPress={handleBack} floating />
       <Text style={styles.topTitle} numberOfLines={1}>
         {title}
       </Text>
@@ -380,7 +380,7 @@ export const SwipeScreen = ({ navigation }) => {
             label={
               isFinalMoviePicked
                 ? t("Tonight's pick ✓")
-                : t("Make it tonight's pick")
+                : t("Pick for tonight")
             }
             variant={isFinalMoviePicked ? "secondary" : "primary"}
             disabled={isFinalMoviePicked}
@@ -556,12 +556,14 @@ const createStyles = (colors) =>
       backgroundColor: colors.textPrimary,
       borderRadius: shape.chip,
     },
+    // The round back button, with a little room under it.
     topBar: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      height: 48,
+      paddingBottom: spacing.sm + 2,
+      height: 48 + spacing.sm + 2,
     },
     topTitle: {
       ...typography.title,

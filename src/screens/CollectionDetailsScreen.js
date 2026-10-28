@@ -272,7 +272,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.container, { paddingTop: insets.top + spacing.sm, paddingHorizontal: spacing.md }]}>
         <View style={{ flexDirection: "row" }}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={() => navigation.goBack()} floating />
         </View>
         {page.isError ? (
           <Text style={styles.loadingText}>
@@ -476,7 +476,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                             isNext && styles.nodeNext,
                           ]}
                         >
-                          {reached && <Check size={13} color={colors.selectedText} strokeWidth={3} />}
+                          {reached && <Check size={13} color={colors.background} strokeWidth={3} />}
                         </View>
                         <View
                           style={[
@@ -625,15 +625,17 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                     })}
                   </View>
                 </View>
-                {toWatch.map((movie) => (
-                  <MovieListRow
-                    key={movie.id}
-                    movie={movie}
-                    inQueue={isInBucketList(bucketList, movie.id)}
-                    onToggleQueue={() => toggleBucketListWithFeedback(movie.id)}
-                    onPress={() => openMovie(movie.id)}
-                  />
-                ))}
+                <View style={styles.rows}>
+                  {toWatch.map((movie) => (
+                    <MovieListRow
+                      key={movie.id}
+                      movie={movie}
+                      inQueue={isInBucketList(bucketList, movie.id)}
+                      onToggleQueue={() => toggleBucketListWithFeedback(movie.id)}
+                      onPress={() => openMovie(movie.id)}
+                    />
+                  ))}
+                </View>
               </View>
             )}
 
@@ -659,7 +661,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         />
         {/* Same width as the share button, so the title stays centred. */}
         <View style={styles.headerSide}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={() => navigation.goBack()} floating />
         </View>
         <Animated.Text
           style={[styles.headerTitle, barTitleStyle]}
@@ -675,7 +677,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel={t("Share this collection")}
         >
-          <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
+          <Share2 size={20} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -721,12 +723,14 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       marginHorizontal: spacing.sm,
     },
-    // Flat, like the other header icons (no circle).
+    // A filled circle, like Movie details' buttons.
     headerIconButton: {
       width: HEADER_BAR_HEIGHT,
       height: HEADER_BAR_HEIGHT,
-      alignItems: "flex-end",
+      alignItems: "center",
       justifyContent: "center",
+      backgroundColor: colors.cardElevated,
+      borderRadius: HEADER_BAR_HEIGHT / 2,
     },
     pressed: {
       opacity: 0.7,
@@ -807,7 +811,7 @@ const createStyles = (colors) =>
       backgroundColor: "transparent",
     },
     railLineLit: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.rating,
     },
     node: {
       width: NODE,
@@ -820,12 +824,12 @@ const createStyles = (colors) =>
       backgroundColor: colors.background,
     },
     nodeReached: {
-      borderColor: colors.selected,
-      backgroundColor: colors.selected,
+      borderColor: colors.rating,
+      backgroundColor: colors.rating,
     },
-    // The next one to reach: ringed in slate, still empty.
+    // The next one to reach: ringed in gold, still empty.
     nodeNext: {
-      borderColor: colors.selected,
+      borderColor: colors.rating,
     },
     stepText: {
       flex: 1,
@@ -851,14 +855,14 @@ const createStyles = (colors) =>
     herePill: {
       paddingHorizontal: spacing.sm,
       paddingVertical: 3,
-      backgroundColor: colors.selected,
+      backgroundColor: colors.rating,
       borderRadius: shape.control - 2,
     },
     hereText: {
       ...typography.bodyBold,
       fontSize: 12,
       lineHeight: 16,
-      color: colors.selectedText,
+      color: colors.background,
     },
     // The film strip: a frame per film, 2px apart.
     strip: {
@@ -872,7 +876,7 @@ const createStyles = (colors) =>
       backgroundColor: colors.border,
     },
     frameWatched: {
-      backgroundColor: colors.textPrimary,
+      backgroundColor: colors.collection,
     },
     frameComplete: {
       backgroundColor: colors.success,
@@ -889,9 +893,13 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
 
-    // ---- Sections
+    // ---- Sections: one even gap above each, as across the app.
     section: {
-      marginTop: spacing.lg,
+      marginTop: 20,
+    },
+    // To watch: rounded rows, a small gap between.
+    rows: {
+      gap: spacing.xs + 2,
     },
     sectionHead: {
       flexDirection: "row",
@@ -922,7 +930,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       gap: spacing.md,
       marginHorizontal: spacing.md,
-      padding: spacing.sm,
+      padding: spacing.sm + 2,
       backgroundColor: colors.card,
       borderRadius: shape.card,
     },
@@ -952,7 +960,7 @@ const createStyles = (colors) =>
     },
     upNextButtons: {
       flexDirection: "row",
-      gap: 2,
+      gap: spacing.sm,
       marginTop: "auto",
     },
     upNextButton: {
@@ -1012,7 +1020,7 @@ const createStyles = (colors) =>
 
     // ---- Your tiers
     board: {
-      gap: 2,
+      gap: spacing.xs + 2,
     },
     boardRow: {
       flexDirection: "row",
@@ -1038,8 +1046,8 @@ const createStyles = (colors) =>
       color: "#0C0C0C",
     },
     boardItems: {
-      gap: 2,
-      padding: 2,
+      gap: spacing.xs,
+      padding: spacing.xs + 2,
     },
     boardPoster: {
       width: 48,
@@ -1066,15 +1074,17 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
+    // Seen them all: green, for done.
     friendCountDone: {
-      color: colors.rating,
+      color: colors.success,
     },
 
     // ---- Done: actions
     actions: {
       flexDirection: "row",
-      gap: 2,
-      padding: spacing.md,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
     },
     action: {
       flex: 1,

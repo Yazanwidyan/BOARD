@@ -5,7 +5,7 @@ import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useToastStore } from "../store/toastStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 
@@ -39,6 +39,18 @@ export const Toast = () => {
         <Text style={styles.text} numberOfLines={2}>
           {toast.message}
         </Text>
+        {toast.action && (
+          <Pressable
+            onPress={() => {
+              toast.action.onPress();
+              hideToast();
+            }}
+            hitSlop={10}
+            accessibilityRole="button"
+          >
+            <Text style={styles.actionText}>{toast.action.label}</Text>
+          </Pressable>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -74,6 +86,13 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       flexShrink: 1,
       color: colors.textPrimary,
+    },
+    // Its action (Undo): underlined, after the message.
+    actionText: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+      textDecorationLine: "underline",
+      marginStart: spacing.xs,
     },
   });
 

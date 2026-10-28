@@ -53,7 +53,7 @@ export const PickInsight = ({ insight, tag }) => {
       )}
       {!!sagaLine && (
         <View style={styles.saga}>
-          <SagaIcon size={14} color={colors.rating} strokeWidth={2} />
+          <SagaIcon size={14} color={colors.collection} strokeWidth={2} />
           <Text style={[styles.sagaText, isRank && styles.sagaTextRank]}>
             {sagaLine}
           </Text>

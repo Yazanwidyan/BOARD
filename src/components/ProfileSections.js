@@ -23,8 +23,6 @@ import { TasteDnaBars } from "./TasteDnaBars";
 // Home's saga tiles: 142 wide, with their 1px side padding.
 const BOX_ITEM = 142;
 const TILE = BOX_ITEM - 2;
-// A finished collection's poster on the shelf (with its own side gap).
-const SAGA_ITEM = 104;
 
 // One section: its title and action, then its content. `onPress` makes
 // the content a button (it opens the full view, like the action). `rail`:
@@ -118,30 +116,6 @@ export const getFinishedSagas = (watched) => {
       finishedAt: getCollectionCompletedAt(collection, watched),
     }))
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
-};
-
-// Finished sagas as a shelf of posters: each its first film's poster,
-// then its name and how many films it holds.
-export const FinishedSagasRail = ({ watched, onOpen }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  return (
-    <ShelfRail
-      itemWidth={SAGA_ITEM}
-      items={getFinishedSagas(watched).map(({ collection }) => ({
-        key: collection.id,
-        onPress: () => onOpen(collection.id),
-        title: t(collection.title),
-        meta: t("{count} films", { count: collection.movieIds.length }),
-        content: (
-          <MoviePoster
-            uri={getMovieById(collection.movieIds[0])?.poster}
-            style={styles.sagaPoster}
-          />
-        ),
-      }))}
-    />
-  );
 };
 
 // Tiers in brief: a box for each tier, S to F — in its colour when films
@@ -418,10 +392,6 @@ const createStyles = (colors) =>
     },
     flipped: {
       transform: [{ scaleX: -1 }],
-    },
-    sagaPoster: {
-      width: SAGA_ITEM - spacing.sm,
-      aspectRatio: 2 / 3,
     },
     newTile: {
       width: TILE,

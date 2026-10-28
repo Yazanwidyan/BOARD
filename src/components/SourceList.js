@@ -307,7 +307,7 @@ const createStyles = (colors) =>
     },
     lastTagText: {
       ...typography.bodyBold,
-      fontSize: 10,
+      fontSize: 11,
       lineHeight: 14,
       color: colors.rating,
     },

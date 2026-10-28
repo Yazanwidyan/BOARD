@@ -58,6 +58,12 @@ export const useTasteStore = createAccountStore({
       queueChange("POST", "/me/taste/passes", { movieId }, TASTE);
     },
 
+    // Undo a pass ("Not for me" → Undo).
+    undoPass: (movieId) => {
+      set((state) => ({ passes: state.passes.filter((pass) => pass.movieId !== movieId) }));
+      queueChange("DELETE", `/me/taste/passes/${movieId}`, undefined, TASTE);
+    },
+
     clearTaste: () => {
       set({ aspects: {}, passes: [], leanings: null });
       queueChange("DELETE", "/me/taste", undefined, TASTE);
@@ -67,5 +73,8 @@ export const useTasteStore = createAccountStore({
 
 export const recordPass = (movieId) =>
   useTasteStore.getState().recordPass(movieId);
+
+export const undoPass = (movieId) =>
+  useTasteStore.getState().undoPass(movieId);
 
 export default useTasteStore;

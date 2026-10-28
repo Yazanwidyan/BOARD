@@ -1,33 +1,26 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Clover, Sparkles, Star, X } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { Clover, Star, X } from "lucide-react-native";
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
-import Animated, {
-  Extrapolation,
-  FadeIn,
-  FadeOut,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { useSharedValue } from "react-native-reanimated";
 import { Text } from "./AppText";
 
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
+import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 
 // The card's height for its width.
 const CARD_RATIO = 0.82;
 // The film's title art fits inside this box, keeping its shape.
 const LOGO_MAX_HEIGHT = 76;
-// On a pull to refresh the still zooms in a little, inside the card.
-const PULL_ZOOM = 0.18;
-const PULL_DISTANCE = 160;
-// The eyebrow's pill: a strong red, white on it (5 : 1).
-const EYEBROW_RED = "#D62828";
+// How far above the card the still may stretch on a pull (it's clipped
+// there, and at the card's bottom).
+const PULL_ROOM = 600;
+// The eyebrow's pill: a dark glass over the still, white on it — red is
+// kept for warnings.
+const EYEBROW_FILL = "rgba(0, 0, 0, 0.6)";
 
 // Home's top card: the film's still filling an edge-to-edge card, darkened from
 // the left, with a small label, the title (or the film's logo), one line of
@@ -35,32 +28,13 @@ const EYEBROW_RED = "#D62828";
 // when there are several to step through, dots for which one this is.
 // Without an image (the welcome) it's the same card, plain.
 //
-// The ✦ while it's thinking: breathing in and out.
-const ThinkingMark = ({ color }) => {
-  const pulse = useSharedValue(0);
-  useEffect(() => {
-    pulse.value = withRepeat(withTiming(1, { duration: 550 }), -1, true);
-  }, [pulse]);
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.55 + pulse.value * 0.45,
-    transform: [{ scale: 0.85 + pulse.value * 0.3 }, { rotate: `${pulse.value * 20}deg` }],
-  }));
-  return (
-    <Animated.View style={style}>
-      <Sparkles size={30} color={color} strokeWidth={1.8} />
-    </Animated.View>
-  );
-};
-
 // (Why a film fits you isn't said here — that's on its page, in the taste
-// match.) `eyebrow`: the card's name, in a red pill at its top-left, with
+// match.) `eyebrow`: the card's name, in a dark pill at its top-left, with
 // `eyebrowIcon` (a lucide icon, in white). `rated`: its age rating, boxed
 // after `meta`. `description`: what it's about, three lines. `match`: how
 // well it fits your taste (0–100). `tag`: { text, color? } —
-// why it's here ("From your watchlist", "Next in a collection"), beside
+// why it's here ("On your watchlist", "Next in a collection"), beside
 // the match.
-// `thinking`: a line to show over the card while the next one's being
-// found (the ✦ pulses over the dimmed card), or null.
 export const HomeHero = ({
   posterUri,
   backdropUri,
@@ -77,7 +51,6 @@ export const HomeHero = ({
   onPress,
   onDismiss,
   scrollY,
-  thinking = null,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -97,65 +70,71 @@ export const HomeHero = ({
         })()
       : null;
 
+  // Like Movie details' backdrop (utils/scrollEffects): pull down and the
+  // still stretches with you, its top edge pinned; scroll up and it drifts
+  // behind the page and dims a little.
   const stillScroll = useSharedValue(0);
-  const pull = scrollY ?? stillScroll;
-  const zoomStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale:
-          1 +
-          interpolate(-pull.value, [0, PULL_DISTANCE], [0, PULL_ZOOM], Extrapolation.CLAMP),
-      },
-    ],
-  }));
+  const [cardHeight, setCardHeight] = useState(0);
+  const backdropStyle = useStretchyBackdropStyle(scrollY ?? stillScroll, cardHeight);
 
   return (
-    <View>
-      <Pressable
-        // At least this tall; taller when there's more to say.
-        style={[
-          styles.card,
-          image && { minHeight: Math.round(cardWidth * CARD_RATIO) },
-          (!!eyebrow || !!onDismiss) && styles.cardWithTop,
-        ]}
-        onPress={onPress}
-        disabled={!onPress}
-      >
-        {image && (
-          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, zoomStyle]}>
+    <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+      {/* The still and its shading, behind the card: free to grow above it
+          on a pull, clipped at its bottom. */}
+      {image && (
+        <View pointerEvents="none" style={styles.backdropClip}>
+          <Animated.View style={[styles.backdrop, backdropStyle]}>
             <Image
               source={{ uri: image }}
               blurRadius={backdropUri ? 0 : 18}
               resizeMode="cover"
               style={StyleSheet.absoluteFill}
             />
-          </Animated.View>
-        )}
-        {image && (
-          <>
             {/* Dark from the left, where the words are… */}
             <LinearGradient
-              pointerEvents="none"
               colors={[`${colors.background}F2`, `${colors.background}99`, `${colors.background}00`]}
               locations={[0, 0.45, 0.85]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
-            {/* …and up from the bottom. */}
+            {/* …and up from the bottom, all the way into the page's colour,
+                so the card fades into the page under it. */}
             <LinearGradient
-              pointerEvents="none"
-              colors={[`${colors.background}00`, `${colors.background}B3`]}
-              locations={[0.45, 1]}
+              colors={[`${colors.background}00`, `${colors.background}B3`, colors.background]}
+              locations={[0.4, 0.8, 1]}
               style={StyleSheet.absoluteFill}
             />
-          </>
+          </Animated.View>
+        </View>
+      )}
+      <View
+        // At least this tall; taller when there's more to say.
+        style={[
+          styles.card,
+          image && styles.cardOnImage,
+          image && { minHeight: Math.round(cardWidth * CARD_RATIO) },
+          (!!eyebrow || !!onDismiss) && styles.cardWithTop,
+        ]}
+      >
+        {/* Tapping the film (anywhere but the buttons) opens it: a
+            see-through button under everything — the words let taps
+            through to it, the action row keeps its own. */}
+        {onPress && (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={title}
+          />
         )}
 
-        {/* The card's name, stuck in its top-left corner. */}
+        {/* The card's name, in its top-left corner. */}
         {!!eyebrow && (
-          <View style={styles.eyebrowTab}>
-            {EyebrowIcon && <EyebrowIcon size={13} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />}
+          <View style={styles.eyebrowTab} pointerEvents="none">
+            {EyebrowIcon && (
+              <EyebrowIcon size={13} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+            )}
             <Text style={styles.eyebrow}>{eyebrow}</Text>
           </View>
         )}
@@ -171,7 +150,7 @@ export const HomeHero = ({
           </Pressable>
         )}
 
-        <View style={styles.words}>
+        <View style={styles.words} pointerEvents="none">
           {logoSize ? (
             <Image
               source={{ uri: logo.url }}
@@ -229,20 +208,7 @@ export const HomeHero = ({
         {/* The buttons, inside the card at its foot. */}
         {actions && <View style={styles.actions}>{actions}</View>}
 
-        {!!thinking && (
-          <Animated.View
-            entering={FadeIn.duration(150)}
-            exiting={FadeOut.duration(200)}
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, styles.thinking]}
-          >
-            <ThinkingMark color={colors.textPrimary} />
-            <Animated.View key={thinking} entering={FadeIn.duration(180)}>
-              <Text style={styles.thinkingText}>{thinking}</Text>
-            </Animated.View>
-          </Animated.View>
-        )}
-      </Pressable>
+      </View>
     </View>
   );
 };
@@ -254,6 +220,25 @@ const createStyles = (colors) =>
       padding: spacing.md + 2,
       backgroundColor: colors.card,
       overflow: "hidden",
+    },
+    // With a still: see-through, the still (behind) shows.
+    cardOnImage: {
+      backgroundColor: "transparent",
+    },
+    backdropClip: {
+      position: "absolute",
+      top: -PULL_ROOM,
+      start: 0,
+      end: 0,
+      bottom: 0,
+      overflow: "hidden",
+    },
+    backdrop: {
+      position: "absolute",
+      top: PULL_ROOM,
+      start: 0,
+      end: 0,
+      bottom: 0,
     },
     // Room for the eyebrow and the ✕, so tall words never run under them.
     cardWithTop: {
@@ -289,13 +274,13 @@ const createStyles = (colors) =>
       gap: 5,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 5,
-      backgroundColor: EYEBROW_RED,
+      backgroundColor: EYEBROW_FILL,
       borderRadius: shape.chip,
     },
     eyebrow: {
       ...typography.label,
-      fontSize: 10,
-      lineHeight: 13,
+      fontSize: 11,
+      lineHeight: 14,
       letterSpacing: 1.1,
       textTransform: "uppercase",
       color: "#FFFFFF",
@@ -331,8 +316,8 @@ const createStyles = (colors) =>
     },
     ratedText: {
       ...typography.bodyBold,
-      fontSize: 10,
-      lineHeight: 13,
+      fontSize: 11,
+      lineHeight: 14,
       color: colors.textSecondary,
     },
     // What it's about, in three lines.
@@ -382,21 +367,7 @@ const createStyles = (colors) =>
       lineHeight: 14,
       color: colors.success,
     },
-    // While it's finding the next one: the card dimmed, the ✦ and a line.
-    thinking: {
-      alignItems: "center",
-      justifyContent: "center",
-      gap: spacing.sm + 2,
-      backgroundColor: `${colors.background}D9`,
-    },
-    thinkingText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.textSecondary,
-    },
-    // Inside the card, at its foot: the main button, then round actions
-    // with their names under them.
+    // Inside the card, at its foot: its round actions (HeroAction).
     actions: {
       flexDirection: "row",
       alignItems: "flex-start",

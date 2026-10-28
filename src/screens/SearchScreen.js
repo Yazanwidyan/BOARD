@@ -16,7 +16,7 @@ import { useMovieSearch } from "../hooks/useMovieSearch";
 import { api } from "../services/api";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
-import { radius, shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
+import { shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
@@ -108,7 +108,7 @@ export const SearchScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} />
+        <BackButton onPress={() => navigation.goBack()} floating />
         <View style={styles.searchBar}>
           <Search size={16} color={colors.textSecondary} />
           <TextInput
@@ -266,6 +266,7 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm + 2,
       marginBottom: spacing.sm,
     },
     searchBar: {

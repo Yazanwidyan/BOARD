@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Bell, Check, Flame, Play, Plus, Shuffle, ThumbsDown } from "lucide-react-native";
+import { Bell, Check, Flame, Plus, Shuffle, ThumbsDown } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
@@ -17,6 +17,8 @@ import {
 
 import { CollectionCollage } from "../components/CollectionCollage";
 import { HomeHero } from "../components/HomeHero";
+import { RoundAction } from "../components/RoundAction";
+import { TonightIcon } from "../components/icons/TonightIcon";
 import { ReelBoardIcon } from "../components/icons/TabIcons";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DecideWays } from "../components/QuickPickBento";
@@ -36,7 +38,8 @@ import { useChallengeStore } from "../store/challengeStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useMovieStore } from "../store/movieStore";
-import { recordPass } from "../store/tasteStore";
+import { recordPass, undoPass, useTasteStore } from "../store/tasteStore";
+import { showToast } from "../store/toastStore";
 import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
@@ -54,6 +57,8 @@ import { HomeFriends } from "../components/HomeFriends";
 
 // The space between Home's sections.
 const SECTION_GAP = 20;
+// How long a pass can be undone.
+const UNDO_MS = 4000;
 // Shelf rail item width (it includes its own side padding).
 const BOX_ITEM = 142;
 
@@ -107,8 +112,6 @@ const DecideHeroCard = ({
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Up to seven to step through, then round again.
 const SUGGESTION_PAGES = 7;
-// How long each "thinking" line shows before the next film.
-const THINK_STEP_MS = 340;
 
 const timeAgo = (timestamp) => {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
@@ -119,36 +122,12 @@ const timeAgo = (timestamp) => {
   return t("{count} months ago", { count: Math.round(days / 30) });
 };
 
-// One of the suggestion's actions: its icon in a circle, its name under.
-// `a11yLabel`: a fuller name for screen readers, when the label's short.
-const RoundAction = ({ Icon, label, a11yLabel, onPress, styles, colors }) => (
-  <Pressable
-    style={styles.roundAction}
-    onPress={onPress}
-    hitSlop={4}
-    accessibilityRole="button"
-    accessibilityLabel={a11yLabel ?? label}
-  >
-    {({ pressed }) => (
-      <>
-        <View style={[styles.heroRound, pressed && styles.heroRoundPressed]}>
-          <Icon size={18} color={colors.textPrimary} strokeWidth={1.9} />
-        </View>
-        <Text style={styles.roundLabel} numberOfLines={1}>
-          {label}
-        </Text>
-      </>
-    )}
-  </Pressable>
-);
-
 // Home's slot when there's no Tonight's Pick: one suggestion at a time, in
 // the same card as Tonight's pick (HomeHero) — the best fits for your taste
 // (utils/tonightPick), lifted when they're on your watchlist or move a saga
 // along — with why and how well it fits, a button to make it tonight's
-// pick, and ⇄ (or a pull to refresh) to step to the next: the engine
-// "thinks" for a moment (a ✦ and what it's weighing), then the next one
-// fades in.
+// pick, and ⇄ (or a pull to refresh) to step to the next, which fades
+// in.
 const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -157,38 +136,28 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
   const togglePickedMovie = useMovieStore((state) => state.togglePickedMovie);
   const dares = countFinishedDares(useChallengeStore((state) => state.history));
   const [step, setStep] = useState(0);
-  const [thinking, setThinking] = useState(null);
-  const timers = useRef([]);
+  const passes = useTasteStore((state) => state.passes);
+  // After an Undo: the film to bring back into view.
+  const [focusId, setFocusId] = useState(null);
   const candidates = useMemo(
-    () => getTonightSuggestions(watched, bucketList, dares),
-    [watched, bucketList, dares],
+    () => getTonightSuggestions(watched, bucketList, dares, passes),
+    [watched, bucketList, dares, passes],
   );
+  // Back to the film you undid "Not for me" on, once it's in the list again.
+  useEffect(() => {
+    if (!focusId) return;
+    const index = candidates.findIndex((item) => item.movie.id === focusId);
+    if (index >= 0) setStep(index);
+    setFocusId(null);
+  }, [candidates, focusId]);
 
-  // What it's weighing, a line at a time, then the next film.
-  const thinkThenNext = () => {
-    if (timers.current.length > 0) return;
-    const lines = [t("Reading your tiers…"), t("Matching your taste…"), t("Picking tonight's film…")];
-    lines.forEach((line, index) => {
-      timers.current.push(setTimeout(() => setThinking(line), index * THINK_STEP_MS));
-    });
-    timers.current.push(
-      setTimeout(() => {
-        setStep((value) => value + 1);
-        setThinking(null);
-        timers.current = [];
-        Haptics.selectionAsync();
-      }, lines.length * THINK_STEP_MS),
-    );
-  };
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
   // A pull to refresh steps on too.
   const lastRefresh = useRef(refreshCount);
   useEffect(() => {
     if (refreshCount !== lastRefresh.current) {
       lastRefresh.current = refreshCount;
-      thinkThenNext();
+      setStep((value) => value + 1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshCount]);
 
   if (candidates.length === 0) return null;
@@ -200,7 +169,7 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
   const isSaved = bucketList.some((entry) => entry.movieId === movie.id);
   const next = () => {
     Haptics.selectionAsync();
-    thinkThenNext();
+    setStep((value) => value + 1);
   };
   // Why it's here, as its tag — a watchlist save says when.
   const tag =
@@ -210,13 +179,20 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
             ? t("On your watchlist · saved {addedAt}", { addedAt: timeAgo(savedAt) })
             : t("On your watchlist"),
         }
-      : { text: t(angle.label), color: angle.key === "rank" ? colors.rating : undefined };
+      : {
+          text: t(angle.label),
+          color:
+            angle.key === "rank" || angle.key === "craft"
+              ? colors.rating
+              : angle.key === "saga"
+                ? colors.collection
+                : undefined,
+        };
   return (
     // Keyed on the film, so each new one fades in fresh (its logo too).
     <Animated.View key={movie.id} entering={FadeIn.duration(350)}>
     <HomeHero
       scrollY={scrollY}
-      thinking={thinking}
       posterUri={movie.poster}
       backdropUri={movie.backdrop}
       logo={movie.details?.logo}
@@ -234,36 +210,44 @@ const SuggestionCard = ({ navigation, refreshCount, scrollY }) => {
       actions={
         <>
           <RoundAction
-            Icon={Play}
+            Icon={TonightIcon}
             label={t("Tonight")}
             a11yLabel={t("Pick for tonight")}
             onPress={() => {
               Haptics.selectionAsync();
               togglePickedMovie(movie.id);
             }}
-            styles={styles}
-            colors={colors}
           />
           <RoundAction
             Icon={isSaved ? Check : Plus}
+            on={isSaved}
             label={isSaved ? t("Saved") : t("Watchlist")}
             onPress={() => toggleBucketListWithFeedback(movie.id)}
-            styles={styles}
-            colors={colors}
           />
           <RoundAction
             Icon={ThumbsDown}
             label={t("Not for me")}
             onPress={() => {
-              // A pass: weighs against films like it, then the next one.
-              recordPass(movie.id);
-              next();
+              // A pass, straight away: this film won't come back, and films
+              // like it drop — the list refreshes, so the next one is
+              // already in its place. Undo takes it back.
+              const passed = movie.id;
+              Haptics.selectionAsync();
+              recordPass(passed);
+              showToast(t("Got it — fewer like this"), {
+                duration: UNDO_MS,
+                action: {
+                  label: t("Undo"),
+                  onPress: () => {
+                    undoPass(passed);
+                    setFocusId(passed);
+                  },
+                },
+              });
             }}
-            styles={styles}
-            colors={colors}
           />
           {pageCount > 1 && (
-            <RoundAction Icon={Shuffle} label={t("Try another")} onPress={next} styles={styles} colors={colors} />
+            <RoundAction Icon={Shuffle} label={t("Try another")} onPress={next} />
           )}
         </>
       }
@@ -651,34 +635,6 @@ const createStyles = (colors) =>
     heroSquare: {
       borderRadius: shape.control,
       minHeight: 48,
-    },
-    // The suggestion's actions share the row evenly: a circle, its name
-    // under.
-    roundAction: {
-      flex: 1,
-      alignItems: "center",
-      gap: 6,
-    },
-    heroRound: {
-      width: 42,
-      height: 42,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
-      borderRadius: 21,
-    },
-    heroRoundPressed: {
-      opacity: 0.7,
-    },
-    // On the card's image: white, with a soft shadow to keep it readable.
-    roundLabel: {
-      ...typography.caption,
-      fontSize: 11,
-      lineHeight: 14,
-      color: "#FFFFFF",
-      textShadowColor: "rgba(0, 0, 0, 0.6)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 3,
     },
   });
 

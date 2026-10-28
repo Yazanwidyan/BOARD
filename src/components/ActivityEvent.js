@@ -216,8 +216,8 @@ const createStyles = (colors) =>
     },
     badgeLetter: {
       fontFamily: fonts.extraBold,
-      fontSize: 9,
-      lineHeight: 11,
+      fontSize: 11,
+      lineHeight: 13,
       color: "#0C0C0C",
     },
     eventPoster: {

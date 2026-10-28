@@ -19,7 +19,7 @@ import { getMovieById } from "../data/movies";
 import { REEL_CLIPS, getYoutubeThumbnail } from "../data/reelClips";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
-import { radius, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -199,6 +199,33 @@ const buildFeed = (watched, bucketList) => {
 
 // ---------- one reel ----------
 
+// Runs inside the YouTube player's page (its `player` is a global there):
+// every quarter second until it's playing (or about 10s pass), mute it and
+// ask it to play — a muted video is allowed to start on its own. Once it
+// plays, the sound comes back if `withSound`.
+const autoplayScript = (withSound) => `
+(function () {
+  var tries = 0;
+  var timer = setInterval(function () {
+    tries += 1;
+    var p = window.player;
+    if (p && p.playVideo && p.getPlayerState) {
+      try {
+        if (p.getPlayerState() === 1) {
+          clearInterval(timer);
+          if (${withSound ? "true" : "false"}) p.unMute();
+          return;
+        }
+        p.mute();
+        p.playVideo();
+      } catch (e) {}
+    }
+    if (tries > 40) clearInterval(timer);
+  }, 250);
+})();
+true;
+`;
+
 const RailButton = ({ label, onPress, children, styles }) => (
   <Pressable
     style={({ pressed }) => [styles.railButton, pressed && styles.pressed]}
@@ -311,6 +338,13 @@ const Reel = ({
             webViewProps={{
               allowsInlineMediaPlayback: true,
               mediaPlaybackRequiresUserAction: false,
+              // Autoplay from inside the player: phones only let a web view
+              // start video on its own while it's muted, and a play sent
+              // from here can land before the player exists. So, in the
+              // page: as soon as the player is there, mute it and keep
+              // asking it to play until it does — then give the sound
+              // back if it was on.
+              injectedJavaScript: autoplayScript(!muted),
             }}
             // Android blocks autoplay in a web view unless forced.
             forceAndroidAutoplay
