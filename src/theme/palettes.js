@@ -1,59 +1,63 @@
-// Two palettes. Dark ("warm charcoal"): greys with a faint warm brown, like a
-// dim cinema — a charcoal page
-// under darker bars, cards a step lighter and panels #38342F; grey buttons
-// #57524B with white text; the selected state (the open tab, a picked chip)
-// and the main buttons white. Text is white, then #B8B2AA and #A39D95 (also
-// the tabs not open), each 4.5 : 1 on the cards. Light mode is plain
-// neutral greys on white. Colour only carries meaning: green (`success`) for
-// done / saved / matched, `danger` red for hard dares, poor scores and
-// destructive actions. Some features have their own: gold for ranks and
-// scores (`rating`), orange for dares, violet for collections.
+// Two palettes, Letterboxd's. Dark: its blue-grey page (#14181C) under
+// darker bars, cards a step lighter and panels #2C3440; its slate buttons
+// (#445566) with white text — the open tab too. Text is white, then #99AABB
+// and #8899AA (also the tabs not open). Its three colours carry meaning:
+// green (`brand`, `success`) — the main buttons, done, matched; blue
+// (`rating`, `collection`) — ranks, scores and collections; orange (`dare`)
+// — dares. `danger` red for hard dares, poor scores and destructive
+// actions. Light mode borrows the same, deeper.
 // `isDark` lets the few theme-specific bits (status bar, blur tint) pick
 // their side.
 export const darkColors = {
   isDark: true,
 
-  // The page under the header: a warm charcoal.
-  background: "#1C1A18",
+  // The page under the header: Letterboxd's blue-grey.
+  background: "#14181C",
 
-  // The header bars (and the tab bars pinned under them): a shade darker.
-  headerBackground: "#151311",
+  // The header bars (and the tab bars pinned under them): near-black.
+  headerBackground: "#0E1013",
 
-  card: "#262320",
+  card: "#1C2228",
 
-  cardElevated: "#2D2A26",
+  cardElevated: "#202830",
 
   // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#38342F",
+  cardElevatedLight: "#2C3440",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#B8B2AA",
+  textSecondary: "#99AABB",
 
-  textMuted: "#A39D95",
+  textMuted: "#8899AA",
 
   accent: "#FFFFFF",
-  accentLight: "#B8B2AA",
+  accentLight: "#99AABB",
 
-  accentContrast: "#151311",
+  accentContrast: "#0E1013",
 
+  // The signature: Letterboxd green — main buttons, an action that's on —
+  // with dark text on it.
+  brand: "#00E054",
+  brandText: "#14181C",
+
+  // Done and matched: green.
   success: "#00E054",
 
   // A colour per feature, used on its icons, chips and "on" states;
   // everything else stays grey.
-  // Ranks, titles and scores: gold.
-  rating: "#F2C94C",
-  // Dares: orange.
-  dare: "#FF8A3D",
-  // Collections: violet.
-  collection: "#A78BFA",
+  // Ranks, titles and scores: Letterboxd blue.
+  rating: "#40BCF4",
+  // Dares: Letterboxd orange.
+  dare: "#FF8000",
+  // Collections: blue, like ranks.
+  collection: "#40BCF4",
 
   danger: "#FF8585",
 
-  border: "#38342F",
+  border: "#2C3440",
 
   // Grey fills that mark something chosen, white text.
-  selected: "#57524B",
+  selected: "#445566",
 
   selectedText: "#FFFFFF",
 
@@ -62,23 +66,23 @@ export const darkColors = {
   surfaceSoft: "rgba(255, 255, 255, 0.06)",
 
   // Every grey button (Sign in, skips, ⇄, the sheets' actions…):
-  // a mid grey, white text.
-  buttonFill: "#57524B",
+  // Letterboxd's slate, white text.
+  buttonFill: "#445566",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#262320",
+  ringFill: "#1C2228",
 
   // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
-  // open one a white pill with dark text.
-  segmentTrack: "#1C1A18",
-  segmentOn: "#FFFFFF",
-  segmentOnText: "#1C1A18",
+  // open one a slate pill with white text.
+  segmentTrack: "#14181C",
+  segmentOn: "#445566",
+  segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#A39D95",
+  segmentText: "#8899AA",
 
   // Every poster's thin frame.
-  posterEdge: "#38342F",
+  posterEdge: "#2C3440",
 };
 
 export const lightColors = {
@@ -107,11 +111,14 @@ export const lightColors = {
 
   accentContrast: "#FFFFFF",
 
+  brand: "#00873A",
+  brandText: "#FFFFFF",
+
   success: "#00873A",
 
-  rating: "#8A6A00",
-  dare: "#C2410C",
-  collection: "#6D28D9",
+  rating: "#17729E",
+  dare: "#C25E00",
+  collection: "#17729E",
 
   danger: "#D64545",
 
@@ -121,7 +128,7 @@ export const lightColors = {
 
   selectedText: "#FFFFFF",
 
-  successSoft: "rgba(31, 157, 85, 0.12)",
+  successSoft: "rgba(0, 135, 58, 0.12)",
 
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 
@@ -130,7 +137,7 @@ export const lightColors = {
   ringFill: "#F7F7F7",
 
   segmentTrack: "#EDEDED",
-  segmentOn: "#111111",
+  segmentOn: "#445566",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
   segmentText: "#666666",

@@ -25,7 +25,8 @@ import { tierRank } from "../utils/tiers";
 const LIKE_COUNT = 30;
 const FAVOURITES = 12;
 const COLUMNS = 3;
-const GAP = 2;
+// Between the posters, across and down.
+const GAP = spacing.sm + 2;
 const RING = 46;
 
 // How similar, as a small ring: green when it's close, slate when it's a
@@ -178,7 +179,8 @@ export const SimilarScreen = ({ navigation, route }) => {
     .map((entry) => getMovieById(entry.movieId))
     .filter((movie) => movie && !movie.partial);
   const favourites = (yours.length >= COLUMNS ? yours : [...MOVIES].sort(byWeightedRating)).slice(0, FAVOURITES);
-  const tile = Math.floor((width - GAP * (COLUMNS - 1)) / COLUMNS);
+  // Inside the page's margins.
+  const tile = Math.floor((width - spacing.md * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
 
   const choose = (movieId) => {
     setTargetId(movieId);
@@ -253,9 +255,15 @@ export const SimilarScreen = ({ navigation, route }) => {
                       key={movie.id}
                       onPress={() => choose(movie.id)}
                       accessibilityLabel={movie.title}
-                      style={({ pressed }) => pressed && styles.tilePressed}
+                      style={({ pressed }) => [{ width: tile }, pressed && styles.tilePressed]}
                     >
-                      <MoviePoster uri={movie.poster} style={{ width: tile, height: tile * 1.5 }} />
+                      <MoviePoster uri={movie.poster} style={{ width: tile, height: tile * 1.5 }} shadow />
+                      <Text style={styles.tileTitle} numberOfLines={1}>
+                        {movie.title}
+                      </Text>
+                      <Text style={styles.tileYear} numberOfLines={1}>
+                        {movie.year}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
@@ -351,9 +359,9 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     label: {
-      ...typography.caption,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
+      ...typography.section,
+      color: colors.textSecondary,
+      marginTop: 20,
       marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
     },
@@ -366,13 +374,29 @@ const createStyles = (colors) =>
       paddingVertical: spacing.xl,
       paddingHorizontal: spacing.md,
     },
+    // Posters three across, inside the margins, each with its name and year.
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: GAP,
+      columnGap: GAP,
+      rowGap: spacing.md,
+      paddingHorizontal: spacing.md,
     },
     tilePressed: {
       opacity: 0.8,
+    },
+    tileTitle: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.textPrimary,
+      marginTop: spacing.xs + 2,
+    },
+    tileYear: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textMuted,
     },
     results: {
       marginTop: 2,

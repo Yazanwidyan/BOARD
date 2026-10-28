@@ -18,7 +18,7 @@ import { t } from "../i18n";
 // Tonight's Pick as Home's hero banner, the same card as the suggestion
 // (see HomeHero): the backdrop, the title (or logo), year · genre ·
 // length, what it's about and where it came from, then
-// Watched, the white main button across the card; ✕ drops the pick. Tapping it
+// Watched, the main button across the card; ✕ drops the pick. Tapping it
 // opens the movie. Renders nothing when there's no pick.
 // `scrollY`: Home's scroll position, so the backdrop stretches on a pull.
 export const TonightsPickCard = ({ navigation, scrollY }) => {
@@ -95,7 +95,7 @@ export const TonightsPickCard = ({ navigation, scrollY }) => {
       actions={
         <PrimaryButton
           label={t("Watched")}
-          icon={<Eye size={18} color={colors.background} strokeWidth={2} />}
+          icon={<Eye size={18} color={colors.brandText} strokeWidth={2} />}
           onPress={markWatched}
           style={styles.main}
           contentStyle={styles.mainContent}

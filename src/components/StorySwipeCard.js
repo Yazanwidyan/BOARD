@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   card: {
     position: "absolute",
     overflow: "hidden",
-    backgroundColor: "#1C1A18",
+    backgroundColor: "#14181C",
   },
   // A bar across the poster with the word — green for keep, red for pass
   // (set where it's drawn); the word and icon a near-black ink on it.

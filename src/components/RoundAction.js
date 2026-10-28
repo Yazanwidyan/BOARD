@@ -10,7 +10,8 @@ const SIZE = 40;
 // The app's action button, wherever a few actions share a row (Home's
 // cards, a movie's page): its icon in a circle, its name under; a row of
 // them shares the width evenly, every one the same. The states:
-//   `on`   — switched on (saved, tonight's pick): filled, a dark icon;
+//   `on`   — switched on (saved, tonight's pick): filled in the signature
+//            colour (`brand`), a dark icon;
 //   `done` — finished (watched): green, the colour for done.
 // `tint`: a feature's colour — the icon's, and the fill when it's on.
 // `a11yLabel`: a fuller name for screen readers, when the label's short.
@@ -28,7 +29,7 @@ export const RoundAction = ({
   const iconColor = done
     ? colors.success
     : on
-      ? colors.background
+      ? colors.brandText
       : (tint ?? colors.textPrimary);
   return (
     <Pressable
@@ -77,7 +78,7 @@ const createStyles = (colors) =>
       borderRadius: SIZE / 2,
     },
     circleOn: {
-      backgroundColor: colors.textPrimary,
+      backgroundColor: colors.brand,
     },
     circleDone: {
       backgroundColor: colors.successSoft,

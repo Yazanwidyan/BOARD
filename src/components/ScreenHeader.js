@@ -23,6 +23,8 @@ import { SpinningLogo, useRefreshSpin } from "./RefreshSpin";
 export const HEADER_BAR_HEIGHT = 40;
 // The wordmark's size in Home's header.
 const WORDMARK_SIZE = 28;
+// A centred title keeps this clear on each side, for the buttons there.
+const TITLE_SIDE_ROOM = 92;
 // An `overlay` header (over Home's backdrop) turns solid over this much
 // scroll.
 const OVERLAY_FADE_DISTANCE = 90;
@@ -173,8 +175,8 @@ export const HeaderIconButton = ({
 };
 
 // Title (with an optional small `eyebrow` line above it, e.g. Home's
-// greeting) on the left, every action on the right — `left`'s, then
-// `right`'s. `back`: a back button, first, before the title. `wordmark`:
+// greeting) centred, every action on the right — `left`'s, then
+// `right`'s. `back`: a back button, on the left. `wordmark`:
 // the title is the app's name — set in its own face (Home).
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
@@ -230,8 +232,9 @@ export const DockHeader = ({
     >
       {overlay && <OverlayFill scrollY={scrollY} styles={styles} />}
       <Animated.View style={[styles.barRow, rowStyle]}>
-        {back}
-        <View style={styles.leftTitleBlock}>
+        {/* The title, centred across the whole bar (clear of the buttons
+            either side); back on the left, the actions on the right. */}
+        <View style={styles.centerTitle} pointerEvents="box-none">
           {!!eyebrow && (
             <Text style={styles.leftEyebrow} numberOfLines={1}>
               {eyebrow}
@@ -290,6 +293,8 @@ export const DockHeader = ({
             </Text>
           )}
         </View>
+        {back}
+        <View style={styles.spacer} />
         {(left || right) && (
           <View style={styles.actions}>
             {left}
@@ -302,8 +307,8 @@ export const DockHeader = ({
 };
 
 // The header for pages pushed on top of the tabs (Settings, Badges, Spin,
-// the challenge generator…): the same bar, left title and right actions as
-// the tab headers, plus a leading back button — or a ✕ for modal-style
+// the challenge generator…): the same bar, centred title and right actions
+// as the tab headers, plus a leading back button — or a ✕ for modal-style
 // flows (`close`). It sits in normal layout flow, not absolute.
 //
 // Pass `scrollY` (from useStackHeaderScroll) with `titleRevealAt`, which
@@ -339,8 +344,8 @@ export const StackHeader = ({
   return (
     <RoundHeaderButtons.Provider value>
       <View style={[styles.stackBar, { paddingTop: insets.top + spacing.xs }]}>
-        {/* Back (or ✕), then the title beside it; actions on the right —
-            all round, filled buttons, like Movie details'. */}
+        {/* Back (or ✕) on the left, the title centred, actions on the
+            right — all round, filled buttons, like Movie details'. */}
         <View style={styles.stackLeading}>
           {close ? (
             <HeaderIconButton onPress={onBack} accessibilityLabel={t("Close")}>
@@ -350,11 +355,15 @@ export const StackHeader = ({
             <BackButton onPress={onBack} floating />
           )}
         </View>
-        <Animated.View style={[styles.stackTitleWrap, titleStyle]}>
+        <Animated.View
+          style={[styles.stackTitleWrap, titleStyle]}
+          pointerEvents="none"
+        >
           <Text style={styles.stackTitle} numberOfLines={1}>
             {title}
           </Text>
         </Animated.View>
+        <View style={styles.spacer} />
         {right ? <View style={styles.right}>{right}</View> : null}
       </View>
     </RoundHeaderButtons.Provider>
@@ -435,7 +444,17 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
     },
+    // Centred over the whole bar, clear of the round buttons either side.
     stackTitleWrap: {
+      position: "absolute",
+      start: TITLE_SIDE_ROOM,
+      end: TITLE_SIDE_ROOM,
+      bottom: spacing.sm + 2,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    spacer: {
       flex: 1,
     },
     stackTitle: {
@@ -444,6 +463,7 @@ const createStyles = (colors) =>
       lineHeight: 24,
       letterSpacing: -0.3,
       color: colors.textPrimary,
+      textAlign: "center",
     },
     titleButton: {
       flexDirection: "row",
@@ -474,10 +494,15 @@ const createStyles = (colors) =>
       letterSpacing: 0.8,
       color: colors.textPrimary,
     },
-    // The title, from the left, taking the room the actions leave.
-    leftTitleBlock: {
-      flex: 1,
-      alignItems: "flex-start",
+    // The title, centred across the bar, clear of the buttons either side.
+    centerTitle: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      start: TITLE_SIDE_ROOM,
+      end: TITLE_SIDE_ROOM,
+      alignItems: "center",
+      justifyContent: "center",
     },
     // Every action, together on the right.
     actions: {

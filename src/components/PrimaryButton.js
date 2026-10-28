@@ -12,12 +12,12 @@ import { useColors } from "../theme/useColors";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// `primary` — every screen's one main action — is the page's contrast
-// colour, flat: white with near-black text on dark, the reverse on light.
+// `primary` — every screen's one main action — is the app's signature
+// colour (`brand`), flat, with its own text colour on it.
 const getVariantStyles = (colors) => ({
   primary: {
-    container: { backgroundColor: colors.textPrimary },
-    text: { color: colors.background },
+    container: { backgroundColor: colors.brand },
+    text: { color: colors.brandText },
     shadow: null,
   },
   secondary: {
