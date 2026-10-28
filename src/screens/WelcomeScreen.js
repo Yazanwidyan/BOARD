@@ -519,7 +519,7 @@ const createStyles = (colors) =>
     filledText: {
       color: colors.background,
     },
-    // Sign in: the panel grey (#363636), quieter than the button slate.
+    // Sign in: the panel grey (#38342F), quieter than the button slate.
     neutral: {
       backgroundColor: colors.cardElevatedLight,
     },

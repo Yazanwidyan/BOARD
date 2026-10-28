@@ -1,9 +1,10 @@
-// Two palettes, all neutral greys — no tint. Dark ("charcoal"): a charcoal page
-// under darker bars, cards a step lighter and panels #363636; grey buttons
-// #555555 with white text; the selected state (the open tab, a picked chip)
-// and the main buttons white. Text is white, then #B3B3B3 and #A3A3A3 (also
-// the tabs not open), each 4.5 : 1 on the cards. Light mode is the same
-// greys turned over. Colour only carries meaning: green (`success`) for
+// Two palettes. Dark ("warm charcoal"): greys with a faint warm brown, like a
+// dim cinema — a charcoal page
+// under darker bars, cards a step lighter and panels #38342F; grey buttons
+// #57524B with white text; the selected state (the open tab, a picked chip)
+// and the main buttons white. Text is white, then #B8B2AA and #A39D95 (also
+// the tabs not open), each 4.5 : 1 on the cards. Light mode is plain
+// neutral greys on white. Colour only carries meaning: green (`success`) for
 // done / saved / matched, `danger` red for hard dares, poor scores and
 // destructive actions. Some features have their own: gold for ranks and
 // scores (`rating`), orange for dares, violet for collections.
@@ -12,29 +13,29 @@
 export const darkColors = {
   isDark: true,
 
-  // The page under the header: charcoal.
-  background: "#1C1C1C",
+  // The page under the header: a warm charcoal.
+  background: "#1C1A18",
 
   // The header bars (and the tab bars pinned under them): a shade darker.
-  headerBackground: "#161616",
+  headerBackground: "#151311",
 
-  card: "#262626",
+  card: "#262320",
 
-  cardElevated: "#2C2C2C",
+  cardElevated: "#2D2A26",
 
   // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#363636",
+  cardElevatedLight: "#38342F",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#B3B3B3",
+  textSecondary: "#B8B2AA",
 
-  textMuted: "#A3A3A3",
+  textMuted: "#A39D95",
 
   accent: "#FFFFFF",
-  accentLight: "#B3B3B3",
+  accentLight: "#B8B2AA",
 
-  accentContrast: "#161616",
+  accentContrast: "#151311",
 
   success: "#00E054",
 
@@ -49,10 +50,10 @@ export const darkColors = {
 
   danger: "#FF8585",
 
-  border: "#363636",
+  border: "#38342F",
 
   // Grey fills that mark something chosen, white text.
-  selected: "#555555",
+  selected: "#57524B",
 
   selectedText: "#FFFFFF",
 
@@ -62,22 +63,22 @@ export const darkColors = {
 
   // Every grey button (Sign in, skips, ⇄, the sheets' actions…):
   // a mid grey, white text.
-  buttonFill: "#555555",
+  buttonFill: "#57524B",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#262626",
+  ringFill: "#262320",
 
   // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
   // open one a white pill with dark text.
-  segmentTrack: "#1C1C1C",
+  segmentTrack: "#1C1A18",
   segmentOn: "#FFFFFF",
-  segmentOnText: "#1C1C1C",
+  segmentOnText: "#1C1A18",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#A3A3A3",
+  segmentText: "#A39D95",
 
   // Every poster's thin frame.
-  posterEdge: "#363636",
+  posterEdge: "#38342F",
 };
 
 export const lightColors = {
