@@ -4,7 +4,6 @@ import {
   Gem,
   Info,
   Languages,
-  Lightbulb,
   LogOut,
   Moon,
   Palette,
@@ -52,7 +51,6 @@ import { showToast } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
 import { useProfileStore } from "../store/profileStore";
 import { useThemeStore } from "../store/themeStore";
-import { useTipsStore } from "../store/tipsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useIsPro } from "../utils/pro";
 import { changeLanguage, t, useIsRTL } from "../i18n";
@@ -85,7 +83,6 @@ export const SettingsScreen = ({ navigation }) => {
   const setThemeMode = useThemeStore((state) => state.setMode);
   const language = useLanguageStore((state) => state.language);
   const isPro = useIsPro();
-  const resetTips = useTipsStore((state) => state.resetTips);
   const account = useAuthStore((state) => state.user);
 
   // Reminders and push are a setting of this phone, not the account.
@@ -236,16 +233,6 @@ export const SettingsScreen = ({ navigation }) => {
             label={t("Invite friends")}
             hint={t("Share your handle so they can add you")}
             onPress={invite}
-          />
-          <SettingsRow
-            Icon={Lightbulb}
-            label={t("Show tips again")}
-            onPress={() => {
-              resetTips();
-              showToast(t("Tips will show again on each screen"), {
-                tone: "success",
-              });
-            }}
           />
           <SettingsRow
             Icon={Info}

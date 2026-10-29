@@ -22,7 +22,7 @@ import {
 import { formatRuntime } from "../utils/movieFilters";
 import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
-import { MoviePoster } from "./MoviePoster";
+import { ArtworkEdge, MoviePoster } from "./MoviePoster";
 import { TrophyCabinet } from "./TrophyCabinet";
 import { t } from "../i18n";
 import { useMoviesVersion } from "../data/movies";
@@ -38,6 +38,8 @@ const TYPE_FILTERS = [
 ];
 const ALMOST_THERE_MAX_LEFT = 2;
 const CAROUSEL_CARD = 136;
+// The gap between cards, in the carousel and the grid.
+const CARD_GAP = spacing.rail;
 
 
 // 2×2 poster cover — the first four movies, cropped into square cells.
@@ -50,6 +52,7 @@ const Cover = ({ movies, size, dimmed, styles }) => {
         return (
           <MoviePoster
             key={index}
+            tile
             uri={movie?.poster}
             style={[
               { width: cell, height: cell },
@@ -58,6 +61,7 @@ const Cover = ({ movies, size, dimmed, styles }) => {
           />
         );
       })}
+      <ArtworkEdge />
     </View>
   );
 };
@@ -76,13 +80,11 @@ const ShelfCard = ({
     style={({ pressed }) => [{ width }, pressed && styles.pressed]}
     onPress={onPress}
   >
-    <View style={styles.shelfCardBox}>
-      <CollectionCollage
-        collection={item.collection}
-        watchedIds={watchedIds}
-        size={width - 2}
-      />
-    </View>
+    <CollectionCollage
+      collection={item.collection}
+      watchedIds={watchedIds}
+      size={width}
+    />
     <View style={styles.shelfCardText}>
       <Text style={styles.cardTitle} numberOfLines={1}>
         {item.collection.title}
@@ -180,7 +182,7 @@ export const CollectionsShelf = ({
   ).filter(({ collection }) => matchesType({ collection }));
 
   // Not started: two collages per row.
-  const gridCell = (width - (spacing.md - 1) * 2) / 2;
+  const gridCell = (width - spacing.md * 2 - CARD_GAP) / 2;
 
   return (
     <View>
@@ -496,34 +498,32 @@ const createStyles = (colors) =>
       fontSize: 11,
       color: colors.textMuted,
     },
-    // Cards sit edge to edge (no gap); each
-    // card pads its own box instead.
+    // Cards an even gap apart, in the page's margins.
     carousel: {
-      paddingHorizontal: spacing.md - 1,
+      gap: CARD_GAP,
+      paddingHorizontal: spacing.md,
     },
     shelfGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
+      columnGap: CARD_GAP,
       rowGap: spacing.lg,
-      paddingHorizontal: spacing.md - 1,
-    },
-    // 1px a side: covers sit 2px apart, like Library's poster grid.
-    shelfCardBox: {
-      paddingHorizontal: 1,
+      paddingHorizontal: spacing.md,
     },
     shelfCardText: {
-      paddingHorizontal: 1,
       paddingEnd: spacing.sm,
       marginTop: spacing.sm,
     },
     pressed: {
       opacity: 0.75,
     },
+    // A poster's corners and frame, clipping the posters inside.
     cover: {
       flexDirection: "row",
       flexWrap: "wrap",
       overflow: "hidden",
       backgroundColor: colors.card,
+      borderRadius: shape.poster,
     },
     coverDimmed: {
       opacity: 0.5,

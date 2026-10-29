@@ -1,88 +1,90 @@
-// Two palettes, Letterboxd's. Dark: its blue-grey page (#14181C) under
-// darker bars, cards a step lighter and panels #2C3440; its slate buttons
-// (#445566) with white text — the open tab too. Text is white, then #99AABB
-// and #8899AA (also the tabs not open). Its three colours carry meaning:
-// green (`brand`, `success`) — the main buttons, done, matched; blue
-// (`rating`, `collection`) — ranks, scores and collections; orange (`dare`)
-// — dares. `danger` red for hard dares, poor scores and destructive
-// actions. Light mode borrows the same, deeper.
+// Two palettes, Apple Music's (iOS's own system colours). Dark: a true
+// black page and bars, cards in iOS's grouped greys (#1C1C1E, then #2C2C2E
+// and #3A3A3C), hairlines #38383A. Text is white, then iOS's secondary and
+// tertiary greys. Its red (#FA2D48) is the signature — the main buttons, an
+// action that's on, and the text of the grey buttons (as on a playlist's
+// Play / Shuffle). The others carry meaning: green (`success`) — done,
+// matched; yellow (`rating`) — stars, ranks and scores; orange (`dare`) —
+// dares; blue (`collection`) — collections. `danger` for hard dares, poor
+// scores and destructive actions. Light mode: the same, on white.
 // `isDark` lets the few theme-specific bits (status bar, blur tint) pick
 // their side.
 export const darkColors = {
   isDark: true,
 
-  // The page under the header: Letterboxd's blue-grey.
-  background: "#171c20",
+  // The page: black, as in Apple Music.
+  background: "#000000",
 
-  // The header bars (and the tab bars pinned under them): near-black.
-  headerBackground: "#0d0f13",
+  // The header bars (and the tab bars pinned under them): the same black.
+  headerBackground: "#000000",
 
-  card: "#1C2228",
+  // Cards: iOS's grouped grey; raised ones (sheets, popovers) a step up.
+  card: "#1C1C1E",
 
-  cardElevated: "#202830",
+  cardElevated: "#2C2C2E",
 
-  // Empty tiles and light fills — muted text still reads 4.5:1 on it.
-  cardElevatedLight: "#2C3440",
+  // Empty tiles and light fills.
+  cardElevatedLight: "#3A3A3C",
 
   textPrimary: "#FFFFFF",
 
-  textSecondary: "#99AABB",
+  textSecondary: "#AEAEB2",
 
-  textMuted: "#8899AA",
+  textMuted: "#8E8E93",
 
   accent: "#FFFFFF",
-  accentLight: "#99AABB",
+  accentLight: "#AEAEB2",
 
-  accentContrast: "#0E1013",
+  accentContrast: "#000000",
 
-  // The signature: Letterboxd green — main buttons, an action that's on —
-  // with dark text on it.
-  brand: "#00E054",
-  brandText: "#14181C",
+  // The signature: Apple Music red — main buttons, an action that's on —
+  // with white text on it.
+  brand: "#FA2D48",
+  brandText: "#FFFFFF",
 
-  // Done and matched: green.
-  success: "#00E054",
+  // Done and matched: iOS green.
+  success: "#30D158",
 
   // A colour per feature, used on its icons, chips and "on" states;
   // everything else stays grey.
-  // Ranks, titles and scores: Letterboxd blue.
-  rating: "#40BCF4",
-  // Dares: Letterboxd orange.
-  dare: "#FF8000",
-  // Collections: blue, like ranks.
-  collection: "#40BCF4",
+  // Stars, ranks and scores: iOS yellow.
+  rating: "#FFD60A",
+  // Dares: iOS orange.
+  dare: "#FF9F0A",
+  // Collections: iOS blue.
+  collection: "#64D2FF",
 
-  danger: "#FF8585",
+  danger: "#FF453A",
 
-  border: "#2C3440",
+  border: "#38383A",
 
   // Grey fills that mark something chosen, white text.
-  selected: "#445566",
+  selected: "#3A3A3C",
 
   selectedText: "#FFFFFF",
 
-  successSoft: "rgba(0, 224, 84, 0.16)",
+  successSoft: "rgba(48, 209, 88, 0.16)",
 
   surfaceSoft: "rgba(255, 255, 255, 0.06)",
 
-  // Every grey button (Sign in, skips, ⇄, the sheets' actions…):
-  // Letterboxd's slate, white text.
-  buttonFill: "#445566",
+  // Every grey button (Sign in, skips, ⇄, the sheets' actions…): iOS's
+  // raised grey, so it shows on a card as well as on the page.
+  buttonFill: "#2C2C2E",
 
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
-  ringFill: "#1C2228",
+  ringFill: "#1C1C1E",
 
-  // Segmented tabs (For you / Friends, Browse / Reels…): a dark track, the
-  // open one a slate pill with white text.
-  segmentTrack: "#14181C",
-  segmentOn: "#445566",
+  // Segmented tabs (Browse / Reels…): iOS's segmented control — a grey
+  // track, the open one a lighter pill with white text.
+  segmentTrack: "#1C1C1E",
+  segmentOn: "#636366",
   segmentOnText: "#FFFFFF",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#8899AA",
+  segmentText: "#8E8E93",
 
   // Every poster's thin frame.
-  posterEdge: "#2C3440",
+  posterEdge: "rgba(255, 255, 255, 0.08)",
 };
 
 export const lightColors = {
@@ -92,55 +94,55 @@ export const lightColors = {
 
   headerBackground: "#FFFFFF",
 
-  card: "#F2F2F2",
+  card: "#F2F2F7",
 
   // Sheets and popovers: white, lifted by their border.
   cardElevated: "#FFFFFF",
 
-  cardElevatedLight: "#E6E6E6",
+  cardElevatedLight: "#E5E5EA",
 
-  textPrimary: "#111111",
+  textPrimary: "#000000",
 
-  // Neutral greys, like dark mode's.
-  textSecondary: "#555555",
+  // iOS's greys, a touch deeper so they read on white.
+  textSecondary: "#6C6C70",
 
-  textMuted: "#666666",
+  textMuted: "#6E6E73",
 
-  accent: "#111111",
-  accentLight: "#555555",
+  accent: "#000000",
+  accentLight: "#6C6C70",
 
   accentContrast: "#FFFFFF",
 
-  brand: "#00873A",
+  brand: "#FA2D48",
   brandText: "#FFFFFF",
 
-  success: "#00873A",
+  success: "#248A3D",
 
-  rating: "#17729E",
-  dare: "#C25E00",
-  collection: "#17729E",
+  rating: "#B25000",
+  dare: "#C93400",
+  collection: "#0071E3",
 
-  danger: "#D64545",
+  danger: "#D70015",
 
-  border: "#DDDDDD",
+  border: "#D1D1D6",
 
-  selected: "#111111",
+  selected: "#000000",
 
   selectedText: "#FFFFFF",
 
-  successSoft: "rgba(0, 135, 58, 0.12)",
+  successSoft: "rgba(36, 138, 61, 0.12)",
 
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 
-  buttonFill: "#E8E8E8",
+  buttonFill: "#F2F2F7",
 
-  ringFill: "#F7F7F7",
+  ringFill: "#F2F2F7",
 
-  segmentTrack: "#EDEDED",
-  segmentOn: "#445566",
-  segmentOnText: "#FFFFFF",
+  segmentTrack: "#EEEEF0",
+  segmentOn: "#FFFFFF",
+  segmentOnText: "#000000",
   // The tabs not open: the same grey as textMuted.
-  segmentText: "#666666",
+  segmentText: "#6E6E73",
 
   posterEdge: "rgba(0, 0, 0, 0.1)",
 };

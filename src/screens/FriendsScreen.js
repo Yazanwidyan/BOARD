@@ -65,7 +65,7 @@ const describe = (person) =>
 //   Friends: one field that finds a friend as you type — or, for a handle
 //   that isn't one yet, adds them — then your friends, closest taste first,
 //   and your own handle to copy. (What friends are doing — activity,
-//   watching together — is Home's Friends tab.)
+//   watching together — is the friends page, FriendsHub.)
 //   Requests: the ones waiting on you (accept / decline) and the ones you
 //   sent (cancel).
 // Invite is the header's share button.

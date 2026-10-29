@@ -22,11 +22,9 @@ import { WatchTogetherScreen } from "../screens/WatchTogetherScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
 import { ProScreen } from "../screens/ProScreen";
 import { RanksScreen } from "../screens/RanksScreen";
-import { QuickLogScreen } from "../screens/QuickLogScreen";
 import { RecapScreen } from "../screens/RecapScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
-import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SwipeScreen } from "../screens/SwipeScreen";
 import { TasteScreen } from "../screens/TasteScreen";
@@ -36,6 +34,9 @@ import { WildcardScreen } from "../screens/WildcardScreen";
 import { SimilarScreen } from "../screens/SimilarScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
 import { FriendsScreen } from "../screens/FriendsScreen";
+import { FriendsHubScreen } from "../screens/FriendsHubScreen";
+import { MixScreen } from "../screens/MixScreen";
+import { MilestonesScreen } from "../screens/MilestonesScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { startNotifications } from "../services/notifications";
@@ -156,11 +157,6 @@ export const AppNavigator = () => {
               component={SwipeScreen}
               options={{ gestureEnabled: false }}
             />
-            <Stack.Screen
-              name="QuickLog"
-              component={QuickLogScreen}
-              options={{ animation: "slide_from_bottom" }}
-            />
             <Stack.Screen name="Similar" component={SimilarScreen} />
             {/* Scratching shouldn't swipe the screen away. */}
             <Stack.Screen
@@ -197,12 +193,10 @@ export const AppNavigator = () => {
               options={{ animation: "slide_from_bottom" }}
             />
             <Stack.Screen name="BrowseMovies" component={BrowseMoviesScreen} />
-            <Stack.Screen
-              name="Search"
-              component={SearchScreen}
-              options={{ animation: "slide_from_bottom" }}
-            />
             <Stack.Screen name="Friends" component={FriendsScreen} />
+            <Stack.Screen name="FriendsHub" component={FriendsHubScreen} />
+            <Stack.Screen name="Mix" component={MixScreen} />
+            <Stack.Screen name="Milestones" component={MilestonesScreen} />
             <Stack.Screen
               name="FriendProfile"
               component={FriendProfileScreen}

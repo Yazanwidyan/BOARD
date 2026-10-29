@@ -10,11 +10,22 @@ import { shape } from "../theme/spacing";
 // thin dark frame drawn over the image's edge (so it never changes the
 // poster's size). Any `radius` a caller passes is ignored, and a
 // borderRadius in `style` is overridden, so one place decides the look.
+// `tile`: one piece of a cover made of posters (a collection's, a list's)
+// — square, with no frame, so the cover's own rounded corners frame them.
 const POSTER_RADIUS = shape.poster;
 const POSTER_EDGE_WIDTH = 1.5;
 
-export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
-  const cornerRadius = POSTER_RADIUS;
+// The poster's thin frame on its own, for artwork that isn't one poster
+// (a collection's or a list's cover, a Top picks card): laid over it, in
+// the poster's corners.
+export const ArtworkEdge = () => {
+  const colors = useColors();
+  const styles = createStyles(colors);
+  return <View pointerEvents="none" style={[styles.edge, { borderRadius: POSTER_RADIUS }]} />;
+};
+
+export const MoviePoster = ({ uri, style, shadow = false, blurRadius, tile = false }) => {
+  const cornerRadius = tile ? 0 : POSTER_RADIUS;
   const [failed, setFailed] = useState(false);
   const colors = useColors();
   const styles = createStyles(colors);
@@ -39,7 +50,7 @@ export const MoviePoster = ({ uri, style, shadow = false, blurRadius }) => {
           blurRadius={blurRadius}
         />
       )}
-      <View pointerEvents="none" style={[styles.edge, { borderRadius: cornerRadius }]} />
+      {!tile && <View pointerEvents="none" style={[styles.edge, { borderRadius: cornerRadius }]} />}
     </View>
   );
 

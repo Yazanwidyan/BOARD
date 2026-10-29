@@ -1,8 +1,9 @@
 import { LayoutGrid } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
+import { shape } from "../theme/spacing";
 import { useColors } from "../theme/useColors";
-import { MoviePoster } from "./MoviePoster";
+import { ArtworkEdge, MoviePoster } from "./MoviePoster";
 
 // A board as a square 2 × 2 collage of its first four posters (the newest
 // adds go to the end, so the cover stays put as the board grows). Fewer
@@ -25,21 +26,25 @@ export const BoardCover = ({ movies, size }) => {
       {[0, 1, 2, 3].map((index) => (
         <MoviePoster
           key={index}
+          tile
           uri={movies[index % movies.length]?.poster}
           style={{ width: cell, height: cell }}
         />
       ))}
+      <ArtworkEdge />
     </View>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // A poster's corners and frame, clipping the posters inside.
     cover: {
       flexDirection: "row",
       flexWrap: "wrap",
       overflow: "hidden",
       backgroundColor: colors.card,
+      borderRadius: shape.poster,
     },
     empty: {
       alignItems: "center",

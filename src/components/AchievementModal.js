@@ -26,7 +26,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
 import { getMovieById } from "../data/movies";
 import { t, useLayoutDirection } from "../i18n";
@@ -35,14 +35,16 @@ import { useSheetStore } from "../store/sheetStore";
 import { useMovieStore } from "../store/movieStore";
 import { openShareCard } from "../store/shareCardStore";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 import { describeNext, getClosestRanks, getTitle, sortByRarity } from "../utils/ranks";
+import { getMilestones } from "../utils/milestones";
 import { isRated } from "../utils/tiers";
 import { useRankRarity, useRankSummary } from "../utils/useRanks";
 import { Text } from "./AppText";
 import { DialogArt } from "./DialogArt";
+import { MilestoneMedal } from "./MilestoneMedal";
 import { MoviePoster } from "./MoviePoster";
 import { RankBadge } from "./RankBadge";
 
@@ -70,11 +72,12 @@ import { RankBadge } from "./RankBadge";
 
 const HERO_HEIGHT = 220;
 const POSTER_WIDTH = 132;
-// The beam: how far above the hero it starts, how narrow it is there, and
-// how wide where it lands.
-const BEAM_RISE = 320;
-const BEAM_TOP_WIDTH = 36;
-const BEAM_BOTTOM_WIDTH = 300;
+// The glow behind the hero.
+const GLOW = 340;
+// Milestones count as this moment's when they were reached in the last
+// few minutes (by the film just watched).
+const MILESTONE_FRESH_MS = 3 * 60 * 1000;
+const MEDAL = 76;
 const BAR_DELAY = 450;
 const BAR_MS = 700;
 const ROWS_DELAY = 380;
@@ -278,66 +281,32 @@ const getHeadline = (achievement, rarity, colors) => {
 
 // ---------- Pieces of the dialog ----------
 
-// A projector's beam: a soft cone of white light from high above, landing
-// on the hero in a pool of light. It switches on with one flicker, then
-// holds still (just fades in with Reduce Motion on).
-const ProjectorBeam = () => {
+// A soft glow in the moment's colour behind the hero, as Replay's medals
+// sit in their own light; it fades in (and, with motion on, swells once).
+const HeroGlow = ({ color }) => {
   const reduceMotion = useReducedMotion();
   const on = useSharedValue(0);
-  const { width } = useWindowDimensions();
-
   useEffect(() => {
-    if (reduceMotion) {
-      on.value = withTiming(1, { duration: 400 });
-      return;
-    }
-    on.value = withDelay(
-      80,
-      withSequence(
-        withTiming(0.8, { duration: 90 }),
-        withTiming(0.25, { duration: 80 }),
-        withTiming(0.9, { duration: 70 }),
-        withTiming(0.55, { duration: 110 }),
-        withTiming(1, { duration: 380, easing: Easing.out(Easing.quad) }),
-      ),
-    );
+    on.value = reduceMotion
+      ? withTiming(1, { duration: 400 })
+      : withDelay(80, withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const style = useAnimatedStyle(() => ({ opacity: on.value }));
-  const height = BEAM_RISE + HERO_HEIGHT;
-  const center = width / 2;
-  const cone = [
-    `M${center - BEAM_TOP_WIDTH / 2} 0`,
-    `L${center + BEAM_TOP_WIDTH / 2} 0`,
-    `L${center + BEAM_BOTTOM_WIDTH / 2} ${height}`,
-    `L${center - BEAM_BOTTOM_WIDTH / 2} ${height}`,
-    "Z",
-  ].join(" ");
-
+  const style = useAnimatedStyle(() => ({
+    opacity: on.value,
+    transform: [{ scale: 0.85 + on.value * 0.15 }],
+  }));
   return (
-    <Animated.View pointerEvents="none" style={[styles_.beam, { width, height }, style]}>
-      <Svg width={width} height={height}>
+    <Animated.View pointerEvents="none" style={[styles_.glow, style]}>
+      <Svg width={GLOW} height={GLOW}>
         <Defs>
-          <SvgLinearGradient id="beamFade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.32" />
-            <Stop offset="0.7" stopColor="#FFFFFF" stopOpacity="0.1" />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
-          </SvgLinearGradient>
-          <RadialGradient id="beamPool" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.22" />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+          <RadialGradient id="heroGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={color} stopOpacity="0.55" />
+            <Stop offset="0.55" stopColor={color} stopOpacity="0.18" />
+            <Stop offset="1" stopColor={color} stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Path d={cone} fill="url(#beamFade)" />
-        {/* Where it lands: a soft pool behind the hero. */}
-        <Ellipse
-          cx={center}
-          cy={height - HERO_HEIGHT / 2}
-          rx={BEAM_BOTTOM_WIDTH / 2 + 20}
-          ry={HERO_HEIGHT / 2 + 10}
-          fill="url(#beamPool)"
-        />
+        <Circle cx={GLOW / 2} cy={GLOW / 2} r={GLOW / 2} fill="url(#heroGlow)" />
       </Svg>
     </Animated.View>
   );
@@ -459,10 +428,10 @@ const TitleProgress = ({ ranksBefore, ranksAfter, color, styles, colors }) => {
 
 // One more thing this action earned: its tile, what and where, and "+1"
 // for a rank (a check for the rest).
-const AlsoRow = ({ item, index, color, styles, colors }) => (
+const AlsoRow = ({ item, index, last, color, styles, colors }) => (
   <Animated.View
     entering={FadeInDown.duration(300).delay(ROWS_DELAY + index * ROW_STAGGER)}
-    style={styles.alsoRow}
+    style={[styles.alsoRow, !last && styles.alsoRule]}
   >
     {item.rank ? (
       <RankBadge track={item.rank.track} step={item.rank} size={34} />
@@ -537,6 +506,10 @@ const AchievementDialog = ({ achievement }) => {
   const canTier =
     !!movie && watchedNow.some((entry) => entry.movieId === movie.id && !isRated(entry));
   const showProgress = ranksAfter > ranksBefore || headline.kind === "title";
+  // Milestones this very watch crossed (minutes, films, directors).
+  const freshMilestones = getMilestones(watchedNow).filter(
+    (milestone) => milestone.reachedAt && Date.now() - milestone.reachedAt < MILESTONE_FRESH_MS,
+  );
 
   // Fades in; closes by fading out (✕, the backdrop, the system back).
   const appear = useSharedValue(0);
@@ -570,13 +543,13 @@ const AchievementDialog = ({ achievement }) => {
   const primary = canTier
     ? {
         label: t("Tier it"),
-        icon: <Star size={16} color={colors.background} fill={colors.background} />,
+        icon: <Star size={16} color={colors.brandText} fill={colors.brandText} />,
         onPress: () => close(null, ["TierMovie", { movieId: movie.id }]),
       }
     : shareCollectionId
       ? {
           label: t("Share it"),
-          icon: <Share2 size={16} color={colors.background} strokeWidth={2.2} />,
+          icon: <Share2 size={16} color={colors.brandText} strokeWidth={2.2} />,
           onPress: () => close(() => openShareCard(shareCollectionId)),
         }
       : { label: t("Nice"), onPress: () => close() };
@@ -644,7 +617,7 @@ const AchievementDialog = ({ achievement }) => {
           {/* The hero over its rays, then what it is. */}
           <View style={styles.middle} pointerEvents="box-none">
             <View style={styles.heroWrap} pointerEvents="none">
-              <ProjectorBeam />
+              <HeroGlow color={color} />
               {hero}
             </View>
             {/* Wrapped, so the app's Text (and its Arabic font) draws them. */}
@@ -674,10 +647,34 @@ const AchievementDialog = ({ achievement }) => {
                   bounces={false}
                 >
                   {headline.also.map((item, index) => (
-                    <AlsoRow key={item.key} item={item} index={index} color={color} styles={styles} colors={colors} />
+                    <AlsoRow
+                      key={item.key}
+                      item={item}
+                      index={index}
+                      last={index === headline.also.length - 1}
+                      color={color}
+                      styles={styles}
+                      colors={colors}
+                    />
                   ))}
                 </ScrollView>
               </View>
+            )}
+
+            {freshMilestones.length > 0 && (
+              <Animated.View entering={FadeInDown.duration(320).delay(ROWS_DELAY)} style={styles.milestones}>
+                <Text style={styles.alsoLabel}>{t("New milestone")}</Text>
+                <View style={styles.medals}>
+                  {freshMilestones.slice(0, 3).map((milestone) => (
+                    <View key={milestone.key} style={styles.medal}>
+                      <MilestoneMedal milestone={milestone} size={MEDAL} />
+                      <Text style={styles.medalLabel} numberOfLines={1}>
+                        {t(milestone.label)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
             )}
 
             {showProgress && (
@@ -705,7 +702,7 @@ const AchievementDialog = ({ achievement }) => {
             )}
           </View>
 
-          {/* The two actions: white, then grey. */}
+          {/* The two actions: red, then grey with red words. */}
           <Animated.View entering={FadeIn.duration(300).delay(500)} style={styles.actions}>
             <Pressable
               style={({ pressed }) => [styles.button, styles.buttonMain, pressed && styles.pressed]}
@@ -720,7 +717,7 @@ const AchievementDialog = ({ achievement }) => {
               onPress={secondary.onPress}
               accessibilityRole="button"
             >
-              <Text style={styles.buttonText}>{secondary.label}</Text>
+              <Text style={[styles.buttonText, styles.buttonQuietText]}>{secondary.label}</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -740,13 +737,14 @@ const AchievementDialog = ({ achievement }) => {
   );
 };
 
-// Layout-only styles the beam needs outside createStyles: it reaches up
-// from the hero's foot, past its top, towards the top of the screen.
+// Layout-only styles the glow needs outside createStyles: centred on the
+// hero.
 const styles_ = StyleSheet.create({
-  beam: {
+  glow: {
     position: "absolute",
-    bottom: 0,
     alignSelf: "center",
+    width: GLOW,
+    height: GLOW,
   },
 });
 
@@ -782,7 +780,7 @@ const createStyles = (colors) =>
       height: 38,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.12)",
+      backgroundColor: colors.buttonFill,
       borderRadius: 19,
     },
     pressed: {
@@ -815,14 +813,14 @@ const createStyles = (colors) =>
 
     // Heading: what kind of moment, what you earned, where
     eyebrow: {
-      ...typography.label,
+      ...typography.section,
       fontSize: 13,
-      letterSpacing: 1.6,
     },
     title: {
-      ...typography.display,
+      fontFamily: fonts.extraBold,
       fontSize: 34,
       lineHeight: 40,
+      letterSpacing: -0.8,
       color: colors.textPrimary,
       textAlign: "center",
       marginTop: spacing.xs,
@@ -839,8 +837,8 @@ const createStyles = (colors) =>
       alignSelf: "stretch",
     },
     alsoLabel: {
-      ...typography.caption,
-      color: colors.textMuted,
+      ...typography.section,
+      color: colors.textSecondary,
       marginTop: spacing.lg,
       marginBottom: spacing.sm,
     },
@@ -850,17 +848,42 @@ const createStyles = (colors) =>
       flexShrink: 1,
       minHeight: 0,
     },
+    // One grouped card, a hairline between the rows.
     alsoList: {
-      gap: 2,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      overflow: "hidden",
     },
     alsoRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 4,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm + 4,
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: shape.control,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+    },
+    alsoRule: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    // New milestones: their medals in a row.
+    milestones: {
+      alignSelf: "stretch",
+      alignItems: "center",
+    },
+    medals: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.lg,
+    },
+    medal: {
+      alignItems: "center",
+      maxWidth: MEDAL + 30,
+    },
+    medalLabel: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: spacing.xs + 2,
     },
     alsoIcon: {
       width: 34,
@@ -890,10 +913,10 @@ const createStyles = (colors) =>
     titleBlock: {
       alignSelf: "stretch",
       marginTop: spacing.md,
-      padding: spacing.sm + 4,
-      backgroundColor: colors.surfaceSoft,
+      padding: spacing.md,
+      backgroundColor: colors.card,
       gap: spacing.sm + 2,
-      borderRadius: shape.control,
+      borderRadius: shape.card,
     },
     titleTop: {
       flexDirection: "row",
@@ -957,7 +980,7 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
 
-    // Actions: white, then grey, full width.
+    // Actions: red, then grey with red words, full width.
     actions: {
       gap: spacing.sm,
     },
@@ -967,10 +990,10 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       minHeight: 50,
-      borderRadius: shape.control,
+      borderRadius: shape.card,
     },
     buttonMain: {
-      backgroundColor: colors.textPrimary,
+      backgroundColor: colors.brand,
     },
     buttonQuiet: {
       backgroundColor: colors.buttonFill,
@@ -982,7 +1005,10 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     buttonMainText: {
-      color: colors.background,
+      color: colors.brandText,
+    },
+    buttonQuietText: {
+      color: colors.brand,
     },
   });
 

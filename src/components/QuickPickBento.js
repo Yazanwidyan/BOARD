@@ -55,7 +55,8 @@ export const ActionList = ({ rows }) => {
 // is your dare — its film and the ranks it earns, with a small ⟳ to swap
 // it — or what a dare is.
 // `dare`: the active challenge, or null; `onDare` opens it (or starts one).
-export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNewDare }) => {
+// `chips`: a row of small pills (Home, under the mixes), not cards.
+export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNewDare, chips = false }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const { width } = useWindowDimensions();
@@ -91,6 +92,39 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
       onSwap: dare ? onNewDare : undefined,
     },
   ];
+
+  if (chips) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        {ways.map(({ key, Icon, label, hint, onPress, onSwap, tint }) => (
+          <View key={key} style={[styles.chip, tint && { borderColor: tint }]}>
+            <Pressable
+              style={({ pressed }) => [styles.chipMain, pressed && styles.pillPressed]}
+              onPress={onPress}
+              accessibilityRole="button"
+              accessibilityLabel={`${label}. ${hint}`}
+            >
+              <Icon size={16} color={tint ?? colors.textPrimary} strokeWidth={2.2} />
+              <Text style={[styles.chipText, tint && { color: tint }]} numberOfLines={1}>
+                {label}
+              </Text>
+            </Pressable>
+            {onSwap && (
+              <Pressable
+                style={({ pressed }) => [styles.chipSwap, pressed && styles.pillPressed]}
+                onPress={onSwap}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={t("Change dare")}
+              >
+                <RefreshCw size={14} color={tint ?? colors.textPrimary} strokeWidth={2.2} />
+              </Pressable>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView
@@ -163,6 +197,42 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.sm + 4,
       backgroundColor: colors.cardElevated,
       borderRadius: shape.card,
+    },
+    // The chips: a row you scroll, each a rounded pill (the dare's in its
+    // orange), the dare's with its swap after a hairline.
+    chipRow: {
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      height: 38,
+      backgroundColor: colors.card,
+      borderRadius: shape.chip,
+      borderWidth: 1,
+      borderColor: "transparent",
+    },
+    chipMain: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      height: "100%",
+      paddingHorizontal: spacing.md,
+    },
+    chipText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.textPrimary,
+    },
+    chipSwap: {
+      height: "100%",
+      justifyContent: "center",
+      paddingStart: spacing.sm,
+      paddingEnd: spacing.md - 2,
+      borderStartWidth: StyleSheet.hairlineWidth,
+      borderStartColor: colors.border,
     },
     pillPressed: {
       opacity: 0.75,

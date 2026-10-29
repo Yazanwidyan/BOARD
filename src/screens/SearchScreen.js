@@ -1,23 +1,26 @@
-import { ClipboardPaste, Search, X } from "lucide-react-native";
+import { ClipboardPaste, Clock, Search, X } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "../components/AppText";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { BackButton } from "../components/BackButton";
+import { BrowseTiles } from "../components/BrowseTiles";
 import { EmptyState } from "../components/EmptyState";
 import { MovieListRow } from "../components/MovieListRow";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { DockHeader, useDockHeader } from "../components/ScreenHeader";
+import { useTabBarClearance } from "../components/TonightBar";
 import { rememberMovies } from "../data/movies";
 import { useMovieSearch } from "../hooks/useMovieSearch";
 import { api } from "../services/api";
+import { useRecentSearchStore } from "../store/recentSearchStore";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
-import { shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { shape, spacing } from "../theme/spacing";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { isInBucketList } from "../utils/movieFilters";
@@ -71,12 +74,17 @@ export const SearchScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
+  const header = useDockHeader();
   const [query, setQuery] = useState("");
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pasteResult, setPasteResult] = useState(null);
   const [matching, setMatching] = useState(false);
   const bucketList = useMovieStore((state) => state.bucketList);
+  const recentSearches = useRecentSearchStore((state) => state.recentSearches);
+  const addSearch = useRecentSearchStore((state) => state.addSearch);
+  const clearSearches = useRecentSearchStore((state) => state.clearSearches);
 
   const trimmed = query.trim();
   // Any movie — by title, director or cast, best matches first
@@ -107,8 +115,7 @@ export const SearchScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <BackButton onPress={() => navigation.goBack()} floating />
+      <View style={[styles.header, { paddingTop: header.barBottom + spacing.underHeader }]}>
         <View style={styles.searchBar}>
           <Search size={16} color={colors.textSecondary} />
           <TextInput
@@ -118,26 +125,16 @@ export const SearchScreen = ({ navigation }) => {
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
             autoCorrect={false}
-            autoFocus
+            returnKeyType="search"
+            onSubmitEditing={() => addSearch(query)}
           />
+          {query.length > 0 && (
+            <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel={t("Clear")}>
+              <X size={16} color={colors.textMuted} />
+            </Pressable>
+          )}
         </View>
       </View>
-
-      {!trimmed && (
-        <Pressable
-          style={styles.pasteButton}
-          onPress={() => setPasteMode(true)}
-        >
-          <ClipboardPaste
-            size={16}
-            color={colors.textPrimary}
-            strokeWidth={2.2}
-          />
-          <Text style={styles.pasteButtonText}>
-            {t("Copy and Paste List of Titles")}
-          </Text>
-        </Pressable>
-      )}
 
       {trimmed ? (
         results.length === 0 ? (
@@ -160,7 +157,7 @@ export const SearchScreen = ({ navigation }) => {
           <FlatList
             data={results}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + tabBarClearance }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
@@ -168,17 +165,65 @@ export const SearchScreen = ({ navigation }) => {
                 movie={item}
                 inQueue={isInBucketList(bucketList, item.id)}
                 onToggleQueue={() => toggleBucketListWithFeedback(item.id)}
-                onPress={() =>
-                  navigation.navigate("MovieDetails", { movieId: item.id })
-                }
+                onPress={() => {
+                  // A search that found something: remembered.
+                  addSearch(query);
+                  navigation.navigate("MovieDetails", { movieId: item.id });
+                }}
               />
             )}
           />
         )
       ) : (
-        <View
-          style={{ flex: 1, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
-        />
+        // Before you type, as Apple Music's Search: what you searched
+        // lately, the kinds of film to browse, and pasting a list.
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + tabBarClearance }}
+        >
+          {recentSearches.length > 0 && (
+            <View style={styles.block}>
+              <View style={styles.headingRow}>
+                <Text style={styles.heading}>{t("Recent")}</Text>
+                <Pressable onPress={clearSearches} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.clear}>{t("Clear")}</Text>
+                </Pressable>
+              </View>
+              {recentSearches.map((term, index) => (
+                <Pressable
+                  key={term}
+                  style={({ pressed }) => [styles.recentRow, pressed && styles.rowPressed]}
+                  onPress={() => setQuery(term)}
+                  accessibilityRole="button"
+                >
+                  <Clock size={18} color={colors.textMuted} strokeWidth={2} />
+                  <View style={[styles.recentWords, index < recentSearches.length - 1 && styles.rowRule]}>
+                    <Text style={styles.recentText} numberOfLines={1}>
+                      {term}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.block}>
+            <View style={styles.headingRow}>
+              <Text style={styles.heading}>{t("Browse")}</Text>
+            </View>
+            <BrowseTiles navigation={navigation} />
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [styles.pasteButton, pressed && styles.rowPressed]}
+            onPress={() => setPasteMode(true)}
+            accessibilityRole="button"
+          >
+            <ClipboardPaste size={16} color={colors.brand} strokeWidth={2.2} />
+            <Text style={styles.pasteButtonText}>{t("Copy and Paste List of Titles")}</Text>
+          </Pressable>
+        </ScrollView>
       )}
 
       {pasteMode && (
@@ -251,6 +296,7 @@ export const SearchScreen = ({ navigation }) => {
           </View>
         </View>
       )}
+      <DockHeader title={t("Search")} />
     </SafeAreaView>
   );
 };
@@ -284,18 +330,69 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       ...typography.body,
     },
+    // Pasting a list: a quiet grey button at the end, its words in red.
     pasteButton: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: spacing.sm,
-      backgroundColor: colors.card,
-      marginBottom: spacing.md,
+      backgroundColor: colors.buttonFill,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.section,
       paddingVertical: spacing.md,
       borderRadius: shape.control,
     },
     pasteButtonText: {
       ...typography.bodyBold,
+      color: colors.brand,
+    },
+    block: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    headingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm + 2,
+    },
+    // As Home's section headings.
+    heading: {
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
+    },
+    clear: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.brand,
+    },
+    // A recent search: a clock, the words, a hairline under them.
+    recentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingStart: spacing.md,
+    },
+    rowPressed: {
+      opacity: 0.7,
+    },
+    recentWords: {
+      flex: 1,
+      paddingVertical: spacing.sm + 4,
+      paddingEnd: spacing.md,
+    },
+    rowRule: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    recentText: {
+      ...typography.subtitle,
+      fontFamily: fonts.regular,
+      fontSize: 17,
       color: colors.textPrimary,
     },
     list: {},

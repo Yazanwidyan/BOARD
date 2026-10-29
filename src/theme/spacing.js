@@ -1,22 +1,32 @@
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 12,
+  md: 14,
   lg: 16,
   xl: 28,
   xxl: 32,
+  // Between the cards of every sideways row (Top picks, Recently watched,
+  // collections, Discover's rails…).
+  rail: 12,
+  // Above each section of a page (Home, Discover, Library, Profile).
+  section: 32,
+  // Between a tab's header and the page's first content.
+  underHeader: 20,
 };
 
-// The app's corners: cards and grouped rows, controls (buttons, inputs),
-// tabs and filter chips (the Library tab's pill), round pills and tags,
-// posters, and sheets' tops.
+// The app's corners, on iOS's scale — the bigger the surface, the rounder:
+// posters and all artwork (collection and list covers, Top picks) 8,
+// tabs 8, controls (buttons, inputs) 10, cards and
+// grouped rows 14, sheets' tops 20, round pills and tags fully round.
+// Something inside a card or a control takes the outer corner less its
+// inset (e.g. `shape.control - 4`), so the two curves run parallel.
 export const shape = {
-  card: 12,
-  control: 6,
-  tab: 6,
+  card: 14,
+  control: 10,
+  tab: 8,
   chip: 999,
-  poster: 3,
-  sheet: 12,
+  poster: 8,
+  sheet: 20,
 };
 
 export const radius = {

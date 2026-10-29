@@ -2,6 +2,7 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
+  ChevronLeft,
   Circle,
   MoreHorizontal,
   Plus,
@@ -9,8 +10,10 @@ import {
   Trash2,
   X,
 } from "lucide-react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,7 +36,7 @@ import { BoardNameSheet } from "../components/BoardNameSheet";
 import { BottomSheet } from "../components/BottomSheet";
 import { CollectionsShelf } from "../components/CollectionsShelf";
 import { EmptyState } from "../components/EmptyState";
-import { FirstVisitTip } from "../components/FirstVisitTip";
+import { LibraryHome } from "../components/LibraryHome";
 import { MoviePoster } from "../components/MoviePoster";
 import { Popover } from "../components/Popover";
 import { MosaicSections } from "../components/PosterMosaic";
@@ -41,16 +44,16 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import {
   DockHeader,
-  HEADER_BAR_HEIGHT,
   HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
+import { useTabBarClearance } from "../components/TonightBar";
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { useBoardStore } from "../store/boardStore";
 import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
-import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
+import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
@@ -312,8 +315,12 @@ export const LibraryScreen = ({ navigation, route }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const { width } = useWindowDimensions();
-  const [tab, setTab] = useState(route?.params?.initialTab ?? "bucketlist");
+  const rtl = useIsRTL();
+  const isFocused = useIsFocused();
+  // The open section, or null for Library's front page (LibraryHome).
+  const [tab, setTab] = useState(route?.params?.initialTab ?? null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddWatchedOpen, setIsAddWatchedOpen] = useState(false);
   const [isNewBoardOpen, setIsNewBoardOpen] = useState(false);
@@ -332,7 +339,6 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [query, setQuery] = useState("");
   // Search lives behind the header's search icon; open while there's text.
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  // The header title is the section switcher; this opens its menu.
   // Measured height of the fixed chip bar under the header (Watchlist /
   // Watched only), added to the content's top inset. Starts at a close
   // estimate for the first frame.
@@ -347,6 +353,21 @@ export const LibraryScreen = ({ navigation, route }) => {
       setTab(route.params.initialTab);
     }
   }, [route?.params?.initialTab, route?.params?.openedAt]);
+
+  // In a section, Back (the header's ‹, Android's back, or the Library tab
+  // again) returns to the front page.
+  useEffect(() => {
+    if (!isFocused || !tab) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setTab(null);
+      return true;
+    });
+    const unsubscribe = navigation.addListener("tabPress", () => setTab(null));
+    return () => {
+      subscription.remove();
+      unsubscribe();
+    };
+  }, [isFocused, tab, navigation]);
 
   // A new section starts with the header showing — a short one might not
   // scroll at all, and would leave it stuck out of sight.
@@ -461,10 +482,10 @@ export const LibraryScreen = ({ navigation, route }) => {
   const currentTab =
     tabOptions.find((option) => option.key === tab) ?? tabOptions[0];
 
-  // Every section has the bar under the header (its section chips); only
-  // Watchlist and Watched add the search and the count / sort / filter row.
-  const hasToolBar = true;
+  // Watchlist and Watched have a bar under the header: the search, and the
+  // count / sort / filter row.
   const hasTools = tab === "bucketlist" || tab === "watched";
+  const hasToolBar = hasTools;
   // How many, as the first chip in the filter row — what's showing out of
   // all ("8 of 48") while a filter or search narrows the list.
   const shownCount =
@@ -510,15 +531,30 @@ export const LibraryScreen = ({ navigation, route }) => {
           {
             paddingTop:
               // Collections' filter row scrolls with the page, so it sits
-              // flush under the header like the other tabs' fixed bar
-              // (the inset's usual gap is dropped).
+              // flush under the header (the inset's usual gap is dropped).
               tab === "collections"
-                ? header.contentInset - spacing.md + toolBarHeight
-                : header.contentInset + toolBarHeight,
+                ? header.barBottom
+                : header.contentInset + (hasToolBar ? toolBarHeight : 0),
           },
         ]}
       >
-        {tab === "collections" ? (
+        {!tab ? (
+          <LibraryHome
+            navigation={navigation}
+            watched={watched}
+            bucketListMovies={bucketListMovies}
+            boards={boards}
+            collectionsCount={unlockedCount}
+            canPick={canPick}
+            onPick={handlePickFromList}
+            onNewList={() => setIsNewBoardOpen(true)}
+            onSeeUntiered={() => {
+              setTab("watched");
+              setUntieredOnly(true);
+            }}
+            onOpenSection={setTab}
+          />
+        ) : tab === "collections" ? (
           <CollectionsShelf
             watched={watched}
             unlockedCollectionIds={unlockedCollectionIds}
@@ -628,47 +664,20 @@ export const LibraryScreen = ({ navigation, route }) => {
           </>
         )}
 
-        <View style={{ height: insets.bottom + TAB_BAR_CLEARANCE }} />
+        <View style={{ height: insets.bottom + tabBarClearance }} />
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <FirstVisitTip id="library" />
       {hasToolBar && (
         <Animated.View
           style={[
             styles.toolBar,
-            { top: insets.top + HEADER_BAR_HEIGHT },
+            { top: header.barBottom },
             header.followStyle,
           ]}
           onLayout={(event) =>
             setToolBarHeight(event.nativeEvent.layout.height)
           }
         >
-          {/* Watchlist / Lists / Collections / Watched */}
-          <View style={styles.sectionTrack} accessibilityRole="tablist">
-            {tabOptions.map((option) => {
-              const selected = option.key === tab;
-              return (
-                <Pressable
-                  key={option.key}
-                  style={[styles.sectionChip, selected && styles.sectionChipOn]}
-                  onPress={() => setTab(option.key)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                >
-                  <Text
-                    style={[
-                      styles.sectionChipText,
-                      selected && styles.sectionChipTextOn,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t(option.label)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
           {hasTools && (isSearchOpen || query.length > 0) && (
             <View style={styles.searchField}>
               <Search size={16} color={colors.textMuted} />
@@ -801,8 +810,15 @@ export const LibraryScreen = ({ navigation, route }) => {
       )}
       <DockHeader
         {...header.props}
-        title={t("Library")}
-        // Search on the left (Watchlist and Watched); ＋ on the right.
+        title={tab ? t(currentTab.label) : t("Library")}
+        back={
+          tab && (
+            <HeaderIconButton round onPress={() => setTab(null)} accessibilityLabel={t("Back")} style={styles.back}>
+              <ChevronLeft size={22} color={colors.textPrimary} strokeWidth={2} style={rtl && styles.flipped} />
+            </HeaderIconButton>
+          )
+        }
+        // Search (Watchlist and Watched) and ＋, together in the capsule.
         left={
           hasTools && (
             <HeaderIconButton
@@ -821,7 +837,11 @@ export const LibraryScreen = ({ navigation, route }) => {
           )
         }
         right={
-          tab === "boards" ? (
+          !tab ? (
+            <HeaderIconButton onPress={() => setIsAddOpen(true)} accessibilityLabel={t("Add")}>
+              <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
+            </HeaderIconButton>
+          ) : tab === "boards" ? (
             <HeaderIconButton
               onPress={() => setIsNewBoardOpen(true)}
               accessibilityLabel={t("New list")}
@@ -1091,32 +1111,11 @@ const createStyles = (colors) =>
     scrollContent: {
       flexGrow: 1,
     },
-    // The four sections: a dark track, the open one a white pill.
-    sectionTrack: {
-      flexDirection: "row",
-      gap: 2,
-      padding: 3,
-      backgroundColor: colors.segmentTrack,
-      borderRadius: shape.chip,
+    back: {
+      marginEnd: spacing.sm,
     },
-    sectionChip: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 6,
-      borderRadius: shape.chip,
-    },
-    sectionChipOn: {
-      backgroundColor: colors.segmentOn,
-    },
-    sectionChipText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    sectionChipTextOn: {
-      color: colors.segmentOnText,
+    flipped: {
+      transform: [{ scaleX: -1 }],
     },
     // Watchlist rows.
     list: {

@@ -58,19 +58,16 @@ const createStyles = (colors) =>
     rail: {
       flexGrow: 0,
     },
-    // Items carry their own side padding, so the rail only adds enough to
-    // line the first item up with the page margin.
-    // Each item pads 1px a side, so posters sit 2px apart — the same
-    // hairline gap as Library's poster grid.
+    // In the page's margins, the items an even gap apart, as Apple Music's
+    // rails.
     content: {
-      paddingHorizontal: spacing.md - 1,
+      gap: spacing.rail,
+      paddingHorizontal: spacing.md,
     },
     item: {
-      paddingHorizontal: 1,
       justifyContent: "flex-end",
     },
     caption: {
-      paddingHorizontal: 1,
       paddingEnd: spacing.sm,
       marginTop: spacing.sm,
     },

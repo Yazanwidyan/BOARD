@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/reelboard-icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0E1013",
+    "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yazanwidyan.reelboard",
@@ -15,7 +15,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0E1013",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/reelboard-android-foreground.png",
         "backgroundImage": "./assets/reelboard-android-background.png",
         "monochromeImage": "./assets/reelboard-android-monochrome.png"
@@ -36,10 +36,10 @@
           "image": "./assets/reelboard-splash.png",
           "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#0E1013",
+          "backgroundColor": "#000000",
           "dark": {
             "image": "./assets/reelboard-splash.png",
-            "backgroundColor": "#0E1013"
+            "backgroundColor": "#000000"
           }
         }
       ],
@@ -55,7 +55,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0E1013"
+          "color": "#000000"
         }
       ]
     ],

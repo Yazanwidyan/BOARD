@@ -1,5 +1,5 @@
 import { MOVIES, getMovieById } from "../data/movies";
-import { generateRecommendations } from "../services/recommendations";
+import { getSagaForPerson } from "./collections";
 import { getTasteProfile } from "./taste";
 import { vibeSimilarity } from "./tasteEngine";
 import { t } from "../i18n";
@@ -7,7 +7,6 @@ import { byWeightedRating } from "./movieFilters";
 
 // Rows show the first RAIL_PREVIEW; "All ›" opens the full list.
 export const RAIL_PREVIEW = 10;
-const RECOMMENDED_COUNT = 20;
 const RECENT_FOR_ACTORS = 10;
 const MIN_ACTOR_FILMS = 2;
 // "Hidden gems": well-rated but not widely seen — the ones people don't
@@ -33,7 +32,14 @@ const byRating = byWeightedRating;
 // dropped. Each row carries its full list (`movies`) for "All ›".
 // `community` is GET /api/community/trending (store/communityStore), when
 // it's loaded: what everyone else is watching and loving.
-export const buildDiscoverRails = ({ watched, preferences, community }) => {
+// A person's photo for a "More from / More with" heading — their
+// collection's, when they have one (round, as Apple Music's artists).
+const personThumb = (name) => {
+  const photo = getSagaForPerson(name)?.art?.photo;
+  return photo ? { uri: photo, round: true } : null;
+};
+
+export const buildDiscoverRails = ({ watched, community }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const unwatched = MOVIES.filter((movie) => !watchedIds.has(movie.id));
   const rails = [];
@@ -47,6 +53,8 @@ export const buildDiscoverRails = ({ watched, preferences, community }) => {
   rails.push({
     key: "trending",
     title: t("Trending on ReelBoard"),
+    // A line under the title, only where the title doesn't say it all.
+    subtitle: "What everyone's watching and saving this week.",
     movies: unwatchedFrom(community?.trending),
   });
 
@@ -58,6 +66,10 @@ export const buildDiscoverRails = ({ watched, preferences, community }) => {
     rails.push({
       key: "because",
       title: t("Because you watched {title}", { title: recent.title }),
+      // Shown as "More like {its name}", its poster beside.
+      lead: "More like",
+      name: recent.title,
+      thumb: { uri: recent.poster },
       movies: unwatched
         .map((movie) => ({ movie, similarity: vibeSimilarity(recent, movie) }))
         .filter(({ similarity }) => similarity >= BECAUSE_MIN_SIMILARITY)
@@ -72,6 +84,9 @@ export const buildDiscoverRails = ({ watched, preferences, community }) => {
     rails.push({
       key: "director",
       title: t("Because you love {name}", { name: director.name }),
+      lead: "More from",
+      name: director.name,
+      thumb: personThumb(director.name),
       movies: unwatched
         .filter((movie) => movie.director === director.name)
         .sort((a, b) => a.year - b.year),
@@ -94,33 +109,28 @@ export const buildDiscoverRails = ({ watched, preferences, community }) => {
     rails.push({
       key: "actor",
       title: t("Starring {value}", { value: topActor[0] }),
+      lead: "More with",
+      name: topActor[0],
+      thumb: personThumb(topActor[0]),
       movies: unwatched
         .filter((movie) => movie.cast?.includes(topActor[0]))
         .sort(byRating),
     });
   }
 
-  rails.push({
-    key: "recommended",
-    title: "Recommended for you",
-    movies: generateRecommendations(
-      preferences,
-      RECOMMENDED_COUNT,
-      [],
-      [...watchedIds],
-    ),
-  });
 
   // Community favourites — the highest share of S and A tiers.
   rails.push({
     key: "favorites",
     title: t("Community favorites"),
+    subtitle: "The films everyone tiers S and A.",
     movies: unwatchedFrom(community?.favorites),
   });
 
   rails.push({
     key: "gems",
     title: "Hidden gems",
+    subtitle: "Loved by few, worth your night.",
     movies: unwatched.filter(isHiddenGem).sort(byRating),
   });
 
@@ -138,7 +148,11 @@ export const buildDiscoverRails = ({ watched, preferences, community }) => {
     movies: [...unwatched].sort(byRating),
   });
 
-  return rails.filter((rail) => rail.movies.length > 0);
+  // The rows built on one film or person ("More like…", "More from…",
+  // "More with…") come last, after the general ones.
+  return [...rails.filter((rail) => !rail.lead), ...rails.filter((rail) => rail.lead)].filter(
+    (rail) => rail.movies.length > 0,
+  );
 };
 
 export default buildDiscoverRails;

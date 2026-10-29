@@ -60,7 +60,7 @@ import { useBoardStore } from "../store/boardStore";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
   giveWatchedFeedback,
@@ -96,6 +96,8 @@ const SHEET_HANDOFF_MS = 260;
 const BACKDROP_HEIGHT = 1.05;
 // How far the title reaches up onto the backdrop's fade.
 const TITLE_OVERLAP = 132;
+// The poster beside the title.
+const HERO_POSTER_WIDTH = 104;
 const SIMILAR_COUNT = 10;
 // A "More like this" poster: about three and a half across, so the next one
 // peeks in.
@@ -254,11 +256,12 @@ const TABS = [
   { key: "similar", label: "Similar" },
 ];
 
-// One of the hero's three actions under Trailer: an icon and a name in a
-// filled box — the signature colour when it's on (saved, tonight's pick),
-// green when done (watched).
+// One of the hero's three actions under Trailer, as Apple Music's Play and
+// Shuffle: a grey box with its icon and name in the signature colour —
+// filled with it when it's on (saved, tonight's pick), green when done
+// (watched).
 const HeroButton = ({ Icon, label, a11yLabel, on = false, done = false, onPress, styles, colors }) => {
-  const ink = done ? colors.success : on ? colors.brandText : colors.textPrimary;
+  const ink = done ? colors.success : on ? colors.brandText : colors.brand;
   return (
     <Pressable
       style={({ pressed }) => [
@@ -642,11 +645,13 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             },
           ]}
         >
-          {/* Its name and facts, over the backdrop's fade. */}
+          {/* Its name and facts over the backdrop's fade, its poster beside
+              them on the right. */}
           <Animated.View
-            style={heroFadeStyle}
+            style={[heroFadeStyle, styles.heroTop]}
             onLayout={(event) => measureTitle("row", event.nativeEvent.layout.y)}
           >
+            <View style={styles.heroInfo}>
             <Text
               style={styles.title}
               accessibilityRole="header"
@@ -721,6 +726,8 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 </Pressable>
               )}
             </View>
+            </View>
+            <MoviePoster uri={movie.poster} style={styles.heroPoster} shadow />
           </Animated.View>
 
           {/* Trailer, the main button; then Tonight (or Rewatch), Watchlist
@@ -1519,7 +1526,7 @@ const createStyles = (colors) =>
       marginHorizontal: -spacing.md,
     },
     castRailContent: {
-      gap: spacing.sm + 2,
+      gap: spacing.rail,
       paddingHorizontal: spacing.md,
     },
     castCard: {
@@ -1648,13 +1655,29 @@ const createStyles = (colors) =>
       end: 0,
       overflow: "hidden",
     },
+    // The film's name in the display serif.
     title: {
       ...typography.hero,
-      fontSize: 30,
-      lineHeight: 36,
+      fontFamily: fonts.display,
+      fontSize: 31,
+      lineHeight: 37,
+      letterSpacing: -0.2,
       color: colors.textPrimary,
     },
     // "(2025)" after the name, lighter.
+    // The name and facts on the left, the poster on the right.
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: spacing.md,
+    },
+    heroInfo: {
+      flex: 1,
+    },
+    heroPoster: {
+      width: HERO_POSTER_WIDTH,
+      height: HERO_POSTER_WIDTH * 1.5,
+    },
     titleYear: {
       ...typography.title,
       fontSize: 24,
@@ -1801,10 +1824,10 @@ const createStyles = (colors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      minHeight: 44,
+      minHeight: 46,
       paddingHorizontal: spacing.sm,
-      backgroundColor: colors.cardElevated,
-      borderRadius: shape.control,
+      backgroundColor: colors.buttonFill,
+      borderRadius: shape.card,
     },
     heroButtonOn: {
       backgroundColor: colors.brand,
@@ -1814,8 +1837,8 @@ const createStyles = (colors) =>
     },
     heroButtonText: {
       ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: 15,
+      lineHeight: 19,
       flexShrink: 1,
     },
     actionPressed: {
@@ -1894,13 +1917,17 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
       textDecorationLine: "underline",
     },
-    // A section's name: small grey capitals, one even gap above.
+    // A section's name, as in Apple Music: big and bold, one even gap
+    // above.
     sectionLabel: {
-      ...typography.section,
-      color: colors.textSecondary,
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
       marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
-      marginTop: 20,
+      marginTop: 28,
       marginBottom: spacing.sm + 2,
     },
     // Straight under the hero.
@@ -1921,7 +1948,7 @@ const createStyles = (colors) =>
     },
     // The tab's first section, just under the tabs.
     railFirst: {
-      marginTop: spacing.lg,
+      marginTop: spacing.lg + 4,
     },
     railHeader: {
       flexDirection: "row",
@@ -1929,7 +1956,7 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginTop: 20,
+      marginTop: 28,
       marginBottom: spacing.sm + 2,
     },
     // Inside a rail's header row, which has the gap.
@@ -1941,20 +1968,21 @@ const createStyles = (colors) =>
       paddingTop: 0,
       marginBottom: 0,
     },
+    // "See all" in the signature colour, as Apple Music's.
     railHeaderLink: {
       ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.brand,
     },
     railContent: {
       paddingHorizontal: spacing.md,
-      gap: spacing.sm,
+      gap: spacing.rail,
     },
     // Poster rails: a little air between posters, a peek of the next one.
     posterRailContent: {
       paddingHorizontal: spacing.md,
-      gap: spacing.sm + 2,
+      gap: spacing.rail,
     },
     // A collection it's part of: a card — its name, how far you are.
     collectionChip: {

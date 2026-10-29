@@ -4,10 +4,9 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { getMovieById } from "../data/movies";
 import { t, useIsRTL } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionCompletedAt, getSagas } from "../utils/collections";
-import { buildRecap, getRecapPeriods } from "../utils/recap";
 import { TIERS, getTier, getTierInfo } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
@@ -15,9 +14,10 @@ import { MoviePoster } from "./MoviePoster";
 import { ShelfRail } from "./ShelfRail";
 import { TasteDnaBars } from "./TasteDnaBars";
 
-// A profile's sections, built like the rest of the app (Home's shelves):
-// a bold title with "See all" at the end, and the content straight on the
-// page — rows of tiles run edge to edge (ShelfRail, the same tile size as
+// A profile's sections, built like the rest of the app (Home's shelves),
+// in the Apple Music style: a big bold title with a › when it opens
+// somewhere (or its own action word, in the signature colour, at the end),
+// and the content straight on the page — rows of tiles run edge to edge (ShelfRail, the same tile size as
 // Home's sagas). Profile and a friend's page both use them.
 
 // Home's saga tiles: 142 wide, with their 1px side padding.
@@ -27,23 +27,38 @@ const TILE = BOX_ITEM - 2;
 // One section: its title and action, then its content. `onPress` makes
 // the content a button (it opens the full view, like the action). `rail`:
 // the content is a sideways row that runs to the screen's edges.
-// The space between a profile's sections.
-const SECTION_GAP = spacing.md + 4;
-
 export const ProfileSection = ({ title, actionLabel, onAction, onPress, rail = false, children }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const rtl = useIsRTL();
+  const heading = (
+    <>
+      <Text style={styles.tagText} numberOfLines={1}>
+        {title}
+      </Text>
+      {onAction && !actionLabel && (
+        <ChevronRight size={22} color={colors.textSecondary} strokeWidth={2.6} style={rtl && styles.flipped} />
+      )}
+    </>
+  );
   return (
     <View style={styles.section}>
       <View style={styles.tagRow}>
-        <Text style={styles.tagText} numberOfLines={1}>
-          {title}
-        </Text>
-        {onAction && (
-          <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button" style={styles.seeAll}>
-            <Text style={styles.seeAllText}>{actionLabel ?? t("See all")}</Text>
-            <ChevronRight size={16} color={colors.textSecondary} style={rtl && styles.flipped} />
+        {onAction && !actionLabel ? (
+          <Pressable
+            onPress={onAction}
+            hitSlop={8}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.heading, pressed && styles.pressed]}
+          >
+            {heading}
+          </Pressable>
+        ) : (
+          <View style={styles.heading}>{heading}</View>
+        )}
+        {onAction && !!actionLabel && (
+          <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.seeAllText}>{actionLabel}</Text>
           </Pressable>
         )}
       </View>
@@ -259,45 +274,6 @@ export const RecentPosters = ({ entries, count = 8, onOpen }) => {
   );
 };
 
-// This month on ReelBoard, as Home's recap banner: how much you've watched
-// so far, its best films at the end. Opens the recap.
-export const RecapBanner = ({ watched, onOpen }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const [period] = getRecapPeriods();
-  const recap = buildRecap(watched, period);
-  const hours = Math.round(recap.minutes / 60);
-
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.recapBanner, pressed && styles.pressed]}
-      onPress={onOpen}
-      accessibilityRole="button"
-    >
-      <View style={styles.recapText}>
-        <Text style={styles.recapTitle}>{t("Your recap")}</Text>
-        <Text style={styles.recapHint} numberOfLines={2}>
-          {recap.count > 0
-            ? t("{count} movies this month · {hours}h — ready to share", { count: recap.count, hours })
-            : t("Your month on ReelBoard, ready to share")}{" "}
-          ›
-        </Text>
-      </View>
-      {recap.favourites.length > 0 && (
-        <View style={styles.recapPosters}>
-          {recap.favourites.slice(0, 3).map(({ movie }, index) => (
-            <MoviePoster
-              key={movie.id}
-              uri={movie.poster}
-              style={[styles.recapPoster, index > 0 && styles.recapPosterOverlap]}
-            />
-          ))}
-        </View>
-      )}
-    </Pressable>
-  );
-};
-
 const createStyles = (colors) =>
   StyleSheet.create({
     pressed: {
@@ -313,26 +289,37 @@ const createStyles = (colors) =>
     section: {
       marginHorizontal: -spacing.md,
       paddingHorizontal: spacing.md,
-      marginTop: 20,
+      marginTop: spacing.section,
     },
     tagRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: spacing.sm,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.sm + 2,
     },
-    // Section names: small grey capitals, so the content leads.
+    // The title and its ›, together.
+    heading: {
+      flexShrink: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+    },
+    // Section names: big and bold, as in Apple Music.
     tagText: {
-      ...typography.section,
-      color: colors.textSecondary,
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
       flexShrink: 1,
     },
+    // An action word at the end, in the signature colour.
     seeAllText: {
       ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.brand,
     },
     // A row of tiles cancels the page's side padding, so it reaches both
     // screen edges.
@@ -384,11 +371,6 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       marginTop: 6,
       textAlign: "center",
-    },
-    seeAll: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 1,
     },
     flipped: {
       transform: [{ scaleX: -1 }],
@@ -448,38 +430,4 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
     },
 
-    // Recap: Home's banner — a card, the title, a hint.
-    recapBanner: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      marginTop: SECTION_GAP,
-      padding: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
-    },
-    recapText: {
-      flex: 1,
-      gap: 2,
-    },
-    recapTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    recapHint: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    recapPosters: {
-      flexDirection: "row",
-    },
-    recapPoster: {
-      width: 40,
-      height: 60,
-      borderWidth: 2,
-      borderColor: colors.card,
-    },
-    recapPosterOverlap: {
-      marginStart: -16,
-    },
   });

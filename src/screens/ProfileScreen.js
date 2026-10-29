@@ -1,6 +1,6 @@
-import * as Haptics from "expo-haptics";
 import {
   ChevronRight,
+  Pencil,
   Settings as SettingsIcon,
   Share2,
 } from "lucide-react-native";
@@ -24,13 +24,12 @@ import { AvatarRankRing } from "../components/AvatarRankRing";
 import { ProBadge } from "../components/ProBadge";
 import { TasteStats } from "../components/TasteStats";
 import { MoviePoster } from "../components/MoviePoster";
-import { ProfileActivity } from "../components/ProfileActivity";
+import { ReplayCard } from "../components/HomeBento";
+import { MilestoneMedal } from "../components/MilestoneMedal";
 import {
   ProfileSection,
-  RecapBanner,
   SectionEmpty,
   TasteSnapshot,
-  TierSummary,
 } from "../components/ProfileSections";
 import {
   DockHeader,
@@ -44,8 +43,8 @@ import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { accentColor, useIsPro } from "../utils/pro";
-import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { shape, spacing } from "../theme/spacing";
+import { fonts, typography } from "../theme/typography";
 import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 import { useColors } from "../theme/useColors";
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -54,9 +53,11 @@ import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
 import { orderSTier } from "../utils/tiers";
 import { useRankSummary } from "../utils/useRanks";
+import { getMilestones } from "../utils/milestones";
+import { useLanguageStore } from "../store/languageStore";
 import { t, useIsRTL } from "../i18n";
 import { useFriends } from "../store/friendsStore";
-import { FirstVisitTip } from "../components/FirstVisitTip";
+import { useTabBarClearance } from "../components/TonightBar";
 
 // The cover's height for the screen's width, and how much of it shows
 // above your avatar.
@@ -66,6 +67,8 @@ const FAVOURITES = 4;
 // Trophies shown on the profile, in one row; the rest are in Library.
 const PROFILE_TROPHIES = 4;
 const FAVOURITE_GAP = 8;
+// Milestone medals shown under Achievements.
+const MEDALS = 3;
 const AVATAR = 84;
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
@@ -78,28 +81,27 @@ const getHandle = (name) =>
       .replace(/[^a-z0-9]+/g, "") || "you"
   }`;
 
-// Your profile, Letterboxd-style. "Profile" in the header (Settings and
-// Share on the right) and Profile / Stats under it.
-//   Profile — who you are, not a second Library: your cover (if you chose
-//   one) behind your avatar (its ring to your next title), your name, your
-//   friends and films, your bio, your top four favourites, your library in
-//   three numbers (each opens its Library tab), your trophies (collections
-//   you've finished) and your recent activity. (A friend's page keeps
-//   their films and lists, since it's the only way to see them.)
-//   Stats: your numbers, your title and how far to the next, your tiers,
-//   your Taste DNA and this month's recap.
+// Your profile — you, as a friend sees you; your films themselves (your
+// watchlist, diary, tiers, lists, collections) are Library's. "Profile" in
+// the header (Settings in its capsule). Then who you are — your avatar (its
+// ring to your next title), your name, your films, friends and ranks, your
+// bio, Edit profile and Share — and below it, under bold headings: your top
+// four favourites, your taste (its DNA and stats), your achievements (your
+// title, your latest milestones, the collections you've finished) and your
+// Replay. (A friend's page keeps their films and lists, since it's the only
+// way to see them.)
 export const ProfileScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const rtl = useIsRTL();
   const { width: screenWidth } = useWindowDimensions();
   const { friends } = useFriends();
   const ranks = useRankSummary();
   const watched = useMovieStore((state) => state.watched);
-  const bucketList = useMovieStore((state) => state.bucketList);
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
   const avatarUri = useProfileStore((state) => state.avatarUri);
@@ -108,7 +110,6 @@ export const ProfileScreen = ({ navigation }) => {
   const accent = useProfileStore((state) => state.accent);
   const accountHandle = useAuthStore((state) => state.user?.handle);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [topTab, setTopTab] = useState("profile");
 
   // Your cover: a watched film's still across the top, behind your avatar
   // (chosen in Edit profile, with your photo).
@@ -124,6 +125,10 @@ export const ProfileScreen = ({ navigation }) => {
     .map((entry) => getMovieById(entry.movieId))
     .filter(Boolean);
   const header = useDockHeader();
+  const language = useLanguageStore((state) => state.language);
+  // Your latest milestones — the reached ones first.
+  const milestones = getMilestones(watched).slice(0, MEDALS);
+  const medalSize = Math.floor((screenWidth - spacing.md * 2 - spacing.rail * (MEDALS - 1)) / MEDALS);
   const coverStyle = useStretchyBackdropStyle(header.scrollY, coverHeight);
 
   const taste = getTasteProfile(watched);
@@ -207,7 +212,7 @@ export const ProfileScreen = ({ navigation }) => {
     },
   ];
 
-  const profileTab = (
+  const page = (
     <>
       {/* Your cover, fading into the page behind your avatar — it stretches
           when you pull down and drifts behind the page as you scroll, like
@@ -227,7 +232,7 @@ export const ProfileScreen = ({ navigation }) => {
       <View
         style={[
           styles.identity,
-          coverImage && { paddingTop: Math.round(coverHeight * COVER_ABOVE_AVATAR) },
+          { paddingTop: coverImage ? Math.max(Math.round(coverHeight * COVER_ABOVE_AVATAR), header.barBottom) : header.barBottom + spacing.underHeader },
         ]}
       >
         <Pressable
@@ -268,11 +273,33 @@ export const ProfileScreen = ({ navigation }) => {
             </Pressable>
           ))}
         </View>
+        {hours > 0 && (
+          <Text style={styles.hours}>{t("{hours} hours of film, all time", { hours })}</Text>
+        )}
         <Pressable onPress={() => navigation.navigate("EditProfile")} hitSlop={6}>
           <Text style={[styles.bio, !bio && styles.bioEmpty]} numberOfLines={3}>
             {bio ? bio : t("Add your take — a short bio")}
           </Text>
         </Pressable>
+        {/* Edit and Share, as Apple Music's paired buttons. */}
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            onPress={() => navigation.navigate("EditProfile")}
+            accessibilityRole="button"
+          >
+            <Pencil size={17} color={colors.brand} strokeWidth={2.2} />
+            <Text style={styles.actionText}>{t("Edit profile")}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            onPress={() => setIsShareOpen(true)}
+            accessibilityRole="button"
+          >
+            <Share2 size={17} color={colors.brand} strokeWidth={2.2} />
+            <Text style={styles.actionText}>{t("Share")}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.padded}>
@@ -300,150 +327,99 @@ export const ProfileScreen = ({ navigation }) => {
           )}
         </ProfileSection>
 
-        {/* Completed collections. */}
-        {trophies.length > 0 && (
-          <ProfileSection
-            title={t("Completed collections")}
-            onAction={() => navigation.navigate("Library", { initialTab: "collections" })}
-          >
-            <TrophyCabinet
-              finished={trophies.slice(0, PROFILE_TROPHIES)}
-              columns={PROFILE_TROPHIES}
-              onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
-            />
-          </ProfileSection>
-        )}
-
-        {/* What you've been up to. */}
-        <ProfileSection title={t("Recent activity")}>
-          <View>
-            <ProfileActivity
-              watched={watched}
-              bucketList={bucketList}
-              avatarSource={avatarSource}
-              onOpen={openMovie}
-            />
+        {/* Your taste: its DNA, then how you tier each genre, decade and
+            director (Pro). */}
+        <ProfileSection
+          title={t("Your taste")}
+          onAction={tasteDna.hasDna ? () => navigation.navigate("Taste") : undefined}
+        >
+          <TasteSnapshot
+            dna={tasteDna}
+            onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
+          />
+          <View style={styles.tasteStats}>
+            <TasteStats watched={watched} isPro={isPro} onSeePro={() => navigation.navigate("Pro")} />
           </View>
         </ProfileSection>
+
+        {/* Achievements: your title (and how far to the next), your latest
+            milestones and the collections you've finished. */}
+        <ProfileSection title={t("Achievements")}>
+          {ranks.title && (
+            <Pressable
+              style={({ pressed }) => [styles.rankRow, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("Ranks")}
+              accessibilityRole="button"
+            >
+              <View style={styles.rankText}>
+                <Text style={styles.rankName}>{t(ranks.title.name)}</Text>
+                <Text style={styles.rankNext}>
+                  {ranks.title.next
+                    ? t("{count} ranks to {title}", {
+                        count: ranks.title.toNext,
+                        title: t(ranks.title.next.name),
+                      })
+                    : t("The top title")}
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+            </Pressable>
+          )}
+          <Pressable
+            style={({ pressed }) => [styles.medals, pressed && styles.pressed]}
+            onPress={() => navigation.navigate("Milestones")}
+            accessibilityRole="button"
+            accessibilityLabel={t("Milestones")}
+          >
+            {milestones.map((milestone) => (
+              <View key={milestone.key} style={styles.medal}>
+                <MilestoneMedal milestone={milestone} size={medalSize} />
+                <Text style={styles.medalLabel} numberOfLines={1}>
+                  {t(milestone.short)}
+                </Text>
+              </View>
+            ))}
+          </Pressable>
+          {trophies.length > 0 && (
+            <View style={styles.trophies}>
+              <TrophyCabinet
+                finished={trophies.slice(0, PROFILE_TROPHIES)}
+                columns={PROFILE_TROPHIES}
+                onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
+              />
+            </View>
+          )}
+        </ProfileSection>
+
+        {/* Replay: your month. */}
+        <ReplayCard
+          style={styles.replay}
+          language={language}
+          onPress={(period) => navigation.navigate("Recap", { period })}
+        />
       </View>
     </>
   );
 
-  // Taste: what your watching says about you — no counts (they're under
-  // your name).
-  const statsTab = (
-    <View style={styles.padded}>
-      {hours > 0 && (
-        <Text style={styles.hours}>{t("{hours} hours of film, all time", { hours })}</Text>
-      )}
-
-      {/* Your title, and how far to the next. */}
-      {ranks.title && (
-        <Pressable
-          style={({ pressed }) => [styles.rankRow, pressed && styles.pressed]}
-          onPress={() => navigation.navigate("Ranks")}
-          accessibilityRole="button"
-        >
-          <View style={styles.rankText}>
-            <Text style={styles.rankName}>{t(ranks.title.name)}</Text>
-            <Text style={styles.rankNext}>
-              {ranks.title.next
-                ? t("{count} ranks to {title}", {
-                    count: ranks.title.toNext,
-                    title: t(ranks.title.next.name),
-                  })
-                : t("The top title")}
-            </Text>
-          </View>
-          <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
-        </Pressable>
-      )}
-
-      <ProfileSection
-        title={t("Tiers")}
-        onAction={() => navigation.navigate("TierList")}
-        onPress={() => navigation.navigate("TierList")}
-      >
-        <TierSummary
-          entries={watched}
-          onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
-        />
-      </ProfileSection>
-
-      <ProfileSection
-        title={t("Taste DNA")}
-        onAction={tasteDna.hasDna ? () => navigation.navigate("Taste") : undefined}
-        onPress={tasteDna.hasDna ? () => navigation.navigate("Taste") : undefined}
-      >
-        <TasteSnapshot
-          dna={tasteDna}
-          onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
-        />
-      </ProfileSection>
-
-      {/* Pro: how you tier each genre, decade and director. */}
-      <ProfileSection title={t("Taste stats")}>
-        <TasteStats watched={watched} isPro={isPro} onSeePro={() => navigation.navigate("Pro")} />
-      </ProfileSection>
-
-      <RecapBanner watched={watched} onOpen={() => navigation.navigate("Recap")} />
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      {/* Profile / Stats: pinned under the header. */}
-      <View style={[styles.tabsBar, { paddingTop: header.barBottom }]}>
-        <View style={styles.tabs} accessibilityRole="tablist">
-          {[
-            { key: "profile", label: t("Overview") },
-            { key: "stats", label: t("Taste") },
-          ].map((tab) => {
-            const selected = tab.key === topTab;
-            return (
-              <Pressable
-                key={tab.key}
-                style={[styles.tab, selected && styles.tabOn]}
-                onPress={() => {
-                  if (selected) return;
-                  Haptics.selectionAsync();
-                  setTopTab(tab.key);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected }}
-              >
-                <Text style={[styles.tabText, selected && styles.tabTextOn]}>{tab.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
       <Animated.ScrollView
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingTop: spacing.md,
-          paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
-        }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + tabBarClearance }}
       >
-        {topTab === "profile" ? profileTab : statsTab}
+        {page}
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <FirstVisitTip id="profile" />
-      {/* "Profile" in the header; Settings and Share on the right. */}
+      {/* "Profile" in the header, Settings in its capsule. */}
       <DockHeader
         {...header.props}
         title={t("Profile")}
-        left={
+        avatar={false}
+        right={
           <HeaderIconButton onPress={() => navigation.navigate("Settings")} accessibilityLabel={t("Settings")}>
             <SettingsIcon size={22} color={colors.textPrimary} strokeWidth={1.75} />
-          </HeaderIconButton>
-        }
-        right={
-          <HeaderIconButton onPress={() => setIsShareOpen(true)} accessibilityLabel={t("Share")}>
-            <Share2 size={22} color={colors.textPrimary} strokeWidth={1.75} />
           </HeaderIconButton>
         }
       />
@@ -481,39 +457,6 @@ const createStyles = (colors) =>
     bleed: {
       marginHorizontal: -spacing.md,
     },
-    // Profile / Stats, under the header, like Home's tabs.
-    tabsBar: {
-      zIndex: 1,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.headerBackground,
-    },
-    tabs: {
-      flexDirection: "row",
-      gap: 2,
-      padding: 3,
-      marginHorizontal: spacing.md,
-      backgroundColor: colors.segmentTrack,
-      borderRadius: shape.chip,
-    },
-    tab: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 6,
-      borderRadius: shape.chip,
-    },
-    tabOn: {
-      backgroundColor: colors.segmentOn,
-    },
-    tabText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    tabTextOn: {
-      color: colors.segmentOnText,
-    },
     cover: {
       position: "absolute",
       top: 0,
@@ -541,9 +484,10 @@ const createStyles = (colors) =>
       marginTop: spacing.xs,
     },
     name: {
-      ...typography.hero,
-      fontSize: 24,
-      lineHeight: 30,
+      fontFamily: fonts.extraBold,
+      fontSize: 26,
+      lineHeight: 32,
+      letterSpacing: -0.4,
       color: colors.textPrimary,
       textAlign: "center",
       flexShrink: 1,
@@ -578,6 +522,29 @@ const createStyles = (colors) =>
     bioEmpty: {
       color: colors.textMuted,
     },
+    // Edit profile and Share: two grey boxes side by side, their icons and
+    // words in the signature colour.
+    actions: {
+      alignSelf: "stretch",
+      flexDirection: "row",
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    action: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 46,
+      backgroundColor: colors.buttonFill,
+      borderRadius: shape.card,
+    },
+    actionText: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.brand,
+    },
     // Your top four, across.
     favourites: {
       flexDirection: "row",
@@ -585,19 +552,40 @@ const createStyles = (colors) =>
     },
     // Taste
     hours: {
-      ...typography.body,
-      color: colors.textSecondary,
+      ...typography.caption,
+      color: colors.textMuted,
       textAlign: "center",
-      paddingVertical: spacing.sm,
     },
     rankRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,
+    },
+    tasteStats: {
+      marginTop: spacing.lg,
+    },
+    // Your latest medals, three across, opening Milestones.
+    medals: {
+      flexDirection: "row",
+      gap: spacing.rail,
+      marginTop: spacing.lg,
+    },
+    medal: {
+      alignItems: "center",
+    },
+    medalLabel: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+    },
+    trophies: {
+      marginTop: spacing.lg,
+    },
+    replay: {
+      marginTop: spacing.section,
     },
     rankText: {
       flex: 1,

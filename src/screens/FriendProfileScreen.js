@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft, Ellipsis, Flag, UserMinus } from "lucide-react-native";
 import { useState } from "react";
@@ -37,14 +36,13 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { TrophyCabinet } from "../components/TrophyCabinet";
 import { TasteDnaBars } from "../components/TasteDnaBars";
-import { UnderlineTabs } from "../components/UnderlineTabs";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import {
@@ -69,13 +67,9 @@ const POSTER_ITEM = 104;
 // How long the ⋯ sheet takes to leave before the next one opens.
 const SHEET_HANDOFF_MS = 260;
 
-// Their things, under the rest — the only place you can see them.
-const SECTIONS = [
-  { key: "films", label: "Films" },
-  { key: "lists", label: "Lists" },
-  { key: "collections", label: "Collections" },
-];
 const RECS_SHOWN = 3;
+// Their latest films shown (four across).
+const RECENT_SHOWN = 12;
 
 const TierChip = ({ tier, styles }) => (
   <View style={[styles.tierChip, { backgroundColor: getTierInfo(tier).color }]}>
@@ -105,8 +99,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const friendId = route?.params?.friendId;
   const { friends, removeFriend } = useFriends();
   const friend = friends.find((item) => item.id === friendId);
-  const [topTab, setTopTab] = useState("profile");
-  const [section, setSection] = useState("films");
   // ⋯: report them (or one of their lists), or remove them.
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -139,7 +131,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   if (!friend) {
     return (
       <View style={styles.container}>
-        <DockHeader {...header.props} title={t("Friend")} back={back} />
+        <DockHeader {...header.props} title={t("Friend")} back={back} avatar={false} />
       </View>
     );
   }
@@ -207,60 +199,13 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       key: "match",
       value: `${match}%`,
       label: t("match"),
-      onPress: () => setTopTab("stats"),
     },
   ].filter(Boolean);
 
-  const sectionBody = {
-    // Their films, newest first — each dated, with the tier they gave it.
-    films: (
-      <View style={styles.padded}>
-        {theirWatched.length > 0 ? (
-          <RecentPosters entries={theirWatched} count={60} onOpen={openMovie} />
-        ) : (
-          <SectionEmpty line={t("{name} hasn't watched anything yet.", { name: firstName })} />
-        )}
-      </View>
-    ),
-    lists: (
-      <View style={styles.padded}>
-        {theirBoards.length > 0 ? (
-          <View style={styles.bleed}>
-            <BoardsRail
-              boards={theirBoards}
-              onOpen={(board) =>
-                navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })
-              }
-            />
-          </View>
-        ) : (
-          <SectionEmpty
-            line={
-              boards.isLoading
-                ? t("Loading…")
-                : t("{name} hasn't made any lists yet.", { name: firstName })
-            }
-          />
-        )}
-      </View>
-    ),
-    collections: (
-      <View style={styles.padded}>
-        {finishedSagas.length > 0 ? (
-          <TrophyCabinet
-            finished={finishedSagas}
-            onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
-          />
-        ) : (
-          <SectionEmpty
-            line={t("{name} hasn't finished a collection yet.", { name: firstName })}
-          />
-        )}
-      </View>
-    ),
-  };
-
-  const profileTab = (
+  // Their page, as yours: one page — who they are, then (under bold
+  // headings) what you share, their favourites, what they'd have you watch,
+  // their taste, what they've achieved, their lists and their films.
+  const page = (
     <>
       {/* Their cover, fading into the page behind their avatar. */}
       {coverImage && (
@@ -278,13 +223,19 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       <View
         style={[
           styles.identity,
-          coverImage && { paddingTop: Math.round(coverHeight * COVER_ABOVE_AVATAR) },
+          { paddingTop: coverImage ? Math.max(Math.round(coverHeight * COVER_ABOVE_AVATAR), header.barBottom) : header.barBottom + spacing.underHeader },
         ]}
       >
         <AvatarRankRing title={title} avatarSize={AVATAR} color={(friend.pro && accentColor(friend.accent)) || undefined}>
           <FriendAvatar friend={friend} size={AVATAR} style={styles.ringAvatar} />
         </AvatarRankRing>
-        {friend.pro && <ProBadge accent={friend.accent} style={styles.proBadge} />}
+        {/* Their name, as yours is on your Profile, then their handle. */}
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={2} accessibilityRole="header">
+            {friend.name}
+          </Text>
+          {friend.pro && <ProBadge accent={friend.accent} />}
+        </View>
         <Text style={styles.handle}>{friend.handle}</Text>
         {/* Their numbers — here and nowhere else. */}
         <View style={styles.counts}>
@@ -308,8 +259,21 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      {/* Their top four: their S tier, in their order. */}
       <View style={styles.padded}>
+        {/* You and them: what you both loved… */}
+        {bothLoved.length > 0 && (
+          <ProfileSection title={t("You both loved")} rail>
+            <ShelfRail
+              itemWidth={POSTER_ITEM}
+              items={bothLoved.map((movie) => ({
+                key: movie.id,
+                onPress: () => openMovie(movie.id),
+                content: <MoviePoster uri={movie.poster} style={styles.railPoster} />,
+              }))}
+            />
+          </ProfileSection>
+        )}
+
         <ProfileSection
           title={t("Favourites")}
           onAction={favoriteMovies.length > 0 ? openTierList : undefined}
@@ -332,20 +296,6 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             <SectionEmpty line={t("{name} hasn't tiered anything yet.", { name: firstName })} />
           )}
         </ProfileSection>
-
-        {/* You and them: what you both loved… */}
-        {bothLoved.length > 0 && (
-          <ProfileSection title={t("You both loved")} rail>
-            <ShelfRail
-              itemWidth={POSTER_ITEM}
-              items={bothLoved.map((movie) => ({
-                key: movie.id,
-                onPress: () => openMovie(movie.id),
-                content: <MoviePoster uri={movie.poster} style={styles.railPoster} />,
-              }))}
-            />
-          </ProfileSection>
-        )}
 
         {/* …and what they loved that you haven't seen. */}
         {recommendations.length > 0 && (
@@ -391,94 +341,76 @@ export const FriendProfileScreen = ({ navigation, route }) => {
             </View>
           </ProfileSection>
         )}
-      </View>
+        {/* Their taste: their tiers and their DNA. */}
+        <ProfileSection title={t("Their taste")} onAction={openTierList}>
+          <TierSummary entries={theirWatched} />
+          {tasteDna.hasDna && (
+            <View style={styles.dna}>
+              <TasteDnaBars fingerprint={tasteDna.fingerprint} />
+            </View>
+          )}
+        </ProfileSection>
 
-      <UnderlineTabs
-        tabs={SECTIONS.map((item) => ({ key: item.key, label: t(item.label) }))}
-        value={section}
-        onChange={setSection}
-        style={styles.sections}
-      />
-      <View style={styles.sectionBody}>{sectionBody[section]}</View>
-    </>
-  );
+        {/* What they've achieved: their title, the collections they've
+            finished. */}
+        <ProfileSection title={t("Achievements")}>
+          <View style={styles.rankRow}>
+            <Text style={styles.rankName}>{t(title.name)}</Text>
+            <Text style={styles.rankNext}>
+              {title.next
+                ? t("{count} ranks to {title}", { count: title.toNext, title: t(title.next.name) })
+                : t("The top title")}
+              {hours > 0 ? ` · ${t("{hours} hours of film, all time", { hours })}` : ""}
+            </Text>
+          </View>
+          {finishedSagas.length > 0 && (
+            <View style={styles.trophies}>
+              <TrophyCabinet
+                finished={finishedSagas}
+                onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
+              />
+            </View>
+          )}
+        </ProfileSection>
 
-  // Taste: what their watching says — no counts (they're under their name).
-  const statsTab = (
-    <View style={styles.padded}>
-      {hours > 0 && (
-        <Text style={styles.hours}>{t("{hours} hours of film, all time", { hours })}</Text>
-      )}
-
-      {/* Their title, and how far to the next. */}
-      <View style={styles.rankRow}>
-        <Text style={styles.rankName}>{t(title.name)}</Text>
-        <Text style={styles.rankNext}>
-          {title.next
-            ? t("{count} ranks to {title}", { count: title.toNext, title: t(title.next.name) })
-            : t("The top title")}
-        </Text>
-      </View>
-
-      <ProfileSection title={t("Tiers")} onAction={openTierList} onPress={openTierList}>
-        <TierSummary entries={theirWatched} />
-      </ProfileSection>
-
-      <ProfileSection title={t("Taste DNA")}>
-        {tasteDna.hasDna ? (
-          <TasteDnaBars fingerprint={tasteDna.fingerprint} />
-        ) : (
-          <SectionEmpty line={t("{name} hasn't tiered anything yet.", { name: firstName })} />
+        {/* Their lists. */}
+        {theirBoards.length > 0 && (
+          <ProfileSection title={t("Lists")} rail>
+            <BoardsRail
+              boards={theirBoards}
+              onOpen={(board) => navigation.push("BrowseMovies", { title: board.name, movieIds: board.movieIds })}
+            />
+          </ProfileSection>
         )}
-      </ProfileSection>
 
-    </View>
+        {/* Their films, newest first — each dated, with the tier they gave
+            it. */}
+        <ProfileSection title={t("Films")}>
+          {theirWatched.length > 0 ? (
+            <RecentPosters entries={theirWatched} count={RECENT_SHOWN} onOpen={openMovie} />
+          ) : (
+            <SectionEmpty line={t("{name} hasn't watched anything yet.", { name: firstName })} />
+          )}
+        </ProfileSection>
+      </View>
+    </>
   );
 
   return (
     <View style={styles.container}>
-      {/* Profile / Stats: pinned under the header. */}
-      <View style={[styles.tabsBar, { paddingTop: header.barBottom }]}>
-        <View style={styles.tabs} accessibilityRole="tablist">
-          {[
-            { key: "profile", label: t("Overview") },
-            { key: "stats", label: t("Taste") },
-          ].map((tab) => {
-            const selected = tab.key === topTab;
-            return (
-              <Pressable
-                key={tab.key}
-                style={[styles.tab, selected && styles.tabOn]}
-                onPress={() => {
-                  if (selected) return;
-                  Haptics.selectionAsync();
-                  setTopTab(tab.key);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected }}
-              >
-                <Text style={[styles.tabText, selected && styles.tabTextOn]}>{tab.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
       <Animated.ScrollView
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingTop: spacing.md,
-          paddingBottom: insets.bottom + spacing.xl,
-        }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
-        {topTab === "profile" ? profileTab : statsTab}
+        {page}
       </Animated.ScrollView>
       {/* Their name in the middle; back left, ⋯ (report, remove) right. */}
       <DockHeader
         {...header.props}
         title={friend.name}
+        avatar={false}
         back={back}
         right={
           <HeaderIconButton round onPress={() => setIsMenuOpen(true)} accessibilityLabel={t("More")}>
@@ -564,39 +496,6 @@ const createStyles = (colors) =>
     bleed: {
       marginHorizontal: -spacing.md,
     },
-    // Profile / Stats, under the header, like your Profile's.
-    tabsBar: {
-      zIndex: 1,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.headerBackground,
-    },
-    tabs: {
-      flexDirection: "row",
-      gap: 2,
-      padding: 3,
-      marginHorizontal: spacing.md,
-      backgroundColor: colors.segmentTrack,
-      borderRadius: shape.chip,
-    },
-    tab: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 6,
-      borderRadius: shape.chip,
-    },
-    tabOn: {
-      backgroundColor: colors.segmentOn,
-    },
-    tabText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    tabTextOn: {
-      color: colors.segmentOnText,
-    },
     cover: {
       position: "absolute",
       top: 0,
@@ -614,15 +513,28 @@ const createStyles = (colors) =>
     ringAvatar: {
       borderWidth: 0,
     },
-    proBadge: {
+    nameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
       marginTop: spacing.xs,
+    },
+    // Their name, as yours is on your Profile.
+    name: {
+      fontFamily: fonts.extraBold,
+      fontSize: 26,
+      lineHeight: 32,
+      letterSpacing: -0.4,
+      color: colors.textPrimary,
+      textAlign: "center",
+      flexShrink: 1,
     },
     handle: {
       ...typography.caption,
       fontSize: 13,
       lineHeight: 18,
       color: colors.textSecondary,
-      marginTop: spacing.xs,
     },
     // Films · ranks · match, evenly across under their handle.
     counts: {
@@ -658,22 +570,14 @@ const createStyles = (colors) =>
       flexDirection: "row",
       gap: FAVOURITE_GAP,
     },
-    sections: {
+    dna: {
       marginTop: spacing.lg,
     },
-    sectionBody: {
-      paddingTop: spacing.md,
-    },
-    // Taste
-    hours: {
-      ...typography.body,
-      color: colors.textSecondary,
-      textAlign: "center",
-      paddingVertical: spacing.sm,
+    trophies: {
+      marginTop: spacing.lg,
     },
     rankRow: {
       gap: 2,
-      marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,

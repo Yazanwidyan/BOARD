@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
-import { Plus, X } from "lucide-react-native";
+import { Check, Plus, Smartphone, Ticket, UsersRound } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,7 +10,7 @@ import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
+import { HeaderIconButton, StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
 import { useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { useBoardStore } from "../store/boardStore";
@@ -19,7 +19,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { GROUP_ANGLES, buildGroup, getTimeOptions, rankForGroup, shortlistSize } from "../utils/groupPick";
 import { MOODS } from "../utils/moods";
@@ -33,6 +33,8 @@ const GUEST_NAME_MAX = 20;
 // A group night's code (GroupNightScreen's).
 const CODE_LENGTH = 6;
 
+const FACE = 56;
+
 // A choice in a row of choices.
 const Chip = ({ label, selected, onPress, styles }) => (
   <Pressable
@@ -45,22 +47,58 @@ const Chip = ({ label, selected, onPress, styles }) => (
   </Pressable>
 );
 
-const Section = ({ label, children, styles }) => (
-  <View style={styles.section}>
-    <Text style={styles.label}>{label}</Text>
-    {children}
+// One of tonight's settings: its name, then its choices in a row you scroll.
+const Setting = ({ label, children, styles }) => (
+  <View style={styles.setting}>
+    <Text style={styles.settingLabel}>{label}</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      {children}
+    </ScrollView>
+  </View>
+);
+
+// Someone who might watch: their face (a ✓ in the signature colour when
+// they're in) and their first name. `face`: what goes in the circle.
+const Face = ({ face, name, on, onPress, styles, colors, accessibilityLabel }) => (
+  <Pressable
+    style={({ pressed }) => [styles.face, pressed && styles.pressed]}
+    onPress={onPress}
+    disabled={!onPress}
+    accessibilityRole={onPress ? "checkbox" : undefined}
+    accessibilityState={onPress ? { checked: on } : undefined}
+    accessibilityLabel={accessibilityLabel ?? name}
+  >
+    <View style={[styles.faceRing, on && styles.faceRingOn]}>{face}</View>
+    {on && (
+      <View style={styles.faceCheck}>
+        <Check size={12} color={colors.brandText} strokeWidth={3} />
+      </View>
+    )}
+    <Text style={[styles.faceName, !on && styles.faceNameOff]} numberOfLines={1}>
+      {name}
+    </Text>
+  </Pressable>
+);
+
+const Initial = ({ name, styles }) => (
+  <View style={styles.initial}>
+    <Text style={styles.initialText}>{name.trim().charAt(0).toUpperCase()}</Text>
   </View>
 );
 
 // Watch together: deciding for a group, with what ReelBoard knows about
-// everyone's taste (utils/groupPick). Joining a friend's night — their code
-// — is the card at the top; everything under it starts one.
-//   who      you, the friends who are here (their tiers count), and guests
-//   where    one phone passed round (2–6), or everyone's own (Group night)
-//   tonight  a mood, how long you've got, and an angle
-// Then "Just pick one" — the group's best fit, with how well it suits each
-// of you — or "Swipe a shortlist", sized for the group, not a number to
-// choose. Opened with { boardId } to pick from one of your lists.
+// everyone's taste (utils/groupPick), in three steps on one page:
+//   who's watching   faces — you, your friends (tap to bring them in; their
+//                    tiers count) and guests (a name, for anyone not on
+//                    ReelBoard)
+//   where            two cards: one phone passed round (2–6), or everyone's
+//                    own (Group night, with a code)
+//   tonight          a mood, how long you've got and what to pick from, in
+//                    one card
+// Then Swipe together — a shortlist sized for the group — or, under it,
+// "just pick one for us": the group's best fit, with how well it suits each
+// of you. Joining someone else's night is the ticket in the header (their
+// code). Opened with { boardId } to pick from one of your lists.
 export const WatchTogetherScreen = ({ navigation, route }) => {
   useMoviesVersion();
   const headerScroll = useStackHeaderScroll();
@@ -68,6 +106,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const myName = useProfileStore((state) => state.displayName);
+  const myAvatar = useProfileStore((state) => state.avatarUri);
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const setPickedMovie = useMovieStore((state) => state.setPickedMovie);
@@ -83,6 +122,8 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
   const [angle, setAngle] = useState(board ? "list" : "blend");
   const [pick, setPick] = useState(null);
   const [code, setCode] = useState("");
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isAddingGuest, setIsAddingGuest] = useState(false);
   const timeOptions = useMemo(() => getTimeOptions(), []);
 
   const angles = board ? [{ key: "list", label: board.name, hint: "One of your lists" }, ...GROUP_ANGLES] : GROUP_ANGLES;
@@ -102,6 +143,12 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
     if (!name || isFull) return;
     setGuests((current) => [...current, name]);
     setGuestDraft("");
+    setIsAddingGuest(false);
+  };
+  const join = () => {
+    if (code.length !== CODE_LENGTH) return;
+    setIsJoinOpen(false);
+    navigation.navigate("GroupNight", { code });
   };
 
   // Everyone, scored, for the night as set.
@@ -151,9 +198,33 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
 
   const current = pick?.ranked[pick.at] ?? null;
 
+  const whereOptions = [
+    {
+      key: "phone",
+      Icon: Smartphone,
+      title: t("Same phone"),
+      hint: t("Pass the phone round — up to {count} people.", { count: MAX_SAME_PHONE }),
+    },
+    {
+      key: "online",
+      Icon: UsersRound,
+      title: t("Everyone's phone"),
+      hint: t("Everyone swipes on their own phone, with a code to join — up to {count}.", { count: MAX_ONLINE }),
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <StackHeader title={t("Watch together")} onBack={() => navigation.goBack()} scrollY={headerScroll.scrollY} />
+      <StackHeader
+        title={t("Watch together")}
+        onBack={() => navigation.goBack()}
+        scrollY={headerScroll.scrollY}
+        right={
+          <HeaderIconButton onPress={() => setIsJoinOpen(true)} accessibilityLabel={t("Got a code?")}>
+            <Ticket size={20} color={colors.textPrimary} strokeWidth={2} />
+          </HeaderIconButton>
+        }
+      />
       <Animated.ScrollView
         onScroll={headerScroll.onScroll}
         scrollEventThrottle={16}
@@ -161,67 +232,64 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Someone else is hosting: join with their code. */}
-        <View style={styles.join}>
-          <View style={styles.joinText}>
-            <Text style={styles.joinTitle}>{t("Got a code?")}</Text>
-            <Text style={styles.hint}>{t("Join a friend's night on your phone")}</Text>
-          </View>
-          <TextInput
-            value={code}
-            onChangeText={(text) => setCode(text.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, CODE_LENGTH))}
-            onSubmitEditing={() => code.length === CODE_LENGTH && navigation.navigate("GroupNight", { code })}
-            placeholder="ABC123"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            returnKeyType="go"
-            style={styles.codeInput}
-          />
-          <Pressable
-            style={[styles.joinButton, code.length !== CODE_LENGTH && styles.disabled]}
-            onPress={() => navigation.navigate("GroupNight", { code })}
-            disabled={code.length !== CODE_LENGTH}
-            accessibilityRole="button"
-          >
-            <Text style={styles.joinButtonText}>{t("Join")}</Text>
-          </Pressable>
+        {/* Who's watching: faces — tap to bring someone in. */}
+        <View style={styles.headingRow}>
+          <Text style={styles.heading}>{t("Who's watching")}</Text>
+          <Text style={styles.count}>{t("{count} watching", { count: people })}</Text>
         </View>
-
-        <Section label={t("Or start one — who's watching")} styles={styles}>
-          <View style={styles.people}>
-            <View style={[styles.person, styles.personOn]}>
-              <Text style={[styles.personText, styles.personTextOn]}>{me}</Text>
-            </View>
-            {friends.map((friend) => {
-              const on = friendIds.includes(friend.id);
-              return (
-                <Pressable
-                  key={friend.id}
-                  style={[styles.person, on && styles.personOn]}
-                  onPress={() => toggleFriend(friend.id)}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                >
-                  <FriendAvatar friend={friend} size={22} />
-                  <Text style={[styles.personText, on && styles.personTextOn]} numberOfLines={1}>
-                    {friend.name.split(" ")[0]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-            {guests.map((guest, index) => (
-              <Pressable
-                key={`${guest}-${index}`}
-                style={[styles.person, styles.personOn]}
-                onPress={() => setGuests((current) => current.filter((_, i) => i !== index))}
-                accessibilityLabel={t("Remove {name}", { name: guest })}
-              >
-                <Text style={[styles.personText, styles.personTextOn]}>{guest}</Text>
-                <X size={14} color={colors.segmentOnText} strokeWidth={2.2} />
-              </Pressable>
-            ))}
-          </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.facesRow}
+          contentContainerStyle={styles.faces}
+        >
+          <Face
+            face={myAvatar ? <Image source={{ uri: myAvatar }} style={styles.faceImage} /> : <Initial name={me} styles={styles} />}
+            name={t("You")}
+            on
+            styles={styles}
+            colors={colors}
+          />
+          {friends.map((friend) => (
+            <Face
+              key={friend.id}
+              face={<FriendAvatar friend={friend} size={FACE} style={styles.noBorder} />}
+              name={friend.name.split(" ")[0]}
+              on={friendIds.includes(friend.id)}
+              onPress={() => toggleFriend(friend.id)}
+              styles={styles}
+              colors={colors}
+            />
+          ))}
+          {guests.map((guest, index) => (
+            <Face
+              key={`${guest}-${index}`}
+              face={<Initial name={guest} styles={styles} />}
+              name={guest}
+              on
+              onPress={() => setGuests((current) => current.filter((_, i) => i !== index))}
+              accessibilityLabel={t("Remove {name}", { name: guest })}
+              styles={styles}
+              colors={colors}
+            />
+          ))}
+          {!isFull && (
+            <Pressable
+              style={({ pressed }) => [styles.face, pressed && styles.pressed]}
+              onPress={() => setIsAddingGuest(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("Add someone not on ReelBoard")}
+            >
+              <View style={[styles.faceRing, styles.addRing]}>
+                <Plus size={24} color={colors.textSecondary} strokeWidth={2} />
+              </View>
+              <Text style={[styles.faceName, styles.faceNameOff]} numberOfLines={1}>
+                {t("Guest")}
+              </Text>
+            </Pressable>
+          )}
+        </ScrollView>
+        {isAddingGuest && (
           <View style={styles.guestRow}>
             <TextInput
               value={guestDraft}
@@ -231,39 +299,62 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
               placeholderTextColor={colors.textMuted}
               maxLength={GUEST_NAME_MAX}
               returnKeyType="done"
-              editable={!isFull}
+              autoFocus
               style={styles.guestInput}
             />
             <Pressable
-              style={[styles.guestAdd, (!guestDraft.trim() || isFull) && styles.disabled]}
+              style={[styles.guestAdd, !guestDraft.trim() && styles.disabled]}
               onPress={addGuest}
-              disabled={!guestDraft.trim() || isFull}
+              disabled={!guestDraft.trim()}
               accessibilityLabel={t("Add")}
             >
-              <Plus size={18} color={colors.textPrimary} strokeWidth={2.2} />
+              <Plus size={18} color={colors.brandText} strokeWidth={2.4} />
             </Pressable>
           </View>
-          <Text style={styles.hint}>
-            {friends.length > 0
-              ? t("Friends' tiers count — the more they've tiered, the better the pick.")
-              : t("Add friends on ReelBoard and their taste counts too.")}
-          </Text>
-        </Section>
+        )}
+        <Text style={styles.hint}>
+          {friends.length > 0
+            ? t("Friends' tiers count — the more they've tiered, the better the pick.")
+            : t("Add friends on ReelBoard and their taste counts too.")}
+        </Text>
 
-        <Section label={t("Where")} styles={styles}>
-          <View style={styles.chips}>
-            <Chip label={t("Same phone")} selected={where === "phone"} onPress={() => setWhere("phone")} styles={styles} />
-            <Chip label={t("Everyone's phone")} selected={where === "online"} onPress={() => setWhere("online")} styles={styles} />
-          </View>
-          <Text style={styles.hint}>
-            {where === "phone"
-              ? t("Pass the phone round — up to {count} people.", { count: MAX_SAME_PHONE })
-              : t("Everyone swipes on their own phone, with a code to join — up to {count}.", { count: MAX_ONLINE })}
-          </Text>
-        </Section>
+        {/* Where: one phone, or everyone's. */}
+        <Text style={[styles.heading, styles.gap]}>{t("Where")}</Text>
+        <View style={styles.whereRow}>
+          {whereOptions.map(({ key, Icon, title, hint }) => {
+            const on = where === key;
+            return (
+              <Pressable
+                key={key}
+                style={({ pressed }) => [styles.where, on && styles.whereOn, pressed && styles.pressed]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setWhere(key);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+              >
+                <View style={styles.whereTop}>
+                  <Icon size={22} color={on ? colors.brand : colors.textSecondary} strokeWidth={2} />
+                  {on && (
+                    <View style={styles.whereCheck}>
+                      <Check size={12} color={colors.brandText} strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.whereTitle}>{title}</Text>
+                <Text style={styles.whereHint} numberOfLines={3}>
+                  {hint}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        <Section label={t("Mood")} styles={styles}>
-          <View style={styles.chips}>
+        {/* Tonight: mood, how long, what to pick from — one card. */}
+        <Text style={[styles.heading, styles.gap]}>{t("Tonight")}</Text>
+        <View style={styles.tonight}>
+          <Setting label={t("Mood")} styles={styles}>
             <Chip label={t("Any")} selected={!mood} onPress={() => setMood(null)} styles={styles} />
             {MOODS.map((item) => (
               <Chip
@@ -274,38 +365,56 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
                 styles={styles}
               />
             ))}
-          </View>
-        </Section>
-
-        <Section label={t("How long")} styles={styles}>
-          <View style={styles.chips}>
+          </Setting>
+          <Setting label={t("How long")} styles={styles}>
             {timeOptions.map((option) => (
               <Chip key={option.key} label={option.label} selected={time === option.key} onPress={() => setTime(option.key)} styles={styles} />
             ))}
-          </View>
-        </Section>
-
-        <Section label={t("Pick from")} styles={styles}>
-          <View style={styles.chips}>
+          </Setting>
+          <Setting label={t("Pick from")} styles={styles}>
             {angles.map((option) => (
               <Chip key={option.key} label={t(option.label)} selected={angle === option.key} onPress={() => setAngle(option.key)} styles={styles} />
             ))}
-          </View>
-          <Text style={styles.hint}>{t(angles.find((option) => option.key === angle)?.hint ?? "")}</Text>
-        </Section>
+          </Setting>
+          <Text style={[styles.hint, styles.tonightHint]}>
+            {t(angles.find((option) => option.key === angle)?.hint ?? "")}
+          </Text>
+        </View>
       </Animated.ScrollView>
 
+      {/* One main button; picking for you is the quieter way. */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-        <PrimaryButton label={t("Just pick one")} onPress={pickOne} />
-        <PrimaryButton
-          label={t("Swipe a shortlist")}
-          variant="secondary"
-          onPress={swipeShortlist}
-        />
+        <PrimaryButton label={t("Swipe together")} onPress={swipeShortlist} />
         <Text style={styles.footnote}>
           {t("A short stack, sized for {count} — about three minutes.", { count: people })}
         </Text>
+        <Pressable onPress={pickOne} hitSlop={8} accessibilityRole="button" style={styles.pickLink}>
+          <Text style={styles.pickLinkText}>{t("Or just pick one for us")}</Text>
+        </Pressable>
       </View>
+
+      {/* Joining someone else's night: their code. */}
+      <BottomSheet
+        visible={isJoinOpen}
+        onClose={() => setIsJoinOpen(false)}
+        size="auto"
+        title={t("Got a code?")}
+        subtitle={t("Join a friend's night on your phone")}
+        footer={<PrimaryButton label={t("Join")} onPress={join} disabled={code.length !== CODE_LENGTH} />}
+      >
+        <TextInput
+          value={code}
+          onChangeText={(text) => setCode(text.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, CODE_LENGTH))}
+          onSubmitEditing={join}
+          placeholder="ABC123"
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          autoFocus
+          returnKeyType="go"
+          style={styles.codeInput}
+        />
+      </BottomSheet>
 
       {/* The group's pick: how well it suits each of you, and the next. */}
       <BottomSheet
@@ -375,151 +484,255 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
       paddingBottom: spacing.xl,
-      gap: spacing.lg,
     },
-    section: {
+    pressed: {
+      opacity: 0.75,
+    },
+    headingRow: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
       gap: spacing.sm,
     },
-    label: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 1.2,
-      color: colors.textSecondary,
+    // A step's name, as Home's headings.
+    heading: {
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    gap: {
+      marginTop: spacing.section,
+    },
+    count: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      color: colors.brand,
     },
     hint: {
       ...typography.caption,
       color: colors.textMuted,
-    },
-    // Joining someone's night: a card above the rest.
-    join: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.sm + 4,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
-    },
-    joinText: {
-      flex: 1,
-      gap: 2,
-    },
-    joinTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    codeInput: {
-      ...typography.bodyBold,
-      width: 96,
-      textAlign: "center",
-      letterSpacing: 2,
-      color: colors.textPrimary,
-      backgroundColor: colors.background,
-      borderRadius: shape.control,
-      paddingVertical: spacing.sm,
-    },
-    joinButton: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      backgroundColor: colors.textPrimary,
-      borderRadius: shape.control,
-    },
-    joinButtonText: {
-      ...typography.bodyBold,
-      color: colors.background,
-    },
-    // People: you (always in), friends to tap in, guests.
-    people: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-    },
-    person: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      maxWidth: 160,
-      paddingStart: 6,
-      paddingEnd: spacing.sm + 4,
-      paddingVertical: 5,
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    personOn: {
-      backgroundColor: colors.segmentOn,
-      borderColor: colors.segmentOn,
-    },
-    personText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.textPrimary,
-      flexShrink: 1,
-      paddingStart: 4,
-    },
-    personTextOn: {
-      color: colors.segmentOnText,
-    },
-    guestRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    guestInput: {
-      ...typography.body,
-      flex: 1,
-      color: colors.textPrimary,
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
-    },
-    guestAdd: {
-      width: 44,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.card,
-      borderRadius: shape.control,
+      marginTop: spacing.sm,
     },
     disabled: {
       opacity: 0.4,
     },
-    chips: {
+    // Faces, in a row you scroll: the row runs to the screen's edges, its
+    // faces starting at the page's margin.
+    facesRow: {
+      marginHorizontal: -spacing.md,
+      flexGrow: 0,
+    },
+    faces: {
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    face: {
+      width: FACE + 8,
+      alignItems: "center",
+    },
+    faceRing: {
+      width: FACE + 6,
+      height: FACE + 6,
+      borderRadius: (FACE + 6) / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: "transparent",
+      opacity: 0.55,
+    },
+    faceRingOn: {
+      borderColor: colors.brand,
+      opacity: 1,
+    },
+    addRing: {
+      opacity: 1,
+      borderColor: colors.border,
+      borderStyle: "dashed",
+    },
+    // The avatar's own border off — the face's ring is the only one.
+    noBorder: {
+      borderWidth: 0,
+    },
+    faceImage: {
+      width: FACE,
+      height: FACE,
+      borderRadius: FACE / 2,
+    },
+    faceCheck: {
+      position: "absolute",
+      top: FACE - 14,
+      end: 2,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand,
+      borderWidth: 2,
+      borderColor: colors.background,
+    },
+    faceName: {
+      ...typography.caption,
+      fontFamily: fonts.semiBold,
+      color: colors.textPrimary,
+      marginTop: spacing.xs + 2,
+    },
+    faceNameOff: {
+      color: colors.textMuted,
+    },
+    initial: {
+      width: FACE,
+      height: FACE,
+      borderRadius: FACE / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.buttonFill,
+    },
+    initialText: {
+      fontFamily: fonts.bold,
+      fontSize: 20,
+      color: colors.textPrimary,
+    },
+    guestRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    guestInput: {
+      ...typography.body,
+      flex: 1,
+      minHeight: 44,
+      paddingHorizontal: spacing.md,
+      color: colors.textPrimary,
+      backgroundColor: colors.card,
+      borderRadius: shape.control,
+    },
+    guestAdd: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand,
+      borderRadius: shape.control,
+    },
+    // Where: two cards side by side, the chosen one ringed in red.
+    whereRow: {
+      flexDirection: "row",
+      gap: spacing.rail,
+    },
+    where: {
+      flex: 1,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      borderWidth: 1.5,
+      borderColor: "transparent",
+    },
+    whereOn: {
+      borderColor: colors.brand,
+    },
+    whereTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    whereCheck: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.brand,
+    },
+    whereTitle: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.textPrimary,
+    },
+    whereHint: {
+      ...typography.caption,
+      lineHeight: 16,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    // Tonight: one card, a row of choices per setting.
+    tonight: {
+      paddingVertical: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      gap: spacing.md,
+    },
+    setting: {
       gap: spacing.sm,
     },
+    settingLabel: {
+      ...typography.caption,
+      fontFamily: fonts.semiBold,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.md,
+    },
+    tonightHint: {
+      paddingHorizontal: spacing.md,
+      marginTop: 0,
+    },
+    chips: {
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
     chip: {
-      paddingHorizontal: spacing.md - 2,
       paddingVertical: 7,
-      backgroundColor: colors.card,
-      borderRadius: shape.tab,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.buttonFill,
+      borderRadius: shape.chip,
     },
     chipOn: {
-      backgroundColor: colors.segmentOn,
+      backgroundColor: colors.brand,
     },
     chipText: {
       ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.textPrimary,
     },
     chipTextOn: {
-      color: colors.segmentOnText,
+      color: colors.brandText,
     },
     footer: {
-      gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
+      paddingTop: spacing.md,
+      gap: spacing.sm,
       backgroundColor: colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
     footnote: {
       ...typography.caption,
       color: colors.textMuted,
       textAlign: "center",
     },
-    // The pick, in its sheet.
+    pickLink: {
+      alignSelf: "center",
+      paddingVertical: spacing.xs,
+    },
+    pickLinkText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.brand,
+    },
+    codeInput: {
+      fontFamily: fonts.bold,
+      fontSize: 28,
+      letterSpacing: 6,
+      textAlign: "center",
+      color: colors.textPrimary,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: shape.control,
+    },
     pick: {
       flexDirection: "row",
       gap: spacing.md,

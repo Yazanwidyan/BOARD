@@ -1,6 +1,7 @@
 import { I18nManager } from "react-native";
 
-// Roboto for English; IBM Plex Sans Arabic when the app runs in Arabic (the
+// Inter for English (the closest free match to Apple's SF Pro, as in Apple
+// Music); IBM Plex Sans Arabic when the app runs in Arabic (the
 // app restarts when the language changes direction, so checking RTL once
 // at load is enough). Each `fontFamily` points at a specific weight file
 // (loaded in App.js), so `fontWeight` is intentionally omitted — pairing a
@@ -21,13 +22,17 @@ export const fonts = isArabicLayout
       bold: "IBMPlexSansArabic_700Bold",
       // Plex Arabic tops out at bold.
       extraBold: "IBMPlexSansArabic_700Bold",
+      display: "IBMPlexSansArabic_700Bold",
     }
   : {
-      regular: "Roboto_400Regular",
-      medium: "Roboto_500Medium",
-      semiBold: "Roboto_600SemiBold",
-      bold: "Roboto_700Bold",
-      extraBold: "Roboto_800ExtraBold",
+      regular: "Inter_400Regular",
+      medium: "Inter_500Medium",
+      semiBold: "Inter_600SemiBold",
+      bold: "Inter_700Bold",
+      extraBold: "Inter_800ExtraBold",
+      // Film titles (a movie's page, the mixes): Fraunces, a soft serif —
+      // editorial, like a film poster's credits. Latin only.
+      display: "Fraunces_700Bold",
     };
 
 // The scale: Heading 1 (hero) 24/36, Heading 2 (title) 20/28, Body

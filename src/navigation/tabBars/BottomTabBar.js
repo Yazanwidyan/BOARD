@@ -1,11 +1,11 @@
 import * as Haptics from "expo-haptics";
-import { Bookmark, Plus, User } from "lucide-react-native";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Compass, Library, Search } from "lucide-react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ReelBoardIcon, SearchTabIcon } from "../../components/icons/TabIcons";
+import { ReelBoardIcon } from "../../components/icons/TabIcons";
+import { TonightBar } from "../../components/TonightBar";
 import { t } from "../../i18n";
-import { useProfileStore } from "../../store/profileStore";
 import { useColors } from "../../theme/useColors";
 
 // The bar's own height, above the home indicator.
@@ -17,43 +17,18 @@ const ICON = 24;
 const STROKE = 1.7;
 const STROKE_OPEN = 2.2;
 
-// The Profile tab: your photo if you've set one (ringed in white when it's
-// the open tab), else the person outline.
-const ProfileTabIcon = ({ size, color, open, strokeWidth }) => {
-  const avatarUri = useProfileStore((state) => state.avatarUri);
-  if (!avatarUri) return <User size={size} color={color} strokeWidth={strokeWidth} />;
-  const ring = size + 4;
-  return (
-    <View
-      style={{
-        width: ring,
-        height: ring,
-        borderRadius: ring / 2,
-        borderWidth: 1.5,
-        borderColor: open ? color : "transparent",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Image source={{ uri: avatarUri }} style={{ width: size - 2, height: size - 2, borderRadius: (size - 2) / 2 }} />
-    </View>
-  );
-};
-
-// Each tab's icon — simple line icons, and the app's own reel for Home —
-// and its name (for screen readers; nothing is written under the icons). The ＋ (Log) is an action, not a
-// place: it opens quick log, and is never the open tab.
+// Each tab's icon — simple line icons, and the app's own mark for Home —
+// and its name (for screen readers; nothing is written under the icons).
+// Profile has no tab (the headers' avatar opens it).
 const TABS = {
   Home: { label: "Home", Icon: ReelBoardIcon },
-  Discover: { label: "Discover", Icon: SearchTabIcon },
-  Log: { label: "Add", Icon: Plus, action: true },
-  Library: { label: "Library", Icon: Bookmark },
-  Profile: { label: "Profile", Icon: ProfileTabIcon },
+  Discover: { label: "Discover", Icon: Compass },
+  Library: { label: "Library", Icon: Library },
+  Search: { label: "Search", Icon: Search },
 };
 
 // The app's bottom tabs: a plain bar along the bottom, its icons evenly
-// across, the ＋ in the middle. The open tab's icon is white and a little
-// bolder; the rest grey.
+// across. The open tab's icon is white and a little bolder; the rest grey. Tonight's pick, when there is one, docks above it.
 export const BottomTabBar = ({ state, navigation }) => {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -66,42 +41,47 @@ export const BottomTabBar = ({ state, navigation }) => {
   };
 
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
-      {state.routes.map((route, index) => {
-        const tab = TABS[route.name];
-        if (!tab) return null;
-        const open = state.index === index && !tab.action;
-        const { Icon } = tab;
-        return (
-          <Pressable
-            key={route.key}
-            style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-            onPress={() => select(route, index)}
-            accessibilityRole="tab"
-            accessibilityLabel={t(tab.label)}
-            accessibilityState={{ selected: open }}
-          >
-            <Icon
-              size={ICON}
-              color={open ? colors.textPrimary : colors.textMuted}
-              strokeWidth={open ? STROKE_OPEN : STROKE}
-              open={open}
-            />
-          </Pressable>
-        );
-      })}
+    <View style={styles.dock}>
+      <TonightBar navigation={navigation} />
+      <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+        {state.routes.map((route, index) => {
+          const tab = TABS[route.name];
+          if (!tab) return null;
+          const open = state.index === index;
+          const { Icon } = tab;
+          return (
+            <Pressable
+              key={route.key}
+              style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+              onPress={() => select(route, index)}
+              accessibilityRole="tab"
+              accessibilityLabel={t(tab.label)}
+              accessibilityState={{ selected: open }}
+            >
+              <Icon
+                size={ICON}
+                color={open ? colors.textPrimary : colors.textMuted}
+                strokeWidth={open ? STROKE_OPEN : STROKE}
+                open={open}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Along the bottom, edge to edge.
-    bar: {
+    // Along the bottom, edge to edge: Tonight's bar, then the tabs.
+    dock: {
       position: "absolute",
       start: 0,
       end: 0,
       bottom: 0,
+    },
+    bar: {
       flexDirection: "row",
       // In from the sides, so the icons sit closer together.
       paddingHorizontal: SIDE_INSET,

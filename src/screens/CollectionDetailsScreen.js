@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Bookmark, BookmarkCheck, Check, Share2 } from "lucide-react-native";
+import { Bookmark, BookmarkCheck, Check, Layers, Share2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +24,7 @@ import {
 } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
+import { CollectionCollage, PersonPhoto, personColors } from "../components/CollectionCollage";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MovieListRow } from "../components/MovieListRow";
 import { MoviePoster } from "../components/MoviePoster";
@@ -34,7 +35,7 @@ import { useMovieStore } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { openShareCard } from "../store/shareCardStore";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import {
   giveWatchedFeedback,
@@ -60,6 +61,10 @@ import { shuffle } from "../utils/shuffle";
 import { getTastePicks } from "../utils/tasteEngine";
 import { TIERS, getTier } from "../utils/tiers";
 import { t } from "../i18n";
+
+// A person's photo's size, and a collection's cover's, on its page.
+const PERSON_PHOTO = 150;
+const COVER = 180;
 
 // A rank's node on the ladder.
 const NODE = 22;
@@ -313,6 +318,15 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     startSession(shuffle(movies).slice(0, MARATHON_SIZE));
     navigation.navigate("Swipe");
   };
+  // Not finished: the films you haven't seen, as a Swipe session.
+  const sortRest = () => {
+    if (unwatched.length < 2) {
+      if (unwatched[0]) openMovie(unwatched[0].id);
+      return;
+    }
+    startSession(shuffle(unwatched).slice(0, MARATHON_SIZE));
+    navigation.navigate("Swipe");
+  };
 
   const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
   const toWatch = unwatched
@@ -389,16 +403,10 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             {art?.backdrop ? (
               <Image source={{ uri: art.backdrop }} style={styles.backdropImage} />
             ) : art?.photo ? (
-              // A portrait: on the right, fading into the page on its left.
-              <View style={styles.portraitWrap}>
-                <Image source={{ uri: art.photo }} style={styles.portrait} />
-                <LinearGradient
-                  colors={[colors.background, `${colors.background}00`]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0.6, y: 0 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </View>
+              // A person: their cover's colours behind their photo, light
+              // at the top here (the hero's own fade takes it into the
+              // page; the photo itself sits over the title, below).
+              <LinearGradient colors={[...personColors(collection)].reverse()} style={StyleSheet.absoluteFill} />
             ) : (
               <View style={styles.collage}>
                 {movies.slice(0, BACKDROP_POSTERS).map((movie) => (
@@ -419,6 +427,15 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           </Animated.View>
 
           <Animated.View style={heroContentStyle}>
+            {/* Its cover, as an album's: a person's photo in a big circle,
+                anything else its collage. */}
+            {!art?.backdrop && !!art?.photo ? (
+              <PersonPhoto uri={art.photo} size={PERSON_PHOTO} style={styles.personPhoto} />
+            ) : (
+              <View style={styles.cover}>
+                <CollectionCollage collection={collection} watchedIds={watchedIds} size={COVER} />
+              </View>
+            )}
             <Text style={styles.eyebrow}>
               {t(
                 (saga ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
@@ -515,23 +532,29 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           </Animated.View>
         </View>
 
+        {/* Two buttons side by side, as an album's Play and Shuffle: sort
+            what's left (or, finished, a rewatch marathon), and Share. */}
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            onPress={isComplete ? startMarathon : sortRest}
+            accessibilityRole="button"
+          >
+            <Layers size={18} color={colors.brand} strokeWidth={2.2} />
+            <Text style={styles.actionText}>{isComplete ? t("Rewatch marathon") : t("Sort these")}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            onPress={shareCollection}
+            accessibilityRole="button"
+          >
+            <Share2 size={18} color={colors.brand} strokeWidth={2.2} />
+            <Text style={styles.actionText}>{t("Share")}</Text>
+          </Pressable>
+        </View>
+
         {isComplete ? (
           <>
-            <View style={styles.actions}>
-              <PrimaryButton
-                label={t("Rewatch marathon")}
-                onPress={startMarathon}
-                style={styles.action}
-                contentStyle={styles.actionContent}
-              />
-              <PrimaryButton
-                label={t("Share")}
-                variant="secondary"
-                onPress={shareCollection}
-                style={styles.action}
-                contentStyle={styles.actionContent}
-              />
-            </View>
             {tiersSection}
             {friendsSection}
           </>
@@ -625,16 +648,45 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
                     })}
                   </View>
                 </View>
-                <View style={styles.rows}>
-                  {toWatch.map((movie) => (
-                    <MovieListRow
-                      key={movie.id}
-                      movie={movie}
-                      inQueue={isInBucketList(bucketList, movie.id)}
-                      onToggleQueue={() => toggleBucketListWithFeedback(movie.id)}
-                      onPress={() => openMovie(movie.id)}
-                    />
-                  ))}
+                <View>
+                  {toWatch.map((movie, index) => {
+                    const saved = isInBucketList(bucketList, movie.id);
+                    return (
+                      <Pressable
+                        key={movie.id}
+                        style={({ pressed }) => [styles.track, pressed && styles.trackPressed]}
+                        onPress={() => openMovie(movie.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={movie.title}
+                      >
+                        <Text style={styles.trackNumber}>{collection.movieIds.indexOf(movie.id) + 1}</Text>
+                        <MoviePoster uri={movie.poster} style={styles.trackPoster} />
+                        <View style={[styles.trackWords, index < toWatch.length - 1 && styles.trackRule]}>
+                          <View style={styles.trackText}>
+                            <Text style={styles.trackTitle} numberOfLines={1}>
+                              {movie.title}
+                            </Text>
+                            <Text style={styles.trackMeta} numberOfLines={1}>
+                              {[movie.year, movie.runtime ? formatRuntime(movie.runtime) : null].filter(Boolean).join(" · ")}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={() => toggleBucketListWithFeedback(movie.id)}
+                            hitSlop={10}
+                            accessibilityRole="button"
+                            accessibilityLabel={t("Watchlist")}
+                            accessibilityState={{ selected: saved }}
+                          >
+                            {saved ? (
+                              <BookmarkCheck size={20} color={colors.brand} strokeWidth={2} />
+                            ) : (
+                              <Bookmark size={20} color={colors.textMuted} strokeWidth={2} />
+                            )}
+                          </Pressable>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             )}
@@ -751,17 +803,9 @@ const createStyles = (colors) =>
       height: "100%",
       opacity: 0.7,
     },
-    portraitWrap: {
-      position: "absolute",
-      top: 0,
-      bottom: 0,
-      end: 0,
-      width: "62%",
-    },
-    portrait: {
-      width: "100%",
-      height: "100%",
-      opacity: 0.85,
+    personPhoto: {
+      alignSelf: "center",
+      marginBottom: spacing.lg,
     },
     collage: {
       flex: 1,
@@ -772,19 +816,36 @@ const createStyles = (colors) =>
       height: "100%",
       opacity: 0.55,
     },
+    // Its kind, small and red; its name big and bold, centred like an
+    // album's.
     eyebrow: {
-      ...typography.caption,
-      color: colors.textSecondary,
+      ...typography.section,
+      color: colors.brand,
+      textAlign: "center",
     },
     title: {
-      ...typography.display,
+      fontFamily: fonts.extraBold,
+      fontSize: 28,
+      lineHeight: 34,
+      letterSpacing: -0.6,
       color: colors.textPrimary,
+      textAlign: "center",
       marginTop: spacing.xs,
     },
     subtitle: {
       ...typography.body,
       color: colors.textSecondary,
+      textAlign: "center",
       marginTop: 2,
+    },
+    cover: {
+      alignSelf: "center",
+      marginBottom: spacing.lg,
+      shadowColor: "#000000",
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 10,
     },
     // A saga's ranks as a ladder: a rail of nodes down the side, joined
     // by a line — slate up to where you are, grey beyond.
@@ -891,11 +952,12 @@ const createStyles = (colors) =>
       ...typography.caption,
       flex: 1,
       color: colors.textSecondary,
+      textAlign: "center",
     },
 
     // ---- Sections: one even gap above each, as across the app.
     section: {
-      marginTop: 20,
+      marginTop: spacing.section,
     },
     // To watch: rounded rows, a small gap between.
     rows: {
@@ -908,11 +970,15 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm,
     },
+    // A section's name, as Home's headings.
     sectionLabel: {
-      ...typography.section,
-      color: colors.textSecondary,
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      color: colors.textPrimary,
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.sm + 2,
     },
     sectionLabelInRow: {
       paddingHorizontal: 0,
@@ -975,14 +1041,14 @@ const createStyles = (colors) =>
       borderRadius: shape.control,
     },
     upNextPrimary: {
-      backgroundColor: colors.selected,
+      backgroundColor: colors.brand,
       paddingHorizontal: spacing.md,
     },
     upNextPrimaryText: {
       ...typography.bodyBold,
       fontSize: 13,
       lineHeight: 18,
-      color: colors.selectedText,
+      color: colors.brandText,
     },
     upNextSkipText: {
       ...typography.bodyBold,
@@ -1080,19 +1146,75 @@ const createStyles = (colors) =>
     },
 
     // ---- Done: actions
+    // Two grey boxes side by side, their icons and words in red.
     actions: {
       flexDirection: "row",
-      gap: spacing.sm,
+      gap: spacing.md,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
     },
     action: {
       flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 46,
+      backgroundColor: colors.buttonFill,
+      borderRadius: shape.card,
     },
-    // Square, like the app's other filled boxes.
-    actionContent: {
-      borderRadius: shape.control,
-      paddingVertical: 12,
+    actionText: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.brand,
+    },
+    // A film to watch, as an album's track: its place in the set, its
+    // poster, its name — a hairline under the words.
+    track: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingStart: spacing.md,
+    },
+    trackPressed: {
+      backgroundColor: colors.card,
+    },
+    trackNumber: {
+      ...typography.bodyBold,
+      minWidth: 20,
+      textAlign: "center",
+      color: colors.textMuted,
+      fontVariant: ["tabular-nums"],
+    },
+    trackPoster: {
+      width: 40,
+      height: 60,
+      marginVertical: spacing.xs + 2,
+    },
+    trackWords: {
+      flex: 1,
+      alignSelf: "stretch",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingEnd: spacing.md,
+    },
+    trackRule: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    trackText: {
+      flex: 1,
+      gap: 2,
+    },
+    trackTitle: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      color: colors.textPrimary,
+    },
+    trackMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
   });
 

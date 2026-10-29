@@ -20,19 +20,6 @@ export const CompassOutlineIcon = ({ size = 24, color = "#000000" }) => (
   </Svg>
 );
 
-// The Discover tab: three lines of a list with a magnifier beside them —
-// search, among films. A plain line icon, like the bar's others (lucide's
-// house, bookmark, person); `strokeWidth` as they take it.
-export const SearchTabIcon = ({ size = 24, color = "#000000", strokeWidth = 1.7 }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <G stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" fill="none">
-      <Path d="M3 6h7.5M3 12h5M3 18h7.5" />
-      <Circle cx={15.5} cy={11.5} r={4.5} />
-      <Path d="m18.8 14.8 2.7 2.7" />
-    </G>
-  </Svg>
-);
-
 export const PointersIcon = ({ size = 24, color = "#000000" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path

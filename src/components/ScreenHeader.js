@@ -1,6 +1,8 @@
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import { createContext, useContext } from "react";
 import { ChevronDown, X } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -12,22 +14,35 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { t } from "../i18n";
+import { useProfileStore } from "../store/profileStore";
 import { spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { Text } from "./AppText";
 import { Wordmark } from "./Wordmark";
 import { BackButton } from "./BackButton";
 import { SpinningLogo, useRefreshSpin } from "./RefreshSpin";
 
-export const HEADER_BAR_HEIGHT = 40;
+// Tall enough for the large title, as in Apple Music.
+export const HEADER_BAR_HEIGHT = 56;
+// The tab headers sit this much up into the status bar's area — the clock
+// row leaves room under its icons — so the large title is close under it.
+const HEADER_TOP_TUCK = 5;
+// Where a tab header starts: just under the status bar, tucked up.
+const headerTop = (insets) => Math.max(insets.top - HEADER_TOP_TUCK, 0);
 // The wordmark's size in Home's header.
 const WORDMARK_SIZE = 28;
 // A centred title keeps this clear on each side, for the buttons there.
 const TITLE_SIDE_ROOM = 92;
-// An `overlay` header (over Home's backdrop) turns solid over this much
-// scroll.
-const OVERLAY_FADE_DISTANCE = 90;
+// The avatar at the end of a tab's header.
+const AVATAR = 42;
+// Its colours when there's no photo, behind your initials.
+const AVATAR_COLORS = ["#7FD3C2", "#F2A45E"];
+// The header is see-through; once the page scrolls (over this much), a
+// shade fades in behind it — the page colour, thinning out a little below
+// the bar — so what scrolls under it stays out of the way of the title.
+const SHADE_FADE_DISTANCE = 24;
+const SHADE_TAIL = 28;
 const SNAP_DURATION = 200;
 
 // Every tab's header: a fixed-height bar in the page colour, the title on
@@ -35,9 +50,15 @@ const SNAP_DURATION = 200;
 // status line, a search field, tab chips) lives at the top of the page
 // instead, in <PageIntro>.
 //
-// With `hideOnScroll` the bar slides up out of the way as you scroll down
-// and comes straight back the moment you scroll up. Only its row moves; a
-// status-bar-tall strip stays put so nothing scrolls under the clock.
+// As the page scrolls, the bar scrolls away with it, its title and
+// buttons fading out — gone once the page has moved the bar's height —
+// and back as you return to the top, like a large title. `pinned` (a page
+// with a bar fixed under the header: Discover's Browse / Reels, Profile's
+// tabs): the row only fades, and the bar stays, so there's no gap above
+// that one. With `hideOnScroll` the bar slides up out of the way as you
+// scroll down anywhere and comes straight back the moment you scroll up.
+// Only its row moves; a status-bar-tall strip stays put so nothing scrolls
+// under the clock.
 // Bars hanging off the header (Library's chips) follow it with
 // `header.followStyle`; bars inside the content pin under it with
 // useStickyStyle(…, headerOffset: header.offset).
@@ -49,7 +70,7 @@ const SNAP_DURATION = 200;
 //     <PageIntro subtitle="…">{controls}</PageIntro>
 //   …
 //   <DockHeader {...header.props} title="Library" right={…} />
-export const useDockHeader = ({ hideOnScroll = false } = {}) => {
+export const useDockHeader = ({ hideOnScroll = false, pinned = false } = {}) => {
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   // 0 = fully shown … HEADER_BAR_HEIGHT = slid away.
@@ -73,7 +94,11 @@ export const useDockHeader = ({ hideOnScroll = false } = {}) => {
       const delta = y - lastY.value;
       lastY.value = y;
       scrollY.value = y;
-      if (!hideOnScroll) return;
+      if (!hideOnScroll) {
+        // Away with the page, as far as the bar is tall.
+        offset.value = Math.min(Math.max(y, 0), HEADER_BAR_HEIGHT);
+        return;
+      }
       // Ignore the bounce past either end (iOS), so it can't flicker.
       const maxY = event.contentSize.height - event.layoutMeasurement.height;
       if (y <= 0) {
@@ -98,12 +123,12 @@ export const useDockHeader = ({ hideOnScroll = false } = {}) => {
     offset,
     onScroll,
     followStyle,
-    contentInset: insets.top + HEADER_BAR_HEIGHT + spacing.md,
+    contentInset: headerTop(insets) + HEADER_BAR_HEIGHT + spacing.underHeader,
     // Where the header bar ends. Screens with pull-to-refresh start their
     // scroll view here (not under the bar), so the refresh spinner shows
     // just below the header instead of hidden behind it.
-    barBottom: insets.top + HEADER_BAR_HEIGHT,
-    props: { scrollY, offset },
+    barBottom: headerTop(insets) + HEADER_BAR_HEIGHT,
+    props: { scrollY, offset, pinned },
   };
 };
 
@@ -117,19 +142,21 @@ export const useStackHeaderScroll = () => {
   return { scrollY, onScroll };
 };
 
-// An overlay header's background: none at the top of the page — the
-// backdrop under it shows — fading in to the page colour as you scroll.
-const OverlayFill = ({ scrollY, styles }) => {
+// The header's shade: nothing at the top of the page, fading in as it
+// scrolls — the page colour, nearly solid behind the title and thinning to
+// nothing just below the bar.
+const HeaderShade = ({ scrollY, height, colors, styles }) => {
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      scrollY?.value ?? 0,
-      [0, OVERLAY_FADE_DISTANCE],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
+    opacity: interpolate(scrollY?.value ?? 0, [0, SHADE_FADE_DISTANCE], [0, 1], Extrapolation.CLAMP),
   }));
   return (
-    <Animated.View pointerEvents="none" style={[styles.overlayFill, style]} />
+    <Animated.View pointerEvents="none" style={[styles.shade, { height: height + SHADE_TAIL }, style]}>
+      <LinearGradient
+        colors={[`${colors.background}F2`, `${colors.background}C7`, `${colors.background}00`]}
+        locations={[0, 0.72, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 };
 
@@ -174,17 +201,50 @@ export const HeaderIconButton = ({
   );
 };
 
-// Title (with an optional small `eyebrow` line above it, e.g. Home's
-// greeting) centred, every action on the right — `left`'s, then
+// Your photo — or your initials on a soft gradient — at the end of a tab's
+// header, opening Profile, as in Apple Music.
+const HeaderAvatar = ({ styles }) => {
+  const navigation = useNavigation();
+  const avatarUri = useProfileStore((state) => state.avatarUri);
+  const displayName = useProfileStore((state) => state.displayName);
+  const initials = (displayName || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+  return (
+    <Pressable
+      onPress={() => navigation.navigate("Profile")}
+      hitSlop={4}
+      style={({ pressed }) => pressed && styles.iconButtonPressed}
+      accessibilityRole="button"
+      accessibilityLabel={t("Profile")}
+    >
+      {avatarUri ? (
+        <Image source={{ uri: avatarUri }} style={styles.avatar} />
+      ) : (
+        <LinearGradient colors={AVATAR_COLORS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials}</Text>
+        </LinearGradient>
+      )}
+    </Pressable>
+  );
+};
+
+// Apple Music's header: a large title on the left (with an optional small
+// `eyebrow` line above it), the actions together in a rounded capsule on
+// the right — `left`'s, then `right`'s — and your avatar after them
+// (`avatar`, on by default; Profile turns it off) — `left`'s, then
 // `right`'s. `back`: a back button, on the left. `wordmark`:
 // the title is the app's name — set in its own face (Home).
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
 // `refreshing` (on a page with pull-to-refresh) and the logo, if there is
-// one, spins while it refreshes — see RefreshSpin. `overlay`: see-through
-// at the top of the page (for a backdrop that reaches up under it), solid
-// once you scroll.
+// one, spins while it refreshes — see RefreshSpin. The bar itself is
+// see-through, a shade fading in behind it as the page scrolls
+// (HeaderShade).
 export const DockHeader = ({
   title,
   logo,
@@ -198,7 +258,8 @@ export const DockHeader = ({
   scrollY,
   offset,
   refreshing,
-  overlay = false,
+  avatar = true,
+  pinned = false,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -207,7 +268,7 @@ export const DockHeader = ({
   const logoRotation = useRefreshSpin(!!refreshing);
 
   const barStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: offset ? -offset.value : 0 }],
+    transform: [{ translateY: offset && !pinned ? -offset.value : 0 }],
   }));
   // The row fades as it slides, so it's gone before it reaches the clock.
   const rowStyle = useAnimatedStyle(() => ({
@@ -225,16 +286,15 @@ export const DockHeader = ({
     <Animated.View
       style={[
         styles.bar,
-        overlay && styles.barOverlay,
-        { paddingTop: insets.top, height: insets.top + HEADER_BAR_HEIGHT },
+        { paddingTop: headerTop(insets), height: headerTop(insets) + HEADER_BAR_HEIGHT },
         barStyle,
       ]}
     >
-      {overlay && <OverlayFill scrollY={scrollY} styles={styles} />}
+      <HeaderShade scrollY={scrollY} height={headerTop(insets) + HEADER_BAR_HEIGHT} colors={colors} styles={styles} />
       <Animated.View style={[styles.barRow, rowStyle]}>
-        {/* The title, centred across the whole bar (clear of the buttons
-            either side); back on the left, the actions on the right. */}
-        <View style={styles.centerTitle} pointerEvents="box-none">
+        {/* Back, then the large title; the actions and avatar at the end. */}
+        {back}
+        <View style={styles.titleBlock}>
           {!!eyebrow && (
             <Text style={styles.leftEyebrow} numberOfLines={1}>
               {eyebrow}
@@ -251,7 +311,7 @@ export const DockHeader = ({
               })}
             >
               <Text
-                style={[styles.title, subtitle && styles.titleWithSubtitle]}
+                style={[styles.largeTitle, subtitle && styles.largeTitleSmall, styles.titleShrink]}
                 numberOfLines={1}
               >
                 {title}
@@ -276,11 +336,12 @@ export const DockHeader = ({
               ) : (
                 <Text
                   style={[
-                    eyebrow ? styles.leftTitle : styles.title,
-                    subtitle && styles.titleWithSubtitle,
+                    styles.largeTitle,
+                    (eyebrow || subtitle) && styles.largeTitleSmall,
                     styles.titleShrink,
                   ]}
                   numberOfLines={1}
+                  adjustsFontSizeToFit
                 >
                   {title}
                 </Text>
@@ -293,14 +354,13 @@ export const DockHeader = ({
             </Text>
           )}
         </View>
-        {back}
-        <View style={styles.spacer} />
         {(left || right) && (
-          <View style={styles.actions}>
+          <View style={styles.capsule}>
             {left}
             {right}
           </View>
         )}
+        {avatar && <HeaderAvatar styles={styles} />}
       </Animated.View>
     </Animated.View>
   );
@@ -401,15 +461,14 @@ const createStyles = (colors) =>
       end: 0,
       zIndex: 100,
       elevation: 16,
-      // Near-black, darker than the page.
-      backgroundColor: colors.headerBackground,
-    },
-    barOverlay: {
+      // See-through: the shade behind it does the work.
       backgroundColor: "transparent",
     },
-    overlayFill: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: colors.headerBackground,
+    shade: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
     },
     barRow: {
       flex: 1,
@@ -421,14 +480,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
-    },
-    // Bold, on the left.
-    title: {
-      ...typography.title,
-      fontSize: 20,
-      lineHeight: 26,
-      letterSpacing: -0.3,
-      color: colors.textPrimary,
     },
     stackBar: {
       flexDirection: "row",
@@ -470,10 +521,6 @@ const createStyles = (colors) =>
       alignItems: "center",
       gap: 4,
     },
-    titleWithSubtitle: {
-      fontSize: 19,
-      lineHeight: 23,
-    },
     subtitle: {
       ...typography.caption,
       fontSize: 12,
@@ -494,33 +541,52 @@ const createStyles = (colors) =>
       letterSpacing: 0.8,
       color: colors.textPrimary,
     },
-    // The title, centred across the bar, clear of the buttons either side.
-    centerTitle: {
-      position: "absolute",
-      top: 0,
-      bottom: 0,
-      start: TITLE_SIDE_ROOM,
-      end: TITLE_SIDE_ROOM,
-      alignItems: "center",
+    // The large title, on the left, taking the room the actions leave.
+    titleBlock: {
+      flex: 1,
       justifyContent: "center",
     },
-    // Every action, together on the right.
-    actions: {
+    largeTitle: {
+      fontFamily: fonts.extraBold,
+      fontSize: 30,
+      lineHeight: 36,
+      letterSpacing: -0.6,
+      color: colors.textPrimary,
+    },
+    largeTitleSmall: {
+      fontSize: 24,
+      lineHeight: 29,
+    },
+    // Every action, together in a rounded capsule (a circle for one).
+    capsule: {
       flexDirection: "row",
       alignItems: "center",
+      height: AVATAR,
+      minWidth: AVATAR,
+      justifyContent: "center",
+      paddingHorizontal: 3,
       gap: spacing.xs,
       marginStart: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: AVATAR / 2,
+    },
+    avatar: {
+      width: AVATAR,
+      height: AVATAR,
+      borderRadius: AVATAR / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      marginStart: spacing.sm,
+      overflow: "hidden",
+    },
+    avatarText: {
+      fontFamily: fonts.bold,
+      fontSize: 16,
+      color: "#FFFFFF",
     },
     leftEyebrow: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    leftTitle: {
-      ...typography.subtitle,
-      fontSize: 17,
-      lineHeight: 23,
-      color: colors.textPrimary,
-      marginTop: 1,
     },
     // Plain icons, no circle behind them.
     iconButton: {

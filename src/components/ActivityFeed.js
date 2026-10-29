@@ -44,7 +44,7 @@ const groupByAge = (events, now) => {
 // What your friends have been watching, tiering, saving and earning, newest
 // first: chips for the kind of thing, then the events grouped by age (from
 // the ReelBoard server). Tap an event for that friend's page, a poster for
-// the movie. Home's Friends tab.
+// the movie. The friends page (FriendsHubScreen).
 export const ActivityFeed = ({ navigation }) => {
   // Re-render when movies this feed asked for arrive (data/movies).
   useMoviesVersion();

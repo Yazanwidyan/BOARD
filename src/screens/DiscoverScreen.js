@@ -1,8 +1,9 @@
 import * as Haptics from "expo-haptics";
-import { ChevronRight, Search } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useMemo, useState } from "react";
 import {
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,59 +22,110 @@ import { MoviePoster } from "../components/MoviePoster";
 import { ReelsFeed } from "../components/ReelsFeed";
 import {
   DockHeader,
-  HeaderIconButton,
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { useTrending } from "../store/communityStore";
 import { useMovieStore } from "../store/movieStore";
-import { useUserStore } from "../store/userStore";
-import { shape, spacing, TAB_BAR_CLEARANCE } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { spacing } from "../theme/spacing";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { t, useIsRTL } from "../i18n";
-import { FirstVisitTip } from "../components/FirstVisitTip";
+import { useTabBarClearance } from "../components/TonightBar";
 import { useMoviesVersion } from "../data/movies";
 
-// One row: title + "See all" (opens the full list in Browse), then just
-// the posters — tap one for the film.
-const DiscoverRail = ({ rail, first, navigation, styles, colors, posterWidth, rtl }) => {
+// One row: its heading (opening the full list in Browse when there's more),
+// then the posters — tap one for the film. A row built on one film or
+// person ("More like…", "More from…") is Apple Music's: their poster or
+// photo beside the heading, and bigger posters with a caption each.
+const DiscoverRail = ({ rail, first, navigation, styles, colors, posterWidth, bigPosterWidth, rtl }) => {
   const openAll = () =>
     navigation.navigate("BrowseMovies", {
       title: rail.title,
       movieIds: rail.movies.map((movie) => movie.id),
     });
 
+  // Its heading: its name big and bold, with a › when there's more than the
+  // row shows (the whole heading opens it all).
+  const hasMore = rail.movies.length > RAIL_PREVIEW;
   return (
     <View style={[styles.rail, first && styles.railFirst]}>
-      <View style={styles.railHeader}>
-        <Text style={styles.railTitle} numberOfLines={1}>
-          {rail.title}
-        </Text>
-        {rail.movies.length > RAIL_PREVIEW && (
-          <Pressable style={styles.allLink} onPress={openAll} hitSlop={8}>
-            <Text style={styles.allText}>{t("See all")}</Text>
-            <ChevronRight size={16} color={colors.textSecondary} style={rtl && styles.flipped} />
-          </Pressable>
+      <Pressable
+        style={({ pressed }) => [styles.railHeader, pressed && hasMore && styles.pressed]}
+        onPress={hasMore ? openAll : undefined}
+        disabled={!hasMore}
+        hitSlop={6}
+        accessibilityRole={hasMore ? "button" : "header"}
+      >
+        {rail.lead ? (
+          <View style={styles.moreLike}>
+            {rail.thumb ? (
+              rail.thumb.round ? (
+                <Image source={{ uri: rail.thumb.uri }} style={styles.thumbRound} />
+              ) : (
+                <MoviePoster uri={rail.thumb.uri} style={styles.thumb} />
+              )
+            ) : null}
+            <View style={styles.moreLikeWords}>
+              <Text style={styles.moreLikeLead}>{t(rail.lead)}</Text>
+              <View style={styles.railTitleRow}>
+                <Text style={styles.railTitle} numberOfLines={1}>
+                  {rail.name}
+                </Text>
+                {hasMore && (
+                  <ChevronRight size={22} color={colors.textSecondary} strokeWidth={2.6} style={rtl && styles.flipped} />
+                )}
+              </View>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={styles.railTitleRow}>
+              <Text style={styles.railTitle} numberOfLines={2}>
+                {rail.title}
+              </Text>
+              {hasMore && (
+                <ChevronRight size={22} color={colors.textSecondary} strokeWidth={2.6} style={rtl && styles.flipped} />
+              )}
+            </View>
+            {!!rail.subtitle && (
+              <Text style={styles.railSubtitle} numberOfLines={2}>
+                {t(rail.subtitle)}
+              </Text>
+            )}
+          </>
         )}
-      </View>
+      </Pressable>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.railContent}
       >
-        {rail.movies.slice(0, RAIL_PREVIEW).map((movie) => (
-          <Pressable
-            key={movie.id}
-            style={({ pressed }) => [{ width: posterWidth }, pressed && styles.pressed]}
-            onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-            accessibilityRole="button"
-            accessibilityLabel={movie.title}
-          >
-            <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: posterWidth }]} />
-          </Pressable>
-        ))}
+        {rail.movies.slice(0, RAIL_PREVIEW).map((movie) => {
+          const itemWidth = rail.lead ? bigPosterWidth : posterWidth;
+          return (
+            <Pressable
+              key={movie.id}
+              style={({ pressed }) => [{ width: itemWidth }, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+              accessibilityRole="button"
+              accessibilityLabel={movie.title}
+            >
+              <MoviePoster uri={movie.poster} style={[styles.railPoster, { width: itemWidth }]} />
+              {!!rail.lead && (
+                <>
+                  <Text style={styles.captionTitle} numberOfLines={1}>
+                    {movie.title}
+                  </Text>
+                  <Text style={styles.captionMeta} numberOfLines={1}>
+                    {rail.key === "because" ? [movie.director, movie.year].filter(Boolean).join(" · ") : movie.year}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -87,15 +139,17 @@ export const DiscoverScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
-  const preferences = useUserStore((state) => state.preferences);
   const { data: community, refetch: refetchCommunity } = useTrending();
   const header = useDockHeader();
   const rtl = useIsRTL();
   const { width } = useWindowDimensions();
   // A little under four posters across a rail, so the next one peeks in.
-  const posterWidth = Math.round((width - spacing.md - spacing.sm * 3) / 3.7);
+  const posterWidth = Math.round((width - spacing.md - spacing.rail * 3) / 3.7);
+  // "More like…" rows: bigger, a little over two across.
+  const bigPosterWidth = Math.round((width - spacing.md - spacing.rail * 2) / 2.3);
   // Browse (the rails, the default) or Reels (full-screen trailer clips).
   const [mode, setMode] = useState("browse");
   const isFocused = useIsFocused();
@@ -107,9 +161,9 @@ export const DiscoverScreen = ({ navigation }) => {
   const [refreshCount, setRefreshCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const rails = useMemo(
-    () => buildDiscoverRails({ watched, preferences, community }),
+    () => buildDiscoverRails({ watched, community }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [watched, preferences, community, refreshCount],
+    [watched, community, refreshCount],
   );
   const onRefresh = () => {
     setRefreshing(true);
@@ -120,8 +174,8 @@ export const DiscoverScreen = ({ navigation }) => {
     setTimeout(() => setRefreshing(false), 1100);
   };
 
+  // Browse / Reels, in the header's capsule beside the title.
   const modeSwitch = (
-    <View style={[styles.modeBar, { paddingTop: header.barBottom }]}>
     <View style={styles.modeSwitch} accessibilityRole="tablist">
       {[
         ["browse", "Browse"],
@@ -143,30 +197,25 @@ export const DiscoverScreen = ({ navigation }) => {
         );
       })}
     </View>
-    </View>
   );
 
   if (mode === "reels") {
     return (
       <SafeAreaView style={styles.reelsContainer} edges={[]}>
-        {modeSwitch}
-        <View style={styles.reelsArea}>
+        <View style={[styles.reelsArea, { paddingTop: header.barBottom }]}>
           <ReelsFeed
             navigation={navigation}
             active={isFocused}
-            bottomInset={insets.bottom + TAB_BAR_CLEARANCE}
+            bottomInset={insets.bottom + tabBarClearance}
           />
         </View>
-        <DockHeader title={t("Discover")} />
-        <FirstVisitTip id="discover" />
+        <DockHeader title={t("Discover")} right={modeSwitch} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      {/* Browse / Reels, pinned under the header. */}
-      {modeSwitch}
       <Animated.ScrollView
         onScroll={header.onScroll}
         scrollEventThrottle={16}
@@ -175,16 +224,17 @@ export const DiscoverScreen = ({ navigation }) => {
             refreshing={refreshing}
             onRefresh={onRefresh}
             // No logo in this header to spin: the system spinner.
+            progressViewOffset={header.barBottom}
             tintColor={colors.textSecondary}
             colors={[colors.textPrimary]}
             progressBackgroundColor={colors.card}
           />
         }
         contentContainerStyle={{
-          // The usual gap under the tabs; the first rail adds none of its
-          // own (styles.railFirst).
-          paddingTop: spacing.md,
-          paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
+          // Under the header, with the usual gap; the first rail adds none
+          // of its own (styles.railFirst).
+          paddingTop: header.barBottom + spacing.underHeader,
+          paddingBottom: insets.bottom + tabBarClearance,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -197,25 +247,17 @@ export const DiscoverScreen = ({ navigation }) => {
             styles={styles}
             colors={colors}
             posterWidth={posterWidth}
+            bigPosterWidth={bigPosterWidth}
             rtl={rtl}
           />
         ))}
       </Animated.ScrollView>
       <ScreenBottomFade />
-      <FirstVisitTip id="discover" />
       <DockHeader
         {...header.props}
         refreshing={refreshing}
         title={t("Discover")}
-        // Browse's search: an icon at the top right that opens Search.
-        right={
-          <HeaderIconButton
-            onPress={() => navigation.navigate("Search")}
-            accessibilityLabel={t("Search")}
-          >
-            <Search size={22} strokeWidth={1.75} color={colors.textPrimary} />
-          </HeaderIconButton>
-        }
+        right={modeSwitch}
       />
     </SafeAreaView>
   );
@@ -234,68 +276,100 @@ const createStyles = (colors) =>
     reelsArea: {
       flex: 1,
     },
-    // Browse / Reels: a dark track, the open one a white pill.
-    modeBar: {
-      zIndex: 1,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      backgroundColor: colors.headerBackground,
-    },
+    // Browse / Reels: inside the header's capsule (its track), the open
+    // one a lighter pill.
     modeSwitch: {
       flexDirection: "row",
       gap: 2,
-      padding: 3,
-      backgroundColor: colors.segmentTrack,
-      borderRadius: shape.chip,
     },
     modeOption: {
-      flex: 1,
+      height: 36,
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 6,
-      borderRadius: shape.chip,
+      paddingHorizontal: spacing.md,
+      borderRadius: 18,
     },
     modeOptionActive: {
       backgroundColor: colors.segmentOn,
     },
     modeText: {
       ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: 13,
+      lineHeight: 17,
       color: colors.segmentText,
     },
     modeTextActive: {
       color: colors.segmentOnText,
     },
     // A rail: one even gap above it.
+    // One even gap above each rail, as between Home's sections.
     rail: {
-      marginTop: 20,
+      marginTop: spacing.section,
     },
     railFirst: {
       marginTop: 0,
     },
+    // A rail's heading: its name (and ›), and a line about it if it needs
+    // one.
     railHeader: {
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm + 2,
+    },
+    railSubtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+    },
+    railTitleRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      gap: 2,
     },
-    // Rail names: small grey capitals, so the posters lead.
+    // The same size as Home's section headings.
     railTitle: {
-      ...typography.section,
-      color: colors.textSecondary,
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 27,
+      letterSpacing: -0.3,
+      flexShrink: 1,
+      color: colors.textPrimary,
+    },
+    // "More like…": the thumbnail, then the grey lead over the name.
+    moreLike: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    thumb: {
+      width: 56,
+      height: 56,
+    },
+    thumbRound: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.card,
+    },
+    moreLikeWords: {
       flex: 1,
     },
-    allLink: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 1,
-    },
-    allText: {
-      ...typography.bodyBold,
-      fontSize: 13,
+    moreLikeLead: {
+      ...typography.body,
+      fontFamily: fonts.medium,
+      fontSize: 14,
       lineHeight: 18,
+      color: colors.textSecondary,
+    },
+    // Under a "More like…" poster: its name, then a grey line.
+    captionTitle: {
+      ...typography.bodyBold,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.textPrimary,
+      marginTop: spacing.sm,
+    },
+    captionMeta: {
+      ...typography.body,
+      lineHeight: 19,
       color: colors.textSecondary,
     },
     flipped: {
@@ -303,7 +377,7 @@ const createStyles = (colors) =>
     },
     railContent: {
       paddingHorizontal: spacing.md,
-      gap: spacing.sm,
+      gap: spacing.rail,
     },
     pressed: {
       opacity: 0.75,
