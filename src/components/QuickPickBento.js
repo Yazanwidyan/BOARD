@@ -11,6 +11,7 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getRanksFromWatching } from "../utils/ranks";
 import { countFinishedDares } from "../utils/useRanks";
+import { features } from "../config/features";
 
 // The icon's circle on every card.
 const ICON_CIRCLE = 38;
@@ -91,7 +92,7 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
       onPress: onDare,
       onSwap: dare ? onNewDare : undefined,
     },
-  ];
+  ].filter((way) => way.key !== "dare" || features.dares);
 
   if (chips) {
     return (

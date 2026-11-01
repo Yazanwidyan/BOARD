@@ -3,8 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Bookmark, BookmarkCheck, Check, Layers, Share2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -540,7 +540,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             onPress={isComplete ? startMarathon : sortRest}
             accessibilityRole="button"
           >
-            <Layers size={18} color={colors.brand} strokeWidth={2.2} />
+            <Layers size={18} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{isComplete ? t("Rewatch marathon") : t("Sort these")}</Text>
           </Pressable>
           <Pressable
@@ -548,7 +548,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             onPress={shareCollection}
             accessibilityRole="button"
           >
-            <Share2 size={18} color={colors.brand} strokeWidth={2.2} />
+            <Share2 size={18} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Share")}</Text>
           </Pressable>
         </View>
@@ -803,10 +803,6 @@ const createStyles = (colors) =>
       height: "100%",
       opacity: 0.7,
     },
-    personPhoto: {
-      alignSelf: "center",
-      marginBottom: spacing.lg,
-    },
     collage: {
       flex: 1,
       flexDirection: "row",
@@ -815,6 +811,10 @@ const createStyles = (colors) =>
       flex: 1,
       height: "100%",
       opacity: 0.55,
+    },
+    personPhoto: {
+      alignSelf: "center",
+      marginBottom: spacing.lg,
     },
     // Its kind, small and red; its name big and bold, centred like an
     // album's.
@@ -1146,7 +1146,7 @@ const createStyles = (colors) =>
     },
 
     // ---- Done: actions
-    // Two grey boxes side by side, their icons and words in red.
+    // Two outlined buttons side by side, white icons and words.
     actions: {
       flexDirection: "row",
       gap: spacing.md,
@@ -1160,13 +1160,14 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       minHeight: 46,
-      backgroundColor: colors.buttonFill,
+      borderWidth: 1,
+      borderColor: colors.outline,
       borderRadius: shape.card,
     },
     actionText: {
       ...typography.bodyBold,
       fontSize: 15,
-      color: colors.brand,
+      color: colors.textPrimary,
     },
     // A film to watch, as an album's track: its place in the set, its
     // poster, its name — a hairline under the words.

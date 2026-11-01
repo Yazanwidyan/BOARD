@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { Linking, Platform } from "react-native";
 
+import { features } from "../config/features";
 import { getMovieById } from "../data/movies";
 import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
@@ -78,6 +79,8 @@ export const refreshReminders = async () => {
       ...REMINDER_TIME,
     },
   });
+  // The recap opens Replay — only while it's switched on.
+  if (!features.replay) return;
   await N.scheduleNotificationAsync({
     identifier: RECAP_ID,
     content: {

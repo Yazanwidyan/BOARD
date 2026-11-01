@@ -8,9 +8,11 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AchievementModal } from "../components/AchievementModal";
+import { features } from "../config/features";
 import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { AccountScreen } from "../screens/AccountScreen";
+import { BlockedPeopleScreen } from "../screens/BlockedPeopleScreen";
 import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
@@ -37,7 +39,9 @@ import { FriendsScreen } from "../screens/FriendsScreen";
 import { FriendsHubScreen } from "../screens/FriendsHubScreen";
 import { MixScreen } from "../screens/MixScreen";
 import { MilestonesScreen } from "../screens/MilestonesScreen";
+import { SearchScreen } from "../screens/SearchScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
+import { LetterboxdImportScreen } from "../screens/LetterboxdImportScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { startNotifications } from "../services/notifications";
 import { startSync } from "../services/sync";
@@ -59,9 +63,9 @@ const LINKING = {
   prefixes: ["reelboard://"],
   config: {
     screens: {
-      GroupNight: "night/:code",
+      ...(features.groupNight ? { GroupNight: "night/:code" } : {}),
       Friends: "friends",
-      Recap: "recap",
+      ...(features.replay ? { Recap: "recap" } : {}),
       // Shared links' pages (the server's /m/:id and /c/:id) open these,
       // and so do pushes about a film.
       MovieDetails: "movie/:movieId",
@@ -197,6 +201,13 @@ export const AppNavigator = () => {
             <Stack.Screen name="FriendsHub" component={FriendsHubScreen} />
             <Stack.Screen name="Mix" component={MixScreen} />
             <Stack.Screen name="Milestones" component={MilestonesScreen} />
+            {/* Search: slides up over whatever you're on, filling the
+                screen (not iOS's shorter card, which starts below the top). */}
+            <Stack.Screen
+              name="Search"
+              component={SearchScreen}
+              options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+            />
             <Stack.Screen
               name="FriendProfile"
               component={FriendProfileScreen}
@@ -209,6 +220,8 @@ export const AppNavigator = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="Account" component={AccountScreen} />
+            <Stack.Screen name="BlockedPeople" component={BlockedPeopleScreen} />
+            <Stack.Screen name="LetterboxdImport" component={LetterboxdImportScreen} />
           </>
         )}
       </Stack.Navigator>

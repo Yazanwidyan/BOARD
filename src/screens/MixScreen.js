@@ -74,7 +74,7 @@ export const MixScreen = ({ navigation, route }) => {
             accessibilityRole="button"
             accessibilityLabel={t("Sort this pile")}
           >
-            <Layers size={18} color={colors.brand} strokeWidth={2.2} />
+            <Layers size={18} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Sort this pile")}</Text>
           </Pressable>
           <Pressable
@@ -83,7 +83,7 @@ export const MixScreen = ({ navigation, route }) => {
             accessibilityRole="button"
             accessibilityLabel={t("Pick one for me")}
           >
-            <Dices size={18} color={colors.brand} strokeWidth={2.2} />
+            <Dices size={18} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Pick one for me")}</Text>
           </Pressable>
         </View>
@@ -161,13 +161,14 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       minHeight: 46,
-      backgroundColor: colors.buttonFill,
+      borderWidth: 1,
+      borderColor: colors.outline,
       borderRadius: shape.card,
     },
     actionText: {
       ...typography.bodyBold,
       fontSize: 15,
-      color: colors.brand,
+      color: colors.textPrimary,
     },
     pressed: {
       opacity: 0.75,

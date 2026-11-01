@@ -17,6 +17,7 @@ import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
+import { features } from "../config/features";
 
 // Home's cards below the mixes: watching with friends, Replay (your month)
 // and your progress (one row, opening Profile).
@@ -220,7 +221,8 @@ export const ProgressRow = ({ onPress, style }) => {
         <View style={styles.headWords}>
           <Text style={styles.cardTitle}>{t(summary.title.name)}</Text>
           <Text style={styles.cardHint} numberOfLines={1}>
-            {t("{count} ranks", { count: summary.count })} · {t("{count} medals", { count: medals })}
+            {t("{count} ranks", { count: summary.count })}
+            {features.milestones ? ` · ${t("{count} medals", { count: medals })}` : ""}
           </Text>
         </View>
         <ChevronRight size={20} color={colors.textMuted} strokeWidth={2.4} />

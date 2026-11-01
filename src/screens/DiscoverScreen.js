@@ -34,6 +34,7 @@ import { RAIL_PREVIEW, buildDiscoverRails } from "../utils/discoverRails";
 import { t, useIsRTL } from "../i18n";
 import { useTabBarClearance } from "../components/TonightBar";
 import { useMoviesVersion } from "../data/movies";
+import { features } from "../config/features";
 
 // One row: its heading (opening the full list in Browse when there's more),
 // then the posters — tap one for the film. A row built on one film or
@@ -209,7 +210,7 @@ export const DiscoverScreen = ({ navigation }) => {
             bottomInset={insets.bottom + tabBarClearance}
           />
         </View>
-        <DockHeader title={t("Discover")} right={modeSwitch} />
+        <DockHeader title={t("Discover")} right={features.reels ? modeSwitch : undefined} />
       </SafeAreaView>
     );
   }
@@ -257,7 +258,7 @@ export const DiscoverScreen = ({ navigation }) => {
         {...header.props}
         refreshing={refreshing}
         title={t("Discover")}
-        right={modeSwitch}
+        right={features.reels ? modeSwitch : undefined}
       />
     </SafeAreaView>
   );

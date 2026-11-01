@@ -20,6 +20,7 @@ import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
 import { TasteDnaBars } from "../components/TasteDnaBars";
 import { useMoviesVersion } from "../data/movies";
+import { logEvent } from "../services/events";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
@@ -422,6 +423,7 @@ export const OnboardingScreen = () => {
   const shareCard = async () => {
     if (isSharing) return;
     setIsSharing(true);
+    logEvent("dna_shared");
     const fallback = `${t("My taste DNA")} ${t("on ReelBoard")}`;
     try {
       const uri = await captureRef(cardRef, { format: "png", quality: 1, result: "tmpfile" });
@@ -448,6 +450,8 @@ export const OnboardingScreen = () => {
         const { pickedMovie, togglePickedMovie } = useMovieStore.getState();
         if (pickedMovie !== selectedPickId) togglePickedMovie(selectedPickId);
       }
+      // Only the whole way through counts (Skip doesn't).
+      logEvent("onboarding_completed");
       return finish();
     }
     return undefined;

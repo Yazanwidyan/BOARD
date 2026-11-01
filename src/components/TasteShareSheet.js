@@ -6,6 +6,7 @@ import { ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
+import { logEvent } from "../services/events";
 import { shareLink } from "../services/shareLinks";
 import { radius, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -47,6 +48,7 @@ export const TasteShareSheet = ({
   const shareImage = async () => {
     if (isSharing) return;
     setIsSharing(true);
+    logEvent("dna_shared");
     try {
       const uri = await captureRef(imageRef, {
         format: "png",
@@ -83,7 +85,10 @@ export const TasteShareSheet = ({
             label={t("Share profile link")}
             variant="secondary"
             icon={<Link2 size={16} color={colors.textPrimary} />}
-            onPress={() => shareLink({ type: "profile", message: t("My taste on ReelBoard") })}
+            onPress={() => {
+              logEvent("dna_shared");
+              shareLink({ type: "profile", message: t("My taste on ReelBoard") });
+            }}
             style={styles.footerButton}
           />
           <PrimaryButton

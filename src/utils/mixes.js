@@ -30,7 +30,8 @@ const moodFits = (movie, moodKey) => {
 
 // Home's "Made for you" mixes — piles of films to pick tonight's from,
 // each a card on Home and a page of its own (MixScreen):
-//   Tonight's mix     your best fits (utils/tonightPick), any mood
+//   Tonight's mix     your best fits (utils/tonightPick), any mood — led by
+//                     the next film in your closest collection
 //   a mood each       Feel-good, Intense, Under 2h, Together
 //   your watchlist    what you saved and haven't watched
 //   because you loved films like your best-tiered recent watch
@@ -57,18 +58,21 @@ const MOOD_HINTS = {
   together: "Easy to share with anyone",
 };
 
-// `pool`: tonight's suggestions ({ movie }) best first; `bucketList` and
-// `watchedIds` your own; `loved` your favourite recent watch (a movie) and
-// `lovedSimilar` films like it (movies), or nulls.
-export const buildMixes = ({ pool, bucketList, watchedIds, loved, lovedSimilar }) => {
+// `pool`: tonight's suggestions ({ movie }) best first; `lead`: the next
+// film in the collection you're closest to finishing, which opens Tonight's
+// mix (or null); `bucketList` and `watchedIds` your own; `loved` your
+// favourite recent watch (a movie) and `lovedSimilar` films like it
+// (movies), or nulls.
+export const buildMixes = ({ pool, lead = null, bucketList, watchedIds, loved, lovedSimilar }) => {
   const films = pool.map((item) => item.movie);
+  const tonight = lead ? [lead, ...films.filter((movie) => movie.id !== lead.id)] : films;
   const mixes = [
     {
       key: "made",
       eyebrow: "Made for you",
       title: "Tonight's mix",
       hint: "Your best fits right now",
-      movies: films.slice(0, MAX_FILMS),
+      movies: tonight.slice(0, MAX_FILMS),
     },
     ...MOODS.map((mood) => ({
       key: mood.key,

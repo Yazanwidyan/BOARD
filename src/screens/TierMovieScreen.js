@@ -26,7 +26,6 @@ import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
-import { giveRatingFeedback } from "../utils/achievementFeedback";
 import { TIERS, getTier } from "../utils/tiers";
 
 // Tier one movie with a slider and a face.
@@ -204,9 +203,7 @@ export const TierMovieScreen = ({ navigation, route }) => {
     if (!canSave) return;
     setLocked(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const watchedBefore = useMovieStore.getState().watched;
     useMovieStore.getState().setWatchedTier(movieId, chosen);
-    giveRatingFeedback(watchedBefore);
     navigation.goBack();
   };
 

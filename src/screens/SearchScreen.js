@@ -7,12 +7,15 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import * as Clipboard from "expo-clipboard";
+
+import { BottomSheet } from "../components/BottomSheet";
 import { BrowseTiles } from "../components/BrowseTiles";
+import { MoviePoster } from "../components/MoviePoster";
 import { EmptyState } from "../components/EmptyState";
 import { MovieListRow } from "../components/MovieListRow";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { DockHeader, useDockHeader } from "../components/ScreenHeader";
-import { useTabBarClearance } from "../components/TonightBar";
+import { StackHeader } from "../components/ScreenHeader";
 import { rememberMovies } from "../data/movies";
 import { useMovieSearch } from "../hooks/useMovieSearch";
 import { api } from "../services/api";
@@ -37,6 +40,7 @@ const findTitle = async (line) => {
     movies.find((movie) => movie.title.toLowerCase().includes(lower));
   const term = encodeURIComponent(line);
   const pool = await api.get(`/movies?q=${term}&limit=10`);
+  rememberMovies(pool.movies);
   const fromPool = pick(pool.movies);
   if (fromPool) return fromPool;
   const { results } = await api.get(`/movies/search?q=${term}`);
@@ -74,8 +78,6 @@ export const SearchScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
-  const header = useDockHeader();
   const [query, setQuery] = useState("");
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
@@ -103,6 +105,21 @@ export const SearchScreen = ({ navigation }) => {
     }
   };
 
+  const closePaste = () => {
+    setPasteMode(false);
+    setPasteText("");
+    setPasteResult(null);
+  };
+  const pasteFromClipboard = async () => {
+    const text = await Clipboard.getStringAsync();
+    if (!text.trim()) {
+      showToast(t("Nothing to paste — copy a list first."));
+      return;
+    }
+    setPasteText(text);
+    setPasteResult(null);
+  };
+
   const handleAddMatched = () => {
     if (!pasteResult) return;
     pasteResult.matched
@@ -115,7 +132,9 @@ export const SearchScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View style={[styles.header, { paddingTop: header.barBottom + spacing.underHeader }]}>
+      {/* A sheet over the page: its name, and ✕ to close. */}
+      <StackHeader title={t("Search")} close onBack={() => navigation.goBack()} />
+      <View style={styles.header}>
         <View style={styles.searchBar}>
           <Search size={16} color={colors.textSecondary} />
           <TextInput
@@ -127,6 +146,7 @@ export const SearchScreen = ({ navigation }) => {
             autoCorrect={false}
             returnKeyType="search"
             onSubmitEditing={() => addSearch(query)}
+            autoFocus
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel={t("Clear")}>
@@ -157,7 +177,7 @@ export const SearchScreen = ({ navigation }) => {
           <FlatList
             data={results}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + tabBarClearance }]}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + spacing.xl }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
@@ -180,7 +200,7 @@ export const SearchScreen = ({ navigation }) => {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + tabBarClearance }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
         >
           {recentSearches.length > 0 && (
             <View style={styles.block}>
@@ -226,32 +246,71 @@ export const SearchScreen = ({ navigation }) => {
         </ScrollView>
       )}
 
-      {pasteMode && (
-        <View style={styles.pasteOverlay}>
-          <View
-            style={[
-              styles.pasteSheet,
-              { paddingBottom: insets.bottom + spacing.md },
-            ]}
-          >
-            <View style={styles.pasteHeaderRow}>
-              <Text style={styles.pasteTitle}>
-                {t("Paste a List of Titles")}
-              </Text>
-              <Pressable
-                onPress={() => {
-                  setPasteMode(false);
-                  setPasteText("");
-                  setPasteResult(null);
-                }}
-                hitSlop={8}
-              >
-                <X size={20} color={colors.textMuted} />
-              </Pressable>
-            </View>
-            <Text style={styles.pasteHint}>
-              {t("One title per line (or comma-separated).")}
+      {/* Paste a list: the app's sheet (it rises above the keyboard) — the
+          titles, then what they matched, then Add. */}
+      <BottomSheet
+        visible={pasteMode}
+        onClose={closePaste}
+        size="auto"
+        title={t("Paste a List of Titles")}
+        subtitle={t("One title per line (or comma-separated).")}
+        footer={
+          pasteResult ? (
+            <PrimaryButton
+              label={t("Add {matchedCount} to Watchlist", { matchedCount: pasteResult.matched.length })}
+              onPress={handleAddMatched}
+              disabled={pasteResult.matched.length === 0}
+            />
+          ) : (
+            <PrimaryButton
+              label={matching ? t("Finding titles…") : t("Find titles")}
+              onPress={handlePasteSubmit}
+              disabled={!pasteText.trim() || matching}
+            />
+          )
+        }
+      >
+        {pasteResult ? (
+          <View style={styles.pasteResult}>
+            <Text style={styles.pasteSummary}>
+              {t("{count} found", { count: pasteResult.matched.length })}
+              {pasteResult.unmatched.length > 0
+                ? t(", {unmatchedCount} not found", { unmatchedCount: pasteResult.unmatched.length })
+                : ""}
             </Text>
+            {pasteResult.matched.map((movie) => (
+              <View key={movie.id} style={styles.pasteRow}>
+                <MoviePoster uri={movie.poster} style={styles.pastePoster} />
+                <View style={styles.pasteWords}>
+                  <Text style={styles.pasteRowTitle} numberOfLines={1}>
+                    {movie.title}
+                  </Text>
+                  {!!movie.year && <Text style={styles.pasteRowMeta}>{movie.year}</Text>}
+                </View>
+                {isInBucketList(bucketList, movie.id) && (
+                  <Text style={styles.pasteRowMeta}>{t("Saved")}</Text>
+                )}
+              </View>
+            ))}
+            {pasteResult.unmatched.map((line) => (
+              <Text key={line} style={styles.pasteMissing} numberOfLines={1}>
+                {t("Not found: {title}", { title: line })}
+              </Text>
+            ))}
+            <Pressable onPress={() => setPasteResult(null)} hitSlop={8} style={styles.pasteEdit}>
+              <Text style={styles.pasteEditText}>{t("Edit the list")}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View>
+            <Pressable
+              onPress={pasteFromClipboard}
+              style={({ pressed }) => [styles.clipboardButton, pressed && styles.rowPressed]}
+              accessibilityRole="button"
+            >
+              <ClipboardPaste size={16} color={colors.textPrimary} strokeWidth={2.2} />
+              <Text style={styles.clipboardText}>{t("Paste from clipboard")}</Text>
+            </Pressable>
             <TextInput
               value={pasteText}
               onChangeText={(text) => {
@@ -264,39 +323,9 @@ export const SearchScreen = ({ navigation }) => {
               multiline
               textAlignVertical="top"
             />
-
-            {pasteResult && (
-              <Text style={styles.pasteSummary}>
-                {pasteResult.matched.length} matched
-                {pasteResult.unmatched.length > 0
-                  ? t(", {unmatchedCount} not found", {
-                      unmatchedCount: pasteResult.unmatched.length,
-                    })
-                  : ""}
-              </Text>
-            )}
-
-            {pasteResult ? (
-              <PrimaryButton
-                label={t("Add {matchedCount} to Watchlist", {
-                  matchedCount: pasteResult.matched.length,
-                })}
-                onPress={handleAddMatched}
-                disabled={pasteResult.matched.length === 0}
-                style={styles.pasteAction}
-              />
-            ) : (
-              <PrimaryButton
-                label={matching ? t("Finding titles…") : t("Find titles")}
-                onPress={handlePasteSubmit}
-                disabled={!pasteText.trim() || matching}
-                style={styles.pasteAction}
-              />
-            )}
           </View>
-        </View>
-      )}
-      <DockHeader title={t("Search")} />
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 };
@@ -396,31 +425,21 @@ const createStyles = (colors) =>
       color: colors.textPrimary,
     },
     list: {},
-    pasteOverlay: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      justifyContent: "flex-end",
-    },
-    pasteSheet: {
-      backgroundColor: colors.background,
-      borderTopStartRadius: shape.sheet,
-      borderTopEndRadius: shape.sheet,
-      padding: spacing.md,
-    },
-    pasteHeaderRow: {
+    // Paste a list.
+    clipboardButton: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 44,
+      marginBottom: spacing.sm + 2,
+      borderWidth: 1,
+      borderColor: colors.outline,
+      borderRadius: shape.card,
     },
-    pasteTitle: {
-      ...typography.subtitle,
+    clipboardText: {
+      ...typography.bodyBold,
       color: colors.textPrimary,
-    },
-    pasteHint: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.xs,
-      marginBottom: spacing.sm,
     },
     pasteInput: {
       ...typography.body,
@@ -428,15 +447,48 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       padding: spacing.md,
       minHeight: 140,
+      maxHeight: 220,
       borderRadius: shape.control,
     },
+    pasteResult: {
+      gap: spacing.sm,
+    },
     pasteSummary: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    pasteRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    pastePoster: {
+      width: 34,
+      height: 51,
+    },
+    pasteWords: {
+      flex: 1,
+    },
+    pasteRowTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    pasteRowMeta: {
       ...typography.caption,
       color: colors.textSecondary,
-      marginTop: spacing.sm,
     },
-    pasteAction: {
-      marginTop: spacing.md,
+    pasteMissing: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+    pasteEdit: {
+      alignSelf: "flex-start",
+      marginTop: spacing.xs,
+    },
+    pasteEditText: {
+      ...typography.bodyBold,
+      color: colors.brand,
     },
   });
 

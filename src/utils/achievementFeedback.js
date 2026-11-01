@@ -1,114 +1,98 @@
 import * as Haptics from "expo-haptics";
 
 import { useChallengeStore } from "../store/challengeStore";
-import { refreshRanks, useMovieStore } from "../store/movieStore";
+import { useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
-import { reportAchievements } from "../services/sync";
 import { useAchievementStore } from "../store/achievementStore";
 import { showToast } from "../store/toastStore";
-import { getEarnedRanks, getNewRanks, getRankTracks, getSagaTracks } from "./ranks";
-import { countFinishedDares } from "./useRanks";
+import { getCollectionProgress, getCollectionsCompletedBy, getCollectionsForMovie, isSaga } from "./collections";
 import { t } from "../i18n";
 
-// The one place that turns "you just earned something" into a real in-app
-// moment (see AchievementModal, mounted once at the navigation root). There
-// is one thing to earn — ranks (utils/ranks) — so every action is checked
-// the same way: your ranks before it against your ranks after. A watch can
-// reach several at once (Time Traveler, First Watch…), and a step on a
-// saga's own ladder (not counted as a rank) or a finished dare can come
-// with it; all of it is one moment, and the dialog decides what leads.
+// The one place that turns "you just watched something" into a real in-app
+// moment (see AchievementModal, mounted once at the navigation root). The
+// one thing to finish is a collection: a watch that completes one is the
+// big moment ("Collection complete"); any other says how far it took you
+// ("Nolan · 7 of 8") and leads to tiering the film.
 
-const snapshot = (watched, history) =>
-  getRankTracks(watched, countFinishedDares(history));
+// What this watch did to your collections, from the watch history before
+// it: `completed` — [{ id, title, saga }] it finished — and `progress` —
+// { id, title, watched, total } for the closest one it moved along, or
+// null. Sagas are counted here; directors' collections come from the
+// server's paths (store/movieStore `paths`), as they were before the watch.
+const collectionsMovedBy = (movieId, watchedBefore) => {
+  const before = new Set(watchedBefore.map((entry) => entry.movieId));
+  if (before.has(movieId)) return { completed: [], progress: null };
+  const after = new Set([...before, movieId]);
+  const paths = useMovieStore.getState().paths ?? [];
 
-// A moment: { reason: "watched" | "rewatch" | "tier", movieId, ranks (new,
-// counted), sagaSteps (new, on sagas' own ladders), dare ({ title } |
-// null), ranksBefore, ranksAfter, shareCollectionId (a saga just finished,
-// for the brag card) }.
-const showMoment = ({ reason, movieId = null, ranks = [], sagaSteps = [], dare = null, counts }) => {
-  // New ranks and saga steps go to friends' activity feeds.
-  reportAchievements([...ranks, ...sagaSteps].map((rank) => ({ rank })));
+  const completed = [
+    ...getCollectionsCompletedBy(movieId, before).map((collection) => ({
+      id: collection.id,
+      title: collection.title,
+      saga: true,
+    })),
+    ...paths
+      .filter((path) => !isSaga(path) && path.movieIds.includes(movieId) && path.watched + 1 === path.total)
+      .map((path) => ({ id: path.id, title: path.title, saga: false })),
+  ];
+
+  const moved = [
+    ...getCollectionsForMovie(movieId)
+      .filter(isSaga)
+      .map((collection) => {
+        const { watchedCount, total } = getCollectionProgress(collection, after);
+        return { id: collection.id, title: collection.title, watched: watchedCount, total };
+      }),
+    ...paths
+      .filter((path) => !isSaga(path) && path.movieIds.includes(movieId))
+      .map((path) => ({ id: path.id, title: path.title, watched: path.watched + 1, total: path.total })),
+  ]
+    .filter((item) => item.watched < item.total)
+    .sort((a, b) => a.total - a.watched - (b.total - b.watched));
+
+  return { completed, progress: moved[0] ?? null };
+};
+
+// A moment: { reason: "watched" | "rewatch", movieId, completed, progress,
+// dare ({ title } | null), shareCollectionId (a saga just finished, for
+// the brag card) }.
+const showMoment = ({ reason, movieId = null, completed = [], progress = null, dare = null }) => {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   useAchievementStore.getState().showAchievement({
     reason,
     movieId,
-    ranks,
-    sagaSteps,
+    completed,
+    progress,
     dare,
-    ranksBefore: counts.before,
-    ranksAfter: counts.after,
-    shareCollectionId: sagaSteps.find((step) => step.top)?.track.collectionId ?? null,
+    shareCollectionId: completed.find((item) => item.saga)?.id ?? null,
   });
 };
 
-const countsBetween = (before, after) => ({
-  before: getEarnedRanks(before).length,
-  after: getEarnedRanks(after).length,
-});
-
 // Call right after toggleWatched(movieId), passing the watched array as it
-// was the instant BEFORE that call — everything is read fresh from the
-// stores AFTER, so the diff is the real transition. Always shows (it's the
-// moment to tier it).
+// was the instant BEFORE that call. Always shows (it's the moment to tier
+// it).
 export const giveWatchedFeedback = (movieId, watchedBefore) => {
-  const challengeStore = useChallengeStore.getState();
-  const historyBefore = challengeStore.history;
-  const completedChallenge = challengeStore.checkAutoCompletion(movieId);
-  // A finished dare is a rank of its own (Dare Devil).
-  if (completedChallenge) refreshRanks();
-
-  const watchedAfter = useMovieStore.getState().watched;
-  const before = snapshot(watchedBefore, historyBefore);
-  const after = snapshot(watchedAfter, useChallengeStore.getState().history);
+  const completedChallenge = useChallengeStore.getState().checkAutoCompletion(movieId);
   showMoment({
     reason: "watched",
     movieId,
-    ranks: getNewRanks(before, after),
-    sagaSteps: getNewRanks(getSagaTracks(watchedBefore), getSagaTracks(watchedAfter)),
+    ...collectionsMovedBy(movieId, watchedBefore),
     dare: completedChallenge ? { title: completedChallenge.title } : null,
-    counts: countsBetween(before, after),
   });
 };
 
-// Call right after setWatchedRating(movieId, rating), passing the watched
-// array as it was the instant BEFORE that call. A tier can earn a rank
-// (Films tiered, Tough Critic) — the dialog only shows when it did;
-// otherwise the tier lighting up is feedback enough.
-export const giveRatingFeedback = (watchedBefore) => {
-  const { history } = useChallengeStore.getState();
-  const before = snapshot(watchedBefore, history);
-  const after = snapshot(useMovieStore.getState().watched, history);
-  const ranks = getNewRanks(before, after);
-  if (ranks.length === 0) return;
-  showMoment({ reason: "tier", ranks, counts: countsBetween(before, after) });
-};
-
 // A drop-in replacement for calling movieStore's rewatchMovie directly —
-// owns the whole thing (the store call, the before/after, the popup).
-// Always confirms: a toast normally, the dialog when it earned a rank
-// (Comfort Watcher, or a third film that day for Marathoner).
+// the store call, then a toast to say so.
 export const rewatchMovieWithFeedback = (movieId) => {
-  const { watched: watchedBefore, rewatchMovie } = useMovieStore.getState();
-  const { history } = useChallengeStore.getState();
-
-  rewatchMovie(movieId);
-
-  const before = snapshot(watchedBefore, history);
-  const after = snapshot(useMovieStore.getState().watched, history);
-  const ranks = getNewRanks(before, after);
-  if (ranks.length > 0) {
-    showMoment({ reason: "rewatch", movieId, ranks, counts: countsBetween(before, after) });
-  } else {
-    const title = getMovieById(movieId)?.title ?? "Movie";
-    showToast(t("Rewatch of {title} logged", { title: title }), {
-      tone: "success",
-    });
-  }
+  useMovieStore.getState().rewatchMovie(movieId);
+  const title = getMovieById(movieId)?.title ?? "Movie";
+  showToast(t("Rewatch of {title} logged", { title: title }), {
+    tone: "success",
+  });
 };
 
 // A drop-in replacement for calling movieStore's toggleBucketList directly,
-// so every add or remove says so with a quick toast. (Saving earns no rank —
-// watching does.)
+// so every add or remove says so with a quick toast.
 export const toggleBucketListWithFeedback = (movieId) => {
   const { toggleBucketList } = useMovieStore.getState();
   toggleBucketList(movieId);

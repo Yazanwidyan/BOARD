@@ -25,6 +25,7 @@ import { GROUP_ANGLES, buildGroup, getTimeOptions, rankForGroup, shortlistSize }
 import { MOODS } from "../utils/moods";
 import { formatRuntime } from "../utils/movieFilters";
 import { shuffle } from "../utils/shuffle";
+import { features } from "../config/features";
 
 // Most people a night holds: on one phone, and on everyone's (Group night).
 const MAX_SAME_PHONE = 6;
@@ -211,7 +212,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
       title: t("Everyone's phone"),
       hint: t("Everyone swipes on their own phone, with a code to join — up to {count}.", { count: MAX_ONLINE }),
     },
-  ];
+  ].filter((option) => option.key !== "online" || features.groupNight);
 
   return (
     <View style={styles.container}>
@@ -220,9 +221,11 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
         onBack={() => navigation.goBack()}
         scrollY={headerScroll.scrollY}
         right={
-          <HeaderIconButton onPress={() => setIsJoinOpen(true)} accessibilityLabel={t("Got a code?")}>
-            <Ticket size={20} color={colors.textPrimary} strokeWidth={2} />
-          </HeaderIconButton>
+          features.groupNight ? (
+            <HeaderIconButton onPress={() => setIsJoinOpen(true)} accessibilityLabel={t("Got a code?")}>
+              <Ticket size={20} color={colors.textPrimary} strokeWidth={2} />
+            </HeaderIconButton>
+          ) : undefined
         }
       />
       <Animated.ScrollView

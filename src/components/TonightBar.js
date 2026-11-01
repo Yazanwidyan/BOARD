@@ -9,6 +9,7 @@ import { TAB_BAR_CLEARANCE, shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { giveWatchedFeedback } from "../utils/achievementFeedback";
+import { describePathStep, getPathFor, usePaths } from "../utils/paths";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
 
@@ -24,8 +25,9 @@ export const useTabBarClearance = () => {
 
 // Tonight's pick, docked above the tabs like a player's "now playing" — on
 // every tab until it's watched: its poster and title (tap for its page),
-// Watched (the dialog that follows is the confirmation) and ✕ to drop it
-// and choose again.
+// what it does for a collection you've started ("2 left in Nolan"), Watched
+// (the dialog that follows is the confirmation) and ✕ to drop it and
+// choose again.
 export const TonightBar = ({ navigation }) => {
   useMoviesVersion();
   const colors = useColors();
@@ -33,8 +35,10 @@ export const TonightBar = ({ navigation }) => {
   const pickedMovieId = useMovieStore((state) => state.pickedMovie);
   const clearPickedMovie = useMovieStore((state) => state.clearPickedMovie);
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
+  const paths = usePaths();
   const movie = pickedMovieId ? getMovieById(pickedMovieId) : null;
   if (!movie) return null;
+  const why = describePathStep(getPathFor(paths, movie.id));
 
   const markWatched = () => {
     const { watched: watchedBefore, bucketList: bucketListBefore } = useMovieStore.getState();
@@ -57,7 +61,9 @@ export const TonightBar = ({ navigation }) => {
       >
         <MoviePoster uri={movie.poster} style={styles.poster} />
         <View style={styles.words}>
-          <Text style={styles.eyebrow}>{t("Tonight")}</Text>
+          <Text style={styles.eyebrow} numberOfLines={1}>
+            {why ? `${t("Tonight")} · ${why}` : t("Tonight")}
+          </Text>
           <Text style={styles.title} numberOfLines={1}>
             {movie.title}
           </Text>
@@ -88,8 +94,9 @@ export const TonightBar = ({ navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
+    // In line with the tab bar's capsule under it.
     wrap: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
     },
     bar: {

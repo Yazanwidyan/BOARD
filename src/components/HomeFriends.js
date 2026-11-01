@@ -15,6 +15,7 @@ import { ActivityFeed } from "./ActivityFeed";
 import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
 import { FriendsNightCard } from "./HomeBento";
+import { features } from "../config/features";
 
 const FACE = 64;
 
@@ -146,10 +147,12 @@ export const HomeFriends = ({ navigation }) => {
       )}
 
       {/* What they've been up to. */}
-      <View style={styles.section}>
-        <Heading title={t("Activity")} styles={styles} colors={colors} rtl={rtl} />
-        <ActivityFeed navigation={navigation} />
-      </View>
+      {features.activityFeed && (
+        <View style={styles.section}>
+          <Heading title={t("Activity")} styles={styles} colors={colors} rtl={rtl} />
+          <ActivityFeed navigation={navigation} />
+        </View>
+      )}
     </View>
   );
 };

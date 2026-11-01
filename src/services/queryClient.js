@@ -40,6 +40,7 @@ export const queryKeys = {
   searches: ["me", "searches"],
   friends: ["friends"],
   friendRequests: ["friends", "requests"],
+  blocked: ["friends", "blocked"],
   activity: ["activity"],
   communityMovie: (movieId) => ["community", "movie", movieId],
   trending: ["community", "trending"],

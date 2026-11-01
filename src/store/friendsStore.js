@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
+import { features } from "../config/features";
 import { api } from "../services/api";
 import { queryKeys } from "../services/queryClient";
 import { useRefetchOnFocus } from "../utils/useRefetchOnFocus";
@@ -70,6 +71,11 @@ export const useFriends = () => {
     mutationFn: (userId) => api.delete(`/friends/${userId}`),
     onSuccess,
   });
+  // Blocking also ends any friendship or request between you (server-side).
+  const block = useMutation({
+    mutationFn: (userId) => api.post("/friends/blocked", { userId }),
+    onSuccess,
+  });
 
   return {
     friends: friendsQuery.data ?? EMPTY,
@@ -84,6 +90,26 @@ export const useFriends = () => {
     acceptRequest: accept.mutateAsync,
     dropRequest: drop.mutateAsync,
     removeFriend: remove.mutateAsync,
+    blockUser: block.mutateAsync,
+  };
+};
+
+// The people you blocked (Settings → Blocked people), and unblocking.
+export const useBlocked = () => {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.blocked,
+    queryFn: async () => (await api.get("/friends/blocked")).users,
+    enabled: useSignedIn(),
+  });
+  const unblock = useMutation({
+    mutationFn: (userId) => api.delete(`/friends/blocked/${userId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.blocked }),
+  });
+  return {
+    blocked: query.data ?? EMPTY,
+    loaded: query.data !== undefined,
+    unblock: unblock.mutateAsync,
   };
 };
 
@@ -93,7 +119,9 @@ export const useNotificationCount = () => {
   const userId = useAuthStore((state) => state.user?.id);
   const seenAt = useActivitySeenStore((state) => state.seenAt[userId] ?? 0);
   const { incoming, activity } = useFriends();
-  return incoming.length + activity.filter((event) => event.timestamp > seenAt).length;
+  // The feed's news counts only while the feed is on.
+  const unseen = features.activityFeed ? activity.filter((event) => event.timestamp > seenAt).length : 0;
+  return incoming.length + unseen;
 };
 
 export default useFriends;

@@ -17,7 +17,6 @@ import {
   Play,
   RotateCw,
   Share2,
-  Star,
   TrendingUp,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
@@ -84,6 +83,7 @@ import {
 } from "../utils/scrollEffects";
 import { formatRuntime, isInBucketList, byWeightedRating } from "../utils/movieFilters";
 import { t, useIsRTL } from "../i18n";
+import { features } from "../config/features";
 
 const HEADER_BAR_HEIGHT = 40;
 const STICKY_BAR_HEIGHT = 52;
@@ -256,12 +256,11 @@ const TABS = [
   { key: "similar", label: "Similar" },
 ];
 
-// One of the hero's three actions under Trailer, as Apple Music's Play and
-// Shuffle: a grey box with its icon and name in the signature colour —
-// filled with it when it's on (saved, tonight's pick), green when done
-// (watched).
+// One of the hero's three actions under Trailer: an outlined button, its
+// icon and name in white — red (border and words) when it's on (saved,
+// tonight's pick), green when done (watched).
 const HeroButton = ({ Icon, label, a11yLabel, on = false, done = false, onPress, styles, colors }) => {
-  const ink = done ? colors.success : on ? colors.brandText : colors.brand;
+  const ink = done ? colors.success : on ? colors.brand : colors.textPrimary;
   return (
     <Pressable
       style={({ pressed }) => [
@@ -460,7 +459,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const watchedEntry = watched.find((entry) => entry.movieId === movieId);
   const isWatched = !!watchedEntry;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const isChallengeTarget = activeChallenge?.targetMovieId === movieId;
+  const isChallengeTarget = features.dares && activeChallenge?.targetMovieId === movieId;
   const collections = getCollectionsForMovie(movieId);
   const similarMovies = getMoreLikeThis(movie, like.data?.similar, watched);
   const directorMovies = getDirectorMovies(movie);
@@ -661,17 +660,9 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
               }}
             >
               {movie.title}
-              {!!movie.year && <Text style={styles.titleYear}>{` (${movie.year})`}</Text>}
             </Text>
-            {/* ★ rating · length · year. */}
+            {/* Length · year. */}
             <View style={styles.heroFacts}>
-              {movie.rating > 0 && (
-                <View style={styles.heroScore}>
-                  <Star size={14} color={colors.rating} fill={colors.rating} />
-                  <Text style={styles.heroScoreText}>{movie.rating.toFixed(1)}</Text>
-                  <Text style={styles.meta}>/ 10</Text>
-                </View>
-              )}
               <Text style={styles.meta} numberOfLines={1}>
                 {[movie.runtime ? formatRuntime(movie.runtime) : null, movie.year]
                   .filter(Boolean)
@@ -689,8 +680,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 {(movie.genres ?? []).map((genre) => t(genre)).join(" · ")}
               </Text>
             </View>
-            {/* The director (their collection, when they have one), and your
-                taste match — tap it for why. */}
+            {/* The director (their collection, when they have one). */}
             <View style={styles.heroCredits}>
               {directorSaga ? (
                 <Pressable
@@ -710,6 +700,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   {t("Directed by")} <Text style={styles.director}>{movie.director}</Text>
                 </Text>
               )}
+            </View>
+            </View>
+            {/* The poster, your taste match laid over its foot — tap it for
+                why. */}
+            <View style={styles.heroPosterWrap}>
+              <MoviePoster uri={movie.poster} style={styles.heroPoster} shadow />
               {tasteMatch && (
                 <Pressable
                   style={({ pressed }) => [styles.matchPill, pressed && styles.actionPressed]}
@@ -726,8 +722,6 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                 </Pressable>
               )}
             </View>
-            </View>
-            <MoviePoster uri={movie.poster} style={styles.heroPoster} shadow />
           </Animated.View>
 
           {/* Trailer, the main button; then Tonight (or Rewatch), Watchlist
@@ -1388,19 +1382,23 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Your taste match, under the title: a pill, and why.
     flipped: {
       transform: [{ scaleX: -1 }],
     },
+    // Your taste match, over the poster's foot: a dark band, and why.
     matchPill: {
+      position: "absolute",
+      start: 0,
+      end: 0,
+      bottom: 0,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 2,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: 4,
-      backgroundColor: colors.successSoft,
-      borderRadius: shape.control - 2,
+      paddingVertical: 5,
+      backgroundColor: "rgba(0, 0, 0, 0.72)",
+      borderBottomStartRadius: shape.poster,
+      borderBottomEndRadius: shape.poster,
     },
     matchText: {
       ...typography.bodyBold,
@@ -1664,7 +1662,6 @@ const createStyles = (colors) =>
       letterSpacing: -0.2,
       color: colors.textPrimary,
     },
-    // "(2025)" after the name, lighter.
     // The name and facts on the left, the poster on the right.
     heroTop: {
       flexDirection: "row",
@@ -1674,32 +1671,19 @@ const createStyles = (colors) =>
     heroInfo: {
       flex: 1,
     },
+    heroPosterWrap: {
+      borderRadius: shape.poster,
+    },
     heroPoster: {
       width: HERO_POSTER_WIDTH,
       height: HERO_POSTER_WIDTH * 1.5,
     },
-    titleYear: {
-      ...typography.title,
-      fontSize: 24,
-      color: colors.textSecondary,
-    },
-    // A line of facts: the score, length and year; the age box and genres.
+    // A line of facts: the length and year; the age box and genres.
     heroFacts: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
       marginTop: spacing.sm,
-    },
-    heroScore: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    heroScoreText: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textPrimary,
     },
     // "Directed by …" and the taste match, on one line.
     heroCredits: {
@@ -1826,14 +1810,15 @@ const createStyles = (colors) =>
       gap: 6,
       minHeight: 46,
       paddingHorizontal: spacing.sm,
-      backgroundColor: colors.buttonFill,
+      borderWidth: 1,
+      borderColor: colors.outline,
       borderRadius: shape.card,
     },
     heroButtonOn: {
-      backgroundColor: colors.brand,
+      borderColor: colors.brand,
     },
     heroButtonDone: {
-      backgroundColor: colors.successSoft,
+      borderColor: colors.success,
     },
     heroButtonText: {
       ...typography.bodyBold,

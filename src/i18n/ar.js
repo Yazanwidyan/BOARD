@@ -1356,6 +1356,12 @@ const ar = {
   "Bring friends in, swipe a short stack, and land on one film you'll all enjoy.": "أضف أصدقاءك، واسحبوا مجموعة قصيرة، واتفقوا على فيلم يستمتع به الجميع.",
   "Continue with email": "المتابعة بالبريد الإلكتروني",
   "Have an account?": "لديك حساب؟",
+  // Search's paste-a-list
+  "Nothing to paste — copy a list first.": "لا يوجد ما يُلصق — انسخ قائمة أولاً.",
+  "Paste from clipboard": "الصق من الحافظة",
+  "{count} found": "تم العثور على {count}",
+  "Not found: {title}": "غير موجود: {title}",
+  "Edit the list": "عدّل القائمة",
   // Search's browse tiles
   "Top rated": "الأعلى تقييماً",
   "New releases": "إصدارات جديدة",
@@ -1369,7 +1375,6 @@ const ar = {
   // Library's front page
   Recap: "الملخص",
   // Home's cards
-  "Continue a collection": "أكمل مجموعة",
   "Watch with friends": "شاهد مع الأصدقاء",
   "Your friends loved": "أحبها أصدقاؤك",
   "Start a night": "ابدأ سهرة",
@@ -1685,6 +1690,61 @@ const ar = {
   // Tiering with the slider
   "{tier} tier": "تصنيف {tier}",
   "Slide to tier it": "اسحب لتصنّفه",
+
+  "Tonight's pick at 7:30 pm, friend requests and movie nights.":
+    "اختيار الليلة الساعة 7:30 مساءً، وطلبات الصداقة، وليالي الأفلام.",
+
+  // ---- Blocking ----
+  Block: "حظر",
+  Unblock: "إلغاء الحظر",
+  "Block {name}?": "حظر {name}؟",
+  "You'll stop being friends, and they won't be able to find you or send you requests. You can unblock them in Settings.":
+    "لن تبقيا صديقين، ولن يتمكن من العثور عليك أو إرسال طلبات إليك. يمكنك إلغاء الحظر من الإعدادات.",
+  "{name} is blocked": "تم حظر {name}",
+  "Blocked people": "المحظورون",
+  "Unblock {name}?": "إلغاء حظر {name}؟",
+  "Unblock {name}": "إلغاء حظر {name}",
+  "They'll be able to find you and send you a friend request again.":
+    "سيتمكن من العثور عليك وإرسال طلب صداقة إليك مجددًا.",
+  "You haven't blocked anyone. You can block someone from the ⋯ on their profile.":
+    "لم تحظر أحدًا. يمكنك حظر شخص من زر ⋯ في ملفه الشخصي.",
+
+  // ---- Letterboxd import ----
+  "Import from Letterboxd": "استيراد من Letterboxd",
+  "Your watched films, ratings and watchlist": "أفلامك المُشاهدة وتقييماتك وقائمة المشاهدة",
+  "Bring your films over": "انقل أفلامك",
+  "Your watched films, ratings and watchlist. Stars become tiers — 5★ is S, 4★ is A, 3★ is B. Nothing you already have is replaced.":
+    "أفلامك المُشاهدة وتقييماتك وقائمة المشاهدة. تتحول النجوم إلى تصنيفات — 5★ تصبح S، و4★ تصبح A، و3★ تصبح B. لن يُستبدل شيء لديك.",
+  "On letterboxd.com, open Settings → Data → Export your data.":
+    "على letterboxd.com، افتح Settings ← Data ← Export your data.",
+  "Unzip the file it gives you.": "فُكّ ضغط الملف الذي تحصل عليه.",
+  "Choose watched.csv, ratings.csv and watchlist.csv below — any or all.":
+    "اختر watched.csv وratings.csv وwatchlist.csv من الأسفل — أيًّا منها أو كلها.",
+  "{watched} watched ({rated} rated) · {watchlist} on your watchlist":
+    "{watched} مُشاهد ({rated} مُقيّم) · {watchlist} في قائمة المشاهدة",
+  "Matching films… {done} of {total}": "جارٍ مطابقة الأفلام… {done} من {total}",
+  "Import {count} films": "استيراد {count} فيلم",
+  "Choose files": "اختر الملفات",
+  "Choose other files": "اختر ملفات أخرى",
+  "Importing…": "جارٍ الاستيراد…",
+  "Those files have no films in them. Pick the CSVs from your Letterboxd export.":
+    "لا توجد أفلام في هذه الملفات. اختر ملفات CSV من تصدير Letterboxd.",
+  "Couldn't open those files. Update ReelBoard and try again.":
+    "تعذّر فتح هذه الملفات. حدّث ReelBoard وحاول مجددًا.",
+  "The import stopped. Try again — films already added won't be doubled.":
+    "توقف الاستيراد. حاول مجددًا — لن تتكرر الأفلام التي أُضيفت.",
+  "Your Letterboxd is in": "وصلت أفلامك من Letterboxd",
+  "{watched} watched and {watchlist} on your watchlist were added.":
+    "أُضيف {watched} فيلمًا مُشاهدًا و{watchlist} إلى قائمة المشاهدة.",
+  "{count} couldn't be matched": "تعذّرت مطابقة {count}",
+  "…and {count} more": "…و{count} غيرها",
+
+  // ---- Collections in progress ----
+  "Finish what you started": "أكمل ما بدأته",
+  "Start a collection": "ابدأ مجموعة",
+  "Next: {title}": "التالي: {title}",
+  "Finishes {title}": "يُكمل {title}",
+  "{count} left in {title}": "بقي {count} في {title}",
 };
 
 export default ar;

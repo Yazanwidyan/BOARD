@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, Ellipsis, Flag, UserMinus } from "lucide-react-native";
+import { Ban, ChevronLeft, Ellipsis, Flag, UserMinus } from "lucide-react-native";
 import { useState } from "react";
 import {
   Alert,
@@ -78,7 +78,7 @@ const TierChip = ({ tier, styles }) => (
 );
 
 // A friend's page, like your Profile: their name in the header (back left,
-// ⋯ right — to report or remove them) and Overview / Taste under it.
+// ⋯ right — to report, remove or block them) and Overview / Taste under it.
 //   Overview: their cover behind their avatar (its ring to their next
 //   title), their handle, their numbers — films, ranks, and how close your
 //   taste is (each once, here) — their bio, their top four, you and them
@@ -97,9 +97,9 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const friendId = route?.params?.friendId;
-  const { friends, removeFriend } = useFriends();
+  const { friends, removeFriend, blockUser } = useFriends();
   const friend = friends.find((item) => item.id === friendId);
-  // ⋯: report them (or one of their lists), or remove them.
+  // ⋯: report them (or one of their lists), block them, or remove them.
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   // Their profile (with the definitions of the sagas they've finished,
@@ -148,6 +148,28 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           onPress: async () => {
             try {
               await removeFriend(friend.id);
+              navigation.goBack();
+            } catch (err) {
+              showToast(err.message);
+            }
+          },
+        },
+      ],
+    );
+
+  const confirmBlock = () =>
+    Alert.alert(
+      t("Block {name}?", { name: friend.name }),
+      t("You'll stop being friends, and they won't be able to find you or send you requests. You can unblock them in Settings."),
+      [
+        { text: t("Cancel"), style: "cancel" },
+        {
+          text: t("Block"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await blockUser(friend.id);
+              showToast(t("{name} is blocked", { name: friend.name }));
               navigation.goBack();
             } catch (err) {
               showToast(err.message);
@@ -406,7 +428,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
       >
         {page}
       </Animated.ScrollView>
-      {/* Their name in the middle; back left, ⋯ (report, remove) right. */}
+      {/* Their name in the middle; back left, ⋯ (report, remove, block) right. */}
       <DockHeader
         {...header.props}
         title={friend.name}
@@ -436,6 +458,14 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           >
             <UserMinus size={20} color={colors.danger} strokeWidth={1.9} />
             <Text style={[styles.menuText, styles.menuDanger]}>{t("Remove friend")}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.menuRow, pressed && styles.rowPressed]}
+            onPress={thenClose(confirmBlock)}
+            accessibilityRole="button"
+          >
+            <Ban size={20} color={colors.danger} strokeWidth={1.9} />
+            <Text style={[styles.menuText, styles.menuDanger]}>{t("Block")}</Text>
           </Pressable>
         </View>
       </BottomSheet>

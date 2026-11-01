@@ -71,6 +71,9 @@ export const darkColors = {
   // raised grey, so it shows on a card as well as on the page.
   buttonFill: "#2C2C2E",
 
+  // Outline buttons' thin border (Edit profile, a film's actions…).
+  outline: "rgba(255, 255, 255, 0.28)",
+
   // Round icon buttons (a movie's Watchlist / Tonight / Board / Trailer):
   // a quiet fill a step above the page.
   ringFill: "#1C1C1E",
@@ -135,6 +138,8 @@ export const lightColors = {
   surfaceSoft: "rgba(0, 0, 0, 0.05)",
 
   buttonFill: "#F2F2F7",
+
+  outline: "rgba(0, 0, 0, 0.2)",
 
   ringFill: "#F2F2F7",
 

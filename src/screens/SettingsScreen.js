@@ -1,6 +1,8 @@
 import {
+  Ban,
   Bell,
   ChevronRight,
+  Download,
   Gem,
   Info,
   Languages,
@@ -46,6 +48,7 @@ import {
   enableNotifications,
   getNotificationsEnabled,
 } from "../services/notifications";
+import { features } from "../config/features";
 import { signOut } from "../services/sync";
 import { showToast } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
@@ -182,6 +185,12 @@ export const SettingsScreen = ({ navigation }) => {
             hint={t("Genres, decades and runtimes you'd rather see")}
             onPress={() => navigation.navigate("Preferences")}
           />
+          <SettingsRow
+            Icon={Download}
+            label={t("Import from Letterboxd")}
+            hint={t("Your watched films, ratings and watchlist")}
+            onPress={() => navigation.navigate("LetterboxdImport")}
+          />
         </SettingsGroup>
 
         <SettingsGroup title={t("App")}>
@@ -215,7 +224,11 @@ export const SettingsScreen = ({ navigation }) => {
           <SettingsRow
             Icon={Bell}
             label={t("Notifications")}
-            hint={t("Tonight's pick at 7:30 pm, your monthly recap, friend requests and movie nights.")}
+            hint={
+              features.replay
+                ? t("Tonight's pick at 7:30 pm, your monthly recap, friend requests and movie nights.")
+                : t("Tonight's pick at 7:30 pm, friend requests and movie nights.")
+            }
             right={
               <Switch
                 value={notificationsOn}
@@ -257,6 +270,11 @@ export const SettingsScreen = ({ navigation }) => {
             label={t("Account")}
             value={account?.email}
             onPress={() => navigation.navigate("Account")}
+          />
+          <SettingsRow
+            Icon={Ban}
+            label={t("Blocked people")}
+            onPress={() => navigation.navigate("BlockedPeople")}
           />
           <SettingsRow
             Icon={LogOut}

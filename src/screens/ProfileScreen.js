@@ -1,5 +1,4 @@
 import {
-  ChevronRight,
   Pencil,
   Settings as SettingsIcon,
   Share2,
@@ -20,7 +19,6 @@ import {
 import Animated from "react-native-reanimated";
 
 import { Text } from "../components/AppText";
-import { AvatarRankRing } from "../components/AvatarRankRing";
 import { ProBadge } from "../components/ProBadge";
 import { TasteStats } from "../components/TasteStats";
 import { MoviePoster } from "../components/MoviePoster";
@@ -52,12 +50,12 @@ import { getCollectionProgress, getSagas } from "../utils/collections";
 import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
 import { orderSTier } from "../utils/tiers";
-import { useRankSummary } from "../utils/useRanks";
 import { getMilestones } from "../utils/milestones";
 import { useLanguageStore } from "../store/languageStore";
-import { t, useIsRTL } from "../i18n";
+import { t } from "../i18n";
 import { useFriends } from "../store/friendsStore";
 import { useTabBarClearance } from "../components/TonightBar";
+import { features } from "../config/features";
 
 // The cover's height for the screen's width, and how much of it shows
 // above your avatar.
@@ -83,12 +81,11 @@ const getHandle = (name) =>
 
 // Your profile — you, as a friend sees you; your films themselves (your
 // watchlist, diary, tiers, lists, collections) are Library's. "Profile" in
-// the header (Settings in its capsule). Then who you are — your avatar (its
-// ring to your next title), your name, your films, friends and ranks, your
-// bio, Edit profile and Share — and below it, under bold headings: your top
-// four favourites, your taste (its DNA and stats), your achievements (your
-// title, your latest milestones, the collections you've finished) and your
-// Replay. (A friend's page keeps their films and lists, since it's the only
+// the header (Settings in its capsule). Then who you are — your avatar,
+// your name, your films, friends and finished collections, your bio, Edit
+// profile and Share — and below it, under bold headings: your top four
+// favourites, your taste (its DNA and stats), your collections (the
+// trophies of the ones you've finished) and your Replay. (A friend's page keeps their films and lists, since it's the only
 // way to see them.)
 export const ProfileScreen = ({ navigation }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
@@ -97,10 +94,8 @@ export const ProfileScreen = ({ navigation }) => {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
-  const rtl = useIsRTL();
   const { width: screenWidth } = useWindowDimensions();
   const { friends } = useFriends();
-  const ranks = useRankSummary();
   const watched = useMovieStore((state) => state.watched);
   const displayName = useProfileStore((state) => state.displayName);
   const bio = useProfileStore((state) => state.bio);
@@ -174,7 +169,6 @@ export const ProfileScreen = ({ navigation }) => {
     handle: accountHandle ?? getHandle(displayName),
     bio,
     avatarSource,
-    ring: ranks.title,
     stats: {
       movies: watchedCount,
       hours,
@@ -190,7 +184,6 @@ export const ProfileScreen = ({ navigation }) => {
   const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
 
   // Your three numbers, under your name — the only place they show.
-  const rankCount = ranks.title?.count ?? 0;
   const counts = [
     {
       key: "films",
@@ -205,10 +198,10 @@ export const ProfileScreen = ({ navigation }) => {
       onPress: () => navigation.navigate("Friends"),
     },
     {
-      key: "ranks",
-      value: rankCount,
-      label: rankCount === 1 ? t("rank") : t("ranks"),
-      onPress: () => navigation.navigate("Ranks"),
+      key: "collections",
+      value: completedSets.length,
+      label: completedSets.length === 1 ? t("collection") : t("collections"),
+      onPress: () => openLibraryTab("collections"),
     },
   ];
 
@@ -236,20 +229,15 @@ export const ProfileScreen = ({ navigation }) => {
         ]}
       >
         <Pressable
-          onPress={() => navigation.navigate("Ranks")}
+          onPress={() => navigation.navigate("EditProfile")}
           accessibilityRole="button"
-          accessibilityLabel={t("Your ranks")}
+          accessibilityLabel={t("Edit profile")}
         >
-          {ranks.title ? (
-            <AvatarRankRing
-              source={avatarSource}
-              title={ranks.title}
-              avatarSize={AVATAR}
-              color={(isPro && accentColor(accent)) || undefined}
-            />
-          ) : (
-            <Image source={avatarSource} style={styles.avatar} />
-          )}
+          {/* Pro: your accent rings it (utils/pro). */}
+          <Image
+            source={avatarSource}
+            style={[styles.avatar, isPro && accentColor(accent) && { borderWidth: 3, borderColor: accentColor(accent) }]}
+          />
         </Pressable>
         {/* Your name, under your avatar. */}
         <View style={styles.nameRow}>
@@ -288,7 +276,7 @@ export const ProfileScreen = ({ navigation }) => {
             onPress={() => navigation.navigate("EditProfile")}
             accessibilityRole="button"
           >
-            <Pencil size={17} color={colors.brand} strokeWidth={2.2} />
+            <Pencil size={17} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Edit profile")}</Text>
           </Pressable>
           <Pressable
@@ -296,7 +284,7 @@ export const ProfileScreen = ({ navigation }) => {
             onPress={() => setIsShareOpen(true)}
             accessibilityRole="button"
           >
-            <Share2 size={17} color={colors.brand} strokeWidth={2.2} />
+            <Share2 size={17} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Share")}</Text>
           </Pressable>
         </View>
@@ -342,45 +330,27 @@ export const ProfileScreen = ({ navigation }) => {
           </View>
         </ProfileSection>
 
-        {/* Achievements: your title (and how far to the next), your latest
-            milestones and the collections you've finished. */}
-        <ProfileSection title={t("Achievements")}>
-          {ranks.title && (
+        {/* Collections: a trophy for each one you've finished (and, when
+            switched on, your latest milestones). */}
+        <ProfileSection title={t("Collections")} onAction={() => openLibraryTab("collections")}>
+          {features.milestones && (
             <Pressable
-              style={({ pressed }) => [styles.rankRow, pressed && styles.pressed]}
-              onPress={() => navigation.navigate("Ranks")}
+              style={({ pressed }) => [styles.medals, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("Milestones")}
               accessibilityRole="button"
+              accessibilityLabel={t("Milestones")}
             >
-              <View style={styles.rankText}>
-                <Text style={styles.rankName}>{t(ranks.title.name)}</Text>
-                <Text style={styles.rankNext}>
-                  {ranks.title.next
-                    ? t("{count} ranks to {title}", {
-                        count: ranks.title.toNext,
-                        title: t(ranks.title.next.name),
-                      })
-                    : t("The top title")}
-                </Text>
-              </View>
-              <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+              {milestones.map((milestone) => (
+                <View key={milestone.key} style={styles.medal}>
+                  <MilestoneMedal milestone={milestone} size={medalSize} />
+                  <Text style={styles.medalLabel} numberOfLines={1}>
+                    {t(milestone.short)}
+                  </Text>
+                </View>
+              ))}
             </Pressable>
           )}
-          <Pressable
-            style={({ pressed }) => [styles.medals, pressed && styles.pressed]}
-            onPress={() => navigation.navigate("Milestones")}
-            accessibilityRole="button"
-            accessibilityLabel={t("Milestones")}
-          >
-            {milestones.map((milestone) => (
-              <View key={milestone.key} style={styles.medal}>
-                <MilestoneMedal milestone={milestone} size={medalSize} />
-                <Text style={styles.medalLabel} numberOfLines={1}>
-                  {t(milestone.short)}
-                </Text>
-              </View>
-            ))}
-          </Pressable>
-          {trophies.length > 0 && (
+          {trophies.length > 0 ? (
             <View style={styles.trophies}>
               <TrophyCabinet
                 finished={trophies.slice(0, PROFILE_TROPHIES)}
@@ -388,15 +358,19 @@ export const ProfileScreen = ({ navigation }) => {
                 onOpen={(collectionId) => navigation.navigate("CollectionDetails", { collectionId })}
               />
             </View>
+          ) : (
+            <SectionEmpty line={t("Finish a collection and its trophy shows here.")} />
           )}
         </ProfileSection>
 
         {/* Replay: your month. */}
-        <ReplayCard
-          style={styles.replay}
-          language={language}
-          onPress={(period) => navigation.navigate("Recap", { period })}
-        />
+        {features.replay && (
+          <ReplayCard
+            style={styles.replay}
+            language={language}
+            onPress={(period) => navigation.navigate("Recap", { period })}
+          />
+        )}
       </View>
     </>
   );
@@ -447,9 +421,6 @@ const createStyles = (colors) =>
     },
     pressed: {
       opacity: 0.7,
-    },
-    flipped: {
-      transform: [{ scaleX: -1 }],
     },
     padded: {
       paddingHorizontal: spacing.md,
@@ -522,8 +493,8 @@ const createStyles = (colors) =>
     bioEmpty: {
       color: colors.textMuted,
     },
-    // Edit profile and Share: two grey boxes side by side, their icons and
-    // words in the signature colour.
+    // Edit profile and Share: two outlined buttons side by side, white
+    // icons and words.
     actions: {
       alignSelf: "stretch",
       flexDirection: "row",
@@ -537,13 +508,14 @@ const createStyles = (colors) =>
       justifyContent: "center",
       gap: spacing.sm,
       minHeight: 46,
-      backgroundColor: colors.buttonFill,
+      borderWidth: 1,
+      borderColor: colors.outline,
       borderRadius: shape.card,
     },
     actionText: {
       ...typography.bodyBold,
       fontSize: 15,
-      color: colors.brand,
+      color: colors.textPrimary,
     },
     // Your top four, across.
     favourites: {
@@ -555,14 +527,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
       textAlign: "center",
-    },
-    rankRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
     },
     tasteStats: {
       marginTop: spacing.lg,
@@ -586,20 +550,6 @@ const createStyles = (colors) =>
     },
     replay: {
       marginTop: spacing.section,
-    },
-    rankText: {
-      flex: 1,
-      gap: 2,
-    },
-    rankName: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.textPrimary,
-    },
-    rankNext: {
-      ...typography.caption,
-      color: colors.textSecondary,
     },
   });
 

@@ -32,12 +32,14 @@ import { useTasteStore } from "../store/tasteStore";
 import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getInProgressCollections, getSuggestedCollections } from "../utils/collections";
+import { getSuggestedCollections } from "../utils/collections";
 import { buildMixes, pickLovedFilm } from "../utils/mixes";
+import { getPathNext, usePaths } from "../utils/paths";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getTier, getTierInfo } from "../utils/tiers";
 import { getTonightSuggestions } from "../utils/tonightPick";
 import { countFinishedDares } from "../utils/useRanks";
+import { features } from "../config/features";
 
 // The space above each of Home's sections.
 const SECTION_GAP = spacing.section;
@@ -46,9 +48,11 @@ const POOL_SIZE = 60;
 // Recently watched: how many, and how wide each poster.
 const RECENT_COUNT = 12;
 const RECENT_WIDTH = 96;
-// Collections: how many under way, how many new ones to start, and each
-// collage's width (it includes the rail's own side padding).
-const COLLECTIONS_UNDER_WAY = 6;
+// Finish what you started: how many, and each poster's width. With none
+// under way, a few to start instead (each collage's width includes the
+// rail's own side padding).
+const PATHS_SHOWN = 6;
+const PATH_WIDTH = 118;
 const COLLECTIONS_TO_START = 3;
 const COLLECTION_ITEM = 118;
 // The same query as Similar's, so the two share what they fetch.
@@ -88,7 +92,8 @@ const SectionHeading = ({ title, onPress, styles, colors }) => {
 //                       each a page with Sort this pile / Pick one for me
 //   the decide ways     Surprise me, Sort a pile, More like…, your dare
 //   Watch with friends  the same night, shared
-//   Continue a collection  the ones under way, then new ones to start
+//   Finish what you started  the collections under way, each as the film
+//                       to watch next (or, with none, ones to start)
 //   Recently watched    tap one to tier it
 //   Replay              your month
 //   Your progress       one row: your title, ranks and medals (Profile)
@@ -130,7 +135,7 @@ export const HomeScreen = ({ navigation }) => {
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const unlockedCollectionIds = useMovieStore((state) => state.unlockedCollections);
-  const inProgressCollections = getInProgressCollections(watchedIds, COLLECTIONS_UNDER_WAY);
+  const paths = usePaths();
   const collectionsToStart = getSuggestedCollections(watched, unlockedCollectionIds, COLLECTIONS_TO_START).map(
     (item) => item.collection,
   );
@@ -142,6 +147,15 @@ export const HomeScreen = ({ navigation }) => {
     () => getTonightSuggestions(watched, bucketList, dares, passes, POOL_SIZE),
     [watched, bucketList, dares, passes],
   );
+  // Each collection under way, as the film to watch next — the best fit
+  // for your taste of its next few. The closest to done also leads
+  // Tonight's mix.
+  const rankedIds = pool.map((item) => item.movie.id);
+  const passedIds = new Set(passes.map((pass) => pass.movieId));
+  const underWay = paths
+    .map((path) => ({ path, movie: getMovieById(getPathNext(path, rankedIds)) }))
+    .filter(({ movie }) => movie && !passedIds.has(movie.id))
+    .slice(0, PATHS_SHOWN);
   const lovedId = pickLovedFilm(watched);
   const like = useQuery({
     queryKey: ["movie", lovedId, "like", LIKE_COUNT, "director"],
@@ -153,6 +167,7 @@ export const HomeScreen = ({ navigation }) => {
   const [turn, setTurn] = useState(0);
   const mixes = buildMixes({
     pool,
+    lead: underWay[0]?.movie ?? null,
     bucketList,
     watchedIds,
     loved: lovedId ? getMovieById(lovedId) : null,
@@ -266,34 +281,67 @@ export const HomeScreen = ({ navigation }) => {
           <FriendsNightCard navigation={navigation} style={styles.inset} />
         </View>
 
-        {/* Collections: the ones under way (how far), then new ones to start. */}
-        {inProgressCollections.length + collectionsToStart.length > 0 && (
+        {/* Finish what you started: each collection under way as the film
+            to watch next, how far you are on its corner. Tap for the film. */}
+        {underWay.length > 0 ? (
           <View style={styles.section}>
             <SectionHeading
-              title={t("Continue a collection")}
+              title={t("Finish what you started")}
               onPress={() => navigation.navigate("Library", { initialTab: "collections", openedAt: Date.now() })}
               styles={styles}
               colors={colors}
             />
-            <ShelfRail
-              itemWidth={COLLECTION_ITEM}
-              items={[...inProgressCollections, ...collectionsToStart].map((collection) => {
-                const seen = collection.movieIds.filter((id) => watchedIds.has(id)).length;
-                return {
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
+              {underWay.map(({ path, movie }) => (
+                <Pressable
+                  key={path.id}
+                  style={({ pressed }) => [styles.pathItem, pressed && styles.pressed]}
+                  onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${path.title}: ${movie.title}`}
+                >
+                  <MoviePoster uri={movie.poster} style={styles.pathPoster} />
+                  <View style={styles.pathCount}>
+                    <Text style={styles.pathCountText}>
+                      {t("{watched} of {total}", { watched: path.watched, total: path.total })}
+                    </Text>
+                  </View>
+                  <View style={styles.pathTrack}>
+                    <View style={[styles.pathFill, { width: `${Math.round((path.watched / path.total) * 100)}%` }]} />
+                  </View>
+                  <Text style={styles.recentTitle} numberOfLines={1}>
+                    {path.title}
+                  </Text>
+                  <Text style={styles.recentMeta} numberOfLines={1}>
+                    {t("Next: {title}", { title: movie.title })}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : (
+          collectionsToStart.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeading
+                title={t("Start a collection")}
+                onPress={() => navigation.navigate("Library", { initialTab: "collections", openedAt: Date.now() })}
+                styles={styles}
+                colors={colors}
+              />
+              <ShelfRail
+                itemWidth={COLLECTION_ITEM}
+                items={collectionsToStart.map((collection) => ({
                   key: collection.id,
                   onPress: () => navigation.navigate("CollectionDetails", { collectionId: collection.id }),
                   content: (
                     <CollectionCollage collection={collection} watchedIds={watchedIds} size={COLLECTION_ITEM - 2} />
                   ),
                   title: collection.title,
-                  meta:
-                    seen > 0
-                      ? t("{seen} of {moviesCount} watched", { seen, moviesCount: collection.movieIds.length })
-                      : t("{count} films", { count: collection.movieIds.length }),
-                };
-              })}
-            />
-          </View>
+                  meta: t("{count} films", { count: collection.movieIds.length }),
+                }))}
+              />
+            </View>
+          )
         )}
 
         {recent.length > 0 && (
@@ -341,11 +389,13 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
-        <ReplayCard
-          style={[styles.inset, styles.sectionGap]}
-          language={language}
-          onPress={(period) => navigation.navigate("Recap", { period })}
-        />
+        {features.replay && (
+          <ReplayCard
+            style={[styles.inset, styles.sectionGap]}
+            language={language}
+            onPress={(period) => navigation.navigate("Recap", { period })}
+          />
+        )}
 
         {!isFreshAccount && (
           <View style={styles.section}>
@@ -450,6 +500,42 @@ const createStyles = (colors) =>
     recentPoster: {
       width: RECENT_WIDTH,
       height: RECENT_WIDTH * 1.5,
+    },
+    pathItem: {
+      width: PATH_WIDTH,
+    },
+    pathPoster: {
+      width: PATH_WIDTH,
+      height: PATH_WIDTH * 1.5,
+    },
+    // How far, on the poster's top corner…
+    pathCount: {
+      position: "absolute",
+      top: 6,
+      start: 6,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: shape.chip,
+      backgroundColor: "rgba(0,0,0,0.72)",
+    },
+    pathCountText: {
+      ...typography.caption,
+      fontFamily: fonts.bold,
+      fontSize: 11,
+      lineHeight: 14,
+      color: "#FFFFFF",
+    },
+    // …and as a bar under it.
+    pathTrack: {
+      height: 3,
+      marginTop: spacing.xs + 2,
+      borderRadius: 2,
+      backgroundColor: colors.cardElevated,
+      overflow: "hidden",
+    },
+    pathFill: {
+      height: "100%",
+      backgroundColor: colors.brand,
     },
     recentTitle: {
       ...typography.bodyBold,

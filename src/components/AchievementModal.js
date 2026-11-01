@@ -1,7 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Check, Share2, Star, TrendingUp, X } from "lucide-react-native";
+import { Check, Share2, Star, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -38,34 +37,29 @@ import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
-import { describeNext, getClosestRanks, getTitle, sortByRarity } from "../utils/ranks";
 import { getMilestones } from "../utils/milestones";
 import { isRated } from "../utils/tiers";
-import { useRankRarity, useRankSummary } from "../utils/useRanks";
 import { Text } from "./AppText";
 import { DialogArt } from "./DialogArt";
 import { MilestoneMedal } from "./MilestoneMedal";
 import { MoviePoster } from "./MoviePoster";
-import { RankBadge } from "./RankBadge";
+import { features } from "../config/features";
 
-// The reward moment, full screen — an award, not a dialog. The film you
-// watched fills the screen behind it, darkened (or, without one, the
-// moment's colour glows on the page). The thing you earned leads, by name,
-// not a generic "New Rank!":
+// The moment after you watch something, full screen — an award, not a
+// dialog. The film fills the screen behind it, darkened (or, without one,
+// the moment's colour glows on the page). What it did leads, by name:
 //
 //                                   ✕
-//     ╲ ╱      a projector's beam falling from the top of the screen
-//   ┌──────┐   onto the hero — the film's poster (its rank tile stamped
-//   │ HERO │   on the corner), or the rank's tile, or the title art —
-//   └──────┘   switching on with one flicker
-//   NEW RANK                       what kind of moment
-//   Explorer                       what you earned
-//   Time Traveler · 14% of watchers
-//   also earned                    anything else this one action brought
-//   [23] Lead ━━━━━━━━━━──  7 ranks to Star   (fills from before to after)
-//   ↗ 1 film to Wolf · King of the World      (what's next)
+//   ┌──────┐   the film's poster, a check stamped on its corner (or, with
+//   │ HERO │   no film, the moment's art)
+//   └──────┘
+//   COLLECTION COMPLETE            what kind of moment (or WATCHED)
+//   Mind-Bender                    the collection (or the film)
+//   Every film in Mind-Bender
+//   also complete                  any other collection it finished
+//   [7] Christopher Nolan ━━━━━──  7 of 8 · 1 left   (fills before → after)
 //   [ Tier it ]                    the one main action (white)
-//   [ Share / See your ranks ]     the second (grey)
+//   [ Share it / See collection ]  the second (grey)
 //
 // ✕, a tap on the backdrop or the system back closes it. Everything that
 // moves respects the system's Reduce Motion.
@@ -168,88 +162,21 @@ const confettiStyles = StyleSheet.create({
 
 // ---------- What the moment is about ----------
 
-// What leads, and everything else as "also earned". In order: a new title,
-// a finished saga, new ranks (the rarest leads), a step on a saga's
-// ladder, a finished dare — or just the film you watched.
-const getHeadline = (achievement, rarity, colors) => {
-  const { reason, movieId, ranks, sagaSteps, dare, ranksBefore, ranksAfter } = achievement;
+// What leads, and everything else as "also complete". In order: a finished
+// collection, a finished dare — or just the film you watched.
+const getHeadline = (achievement, colors) => {
+  const { reason, movieId, completed = [], dare } = achievement;
   const movie = movieId ? getMovieById(movieId) : null;
-  const before = getTitle(ranksBefore);
-  const after = getTitle(ranksAfter);
-  const sortedRanks = sortByRarity(ranks, rarity);
-  const finished = sagaSteps.find((step) => step.top) ?? null;
-  const rankItem = (rank) => ({
-    key: rank.id,
-    rank,
-    title: t(rank.title),
-    detail: t(rank.track.title),
-    counted: true,
-  });
-  const sagaItem = (step) => ({
-    key: step.id,
-    rank: step,
-    title: t(step.title),
-    detail: step.top
-      ? t("{saga} · complete", { saga: t(step.track.title) })
-      : t(step.track.title),
-    counted: false,
-  });
-  const dareItem = dare && { key: "dare", dare: true, title: dare.title, detail: t("Dare complete"), counted: false };
-  const all = [...sortedRanks.map(rankItem), ...sagaSteps.map(sagaItem), dareItem].filter(Boolean);
-  const rarityOf = (rank) =>
-    rarity[rank.id] != null ? t("{percent}% of watchers", { percent: rarity[rank.id] }) : null;
-
-  if (after.step > before.step) {
-    return {
-      kind: "title",
-      color: colors.rating,
-      confetti: true,
-      eyebrow: t("New title"),
-      title: t(after.name),
-      subtitle: t("{count} ranks", { count: ranksAfter }),
-      lead: null,
-      also: all,
-      movie,
-    };
-  }
-  if (finished) {
+  if (completed.length > 0) {
+    const [lead, ...rest] = completed;
     return {
       kind: "collection",
       color: colors.rating,
       confetti: true,
       eyebrow: t("Collection complete"),
-      title: t(finished.title),
-      subtitle: t("Every film in {saga}", { saga: t(finished.track.title) }),
-      lead: finished,
-      also: all.filter((item) => item.key !== finished.id),
-      movie,
-    };
-  }
-  if (sortedRanks.length > 0) {
-    const [lead] = sortedRanks;
-    return {
-      kind: "rank",
-      color: colors.rating,
-      confetti: true,
-      eyebrow: sortedRanks.length > 1 ? t("{count} new ranks", { count: sortedRanks.length }) : t("New rank"),
-      title: t(lead.title),
-      subtitle: [t(lead.track.title), rarityOf(lead)].filter(Boolean).join(" · "),
-      lead,
-      also: all.filter((item) => item.key !== lead.id),
-      movie,
-    };
-  }
-  if (sagaSteps.length > 0) {
-    const [lead] = sagaSteps;
-    return {
-      kind: "saga",
-      color: colors.rating,
-      confetti: false,
-      eyebrow: t("Collection rank"),
-      title: t(lead.title),
-      subtitle: t(lead.track.title),
-      lead,
-      also: all.filter((item) => item.key !== lead.id),
+      title: lead.title,
+      subtitle: t("Every film in {saga}", { saga: lead.title }),
+      also: rest.map((item) => ({ key: item.id, title: item.title, detail: t("Collection complete") })),
       movie,
     };
   }
@@ -261,7 +188,6 @@ const getHeadline = (achievement, rarity, colors) => {
       eyebrow: t("Dare complete"),
       title: dare.title,
       subtitle: movie?.title ?? null,
-      lead: null,
       also: [],
       movie,
     };
@@ -273,7 +199,6 @@ const getHeadline = (achievement, rarity, colors) => {
     eyebrow: reason === "rewatch" ? t("Rewatched") : t("Watched"),
     title: movie?.title ?? t("Marked as watched"),
     subtitle: movie ? [movie.year, formatRuntime(movie.runtime)].filter(Boolean).join(" · ") : null,
-    lead: null,
     also: [],
     movie,
   };
@@ -312,134 +237,80 @@ const HeroGlow = ({ color }) => {
   );
 };
 
-// The film you watched, tilted in, with what it earned stamped on its
-// corner — the rank's tile, or a check.
-const PosterHero = ({ movie, stamp, color, styles }) => (
+// The film you watched, a check stamped on its corner.
+const PosterHero = ({ movie, color, styles }) => (
   <Animated.View entering={HERO_IN.delay(120)} style={styles.posterHero}>
     <MoviePoster uri={movie.poster} shadow style={{ width: POSTER_WIDTH, height: POSTER_WIDTH * 1.5 }} />
     <Animated.View
       entering={ZoomIn.duration(220).easing(Easing.out(Easing.cubic)).delay(420)}
       style={styles.stampWrap}
     >
-      {stamp ? (
-        <View style={styles.stampTile}>
-          <RankBadge track={stamp.track} step={stamp} size={44} />
-        </View>
-      ) : (
-        <View style={[styles.stampCheck, { backgroundColor: color }]}>
-          <Check size={20} color="#FFFFFF" strokeWidth={3} />
-        </View>
-      )}
+      <View style={[styles.stampCheck, { backgroundColor: color }]}>
+        <Check size={20} color="#FFFFFF" strokeWidth={3} />
+      </View>
     </Animated.View>
   </Animated.View>
 );
 
-// Where you are on the way to your next title, animated from before to
-// after; the count chip pops. Crossing a title fills the bar, flashes,
-// flips the title, and fills again from empty to the new progress.
-const TitleProgress = ({ ranksBefore, ranksAfter, color, styles, colors }) => {
+// How far this watch took you in a collection: its name, "7 of 8 · 1
+// left", and a bar that fills from before to after; the count chip pops.
+const CollectionProgress = ({ progress, color, styles }) => {
   const reduceMotion = useReducedMotion();
-  const before = getTitle(ranksBefore);
-  const after = getTitle(ranksAfter);
-  const titleUp = after.step > before.step;
-  const gained = ranksAfter - ranksBefore;
-  const [shown, setShown] = useState(reduceMotion || !titleUp ? after : before);
-  const fill = useSharedValue(reduceMotion ? after.progress : before.progress);
-  const flash = useSharedValue(0);
+  const after = progress.watched / progress.total;
+  const before = (progress.watched - 1) / progress.total;
+  const fill = useSharedValue(reduceMotion ? after : before);
   const chipScale = useSharedValue(1);
 
   useEffect(() => {
     if (reduceMotion) return;
-    const timing = { duration: BAR_MS, easing: Easing.out(Easing.cubic) };
-    const onTitleUp = () => {
-      setShown(after);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    };
-    if (titleUp) {
-      fill.value = withDelay(
-        BAR_DELAY,
-        withSequence(
-          withTiming(1, timing, (finished) => {
-            if (finished) runOnJS(onTitleUp)();
-          }),
-          withTiming(0, { duration: 0 }),
-          withTiming(after.progress, timing),
-        ),
-      );
-      flash.value = withDelay(
-        BAR_DELAY + BAR_MS,
-        withSequence(withTiming(1, { duration: 120 }), withTiming(0, { duration: 500 })),
-      );
-    } else {
-      fill.value = withDelay(BAR_DELAY, withTiming(after.progress, timing));
-    }
-    if (gained > 0) {
-      chipScale.value = withDelay(
-        BAR_DELAY,
-        withSequence(
-          withTiming(1.15, { duration: 160, easing: Easing.out(Easing.quad) }),
-          withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
-        ),
-      );
-    }
+    fill.value = withDelay(BAR_DELAY, withTiming(after, { duration: BAR_MS, easing: Easing.out(Easing.cubic) }));
+    chipScale.value = withDelay(
+      BAR_DELAY,
+      withSequence(
+        withTiming(1.15, { duration: 160, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${Math.max(fill.value, 0.02) * 100}%` }));
-  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
   const chipStyle = useAnimatedStyle(() => ({ transform: [{ scale: chipScale.value }] }));
+  const left = progress.total - progress.watched;
 
   return (
     <View style={styles.titleBlock}>
       <View style={styles.titleTop}>
         <Animated.View style={[styles.countChip, { backgroundColor: color }, chipStyle]}>
-          <Text style={styles.countChipText}>{ranksAfter}</Text>
+          <Text style={styles.countChipText}>{progress.watched}</Text>
         </Animated.View>
         <View style={styles.titleText}>
           <Text style={styles.titleName} numberOfLines={1}>
-            {t(shown.name)}
-            {gained > 0 && (
-              <Text style={[styles.titleGain, { color }]}>
-                {"  "}
-                {gained === 1 ? t("+1 rank") : t("+{count} ranks", { count: gained })}
-              </Text>
-            )}
+            {progress.title}
           </Text>
           <Text style={styles.titleToGo} numberOfLines={1}>
-            {shown.next
-              ? t("{count} ranks to {title}", {
-                  count: Math.max(0, shown.next.at - ranksAfter),
-                  title: t(shown.next.name),
-                })
-              : t("The top title")}
+            {t("{watched} of {total}", { watched: progress.watched, total: progress.total })}
+            {" · "}
+            {t("{count} left", { count: left })}
           </Text>
         </View>
       </View>
       <View style={styles.barTrack}>
         <Animated.View style={[styles.barFill, { backgroundColor: color }, fillStyle]} />
-        <Animated.View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { backgroundColor: colors.textPrimary }, flashStyle]}
-        />
       </View>
     </View>
   );
 };
 
-// One more thing this action earned: its tile, what and where, and "+1"
-// for a rank (a check for the rest).
-const AlsoRow = ({ item, index, last, color, styles, colors }) => (
+// One more collection this watch finished.
+const AlsoRow = ({ item, index, last, styles, colors }) => (
   <Animated.View
     entering={FadeInDown.duration(300).delay(ROWS_DELAY + index * ROW_STAGGER)}
     style={[styles.alsoRow, !last && styles.alsoRule]}
   >
-    {item.rank ? (
-      <RankBadge track={item.rank.track} step={item.rank} size={34} />
-    ) : (
-      <View style={[styles.alsoIcon, { backgroundColor: withAlpha(colors.danger, "29") }]}>
-        <Check size={16} color={colors.danger} strokeWidth={3} />
-      </View>
-    )}
+    <View style={[styles.alsoIcon, { backgroundColor: withAlpha(colors.rating, "29") }]}>
+      <Check size={16} color={colors.rating} strokeWidth={3} />
+    </View>
     <View style={styles.alsoText}>
       <Text style={styles.alsoTitle} numberOfLines={1}>
         {item.title}
@@ -448,18 +319,13 @@ const AlsoRow = ({ item, index, last, color, styles, colors }) => (
         {item.detail}
       </Text>
     </View>
-    {item.counted ? (
-      <Text style={[styles.alsoGain, { color }]}>+1</Text>
-    ) : (
-      <Check size={16} color={colors.textMuted} strokeWidth={2.6} />
-    )}
   </Animated.View>
 );
 
 // ---------- The dialog ----------
 
-// Mounted once inside AppNavigator (needs useNavigation for "See your
-// ranks"), so any screen can trigger it via
+// Mounted once inside AppNavigator (needs useNavigation to open what it
+// points at), so any screen can trigger it via
 // useAchievementStore.getState().showAchievement({...}).
 // It waits while any bottom sheet is still on screen (store/sheetStore) —
 // marking a film watched from a sheet would otherwise put two Modals up at
@@ -492,24 +358,24 @@ const AchievementDialog = ({ achievement }) => {
   const { height: windowHeight } = useWindowDimensions();
   const navigation = useNavigation();
   const hideAchievement = useAchievementStore((state) => state.hideAchievement);
-  const rarity = useRankRarity();
-  const summary = useRankSummary();
   const watchedNow = useMovieStore((state) => state.watched);
 
-  const { shareCollectionId, ranksBefore, ranksAfter } = achievement;
-  const headline = getHeadline(achievement, rarity, colors);
+  const { shareCollectionId, completed = [], progress } = achievement;
+  const headline = getHeadline(achievement, colors);
   const { movie, color } = headline;
-  // What's next: the track closest to its next rank, now.
-  const [upNext] = getClosestRanks(summary.tracks, 1);
+  // The collection to open from here: the one finished, else the one it
+  // moved along.
+  const openCollectionId = completed[0]?.id ?? progress?.id ?? null;
   // A film you just watched and haven't tiered yet → "Tier it" leads, and
   // opens the tier screen once this closes.
   const canTier =
     !!movie && watchedNow.some((entry) => entry.movieId === movie.id && !isRated(entry));
-  const showProgress = ranksAfter > ranksBefore || headline.kind === "title";
   // Milestones this very watch crossed (minutes, films, directors).
-  const freshMilestones = getMilestones(watchedNow).filter(
-    (milestone) => milestone.reachedAt && Date.now() - milestone.reachedAt < MILESTONE_FRESH_MS,
-  );
+  const freshMilestones = features.milestones
+    ? getMilestones(watchedNow).filter(
+        (milestone) => milestone.reachedAt && Date.now() - milestone.reachedAt < MILESTONE_FRESH_MS,
+      )
+    : [];
 
   // Fades in; closes by fading out (✕, the backdrop, the system back).
   const appear = useSharedValue(0);
@@ -539,7 +405,7 @@ const AchievementDialog = ({ achievement }) => {
   const appearStyle = useAnimatedStyle(() => ({ opacity: appear.value }));
 
   // The main action: tier the film, else share a finished saga, else just
-  // "Nice". The second: share (when tiering leads), else your ranks.
+  // "Nice". The second: share (when tiering leads), else the collection.
   const primary = canTier
     ? {
         label: t("Tier it"),
@@ -556,25 +422,20 @@ const AchievementDialog = ({ achievement }) => {
   const secondary =
     canTier && shareCollectionId
       ? { label: t("Share it"), onPress: () => close(() => openShareCard(shareCollectionId)) }
-      : { label: t("See your ranks"), onPress: () => close(null, ["Ranks"]) };
+      : openCollectionId
+        ? {
+            label: t("See collection"),
+            onPress: () => close(null, ["CollectionDetails", { collectionId: openCollectionId }]),
+          }
+        : null;
 
-  const hero =
-    movie && headline.kind !== "title" ? (
-      <PosterHero movie={movie} stamp={headline.lead} color={color} styles={styles} />
-    ) : headline.lead ? (
-      <Animated.View entering={HERO_IN.delay(120)}>
-        <RankBadge track={headline.lead.track} step={headline.lead} size={HERO_HEIGHT - 70} />
-      </Animated.View>
-    ) : (
-      <Animated.View entering={HERO_IN.delay(120)}>
-        <DialogArt
-          kind={headline.kind === "title" ? "level" : headline.kind}
-          color={color}
-          level={headline.kind === "title" ? getTitle(ranksAfter).step : null}
-          size={HERO_HEIGHT - 30}
-        />
-      </Animated.View>
-    );
+  const hero = movie ? (
+    <PosterHero movie={movie} color={color} styles={styles} />
+  ) : (
+    <Animated.View entering={HERO_IN.delay(120)}>
+      <DialogArt kind={headline.kind} color={color} size={HERO_HEIGHT - 30} />
+    </Animated.View>
+  );
   const still = movie?.backdrop ?? movie?.poster ?? null;
 
   return (
@@ -639,7 +500,7 @@ const AchievementDialog = ({ achievement }) => {
 
             {headline.also.length > 0 && (
               <View style={styles.alsoBlock}>
-                <Text style={styles.alsoLabel}>{t("Also earned")}</Text>
+                <Text style={styles.alsoLabel}>{t("Also complete")}</Text>
                 <ScrollView
                   style={[styles.alsoScroll, { maxHeight: windowHeight * 0.2 }]}
                   contentContainerStyle={styles.alsoList}
@@ -652,7 +513,6 @@ const AchievementDialog = ({ achievement }) => {
                       item={item}
                       index={index}
                       last={index === headline.also.length - 1}
-                      color={color}
                       styles={styles}
                       colors={colors}
                     />
@@ -677,28 +537,8 @@ const AchievementDialog = ({ achievement }) => {
               </Animated.View>
             )}
 
-            {showProgress && (
-              <TitleProgress
-                ranksBefore={ranksBefore}
-                ranksAfter={ranksAfter}
-                color={colors.rating}
-                styles={styles}
-                colors={colors}
-              />
-            )}
-
-            {/* Always a next goal. */}
-            {upNext && (
-              <Animated.View
-                entering={FadeInDown.duration(300).delay(ROWS_DELAY + 200)}
-                style={styles.upNext}
-              >
-                <TrendingUp size={15} color={colors.textSecondary} strokeWidth={2.2} />
-                <Text style={styles.upNextText} numberOfLines={1}>
-                  {describeNext(upNext)}
-                  <Text style={styles.upNextTrack}>{` · ${t(upNext.title)}`}</Text>
-                </Text>
-              </Animated.View>
+            {progress && completed.length === 0 && (
+              <CollectionProgress progress={progress} color={colors.brand} styles={styles} />
             )}
           </View>
 
@@ -712,13 +552,15 @@ const AchievementDialog = ({ achievement }) => {
               {primary.icon}
               <Text style={[styles.buttonText, styles.buttonMainText]}>{primary.label}</Text>
             </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.button, styles.buttonQuiet, pressed && styles.pressed]}
-              onPress={secondary.onPress}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.buttonText, styles.buttonQuietText]}>{secondary.label}</Text>
-            </Pressable>
+            {secondary && (
+              <Pressable
+                style={({ pressed }) => [styles.button, styles.buttonQuiet, pressed && styles.pressed]}
+                onPress={secondary.onPress}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.buttonText, styles.buttonQuietText]}>{secondary.label}</Text>
+              </Pressable>
+            )}
           </Animated.View>
         </View>
 
@@ -795,11 +637,6 @@ const createStyles = (colors) =>
       position: "absolute",
       end: -16,
       bottom: -12,
-    },
-    stampTile: {
-      padding: 3,
-      backgroundColor: colors.background,
-      borderRadius: shape.card,
     },
     stampCheck: {
       width: 40,
@@ -903,11 +740,6 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    alsoGain: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-    },
 
     // Title bar
     titleBlock: {
@@ -944,11 +776,6 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       color: colors.textPrimary,
     },
-    titleGain: {
-      ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-    },
     titleToGo: {
       ...typography.caption,
       color: colors.textSecondary,
@@ -961,23 +788,6 @@ const createStyles = (colors) =>
     },
     barFill: {
       height: "100%",
-    },
-
-    // Up next
-    upNext: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "stretch",
-      gap: spacing.sm,
-      marginTop: spacing.sm + 4,
-    },
-    upNextText: {
-      ...typography.caption,
-      flex: 1,
-      color: colors.textPrimary,
-    },
-    upNextTrack: {
-      color: colors.textSecondary,
     },
 
     // Actions: red, then grey with red words, full width.

@@ -8,6 +8,7 @@ import { resetShownRanks } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { request } from "./api";
+import { logEvent } from "./events";
 import { ONBOARDING_MOVIE_IDS } from "../utils/onboardingTaste";
 import {
   fetchMovies,
@@ -96,6 +97,7 @@ export const loadAccount = async () => {
         : fetchMovies(ONBOARDING_MOVIE_IDS, { full: true }),
     ]);
     useAuthStore.getState().setStatus("ready");
+    logEvent("app_open");
   } catch (error) {
     if (error.status !== 401)
       useAuthStore.getState().setStatus("error", error.message);
@@ -237,6 +239,7 @@ export const startSync = async () => {
   AppState.addEventListener("change", (status) => {
     if (status === "active" && useAuthStore.getState().status === "ready") {
       refreshAccount().catch(() => {});
+      logEvent("app_open");
     }
   });
   // Every launch loads the account from the server (the loading screen

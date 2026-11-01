@@ -9,10 +9,7 @@ import Svg, {
   RadialGradient,
   Rect,
   Stop,
-  Text as SvgText,
 } from "react-native-svg";
-
-import { fonts } from "../theme/typography";
 
 // Hand-drawn hero art for the reward dialog — one scene per kind of
 // moment, all in the app's cinema language, drawn in a 120 × 120 box over
@@ -21,9 +18,7 @@ import { fonts } from "../theme/typography";
 //   rewatch    two tickets — the same movie again
 //   collection a box set, every spine lit slate, with a seal
 //   challenge  a clapperboard snapping shut
-//   level      a slate star with a number — a new title, by its step
 //   multi      a popcorn bucket ("Big Night!")
-// (A new rank without a movie shows the rank's own tile — see RankBadge.)
 
 // Highlight → base → shade of the slate (matches `rating`).
 const SHINE = ["#E3F6FF", "#40BCF4", "#1F6C8F"];
@@ -81,7 +76,7 @@ const Sparkle = ({ x, y, size, color }) => (
   />
 );
 
-const Scene = ({ kind, color, level, id }) => {
+const Scene = ({ kind, color, id }) => {
   const light = mix(color, "#FFFFFF", 0.45);
   const dark = mix(color, "#000000", 0.45);
   const metal = `url(#metal${id})`;
@@ -228,49 +223,6 @@ const Scene = ({ kind, color, level, id }) => {
         </G>
       );
 
-    case "level":
-      return (
-        <G>
-          {/* rays */}
-          {Array.from({ length: 12 }, (_, index) => {
-            const angle = (index * 30 * Math.PI) / 180;
-            const x1 = 60 + Math.cos(angle) * 44;
-            const y1 = 60 + Math.sin(angle) * 44;
-            const x2 = 60 + Math.cos(angle) * 54;
-            const y2 = 60 + Math.sin(angle) * 54;
-            return (
-              <Path
-                key={index}
-                d={`M${x1} ${y1} L${x2} ${y2}`}
-                stroke={SHINE[0]}
-                strokeOpacity={0.7}
-                strokeWidth={3}
-                strokeLinecap="round"
-              />
-            );
-          })}
-          <Polygon
-            points={starPoints(60, 62, 42, 19)}
-            fill={shine}
-            stroke="#FFF3C4"
-            strokeWidth={2}
-            strokeLinejoin="round"
-          />
-          {level != null && (
-            <SvgText
-              x={60}
-              y={71}
-              textAnchor="middle"
-              fontSize={level >= 10 ? 21 : 25}
-              fontFamily={fonts.extraBold}
-              fill="#5A3F0C"
-            >
-              {String(level)}
-            </SvgText>
-          )}
-        </G>
-      );
-
     case "multi":
       return (
         <G>
@@ -330,7 +282,7 @@ const Scene = ({ kind, color, level, id }) => {
   }
 };
 
-export const DialogArt = ({ kind, color, level, size = 132 }) => {
+export const DialogArt = ({ kind, color, size = 132 }) => {
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
@@ -350,7 +302,7 @@ export const DialogArt = ({ kind, color, level, size = 132 }) => {
         </LinearGradient>
       </Defs>
       <Circle cx={60} cy={60} r={60} fill={`url(#spot${id})`} />
-      <Scene kind={kind} color={color} level={level} id={id} />
+      <Scene kind={kind} color={color} id={id} />
     </Svg>
   );
 };
