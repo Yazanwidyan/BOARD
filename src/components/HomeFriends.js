@@ -11,6 +11,7 @@ import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
+import { countTiered, friendMatchLabel } from "../utils/tasteWords";
 import { ActivityFeed } from "./ActivityFeed";
 import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
@@ -63,9 +64,14 @@ export const HomeFriends = ({ navigation }) => {
     if (userId) markSeen(userId);
   }, [userId, activity, markSeen]);
 
+  const myTiered = countTiered(watched);
   const ranked = friends
-    .map((friend) => ({ friend, match: getTasteMatch(watched, friend.watched) }))
-    .sort((a, b) => (b.match ?? -1) - (a.match ?? -1));
+    .map((friend) => ({
+      friend,
+      match: friendMatchLabel(getTasteMatch(watched, friend.watched), myTiered, countTiered(friend.watched)),
+      score: getTasteMatch(watched, friend.watched),
+    }))
+    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
   return (
     <View>
@@ -110,13 +116,13 @@ export const HomeFriends = ({ navigation }) => {
               style={({ pressed }) => [styles.face, pressed && styles.pressed]}
               onPress={() => navigation.navigate("FriendProfile", { friendId: friend.id })}
               accessibilityRole="button"
-              accessibilityLabel={match != null ? `${friend.name}, ${match}%` : friend.name}
+              accessibilityLabel={match != null ? `${friend.name}, ${match}` : friend.name}
             >
               <FriendAvatar friend={friend} size={FACE} />
               <Text style={styles.faceName} numberOfLines={1}>
                 {friend.name.split(" ")[0]}
               </Text>
-              {match != null && <Text style={styles.faceMatch}>{t("{match}% taste", { match })}</Text>}
+              {match != null && <Text style={styles.faceMatch}>{match}</Text>}
             </Pressable>
           ))}
           <Pressable

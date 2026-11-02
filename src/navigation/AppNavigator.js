@@ -13,6 +13,7 @@ import { CompletionShareSheet } from "../components/CompletionShareSheet";
 import { Toast } from "../components/Toast";
 import { AccountScreen } from "../screens/AccountScreen";
 import { BlockedPeopleScreen } from "../screens/BlockedPeopleScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { BoardDetailsScreen } from "../screens/BoardDetailsScreen";
 import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
@@ -223,6 +224,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="Account" component={AccountScreen} />
             <Stack.Screen name="BlockedPeople" component={BlockedPeopleScreen} />
             <Stack.Screen name="Trophies" component={TrophiesScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="LetterboxdImport" component={LetterboxdImportScreen} />
           </>
         )}

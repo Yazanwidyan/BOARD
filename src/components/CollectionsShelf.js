@@ -14,6 +14,7 @@ import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
 import { LaurelIcon } from "./icons/Laurel";
 import { MoviePoster } from "./MoviePoster";
+import { SlotStrip } from "./SlotStrip";
 import { TrophyCabinet, getTrophies } from "./TrophyCabinet";
 
 const HERO_COVER = 112;
@@ -52,13 +53,6 @@ const Heading = ({ title, count, styles }) => (
       {title}
     </Text>
     {count != null && <Text style={styles.headingCount}>{count}</Text>}
-  </View>
-);
-
-// A thin progress bar; `strong` in the brand colour (one film left).
-const Bar = ({ value, strong, styles }) => (
-  <View style={styles.barTrack}>
-    <View style={[styles.barFill, strong && styles.barFillStrong, { width: `${Math.round(value * 100)}%` }]} />
   </View>
 );
 
@@ -125,10 +119,10 @@ export const CollectionsShelf = ({
           style={({ pressed }) => [styles.hero, pressed && styles.pressed]}
           onPress={() => onOpen(closest.id)}
           accessibilityRole="button"
-          accessibilityLabel={`${closest.title}, ${t("{watched} of {total}", { watched: closest.watched, total: closest.total })}`}
+          accessibilityLabel={`${closest.title}, ${t("{watched} of {total} seen", { watched: closest.watched, total: closest.total })}`}
         >
           <View style={styles.heroTop}>
-            <CollectionCollage collection={asCollection(closest)} watchedIds={watchedIds} size={HERO_COVER} />
+            <CollectionCollage collection={asCollection(closest)} watchedIds={watchedIds} size={HERO_COVER} bar={false} />
             <View style={styles.heroWords}>
               <Text style={styles.eyebrow}>{t("Closest to done")}</Text>
               <Text style={styles.heroTitle} numberOfLines={2}>
@@ -136,7 +130,7 @@ export const CollectionsShelf = ({
               </Text>
               <Text style={styles.heroMeta} numberOfLines={1}>
                 {[
-                  t("{watched} of {total}", { watched: closest.watched, total: closest.total }),
+                  t("{watched} of {total} seen", { watched: closest.watched, total: closest.total }),
                   timeLeft(closest, watchedIds) > 0
                     ? t("{time} to go", { time: formatRuntime(timeLeft(closest, watchedIds)) })
                     : null,
@@ -144,7 +138,7 @@ export const CollectionsShelf = ({
                   .filter(Boolean)
                   .join(" · ")}
               </Text>
-              <Bar value={closest.watched / closest.total} strong styles={styles} />
+              <SlotStrip movieIds={closest.movieIds} watchedIds={watchedIds} />
             </View>
           </View>
           {closestNext && (
@@ -185,7 +179,7 @@ export const CollectionsShelf = ({
                   onPress={() => onOpen(path.id)}
                   accessibilityRole="button"
                 >
-                  <CollectionCollage collection={asCollection(path)} watchedIds={watchedIds} size={ROW_COVER} />
+                  <CollectionCollage collection={asCollection(path)} watchedIds={watchedIds} size={ROW_COVER} bar={false} />
                   <View style={styles.rowWords}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
                       {path.title}
@@ -193,9 +187,9 @@ export const CollectionsShelf = ({
                     <Text style={styles.rowMeta} numberOfLines={1}>
                       {[
                         KIND_LABELS[path.kind] ? t(KIND_LABELS[path.kind]) : null,
-                        t("{watched} of {total}", { watched: path.watched, total: path.total }),
+                        t("{watched} of {total} seen", { watched: path.watched, total: path.total }),
                         left === 1
-                          ? t("1 left")
+                          ? t("1 film left")
                           : minutes > 0
                             ? t("{time} to go", { time: formatRuntime(minutes) })
                             : null,
@@ -203,7 +197,7 @@ export const CollectionsShelf = ({
                         .filter(Boolean)
                         .join(" · ")}
                     </Text>
-                    <Bar value={path.watched / path.total} strong={left === 1} styles={styles} />
+                    <SlotStrip movieIds={path.movieIds} watchedIds={watchedIds} />
                   </View>
                   <ChevronRight size={18} color={colors.textMuted} strokeWidth={2.2} style={rtl && styles.flipped} />
                 </Pressable>
@@ -406,21 +400,6 @@ const createStyles = (colors) =>
       color: colors.brandText,
     },
 
-    // The bar under each one's words.
-    barTrack: {
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.cardElevated,
-      overflow: "hidden",
-    },
-    barFill: {
-      height: "100%",
-      borderRadius: 2,
-      backgroundColor: colors.collection,
-    },
-    barFillStrong: {
-      backgroundColor: colors.brand,
-    },
 
     // In progress: rows on one card, hairlines between.
     rows: {

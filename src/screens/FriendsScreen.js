@@ -42,6 +42,7 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
+import { countTiered, friendMatchLabel } from "../utils/tasteWords";
 import { t, useIsRTL } from "../i18n";
 
 const AVATAR = 44;
@@ -235,7 +236,9 @@ export const FriendsScreen = ({ navigation, route }) => {
               </View>
               {friend.match != null && (
                 <View style={styles.matchChip}>
-                  <Text style={styles.matchText}>{`${friend.match}%`}</Text>
+                  <Text style={styles.matchText}>
+                    {friendMatchLabel(friend.match, countTiered(watched), countTiered(friend.watched))}
+                  </Text>
                 </View>
               )}
               <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />

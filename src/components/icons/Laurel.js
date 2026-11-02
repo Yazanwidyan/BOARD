@@ -112,10 +112,10 @@ const starPoints = (cx, cy, outer, inner) =>
   }).join(" ");
 
 // The trophy as an icon (headings, the share card): the laurels round a
-// gold star.
-export const LaurelIcon = ({ size = 20 }) => (
-  <Laurel size={size}>
-    <Polygon points={starPoints(50, 49, 19, 8)} fill={GOLD[1]} />
+// gold star — pewter, `muted`, for one not won yet.
+export const LaurelIcon = ({ size = 20, muted = false }) => (
+  <Laurel size={size} muted={muted}>
+    <Polygon points={starPoints(50, 49, 19, 8)} fill={(muted ? PEWTER : GOLD)[1]} />
   </Laurel>
 );
 

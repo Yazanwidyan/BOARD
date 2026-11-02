@@ -241,7 +241,9 @@ const HeaderAvatar = ({ styles }) => {
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
 // `compact`: a smaller title, for a page inside a tab (Library's
-// Watchlist, Lists, Collections…).
+// Watchlist, Lists, Collections…). `centered`: a small title in the
+// middle of the bar, as a pushed page's — see-through still (Profile, its
+// cover behind it).
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
 // `refreshing` (on a page with pull-to-refresh) and the logo, if there is
 // one, spins while it refreshes — see RefreshSpin. The bar itself is
@@ -254,6 +256,7 @@ export const DockHeader = ({
   subtitle,
   onPressTitle,
   compact = false,
+  centered = false,
   back,
   left,
   right,
@@ -296,7 +299,17 @@ export const DockHeader = ({
       <HeaderShade scrollY={scrollY} height={headerTop(insets) + HEADER_BAR_HEIGHT} colors={colors} styles={styles} />
       <Animated.View style={[styles.barRow, rowStyle]}>
         {/* Back, then the large title; the actions and avatar at the end. */}
-        {back}
+        {!!back && <View style={styles.back}>{back}</View>}
+        {centered ? (
+          <>
+            <View style={styles.spacer} />
+            <View style={styles.dockCenterTitle} pointerEvents="none">
+              <Text style={styles.stackTitle} numberOfLines={1} accessibilityRole="header">
+                {title}
+              </Text>
+            </View>
+          </>
+        ) : (
         <View style={styles.titleBlock}>
           {!!eyebrow && (
             <Text style={styles.leftEyebrow} numberOfLines={1}>
@@ -363,6 +376,7 @@ export const DockHeader = ({
             </Text>
           )}
         </View>
+        )}
         {(left || right) && (
           <View style={styles.capsule}>
             {left}
@@ -485,6 +499,10 @@ const createStyles = (colors) =>
       alignItems: "center",
       paddingHorizontal: spacing.md,
     },
+    // Room between a back button and the title.
+    back: {
+      marginEnd: spacing.md,
+    },
     right: {
       flexDirection: "row",
       alignItems: "center",
@@ -516,6 +534,17 @@ const createStyles = (colors) =>
     },
     spacer: {
       flex: 1,
+    },
+    // A see-through header's centred title: over the middle of the bar,
+    // clear of the buttons either side.
+    dockCenterTitle: {
+      position: "absolute",
+      start: TITLE_SIDE_ROOM,
+      end: TITLE_SIDE_ROOM,
+      top: 0,
+      bottom: 0,
+      alignItems: "center",
+      justifyContent: "center",
     },
     stackTitle: {
       ...typography.title,

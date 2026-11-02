@@ -15,14 +15,22 @@ export const usePaths = () => useMovieStore((state) => state.paths ?? EMPTY);
 export const getPathFor = (paths, movieId) =>
   paths.find((path) => path.movieIds.includes(movieId)) ?? null;
 
-// Why this film, in a few words: "Finishes Nolan", "2 left in Nolan".
-export const describePathStep = (path) => {
-  if (!path) return null;
-  const left = path.total - path.watched;
-  return left === 1
-    ? t("Finishes {title}", { title: path.title })
-    : t("{count} left in {title}", { count: left, title: path.title });
+// What a path is about, in plain words ("Harry Potter", "Christopher
+// Nolan"); the server's `subject`, else its title.
+export const subjectOf = (collection) => collection?.subject ?? collection?.title ?? "";
+
+// Why this film, in a few words, by what the set is about: "Completes the
+// Nolan set", "2 more Nolan films" — and with `long`, "2 more Nolan films
+// to complete the set" (a film's page).
+export const describeLeft = (subject, left, { long = false } = {}) => {
+  if (left === 1) return t("Completes the {subject} set", { subject });
+  return long
+    ? t("{count} more {subject} films to complete the set", { count: left, subject })
+    : t("{count} more {subject} films", { count: left, subject });
 };
+
+export const describePathStep = (path, options) =>
+  path ? describeLeft(subjectOf(path), path.total - path.watched, options) : null;
 
 // The film to watch next in a path: of its next films, the one highest in
 // `rankedIds` (your taste picks, best first), else the server's best.

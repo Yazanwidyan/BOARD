@@ -3,9 +3,12 @@ import * as Haptics from "expo-haptics";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
-import { scheduleTierNudge } from "../services/notifications";
+import { logEvent } from "../services/events";
+import { getNudgeMovieId, scheduleTierNudge } from "../services/notifications";
 import { useAchievementStore } from "../store/achievementStore";
+import { useTasteStore } from "../store/tasteStore";
 import { showToast } from "../store/toastStore";
+import { getTonightSuggestions } from "./tonightPick";
 import { getCollectionProgress, getCollectionsCompletedBy, getCollectionsForMovie, isSaga } from "./collections";
 import { t } from "../i18n";
 
@@ -17,9 +20,10 @@ import { t } from "../i18n";
 
 // What this watch did to your collections, from the watch history before
 // it: `completed` — [{ id, title, saga }] it finished — and `progress` —
-// { id, title, watched, total } for the closest one it moved along, or
-// null. Sagas are counted here; directors' collections come from the
-// server's paths (store/movieStore `paths`), as they were before the watch.
+// { id, title, subject, movieIds, watched, total, started } for the
+// closest one it moved along (`started`: this film began it), or null.
+// Sagas are counted here; directors' collections come from the server's
+// paths (store/movieStore `paths`), as they were before the watch.
 const collectionsMovedBy = (movieId, watchedBefore) => {
   const before = new Set(watchedBefore.map((entry) => entry.movieId));
   if (before.has(movieId)) return { completed: [], progress: null };
@@ -42,16 +46,31 @@ const collectionsMovedBy = (movieId, watchedBefore) => {
       .filter(isSaga)
       .map((collection) => {
         const { watchedCount, total } = getCollectionProgress(collection, after);
-        return { id: collection.id, title: collection.title, watched: watchedCount, total };
+        return {
+          id: collection.id,
+          title: collection.title,
+          subject: collection.subject ?? collection.title,
+          movieIds: collection.movieIds,
+          watched: watchedCount,
+          total,
+        };
       }),
     ...paths
       .filter((path) => !isSaga(path) && path.movieIds.includes(movieId))
-      .map((path) => ({ id: path.id, title: path.title, watched: path.watched + 1, total: path.total })),
+      .map((path) => ({
+        id: path.id,
+        title: path.title,
+        subject: path.subject ?? path.title,
+        movieIds: path.movieIds,
+        watched: path.watched + 1,
+        total: path.total,
+      })),
   ]
     .filter((item) => item.watched < item.total)
     .sort((a, b) => a.total - a.watched - (b.total - b.watched));
 
-  return { completed, progress: moved[0] ?? null };
+  const progress = moved[0] ?? null;
+  return { completed, progress: progress && { ...progress, started: progress.watched === 1 } };
 };
 
 // A moment: { reason: "watched" | "rewatch", movieId, completed, progress,
@@ -81,6 +100,40 @@ export const giveWatchedFeedback = (movieId, watchedBefore) => {
     ...collectionsMovedBy(movieId, watchedBefore),
     dare: completedChallenge ? { title: completedChallenge.title } : null,
   });
+};
+
+// Tonight's best fit right now — the film "One for tonight" leads with on
+// Home (utils/tonightPick, its first suggestion) — or null.
+const tonightsTopPick = () => {
+  const { watched, bucketList } = useMovieStore.getState();
+  return getTonightSuggestions(watched, bucketList, useTasteStore.getState().passes, 1)[0]?.movie ?? null;
+};
+
+// Tier a film and say what it did — honestly: tonight's pick is compared
+// before and after, and a new one is named only when it really changed
+// ("Heat → S. New pick for tonight: Thief."); otherwise just "Noted.".
+// A D or an F says the picks will steer away. (The engine's guessed vibe
+// words are never claimed — only the film it now picks.)
+export const tierWithFeedback = (movieId, tier) => {
+  // Activation: a tier for the film the morning question was about.
+  if (getNudgeMovieId() === movieId) logEvent("pick_tiered");
+  const before = tonightsTopPick();
+  useMovieStore.getState().setWatchedTier(movieId, tier);
+  const after = tonightsTopPick();
+  const title = getMovieById(movieId)?.title ?? t("This film");
+  const changed = after && after.id !== before?.id ? after : null;
+  const disliked = tier === "D" || tier === "F";
+  let message;
+  if (disliked) {
+    message = changed
+      ? t("Got it, fewer films like {title}. New pick for tonight: {pick}.", { title, pick: changed.title })
+      : t("Got it, fewer films like {title}.", { title });
+  } else {
+    message = changed
+      ? t("{title} → {tier}. New pick for tonight: {pick}.", { title, tier, pick: changed.title })
+      : t("Noted. {title} is in your {tier} tier.", { title, tier });
+  }
+  showToast(message, { tone: "success", duration: changed ? 4000 : 2600 });
 };
 
 // A drop-in replacement for calling movieStore's rewatchMovie directly —

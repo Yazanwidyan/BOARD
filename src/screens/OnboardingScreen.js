@@ -1,37 +1,30 @@
 import * as Haptics from "expo-haptics";
-import * as Sharing from "expo-sharing";
-import { Check, ChevronLeft, Heart, Share2 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { Check, ChevronLeft, Heart } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
 import { Text } from "../components/AppText";
 import Animated, { Easing, FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { captureRef } from "react-native-view-shot";
 
 import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
-import { ShareCardFooter } from "../components/ShareCardFooter";
 import { TasteDnaBars } from "../components/TasteDnaBars";
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { withAppLink } from "../config/links";
 import { logEvent } from "../services/events";
 import { askForReminders } from "../services/notifications";
-import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
-import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
 import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { pickMoreMovies, pickSpreadMovies } from "../utils/onboardingTaste";
+import { matchWord } from "../utils/tasteWords";
 import { buildMyTasteModel, getTastePicks } from "../utils/tasteEngine";
 import { t, useIsRTL } from "../i18n";
 
@@ -42,15 +35,18 @@ import { t, useIsRTL } from "../i18n";
 //               film you've seen (✓, watched), then its ♥ if you loved
 //               it (tiered S); "Show more" brings films like the ones
 //               you've picked
-//   your taste  the payoff: your DNA on a card you can share — your name
-//               on it (asked for here only when the account doesn't have
-//               one yet) and how many films it's from. Skipped when you
-//               picked nothing.
+//   your taste  a first read, not a verdict: the films you loved and your
+//               taste in one plain sentence ("It gets sharper with every
+//               film you tier") — your name asked for here only when the
+//               account doesn't have one yet — and the collections those
+//               films already started. Skipped when you picked nothing.
 //   tonight     three picks from the taste engine, with reasons
 //
 // A slim top bar: back (from the second step on), how far along you are,
 // and Skip (straight to the app). One big button at the bottom moves on.
 const STEP = { seen: 1, dna: 2, pick: 3 };
+// Your first read: how many of the films you loved it shows.
+const LOVED_SHOWN = 4;
 const STEP_COUNT = 3;
 
 const GRID_FIRST = 15;
@@ -158,7 +154,11 @@ const SeenStep = ({ movies, marks, onTap, onLove, onMore, canMore, styles, color
   const posterWidth = Math.floor((width - spacing.md * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS);
   return (
     <View style={styles.step}>
-      <Heading title={t("What have you seen?")} subtitle={t("Tap the ones you've watched. Tap ♥ on any you loved.")} styles={styles} />
+      <Heading
+        title={t("What have you seen?")}
+        subtitle={t("Tap the ones you've seen. Tap ♥ on films you loved — they go straight into your S tier.")}
+        styles={styles}
+      />
       <View style={styles.grid}>
         {movies.map((movie) => (
           <Animated.View key={movie.id} entering={FadeIn.duration(280)}>
@@ -176,7 +176,7 @@ const SeenStep = ({ movies, marks, onTap, onLove, onMore, canMore, styles, color
       </View>
       {canMore && (
         <Pressable onPress={onMore} style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]} accessibilityRole="button">
-          <Text style={styles.moreButtonText}>{t("Show more")}</Text>
+          <Text style={styles.moreButtonText}>{t("Show more like these")}</Text>
         </Pressable>
       )}
     </View>
@@ -184,69 +184,36 @@ const SeenStep = ({ movies, marks, onTap, onLove, onMore, canMore, styles, color
 };
 
 // ---------- Your taste ----------
-const DnaStep = ({
-  fingerprint,
-  seenCount,
-  handle,
-  name,
-  askName,
-  onChangeName,
-  cardRef,
-  onShare,
-  isSharing,
-  styles,
-  colors,
-}) => (
+const DnaStep = ({ fingerprint, seenCount, lovedMovies, styles }) => (
   <View style={styles.step}>
-    <Heading title={t("This is your taste.")} subtitle={t("It sharpens with every film you tier.")} styles={styles} />
-    {/* The card — exactly what gets shared. collapsable={false} so
-        Android keeps a real view for view-shot to capture. */}
+    {/* A first read, not a verdict: what you loved, and one plain
+        sentence — it sharpens as you tier. */}
+    <Heading title={t("Your taste so far.")} subtitle={t("It gets sharper with every film you tier.")} styles={styles} />
     <Animated.View entering={FadeInDown.duration(400).easing(Easing.out(Easing.cubic))}>
-      <View ref={cardRef} collapsable={false} style={styles.dnaCard}>
-        <Text style={styles.dnaEyebrow}>
-          {name.trim() ? t("{name}'s taste DNA", { name: name.trim() }) : t("Your taste DNA")}
-        </Text>
+      <View style={styles.dnaCard}>
+        {lovedMovies.length > 0 && (
+          <>
+            <Text style={styles.dnaEyebrow}>{t("You loved")}</Text>
+            <View style={styles.lovedRow}>
+              {lovedMovies.slice(0, LOVED_SHOWN).map((movie) => (
+                <MoviePoster key={movie.id} uri={movie.poster} style={styles.lovedPoster} />
+              ))}
+            </View>
+          </>
+        )}
         <View style={styles.dnaBars}>
           <TasteDnaBars fingerprint={fingerprint} />
         </View>
-        <View style={styles.dnaFooter}>
-          <Text style={styles.dnaXPDetail}>{t("Based on {count} films", { count: seenCount })}</Text>
-          <ShareCardFooter handle={handle} align="end" />
-        </View>
+        <Text style={styles.dnaXPDetail}>{t("Based on {count} films", { count: seenCount })}</Text>
       </View>
     </Animated.View>
-
-    {askName && (
-      <>
-        <Text style={styles.nameLabel}>{t("Put your name on it (optional)")}</Text>
-        <TextInput
-          value={name}
-          onChangeText={onChangeName}
-          placeholder={t("Your name")}
-          placeholderTextColor={colors.textMuted}
-          style={styles.nameInput}
-          autoCapitalize="words"
-          autoCorrect={false}
-          returnKeyType="done"
-          maxLength={24}
-        />
-      </>
-    )}
-    <Pressable
-      onPress={onShare}
-      disabled={isSharing}
-      style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
-      accessibilityRole="button"
-    >
-      <Share2 size={17} color={colors.brand} strokeWidth={2.2} />
-      <Text style={styles.shareText}>{isSharing ? t("Preparing…") : t("Share your taste card")}</Text>
-    </Pressable>
   </View>
 );
 
 // ---------- Tonight ----------
 // The best pick big, as a poster card; the other two under it.
-const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => {
+// `coldStart`: nothing marked seen — the picks are just popular, and say so.
+const PickStep = ({ picks, selectedId, onSelect, coldStart, styles, colors }) => {
   const { width } = useWindowDimensions();
   const [lead, ...rest] = picks;
   const leadWidth = Math.round(width * 0.46);
@@ -265,11 +232,11 @@ const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => {
               {lead.movie.title}
             </Text>
             <Text style={styles.pickMeta}>
-              {lead.movie.year} · {t("{match}% match", { match: lead.match })}
+              {[lead.movie.year, coldStart ? null : matchWord(lead.match)].filter(Boolean).join(" · ")}
             </Text>
-            {!!lead.reasons[0] && (
+            {(coldStart || !!lead.reasons[0]) && (
               <Text style={styles.leadReason} numberOfLines={2}>
-                {lead.reasons[0]}
+                {coldStart ? t("Popular right now. Tier one to make it yours.") : lead.reasons[0]}
               </Text>
             )}
             {selectedId === lead.movie.id && (
@@ -299,7 +266,7 @@ const PickStep = ({ picks, selectedId, onSelect, styles, colors }) => {
                     {pick.movie.title}
                   </Text>
                   <Text style={styles.pickMeta}>
-                    {pick.movie.year} · {t("{match}% match", { match: pick.match })}
+                    {[pick.movie.year, coldStart ? null : matchWord(pick.match)].filter(Boolean).join(" · ")}
                   </Text>
                 </View>
                 {isSelected && (
@@ -322,16 +289,7 @@ export const OnboardingScreen = () => {
   const colors = useColors();
   const styles = createStyles(colors);
   const [step, setStep] = useState(STEP.seen);
-  const currentName = useProfileStore((state) => state.displayName);
-  const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
-  const handle = useAuthStore((state) => state.user?.handle ?? null);
-
-  // The name given at sign-up goes straight on the card; only an account
-  // without one (some Google / Apple sign-ins) is asked for it.
-  const hasName = !!currentName && currentName !== "You";
-  const [askName] = useState(!hasName);
-  const [name, setName] = useState(hasName ? currentName : "");
 
   // Films already in the stores (a replay) aren't offered, or a "seen" tap
   // would un-watch them.
@@ -349,8 +307,6 @@ export const OnboardingScreen = () => {
   const [fingerprint, setFingerprint] = useState(null);
   const [picks, setPicks] = useState([]);
   const [selectedPickId, setSelectedPickId] = useState(null);
-  const cardRef = useRef(null);
-  const [isSharing, setIsSharing] = useState(false);
 
   const goToStep = (nextStep) => {
     Haptics.selectionAsync();
@@ -362,7 +318,6 @@ export const OnboardingScreen = () => {
     logEvent(names[step]);
   }, [step]);
   const finish = () => {
-    if (name.trim() && name.trim() !== currentName) setDisplayName(name.trim());
     completeOnboarding();
   };
 
@@ -384,6 +339,15 @@ export const OnboardingScreen = () => {
     Haptics.selectionAsync();
     setMarks((current) => ({ ...current, [movie.id]: current[movie.id] === "loved" ? "seen" : "loved" }));
   };
+  // None of these seen: a different 15 — and after that, a way past it.
+  const [reshuffles, setReshuffles] = useState(0);
+  const reshuffle = () => {
+    Haptics.selectionAsync();
+    const shown = new Set([...gridMovies.map((movie) => movie.id), ...knownIds()]);
+    setGridMovies(pickSpreadMovies(GRID_FIRST, shown));
+    setReshuffles((count) => count + 1);
+  };
+
   // More films, like the ones picked so far.
   const showMore = () => {
     Haptics.selectionAsync();
@@ -416,43 +380,35 @@ export const OnboardingScreen = () => {
     goToStep(hasFilms ? STEP.dna : STEP.pick);
   };
 
-  const shareCard = async () => {
-    if (isSharing) return;
-    setIsSharing(true);
-    logEvent("dna_shared");
-    const fallback = withAppLink(`${t("My taste DNA")} ${t("on ReelBoard")}`);
-    try {
-      const uri = await captureRef(cardRef, { format: "png", quality: 1, result: "tmpfile" });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: t("Your taste DNA"), UTI: "public.png" });
-      } else {
-        await Share.share({ message: fallback });
-      }
-    } catch {
-      await Share.share({ message: fallback });
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
   const handleNext = () => {
     if (step === STEP.seen) {
+      if (markedIds.length === 0 && reshuffles === 0) return reshuffle();
       applyMarks();
       return learn(markedIds.length > 0);
     }
     if (step === STEP.dna) return goToStep(STEP.pick);
     if (step === STEP.pick) {
-      if (selectedPickId) {
-        const { pickedMovie, togglePickedMovie } = useMovieStore.getState();
-        if (pickedMovie !== selectedPickId) togglePickedMovie(selectedPickId);
-      }
       // Only the whole way through counts (Skip doesn't).
       logEvent("onboarding_completed");
+      if (!selectedPickId) return notTonight();
+      const { pickedMovie, togglePickedMovie } = useMovieStore.getState();
+      if (pickedMovie !== selectedPickId) togglePickedMovie(selectedPickId);
       // A nudge tonight (and the morning after)? Asked once, then in.
       askForReminders(getMovieById(selectedPickId)?.title ?? null).finally(finish);
       return undefined;
     }
     return undefined;
+  };
+
+  // Not tonight: the chosen film (if any) is saved for later — no pick, no
+  // reminder asked for.
+  const notTonight = () => {
+    logEvent("pick_later");
+    if (selectedPickId) {
+      const { bucketList, toggleBucketList } = useMovieStore.getState();
+      if (!bucketList.some((entry) => entry.movieId === selectedPickId)) toggleBucketList(selectedPickId);
+    }
+    finish();
   };
 
   // Skip: straight to the app, keeping whatever's been picked so far.
@@ -481,11 +437,13 @@ export const OnboardingScreen = () => {
                 : t("Next · {count} seen", { count: markedIds.length }),
             primary: true,
           }
-        : { label: t("I haven't seen these"), primary: false },
+        : reshuffles === 0
+          ? { label: t("Show me different films"), primary: false }
+          : { label: t("Skip — I'll tier as I go"), primary: false },
     [STEP.dna]: { label: t("See tonight's picks"), primary: true },
     [STEP.pick]: selectedPickId
-      ? { label: t("Set as tonight's pick"), primary: true }
-      : { label: t("Start watching"), primary: true },
+      ? { label: t("I'll watch this tonight"), primary: true }
+      : { label: t("Not tonight"), primary: false },
   }[step];
 
   return (
@@ -519,21 +477,18 @@ export const OnboardingScreen = () => {
             <DnaStep
               fingerprint={fingerprint}
               seenCount={appliedIds.length}
-              handle={handle}
-              name={name}
-              askName={askName}
-              onChangeName={setName}
-              cardRef={cardRef}
-              onShare={shareCard}
-              isSharing={isSharing}
+              lovedMovies={Object.entries(marks)
+                .filter(([, mark]) => mark === "loved")
+                .map(([movieId]) => getMovieById(movieId))
+                .filter(Boolean)}
               styles={styles}
-              colors={colors}
             />
           )}
           {step === STEP.pick && (
             <PickStep
               picks={picks}
               selectedId={selectedPickId}
+              coldStart={appliedIds.length === 0}
               onSelect={(id) => {
                 Haptics.selectionAsync();
                 setSelectedPickId((current) => (current === id ? null : id));
@@ -551,6 +506,11 @@ export const OnboardingScreen = () => {
 
       <View style={styles.footer}>
         <FooterButton label={footer.label} primary={footer.primary} onPress={handleNext} styles={styles} />
+        {step === STEP.pick && !!selectedPickId && (
+          <Pressable onPress={notTonight} hitSlop={8} style={styles.notTonight} accessibilityRole="button">
+            <Text style={styles.notTonightText}>{t("Not tonight, save it")}</Text>
+          </Pressable>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -696,6 +656,17 @@ const createStyles = (colors) =>
       backgroundColor: colors.card,
       borderRadius: shape.card,
     },
+    // The films you loved, a small row on the card.
+    lovedRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    lovedPoster: {
+      width: 56,
+      height: 84,
+    },
     dnaEyebrow: {
       ...typography.section,
       color: colors.brand,
@@ -703,45 +674,11 @@ const createStyles = (colors) =>
     dnaBars: {
       marginTop: spacing.md,
     },
-    dnaFooter: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginTop: spacing.lg,
-    },
     dnaXPDetail: {
+      ...typography.caption,
       fontFamily: fonts.medium,
       color: colors.textSecondary,
-    },
-    nameLabel: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    nameInput: {
-      ...typography.body,
-      fontSize: 16,
-      color: colors.textPrimary,
-      backgroundColor: colors.card,
-      paddingHorizontal: spacing.md,
-      minHeight: 48,
-      borderRadius: shape.control,
-    },
-    shareButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: spacing.sm,
-      minHeight: 46,
-      marginTop: spacing.lg,
-      backgroundColor: colors.buttonFill,
-      borderRadius: shape.card,
-    },
-    shareText: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      color: colors.brand,
+      marginTop: spacing.md,
     },
 
     // Tonight: the best pick big, the others under it.
@@ -824,6 +761,14 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
+    },
+    notTonight: {
+      alignSelf: "center",
+      paddingVertical: spacing.sm + 2,
+    },
+    notTonightText: {
+      ...typography.bodyBold,
+      color: colors.textSecondary,
     },
     footerButton: {
       minHeight: 52,

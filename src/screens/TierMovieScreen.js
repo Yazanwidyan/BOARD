@@ -24,6 +24,7 @@ import { Text } from "../components/AppText";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { useMovieStore } from "../store/movieStore";
+import { tierWithFeedback } from "../utils/achievementFeedback";
 import { spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { TIERS, getTier } from "../utils/tiers";
@@ -203,7 +204,9 @@ export const TierMovieScreen = ({ navigation, route }) => {
     if (!canSave) return;
     setLocked(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    useMovieStore.getState().setWatchedTier(movieId, chosen);
+    // Saved, and what it changed said in a toast (tonight's pick, before
+    // and after).
+    tierWithFeedback(movieId, chosen);
     navigation.goBack();
   };
 

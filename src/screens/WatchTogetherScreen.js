@@ -13,6 +13,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { HeaderIconButton, StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
 import { useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
+import { matchWord } from "../utils/tasteWords";
 import { useBoardStore } from "../store/boardStore";
 import { useFriends } from "../store/friendsStore";
 import { useMovieStore } from "../store/movieStore";
@@ -464,7 +465,7 @@ export const WatchTogetherScreen = ({ navigation, route }) => {
                   .map((item) => (
                     <View key={item.key} style={styles.matchChip}>
                       <Text style={styles.matchText}>
-                        {item.key === "me" ? t("You") : item.name.split(" ")[0]} {item.match}%
+                        {item.key === "me" ? t("You") : item.name.split(" ")[0]} · {matchWord(item.match)}
                       </Text>
                     </View>
                   ))}

@@ -45,6 +45,9 @@ export const toCollection = (definition) => ({
   type: definition.type,
   kind: definition.kind ?? null,
   title: definition.title,
+  // What it's about in plain words ("Harry Potter", "Christopher Nolan") —
+  // what the app leads with outside the collection's own page and Library.
+  subject: definition.subject ?? definition.person ?? definition.title,
   subtitle: definition.subtitle ?? null,
   ranks: definition.ranks ?? [],
   art: definition.art ?? null,
@@ -70,6 +73,7 @@ export const rememberCollections = (definitions) => {
     if (
       current &&
       current.title === definition.title &&
+      current.subject === (definition.subject ?? definition.person ?? definition.title) &&
       current.person === (definition.person ?? null) &&
       current.movieIds.join() === definition.movieIds.join() &&
       JSON.stringify(current.ranks) === JSON.stringify(definition.ranks ?? [])

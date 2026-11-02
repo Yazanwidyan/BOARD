@@ -558,7 +558,6 @@ const ar = {
   "Based on what you just told us. It'll be waiting on Home.":
     "بناءً على ما أخبرتنا به للتو. سينتظرك في الرئيسية.",
   Continue: "متابعة",
-  "Set as tonight's pick": "اجعله اختيار الليلة",
 
   // ---- Moods, ratings, misc data ----
   Funny: "مضحك",
@@ -788,12 +787,8 @@ const ar = {
   "Huge & epic": "ضخم وملحمي",
   "Real world": "العالم الحقيقي",
   "Other worlds": "عوالم أخرى",
-  "{name}'s taste DNA": "بصمة ذوق {name}",
   "from {count} movies": "من {count} أفلام",
-  "Put your name on it (optional)": "ضع اسمك عليها (اختياري)",
   "Chosen for your taste. It'll be waiting on Home.": "مختار لذوقك. سيكون بانتظارك في الرئيسية.",
-  "{match}% match": "تطابق {match}%",
-  "I haven't seen these": "لم أشاهد هذه",
   "See tonight's picks": "شاهد اختيارات الليلة",
   "Not mapped yet": "لم تُرسم بعد",
   "Tier a few movies and we'll map it — how dark, how fast, how twisty you like them.": "صنّف بعض الأفلام وسنرسمها — كم تحبها قاتمة وسريعة ومليئة بالمفاجآت.",
@@ -1074,7 +1069,6 @@ const ar = {
   Together: "معًا",
   "Your tier list, lists and taste. Pick your top ten and share your taste card.":
     "قائمة تصنيفك وقوائمك وذوقك. اختر أفضل عشرة وشارك بطاقة ذوقك.",
-  "{match}% your taste": "{match}% من ذوقك",
   // ---- Sagas ----
   "Studios": "الاستوديوهات",
   "Themes": "المواضيع",
@@ -1094,7 +1088,6 @@ const ar = {
   "Suggested for tonight": "مقترح لليلة",
   "{count} of {total} in {saga} · {left} more to {rank}":
     "{count} من {total} في {saga} · {left} للوصول إلى {rank}",
-  "Starts {saga} · {total} films": "يبدأ {saga} · {total} أفلام",
   // Settings, profile and account
   "I'm picking movies on ReelBoard. Add me: {handle}":
     "أختار أفلامي على ReelBoard. أضفني: {handle}",
@@ -1136,7 +1129,6 @@ const ar = {
   "One movie left to finish {title}: {title2}.": "بقي فيلم واحد لإكمال {title}: {title2}.",
   "Start a new collection — watch {title} to begin {title2}.": "ابدأ مجموعة جديدة — شاهد {title} لتبدأ {title2}.",
   "Finish the Collection": "أكمل المجموعة",
-  "My taste DNA": "حمضي الذوقي",
   "Log": "تسجيل",
   "Logged": "مُسجّل",
   "One film, a surprise": "فيلم واحد، مفاجأة",
@@ -1209,7 +1201,6 @@ const ar = {
   "More you've watched": "أفلام أخرى شاهدتها",
   "Search your films": "ابحث في أفلامك",
   "No film by that name.": "لا يوجد فيلم بهذا الاسم.",
-  "{match}% taste": "ذوق {match}%",
   "Starring": "بطولة",
   "Pick up where you left off.": "تابع من حيث توقفت.",
   // Ranks screen
@@ -1318,20 +1309,11 @@ const ar = {
   // A friend's page
   "Their taste": "ذوقهم",
   // Onboarding
-  "This is your taste.": "هذا هو ذوقك.",
-  "It sharpens with every film you tier.": "يزداد دقة مع كل فيلم تصنّفه.",
-  "Start watching": "ابدأ المشاهدة",
   "What have you seen?": "ماذا شاهدت؟",
-  "Tap the ones you've watched. Tap ♥ on any you loved.": "اضغط على ما شاهدته. واضغط ♥ على ما أحببته.",
   "Next · {count} seen, {loved} loved": "التالي · {count} شوهدت، {loved} محبوبة",
   "Next · {count} seen": "التالي · {count} شوهدت",
   // The welcome
   "Know what to watch tonight.": "اعرف ماذا تشاهد الليلة.",
-  "Picks made from your taste, with the reasons why — ready when you are.": "اختيارات مبنية على ذوقك، مع أسبابها — جاهزة متى أردت.",
-  "Tier every film you watch.": "صنّف كل فيلم تشاهده.",
-  "S to F, your way. Your tiers teach ReelBoard your taste and build your profile.": "من S إلى F، على طريقتك. تصنيفاتك تعلّم ReelBoard ذوقك وتبني ملفك.",
-  "Decide together.": "قرّروا معاً.",
-  "Bring friends in, swipe a short stack, and land on one film you'll all enjoy.": "أضف أصدقاءك، واسحبوا مجموعة قصيرة، واتفقوا على فيلم يستمتع به الجميع.",
   "Continue with email": "المتابعة بالبريد الإلكتروني",
   "Have an account?": "لديك حساب؟",
   // Search's paste-a-list
@@ -1548,14 +1530,11 @@ const ar = {
   "Trusted Voice": "صوت موثوق",
   "Seasoned Reviewer": "مراجِع متمرّس",
   "Master Reviewer": "مراجِع خبير",
-  "{count} balanced": "{count} متوازنة",
-  "Balanced": "متوازن",
   "Your favourites, #1 first — hold and drag, or use the arrows.": "أفلامك المفضلة، الأول أولًا — اضغط مطولًا واسحب، أو استخدم الأسهم.",
   "Order your S tier": "رتّب فئة S",
   "Tier a film S and it shows here.": "صنّف فيلمًا في S وسيظهر هنا.",
   "Move {title} up": "انقل {title} لأعلى",
   "Move {title} down": "انقل {title} لأسفل",
-  "{name}'s taste": "ذوق {name}",
   "Up": "لأعلى",
   "Down": "لأسفل",
   "Your best": "الأفضل لديك",
@@ -1671,8 +1650,6 @@ const ar = {
   "Finish what you started": "أكمل ما بدأته",
   "Start a collection": "ابدأ مجموعة",
   "Next: {title}": "التالي: {title}",
-  "Finishes {title}": "يُكمل {title}",
-  "{count} left in {title}": "بقي {count} في {title}",
 
   // ---- Collections, not ranks ----
   "collection": "مجموعة",
@@ -1692,7 +1669,6 @@ const ar = {
   "Tier it while it's fresh — it sharpens your picks.": "صنّفه وهو حاضر في ذهنك — يجعل اختياراتك أدق.",
   "A nudge for {title}?": "تذكير بـ {title}؟",
   "A nudge tonight?": "تذكير الليلة؟",
-  "We'll remind you at 7:30 pm, and ask how it was the next morning.": "سنذكّرك الساعة 7:30 مساءً، ونسألك في الصباح التالي كيف كان.",
   "Not now": "ليس الآن",
   "Remind me": "ذكّرني",
   "Dismiss": "إخفاء",
@@ -1709,7 +1685,6 @@ const ar = {
   "Start one": "ابدأ واحدة",
   "Tracking": "تتابعها",
   "{count} films · {genre}": "{count} فيلم · {genre}",
-  "1 left": "بقي واحد",
   "Studio": "استوديو",
   "Theme": "موضوع",
   "Won": "فزت بها",
@@ -1717,6 +1692,64 @@ const ar = {
   "Not finished yet": "لم تكتمل بعد",
   "{count} of {total} completed": "{count} من {total} مكتملة",
   "Watch every film in a collection to complete it.": "شاهد كل أفلام المجموعة لتكملها.",
+  "One for tonight": "واحد لليلة",
+  "Another one": "اقتراح آخر",
+
+  // ---- Collections, said plainly ----
+  "Watch every film to complete one": "شاهد كل أفلامها لتكملها",
+  "{watched} of {total} seen": "شاهدت {watched} من {total}",
+  "{count} essentials · {watched} seen": "أشهر {count} · شاهدت {watched}",
+  "Pick a director or series. Watch every film.": "اختر مخرجًا أو سلسلة، وشاهد كل أفلامها.",
+  "Completes the {subject} set": "يُكمل مجموعة {subject}",
+  "{count} more {subject} films": "بقي {count} من أفلام {subject}",
+  "{count} more {subject} films to complete the set": "بقي {count} من أفلام {subject} لتكتمل المجموعة",
+  "Starts the {subject} set · {total} films": "يبدأ مجموعة {subject} · {total} أفلام",
+  "Next in your {subject} collection": "التالي في مجموعة {subject}",
+  "You started a collection: {subject}": "بدأت مجموعة: {subject}",
+  "Watch all {total} to complete it.": "شاهد الـ{total} كلها لتكملها.",
+  "1 film left": "بقي فيلم واحد",
+  "{count} films left": "بقي {count} أفلام",
+
+  // ---- Taste, in plain words ----
+  "Good match": "تطابق جيد",
+  "Worth a try": "يستحق التجربة",
+  "Your taste is wide open so far.": "ذوقك ما زال منفتحًا على كل شيء.",
+  "You lean toward {first} films.": "تميل إلى الأفلام {first}.",
+  "You lean toward {first}, {second} films.": "تميل إلى الأفلام {first} و{second}.",
+  "Tier {count} more to sharpen tonight's pick": "قيّم {count} أفلام أخرى لتحسين اختيار الليلة",
+  "Got it, fewer films like {title}. New pick for tonight: {pick}.": "فهمنا، أفلام أقل مثل {title}. اختيار جديد لليلة: {pick}.",
+  "Got it, fewer films like {title}.": "فهمنا، أفلام أقل مثل {title}.",
+  "{title} → {tier}. New pick for tonight: {pick}.": "{title} ← {tier}. اختيار جديد لليلة: {pick}.",
+  "Noted. {title} is in your {tier} tier.": "تم. {title} الآن في فئة {tier}.",
+  "This film": "هذا الفيلم",
+  "It gets sharper with every film you tier.": "يزداد دقة مع كل فيلم تقيّمه.",
+  "You loved": "أحببت",
+  "Last updated by {title} ({tier}), {when}": "آخر تحديث: {title} ({tier})، {when}",
+  "Steering away from": "نبتعد عن",
+  "Tier {count} more films to unlock your taste card.": "قيّم {count} أفلام أخرى لتفتح بطاقة ذوقك.",
+
+  // ---- Onboarding, without ambiguity ----
+  "Picks from your taste, with the reasons why.": "اختيارات من ذوقك، مع السبب.",
+  "Tier what you watch.": "صنّف ما تشاهده.",
+  "S = all-time favorite, F = not for me. Every tier sharpens tonight's pick.": "S = المفضل على الإطلاق، F = ليس لي. كل تصنيف يجعل اختيار الليلة أدق.",
+  "Tap the ones you've seen. Tap ♥ on films you loved — they go straight into your S tier.": "اضغط على ما شاهدته. اضغط ♥ على الأفلام التي أحببتها — تدخل مباشرة في فئة S.",
+  "Show more like these": "اعرض المزيد مثلها",
+  "Show me different films": "اعرض أفلامًا أخرى",
+  "Skip — I'll tier as I go": "تخطَّ — سأصنّف لاحقًا",
+  "Your taste so far.": "ذوقك حتى الآن.",
+  "Popular right now. Tier one to make it yours.": "رائج الآن. صنّف فيلمًا ليصبح على ذوقك.",
+  "I'll watch this tonight": "سأشاهده الليلة",
+  "Not tonight": "ليس الليلة",
+  "Not tonight, save it": "ليس الليلة، احفظه",
+  "We'll nudge you at 7:30 and ask how it was tomorrow morning, so your next pick gets sharper.": "سنذكّرك الساعة 7:30 ونسألك صباح الغد كيف كان، ليصبح اختيارك القادم أدق.",
+  "We'll ask how it was tomorrow morning, so your next pick gets sharper.": "سنسألك صباح الغد كيف كان، ليصبح اختيارك القادم أدق.",
+  "Did you watch {title}?": "هل شاهدت {title}؟",
+  "Did you watch last night's pick?": "هل شاهدت اختيار الأمس؟",
+  "Tier it, or tell us you didn't — your next pick gets sharper.": "صنّفه، أو أخبرنا أنك لم تشاهده — ليصبح اختيارك القادم أدق.",
+  "Didn't watch it": "لم أشاهده",
+  "Still on for tonight?": "ما زال لليلة؟",
+  "Yes, tonight": "نعم، الليلة",
+  "Pick something else": "اختر شيئًا آخر",
 };
 
 export default ar;

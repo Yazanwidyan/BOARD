@@ -9,13 +9,26 @@ import { MoviePoster } from "./MoviePoster";
 import { TasteDnaBars } from "./TasteDnaBars";
 
 const SIGNATURE_GAP = 2;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Profile's taste card, built on Taste DNA (see utils/tasteDna): the six
-// sliders, the themes you love, the films that sum
-// your taste up, then the plain facts (director, decade, genres) — genre
-// is one line at the bottom now, not the headline.
+// "today", "yesterday", "3 days ago".
+const whenAgo = (at) => {
+  const days = Math.floor((Date.now() - at) / DAY_MS);
+  if (days <= 0) return t("today");
+  if (days === 1) return t("yesterday");
+  return t("{count} days ago", { count: days });
+};
+
+// Your taste, on its page (see utils/tasteDna), told with films first: the
+// films that sum you up, your taste in one plain sentence, what last
+// changed it ("Last updated by Heat (S), 2 days ago"), the themes you
+// love, what it's steering away from ("Not for me"s), then the plain
+// facts (director, decade, genres).
+// `lastTiered`: { movie, tier, at } or null; `steering`: movies.
 export const TasteDnaCard = ({
   dna,
+  lastTiered = null,
+  steering = [],
   director,
   decade,
   topGenres,
@@ -52,10 +65,39 @@ export const TasteDnaCard = ({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>{t("Your taste DNA")}</Text>
+      <Text style={styles.eyebrow}>{t("Your taste")}</Text>
+      {dna.signature.length > 0 && (
+        <View style={styles.firstSection}>
+          <Text style={styles.label}>{t("Films that sum you up")}</Text>
+          <View style={styles.posters}>
+            {dna.signature.map((movie) => (
+              <Pressable
+                key={movie.id}
+                onPress={() => onOpenMovie(movie.id)}
+                accessibilityLabel={movie.title}
+              >
+                <MoviePoster
+                  uri={movie.poster}
+                  style={{ width: posterWidth, height: posterWidth * 1.5 }}
+                />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
+
 
       <View style={styles.section}>
         <TasteDnaBars fingerprint={dna.fingerprint} />
+        {lastTiered && (
+          <Text style={styles.updated}>
+            {t("Last updated by {title} ({tier}), {when}", {
+              title: lastTiered.movie.title,
+              tier: lastTiered.tier,
+              when: whenAgo(lastTiered.at),
+            })}
+          </Text>
+        )}
       </View>
 
       {dna.themes.length > 0 && (
@@ -72,23 +114,10 @@ export const TasteDnaCard = ({
         </View>
       )}
 
-      {dna.signature.length > 0 && (
+      {steering.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.label}>{t("Films that sum you up")}</Text>
-          <View style={styles.posters}>
-            {dna.signature.map((movie) => (
-              <Pressable
-                key={movie.id}
-                onPress={() => onOpenMovie(movie.id)}
-                accessibilityLabel={movie.title}
-              >
-                <MoviePoster
-                  uri={movie.poster}
-                  style={{ width: posterWidth, height: posterWidth * 1.5 }}
-                />
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.label}>{t("Steering away from")}</Text>
+          <Text style={styles.line}>{steering.map((movie) => movie.title).join(" · ")}</Text>
         </View>
       )}
 
@@ -162,6 +191,15 @@ const createStyles = (colors) =>
     linkText: {
       ...typography.bodyBold,
       color: colors.textPrimary,
+    },
+    // The films come first, just under the eyebrow.
+    firstSection: {
+      marginTop: spacing.sm,
+    },
+    updated: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
     },
     section: {
       marginTop: spacing.lg,

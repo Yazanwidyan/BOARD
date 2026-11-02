@@ -21,7 +21,6 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,6 +42,8 @@ import { Text } from "./AppText";
 import { DialogArt } from "./DialogArt";
 import { MilestoneMedal } from "./MilestoneMedal";
 import { MoviePoster } from "./MoviePoster";
+import { SlotStrip } from "./SlotStrip";
+import { LaurelIcon } from "./icons/Laurel";
 import { features } from "../config/features";
 
 // The moment after you watch something, full screen — an award, not a
@@ -57,7 +58,8 @@ import { features } from "../config/features";
 //   Mind-Bender                    the collection (or the film)
 //   Every film in Mind-Bender
 //   also complete                  any other collection it finished
-//   [7] Christopher Nolan ━━━━━──  7 of 8 · 1 left   (fills before → after)
+//   Christopher Nolan ▮▮▮▮▮▮▮▯  7 of 8 seen   (a slot per film, this one lit)
+//   — or, the first film of one: "You started a collection: …" 
 //   [ Tier it ]                    the one main action (white)
 //   [ Share it / See collection ]  the second (grey)
 //
@@ -72,8 +74,6 @@ const GLOW = 340;
 // few minutes (by the film just watched).
 const MILESTONE_FRESH_MS = 3 * 60 * 1000;
 const MEDAL = 76;
-const BAR_DELAY = 450;
-const BAR_MS = 700;
 const ROWS_DELAY = 380;
 const ROW_STAGGER = 70;
 // One easing for everything that arrives: quick, then settles — no
@@ -252,53 +252,44 @@ const PosterHero = ({ movie, color, styles }) => (
   </Animated.View>
 );
 
-// How far this watch took you in a collection: its name, "7 of 8 · 1
-// left", and a bar that fills from before to after; the count chip pops.
-const CollectionProgress = ({ progress, color, styles }) => {
-  const reduceMotion = useReducedMotion();
-  const after = progress.watched / progress.total;
-  const before = (progress.watched - 1) / progress.total;
-  const fill = useSharedValue(reduceMotion ? after : before);
-  const chipScale = useSharedValue(1);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    fill.value = withDelay(BAR_DELAY, withTiming(after, { duration: BAR_MS, easing: Easing.out(Easing.cubic) }));
-    chipScale.value = withDelay(
-      BAR_DELAY,
-      withSequence(
-        withTiming(1.15, { duration: 160, easing: Easing.out(Easing.quad) }),
-        withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
-      ),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fillStyle = useAnimatedStyle(() => ({ width: `${Math.max(fill.value, 0.02) * 100}%` }));
-  const chipStyle = useAnimatedStyle(() => ({ transform: [{ scale: chipScale.value }] }));
+// How far this watch took you in a collection, by what it's about: a slot
+// per film (this one lit), "7 of 8 seen · 1 film left" — or, when this film
+// began it, what a collection is, in a line: "You started a collection:
+// Christopher Nolan · 1 of 8 seen. Watch all 8 to complete it." beside a
+// laurel not yet won.
+const CollectionProgress = ({ progress, movieId, styles }) => {
   const left = progress.total - progress.watched;
-
+  const watchedIds = new Set(useMovieStore.getState().watched.map((entry) => entry.movieId));
+  watchedIds.add(movieId);
   return (
-    <View style={styles.titleBlock}>
-      <View style={styles.titleTop}>
-        <Animated.View style={[styles.countChip, { backgroundColor: color }, chipStyle]}>
-          <Text style={styles.countChipText}>{progress.watched}</Text>
-        </Animated.View>
-        <View style={styles.titleText}>
-          <Text style={styles.titleName} numberOfLines={1}>
-            {progress.title}
-          </Text>
-          <Text style={styles.titleToGo} numberOfLines={1}>
-            {t("{watched} of {total}", { watched: progress.watched, total: progress.total })}
+    <Animated.View entering={FadeInDown.duration(320).delay(ROWS_DELAY)} style={styles.titleBlock}>
+      {progress.started ? (
+        <View style={styles.startedRow}>
+          <LaurelIcon size={34} muted />
+          <Text style={styles.startedText}>
+            <Text style={styles.titleName}>
+              {t("You started a collection: {subject}", { subject: progress.subject })}
+            </Text>
             {" · "}
-            {t("{count} left", { count: left })}
+            {t("{watched} of {total} seen", { watched: progress.watched, total: progress.total })}
+            {". "}
+            {t("Watch all {total} to complete it.", { total: progress.total })}
           </Text>
         </View>
-      </View>
-      <View style={styles.barTrack}>
-        <Animated.View style={[styles.barFill, { backgroundColor: color }, fillStyle]} />
-      </View>
-    </View>
+      ) : (
+        <View style={styles.titleText}>
+          <Text style={styles.titleName} numberOfLines={1}>
+            {progress.subject}
+          </Text>
+          <Text style={styles.titleToGo} numberOfLines={1}>
+            {t("{watched} of {total} seen", { watched: progress.watched, total: progress.total })}
+            {" · "}
+            {left === 1 ? t("1 film left") : t("{count} films left", { count: left })}
+          </Text>
+        </View>
+      )}
+      <SlotStrip movieIds={progress.movieIds} watchedIds={watchedIds} fresh={movieId} height={8} style={styles.slots} />
+    </Animated.View>
   );
 };
 
@@ -538,7 +529,7 @@ const AchievementDialog = ({ achievement }) => {
             )}
 
             {progress && completed.length === 0 && (
-              <CollectionProgress progress={progress} color={colors.brand} styles={styles} />
+              <CollectionProgress progress={progress} movieId={movie?.id ?? null} styles={styles} />
             )}
           </View>
 
@@ -750,27 +741,22 @@ const createStyles = (colors) =>
       gap: spacing.sm + 2,
       borderRadius: shape.card,
     },
-    titleTop: {
+    titleText: {
+      flex: 1,
+    },
+    // The first film of a collection: what it is, beside a laurel to win.
+    startedRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 2,
     },
-    // The chip sits on the slate, so the page's colour for its text.
-    countChip: {
-      minWidth: 34,
-      height: 34,
-      paddingHorizontal: 6,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    countChipText: {
-      ...typography.title,
-      fontSize: 16,
-      lineHeight: 22,
-      color: colors.background,
-    },
-    titleText: {
+    startedText: {
+      ...typography.caption,
       flex: 1,
+      color: colors.textSecondary,
+    },
+    slots: {
+      alignSelf: "stretch",
     },
     titleName: {
       ...typography.bodyBold,
@@ -779,15 +765,6 @@ const createStyles = (colors) =>
     titleToGo: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    barTrack: {
-      height: 8,
-      overflow: "hidden",
-      backgroundColor: colors.border,
-      borderRadius: shape.chip,
-    },
-    barFill: {
-      height: "100%",
     },
 
     // Actions: red, then grey with red words, full width.

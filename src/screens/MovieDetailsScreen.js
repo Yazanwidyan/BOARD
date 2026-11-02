@@ -73,6 +73,7 @@ import { getFamilyRating } from "../utils/familyRating";
 import { getMovieMatch, getTastePicks } from "../utils/tasteEngine";
 import { getAverageTier, getTier, getTierInfo } from "../utils/tiers";
 import { describePathStep, getPathFor, usePaths } from "../utils/paths";
+import { matchWord } from "../utils/tasteWords";
 import { describeSagaStep, getSagaStep } from "../utils/tonightPick";
 import {
   useHeroFadeStyle,
@@ -433,7 +434,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     if (!movie || seen.has(movieId)) return null;
     const path = getPathFor(paths, movieId);
     if (path) {
-      return { collectionId: path.id, line: describePathStep(path), finish: path.total - path.watched === 1 };
+      return { collectionId: path.id, line: describePathStep(path, { long: true }), finish: path.total - path.watched === 1 };
     }
     const step = getSagaStep(movieId, seen);
     return step
@@ -714,11 +715,11 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   onPress={() => setIsMatchOpen(true)}
                   hitSlop={6}
                   accessibilityRole="button"
-                  accessibilityLabel={t("{match}% your taste", { match: tasteMatch.match })}
+                  accessibilityLabel={matchWord(tasteMatch.match)}
                   accessibilityHint={t("Why it fits you")}
                 >
                   <Text style={styles.matchText} numberOfLines={1}>
-                    {t("{match}% taste", { match: tasteMatch.match })}
+                    {matchWord(tasteMatch.match)}
                   </Text>
                   <ChevronRight size={14} color={colors.success} strokeWidth={2.4} style={rtl && styles.flipped} />
                 </Pressable>

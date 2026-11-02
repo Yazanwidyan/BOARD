@@ -9,6 +9,7 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { t } from "../i18n";
+import { matchWord } from "../utils/tasteWords";
 import { useStretchyBackdropStyle } from "../utils/scrollEffects";
 
 // The card's height for its width.
@@ -190,7 +191,7 @@ export const HomeHero = ({
               {match != null && (
                 <View style={styles.match}>
                   <Clover size={14} color={colors.success} strokeWidth={2.2} />
-                  <Text style={styles.matchText}>{t("{match}% match", { match })}</Text>
+                  <Text style={styles.matchText}>{matchWord(match)}</Text>
                 </View>
               )}
               {tag && (

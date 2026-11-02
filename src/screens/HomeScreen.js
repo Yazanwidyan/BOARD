@@ -16,6 +16,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { DecideWays } from "../components/QuickPickBento";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { ShelfRail } from "../components/ShelfRail";
+import { SlotStrip } from "../components/SlotStrip";
 import { DockHeader, HeaderIconButton, useDockHeader } from "../components/ScreenHeader";
 import { SwipeSheet } from "../components/SwipeSheet";
 import { TierNudgeCard } from "../components/TierNudgeCard";
@@ -35,24 +36,28 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getSuggestedCollections } from "../utils/collections";
 import { buildMixes, pickLovedFilm } from "../utils/mixes";
-import { getPathNext, usePaths } from "../utils/paths";
+import { getPathNext, subjectOf, usePaths } from "../utils/paths";
+import { toCollection } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getTier, getTierInfo } from "../utils/tiers";
+import { matchWord } from "../utils/tasteWords";
 import { getTonightSuggestions } from "../utils/tonightPick";
 import { features } from "../config/features";
 
 // The space above each of Home's sections.
 const SECTION_GAP = spacing.section;
-// How many suggestions the mixes are drawn from.
+// How many suggestions the mixes are drawn from, and how many of the best
+// "One for tonight" steps through.
 const POOL_SIZE = 60;
+const ONE_PICK_POOL = 10;
 // Recently watched: how many, and how wide each poster.
 const RECENT_COUNT = 12;
 const RECENT_WIDTH = 96;
-// Finish what you started: how many, and each poster's width. With none
-// under way, a few to start instead (each collage's width includes the
-// rail's own side padding).
+// Your collections: how many, and each card's width. With none under way,
+// a few to start instead (each collage's width includes the rail's own
+// side padding).
 const PATHS_SHOWN = 6;
-const PATH_WIDTH = 118;
+const PATH_WIDTH = 132;
 const COLLECTIONS_TO_START = 3;
 const COLLECTION_ITEM = 118;
 // The same query as Similar's, so the two share what they fetch.
@@ -60,7 +65,8 @@ const LIKE_COUNT = 30;
 
 // A section's heading, as in Apple Music: big and bold, with a › when it
 // opens somewhere (the whole heading is the button).
-const SectionHeading = ({ title, onPress, styles, colors }) => {
+// `subtitle`: a quiet line under it, saying what the section is.
+const SectionHeading = ({ title, subtitle, onPress, styles, colors }) => {
   const rtl = useIsRTL();
   const content = (
     <>
@@ -72,9 +78,9 @@ const SectionHeading = ({ title, onPress, styles, colors }) => {
       )}
     </>
   );
-  return onPress ? (
+  const heading = onPress ? (
     <Pressable
-      style={({ pressed }) => [styles.headingRow, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.headingRow, !!subtitle && styles.headingRowTight, pressed && styles.pressed]}
       onPress={onPress}
       hitSlop={6}
       accessibilityRole="button"
@@ -82,19 +88,31 @@ const SectionHeading = ({ title, onPress, styles, colors }) => {
       {content}
     </Pressable>
   ) : (
-    <View style={styles.headingRow}>{content}</View>
+    <View style={[styles.headingRow, !!subtitle && styles.headingRowTight]}>{content}</View>
+  );
+  if (!subtitle) return heading;
+  return (
+    <>
+      {heading}
+      <Text style={styles.headingSubtitle} numberOfLines={1}>
+        {subtitle}
+      </Text>
+    </>
   );
 };
 
 // Home — your board for tonight, laid out like Apple Music's Home: the
 // header's large title, then
 //   How was it?         the morning after a watch, until it's tiered
-//   Top picks for you   the mixes (utils/mixes): big cards to pick from,
+//   Top picks for you   one film for tonight, then the mixes (utils/mixes):
+//                       big cards to pick from,
 //                       each a page with Sort this pile / Pick one for me
 //   the decide ways     Surprise me, Sort a pile, More like…, your dare
 //   Watch with friends  the same night, shared
-//   Finish what you started  the collections under way, each as the film
-//                       to watch next (or, with none, ones to start)
+//   Your collections    the sets of films under way (a director's, a
+//                       series'): each its cover, a slot per film, what
+//                       it's about and the film next (or, with none,
+//                       ones to start)
 //   Recently watched    tap one to tier it
 //   Replay              your month
 // Tonight's pick itself docks above the tabs (TonightBar). A brand-new
@@ -107,6 +125,7 @@ export const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const header = useDockHeader();
+  const rtl = useIsRTL();
   const notificationCount = useNotificationCount();
   const language = useLanguageStore((state) => state.language);
 
@@ -155,6 +174,34 @@ export const HomeScreen = ({ navigation }) => {
     .map((path) => ({ path, movie: getMovieById(getPathNext(path, rankedIds)) }))
     .filter(({ movie }) => movie && !passedIds.has(movie.id))
     .slice(0, PATHS_SHOWN);
+  // One for tonight: the best fit of the suggestions, ⇄ stepping through
+  // the next few.
+  const [pickTurn, setPickTurn] = useState(0);
+  const onePickPool = pool.filter((item) => !passedIds.has(item.movie.id)).slice(0, ONE_PICK_POOL);
+  const onePickItem = onePickPool.length ? onePickPool[pickTurn % onePickPool.length] : null;
+  // Its reason first — the one about the film you most recently put in S
+  // or A, when there's one, so a tier shows up in tonight's pick — then how
+  // well it fits, in a word (never a % from a few taps).
+  const lastLoved = getMovieById(
+    [...watched].filter((entry) => entry.tier === "S" || entry.tier === "A").sort((a, b) => b.timestamp - a.timestamp)[0]
+      ?.movieId,
+  );
+  const onePickReason =
+    (lastLoved && (onePickItem?.reasons ?? []).find((reason) => reason.includes(lastLoved.title))) ??
+    onePickItem?.reason;
+  const onePick = onePickItem && {
+    movie: onePickItem.movie,
+    why:
+      [onePickReason, matchWord(onePickItem.match)].filter(Boolean).join(" · ") ||
+      t(onePickItem.angle?.label ?? ""),
+    picked: pickedMovieId === onePickItem.movie.id,
+  };
+  // Films watched but not tiered: tiering a few sharpens tonight's pick.
+  const untieredCount = watched.filter((entry) => !getTier(entry)).length;
+  const pickForTonight = (movieId) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    useMovieStore.getState().setPickedMovie(movieId);
+  };
   const lovedId = pickLovedFilm(watched);
   const like = useQuery({
     queryKey: ["movie", lovedId, "like", LIKE_COUNT, "director"],
@@ -167,6 +214,7 @@ export const HomeScreen = ({ navigation }) => {
   const mixes = buildMixes({
     pool,
     lead: underWay[0]?.movie ?? null,
+    leadTag: underWay[0] ? t("Next in your {subject} collection", { subject: subjectOf(underWay[0].path) }) : null,
     bucketList,
     watchedIds,
     loved: lovedId ? getMovieById(lovedId) : null,
@@ -249,10 +297,33 @@ export const HomeScreen = ({ navigation }) => {
         <TierNudgeCard navigation={navigation} style={[styles.inset, styles.nudge]} />
 
         {/* Top picks, and the other ways to choose under them. */}
-        {mixes.length > 0 && (
+        {(mixes.length > 0 || onePick) && (
           <>
             <SectionHeading title={t("Top picks for you")} styles={styles} colors={colors} />
-            <MixRail mixes={mixes} onOpen={openMix} />
+            <MixRail
+              mixes={mixes}
+              onOpen={openMix}
+              onePick={onePick}
+              onOpenMovie={(movieId) => navigation.navigate("MovieDetails", { movieId })}
+              onPick={pickForTonight}
+              onSwap={() => {
+                Haptics.selectionAsync();
+                setPickTurn((turn) => turn + 1);
+              }}
+            />
+            {/* Watched but not tiered: a few tiers sharpen the pick above. */}
+            {untieredCount > 0 && (
+              <Pressable
+                style={({ pressed }) => [styles.sharpen, pressed && styles.pressed]}
+                onPress={() => navigation.navigate("Library", { showUntiered: true })}
+                accessibilityRole="button"
+              >
+                <Text style={styles.sharpenText} numberOfLines={1}>
+                  {t("Tier {count} more to sharpen tonight's pick", { count: Math.min(untieredCount, 3) })}
+                </Text>
+                <ChevronRight size={16} color={colors.brand} strokeWidth={2.4} style={rtl && styles.flipped} />
+              </Pressable>
+            )}
           </>
         )}
         {!isFreshAccount && (
@@ -287,42 +358,53 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Finish what you started: each collection under way as the film
-            to watch next, how far you are on its corner. Tap for the film. */}
+        {/* Your collections: each set under way as a set — its cover, a
+            slot per film (filled when seen), what it's about, how many
+            seen and the film next. Tap for the collection. */}
         {underWay.length > 0 ? (
           <View style={styles.section}>
             <SectionHeading
-              title={t("Finish what you started")}
+              title={t("Your collections")}
+              subtitle={t("Watch every film to complete one")}
               onPress={() => navigation.navigate("Library", { initialTab: "collections", openedAt: Date.now() })}
               styles={styles}
               colors={colors}
             />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
-              {underWay.map(({ path, movie }) => (
-                <Pressable
-                  key={path.id}
-                  style={({ pressed }) => [styles.pathItem, pressed && styles.pressed]}
-                  onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${path.title}: ${movie.title}`}
-                >
-                  <MoviePoster uri={movie.poster} style={styles.pathPoster} />
-                  <View style={styles.pathCount}>
-                    <Text style={styles.pathCountText}>
-                      {t("{watched} of {total}", { watched: path.watched, total: path.total })}
+              {underWay.map(({ path, movie }) => {
+                const subject = subjectOf(path);
+                const seen = path.essentials
+                  ? t("{count} essentials · {watched} seen", { count: path.total, watched: path.watched })
+                  : t("{watched} of {total} seen", { watched: path.watched, total: path.total });
+                // The playful name, when there is one, comes second.
+                const meta = path.title !== subject ? `${path.title} · ${seen}` : seen;
+                return (
+                  <Pressable
+                    key={path.id}
+                    style={({ pressed }) => [styles.pathItem, pressed && styles.pressed]}
+                    onPress={() => navigation.navigate("CollectionDetails", { collectionId: path.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${subject}, ${seen}`}
+                  >
+                    <CollectionCollage
+                      collection={toCollection(path)}
+                      watchedIds={watchedIds}
+                      size={PATH_WIDTH}
+                      bar={false}
+                    />
+                    <SlotStrip movieIds={path.movieIds} watchedIds={watchedIds} style={styles.pathSlots} />
+                    <Text style={styles.recentTitle} numberOfLines={1}>
+                      {subject}
                     </Text>
-                  </View>
-                  <View style={styles.pathTrack}>
-                    <View style={[styles.pathFill, { width: `${Math.round((path.watched / path.total) * 100)}%` }]} />
-                  </View>
-                  <Text style={styles.recentTitle} numberOfLines={1}>
-                    {path.title}
-                  </Text>
-                  <Text style={styles.recentMeta} numberOfLines={1}>
-                    {t("Next: {title}", { title: movie.title })}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text style={styles.recentMeta} numberOfLines={1}>
+                      {meta}
+                    </Text>
+                    <Text style={styles.pathNext} numberOfLines={1}>
+                      {t("Next: {title}", { title: movie.title })}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           </View>
         ) : (
@@ -330,6 +412,7 @@ export const HomeScreen = ({ navigation }) => {
             <View style={styles.section}>
               <SectionHeading
                 title={t("Start a collection")}
+                subtitle={t("Pick a director or series. Watch every film.")}
                 onPress={() => navigation.navigate("Library", { initialTab: "collections", openedAt: Date.now() })}
                 styles={styles}
                 colors={colors}
@@ -342,7 +425,7 @@ export const HomeScreen = ({ navigation }) => {
                   content: (
                     <CollectionCollage collection={collection} watchedIds={watchedIds} size={COLLECTION_ITEM - 2} />
                   ),
-                  title: collection.title,
+                  title: collection.subject ?? collection.title,
                   meta: t("{count} films", { count: collection.movieIds.length }),
                 }))}
               />
@@ -454,6 +537,19 @@ const createStyles = (colors) =>
     nudge: {
       marginBottom: SECTION_GAP,
     },
+    sharpen: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      alignSelf: "flex-start",
+      marginTop: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+    },
+    sharpenText: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.brand,
+    },
     chips: {
       marginTop: BENTO_GAP,
     },
@@ -476,6 +572,16 @@ const createStyles = (colors) =>
       alignItems: "center",
       alignSelf: "flex-start",
       gap: 2,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm + 2,
+    },
+    // With a line under it: that line takes the gap instead.
+    headingRowTight: {
+      marginBottom: 2,
+    },
+    headingSubtitle: {
+      ...typography.caption,
+      color: colors.textSecondary,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm + 2,
     },
@@ -507,38 +613,14 @@ const createStyles = (colors) =>
     pathItem: {
       width: PATH_WIDTH,
     },
-    pathPoster: {
-      width: PATH_WIDTH,
-      height: PATH_WIDTH * 1.5,
+    // Under a collection's cover: a slot per film.
+    pathSlots: {
+      marginTop: spacing.sm,
     },
-    // How far, on the poster's top corner…
-    pathCount: {
-      position: "absolute",
-      top: 6,
-      start: 6,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: shape.chip,
-      backgroundColor: "rgba(0,0,0,0.72)",
-    },
-    pathCountText: {
+    pathNext: {
       ...typography.caption,
-      fontFamily: fonts.bold,
-      fontSize: 11,
-      lineHeight: 14,
-      color: "#FFFFFF",
-    },
-    // …and as a bar under it.
-    pathTrack: {
-      height: 3,
-      marginTop: spacing.xs + 2,
-      borderRadius: 2,
-      backgroundColor: colors.cardElevated,
-      overflow: "hidden",
-    },
-    pathFill: {
-      height: "100%",
-      backgroundColor: colors.brand,
+      fontSize: 12,
+      color: colors.textMuted,
     },
     recentTitle: {
       ...typography.bodyBold,

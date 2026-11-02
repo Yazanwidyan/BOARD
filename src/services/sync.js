@@ -7,7 +7,7 @@ import { useLanguageStore } from "../store/languageStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { request } from "./api";
-import { logEvent } from "./events";
+import { logDeviceEvent, logEvent } from "./events";
 import { ONBOARDING_MOVIE_IDS } from "../utils/onboardingTaste";
 import {
   fetchMovies,
@@ -53,11 +53,18 @@ const applyServerState = (state, { full = false } = {}) => {
     applyingRemote = true;
     try {
       useThemeStore.getState().setMode(state.settings.theme);
-      if (state.settings.language !== useLanguageStore.getState().language) {
+      // A brand-new account keeps the language the app already opened in
+      // (the phone's) — the account learns it, below; an existing one
+      // brings its own.
+      if (state.settings.hasCompletedOnboarding && state.settings.language !== useLanguageStore.getState().language) {
         changeLanguage(state.settings.language);
       }
     } finally {
       applyingRemote = false;
+    }
+    const language = useLanguageStore.getState().language;
+    if (!state.settings.hasCompletedOnboarding && state.settings.language !== language) {
+      queueChange("PATCH", "/me/settings", { language }, { merge: "settings", invalidate: [queryKeys.settings] });
     }
   }
 };
@@ -110,6 +117,7 @@ export const signIn = async ({ email, password }) => {
     password,
   });
   useAuthStore.getState().setSession(token, user);
+  logDeviceEvent("signed_in");
   await loadAccount();
 };
 
@@ -123,6 +131,7 @@ export const signInWith = async (provider, credentials) => {
     credentials,
   );
   useAuthStore.getState().setSession(token, user);
+  logDeviceEvent("signed_in");
   await loadAccount();
 };
 
@@ -134,6 +143,7 @@ export const register = async ({ displayName, email, password }) => {
     password,
   });
   useAuthStore.getState().setSession(token, user);
+  logDeviceEvent("signed_in");
   await loadAccount();
 };
 

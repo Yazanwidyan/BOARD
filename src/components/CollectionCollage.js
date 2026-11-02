@@ -81,9 +81,10 @@ const personStyles = StyleSheet.create({
 
 // A collection as a square poster collage (its first four posters, 2 × 2)
 // — or, for an actor's or a director's, their PersonCover — with a slim
-// progress bar along the bottom edge. Finished sets get a green bar and a
+// progress bar along the bottom edge (`bar` false: none — a SlotStrip
+// under it says how far instead). Finished sets get a green bar and a
 // small "Complete" tag; untouched collages sit slightly dimmed.
-export const CollectionCollage = ({ collection, watchedIds, size }) => {
+export const CollectionCollage = ({ collection, watchedIds, size, bar = true }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const movies = collection.movies;
@@ -107,17 +108,19 @@ export const CollectionCollage = ({ collection, watchedIds, size }) => {
           />
         ))
       )}
-      <View style={styles.track}>
-        <View
-          style={[
-            styles.fill,
-            {
-              width: `${Math.round(progress * 100)}%`,
-              backgroundColor: isComplete ? colors.success : colors.collection,
-            },
-          ]}
-        />
-      </View>
+      {bar && (
+        <View style={styles.track}>
+          <View
+            style={[
+              styles.fill,
+              {
+                width: `${Math.round(progress * 100)}%`,
+                backgroundColor: isComplete ? colors.success : colors.collection,
+              },
+            ]}
+          />
+        </View>
+      )}
       {isComplete && (
         <View style={styles.completeTag}>
           <Text style={styles.completeText}>{t("Completed")}</Text>

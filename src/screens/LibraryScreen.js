@@ -816,7 +816,7 @@ export const LibraryScreen = ({ navigation, route }) => {
         compact={!!tab}
         back={
           tab && (
-            <HeaderIconButton round onPress={() => setTab(null)} accessibilityLabel={t("Back")} style={styles.back}>
+            <HeaderIconButton round onPress={() => setTab(null)} accessibilityLabel={t("Back")}>
               <ChevronLeft size={22} color={colors.textPrimary} strokeWidth={2} style={rtl && styles.flipped} />
             </HeaderIconButton>
           )
@@ -1123,9 +1123,6 @@ const createStyles = (colors) =>
     // stuck at the top with dead space below it.
     scrollContent: {
       flexGrow: 1,
-    },
-    back: {
-      marginEnd: spacing.sm,
     },
     flipped: {
       transform: [{ scaleX: -1 }],

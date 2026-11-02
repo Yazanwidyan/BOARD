@@ -1,3 +1,4 @@
+import { logEvent } from "../services/events";
 import { queryClient, queryKeys, queueChange } from "../services/queryClient";
 import { createAccountStore } from "./accountStore";
 
@@ -41,6 +42,8 @@ export const useMovieStore = createAccountStore({
   },
   actions: ({ get, set }) => {
     const setPick = (movieId, mood = null) => {
+      // The taste metric: a pick for tonight taken (and, below, watched).
+      if (movieId && movieId !== get().pickedMovie) logEvent("pick_accepted");
       set({ pickedMovie: movieId, pickMood: mood ? { movieId, mood } : null });
       queueChange(
         "PUT",
@@ -109,6 +112,7 @@ export const useMovieStore = createAccountStore({
         }
         // A mood from an earlier pick doesn't carry over (readers ignore a
         // mismatch, so it's left as it was).
+        logEvent("pick_accepted");
         set({ pickedMovie: movieId, pickMood });
         queueChange(
           "PUT",
@@ -137,6 +141,7 @@ export const useMovieStore = createAccountStore({
           );
         } else {
           const timestamp = Date.now();
+          if (get().pickedMovie === movieId) logEvent("pick_watched");
           set((state) => ({
             watched: [
               { movieId, timestamp, rating: null, watchCount: 1 },

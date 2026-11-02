@@ -16,8 +16,9 @@ import { queryClient } from "./queryClient";
 //
 //   On this phone (no account setup needed):
 //     · 7:30 pm every day — tonight's pick, or a nudge to pick one
-//     · the morning after you watch something — "How was Inception?",
-//       until you tier it (and, notifications on or not, a card on Home)
+//     · the morning after — "Did you watch Inception?" for tonight's pick,
+//       "How was Inception?" for a film marked watched — until it's tiered
+//       (and, notifications on or not, a card on Home)
 //     · the 1st of each month — "your month on ReelBoard" (the recap)
 //   From the server (friend requests, movie night) — only once the app has
 //   an EAS project id (`eas init`); until then that part is skipped.
@@ -38,7 +39,8 @@ const load = () => {
 const SETTING_KEY = "board:notifications";
 // Set once onboarding has offered them, so it's only asked the once.
 const ASKED_KEY = "board:notifications-asked";
-// The film to ask about the next morning: { movieId, at }.
+// The film to ask about the next morning: { movieId, at, kind } — `kind`
+// "pick" (tonight's pick: did you watch it?) or "watched" (how was it?).
 const NUDGE_KEY = "board:tier-nudge";
 const REMINDER_ID = "reelboard-tonight";
 const TIER_ID = "reelboard-tier";
@@ -46,6 +48,8 @@ const RECAP_ID = "reelboard-recap";
 const CHANNEL_ID = "default";
 const REMINDER_TIME = { hour: 19, minute: 30 };
 const NUDGE_TIME = { hour: 10, minute: 0 };
+// After 6:30 pm, tonight's reminder isn't promised (it'd come tomorrow).
+const LATE_ASK_MINUTES = 18 * 60 + 30;
 
 export class NotificationsUnavailable extends Error {}
 
@@ -110,15 +114,21 @@ export const refreshReminders = async () => {
 
 // ---- The morning after -----------------------------------------------------
 
-// The film you last watched and haven't tiered yet — { movieId, at } — or
-// null. Asked about the next morning: a notification when they're on, and
-// a card on Home either way (components/TierNudgeCard).
+// The film to ask about the next morning — { movieId, at, kind } — or null:
+// tonight's pick ("Did you watch it?"), or the film you last marked
+// watched and haven't tiered ("How was it?"). Asked by a notification when
+// they're on, and a card on Home either way (components/TierNudgeCard).
 let nudgeMovieId = null;
+let nudgeKind = null;
+
+// The film the morning question is about (achievementFeedback counts a
+// tier given to it).
+export const getNudgeMovieId = () => nudgeMovieId;
 
 export const getTierNudge = async () => {
   try {
     const nudge = JSON.parse(await AsyncStorage.getItem(NUDGE_KEY));
-    return nudge?.movieId ? nudge : null;
+    return nudge?.movieId ? { kind: "watched", ...nudge } : null;
   } catch {
     return null;
   }
@@ -132,23 +142,34 @@ const nextMorning = () => {
   return date;
 };
 
-// Just watched `movieId`: ask how it was tomorrow morning (it replaces any
-// film asked about before).
-export const scheduleTierNudge = async (movieId) => {
+// Ask about `movieId` tomorrow morning — `kind` "watched" (just watched:
+// how was it?) or "pick" (tonight's pick: did you watch it?). It replaces
+// any film asked about before.
+export const scheduleTierNudge = async (movieId, kind = "watched") => {
   nudgeMovieId = movieId;
-  await AsyncStorage.setItem(NUDGE_KEY, JSON.stringify({ movieId, at: Date.now() })).catch(() => {});
+  nudgeKind = kind;
+  await AsyncStorage.setItem(NUDGE_KEY, JSON.stringify({ movieId, at: Date.now(), kind })).catch(() => {});
   const N = load();
   if (!N || !(await getNotificationsEnabled())) return;
   await ensureChannel(N);
   await N.cancelScheduledNotificationAsync(TIER_ID).catch(() => {});
   const title = getMovieById(movieId)?.title;
+  const content =
+    kind === "pick"
+      ? {
+          title: title ? t("Did you watch {title}?", { title }) : t("Did you watch last night's pick?"),
+          body: t("Tier it, or tell us you didn't — your next pick gets sharper."),
+          // Home, where its card asks.
+          data: { url: "reelboard://decide" },
+        }
+      : {
+          title: title ? t("How was {title}?", { title }) : t("How was last night's film?"),
+          body: t("Tier it while it's fresh — it sharpens your picks."),
+          data: { url: `reelboard://tier/${movieId}` },
+        };
   await N.scheduleNotificationAsync({
     identifier: TIER_ID,
-    content: {
-      title: title ? t("How was {title}?", { title }) : t("How was last night's film?"),
-      body: t("Tier it while it's fresh — it sharpens your picks."),
-      data: { url: `reelboard://tier/${movieId}` },
-    },
+    content,
     trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: nextMorning(), channelId: CHANNEL_ID },
   });
 };
@@ -156,15 +177,23 @@ export const scheduleTierNudge = async (movieId) => {
 // Tiered (or dismissed): nothing more to ask.
 export const clearTierNudge = async () => {
   nudgeMovieId = null;
+  nudgeKind = null;
   await AsyncStorage.removeItem(NUDGE_KEY).catch(() => {});
   await load()?.cancelScheduledNotificationAsync(TIER_ID).catch(() => {});
 };
 
-// The film asked about has its tier now (or isn't watched any more).
+// Nothing left to ask: the film has its tier now — or, for a pick, it's
+// no longer tonight's and wasn't watched; for a watched film, it isn't
+// watched any more.
 const settleTierNudge = () => {
   if (!nudgeMovieId) return;
-  const entry = useMovieStore.getState().watched.find((item) => item.movieId === nudgeMovieId);
-  if (!entry || entry.tier || entry.rating != null) clearTierNudge();
+  const { watched, pickedMovie } = useMovieStore.getState();
+  const entry = watched.find((item) => item.movieId === nudgeMovieId);
+  if (entry && (entry.tier || entry.rating != null)) {
+    clearTierNudge();
+    return;
+  }
+  if (nudgeKind === "pick" ? !entry && pickedMovie !== nudgeMovieId : !entry) clearTierNudge();
 };
 
 // ---- Asked once ------------------------------------------------------------
@@ -180,7 +209,11 @@ export const askForReminders = async (pickTitle) => {
   const yes = await new Promise((resolve) =>
     Alert.alert(
       pickTitle ? t("A nudge for {title}?", { title: pickTitle }) : t("A nudge tonight?"),
-      t("We'll remind you at 7:30 pm, and ask how it was the next morning."),
+      // Late in the day, tonight's 7:30 nudge has gone — only the morning
+      // question is promised.
+      new Date().getHours() * 60 + new Date().getMinutes() < LATE_ASK_MINUTES
+        ? t("We'll nudge you at 7:30 and ask how it was tomorrow morning, so your next pick gets sharper.")
+        : t("We'll ask how it was tomorrow morning, so your next pick gets sharper."),
       [
         { text: t("Not now"), style: "cancel", onPress: () => resolve(false) },
         { text: t("Remind me"), onPress: () => resolve(true) },
@@ -268,6 +301,7 @@ export const startNotifications = () => {
   N.getLastNotificationResponseAsync?.().then(open).catch(() => {});
   getTierNudge().then((nudge) => {
     nudgeMovieId = nudge?.movieId ?? null;
+    nudgeKind = nudge?.kind ?? null;
     settleTierNudge();
   });
   // The stores read the TanStack Query cache, so watch that for the pick —
@@ -279,5 +313,9 @@ export const startNotifications = () => {
     if (pick === lastPick) return;
     lastPick = pick;
     refreshReminders().catch(() => {});
+    // A new pick for tonight: tomorrow morning, did you watch it?
+    if (pick && !useMovieStore.getState().watched.some((entry) => entry.movieId === pick)) {
+      scheduleTierNudge(pick, "pick");
+    }
   });
 };

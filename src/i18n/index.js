@@ -12,15 +12,23 @@ import ar from "./ar";
 //   t("{count} movies", { count: 12 })
 const DICTIONARIES = { ar };
 
-const fill = (text, params) =>
+// In a right-to-left sentence, a filled-in name written in Latin letters
+// (a film's title, a handle) is set apart with invisible direction marks
+// (first-strong isolate … pop), so it reads whole and in the right place.
+const LATIN = /[A-Za-z]/;
+const isolate = (value) => (LATIN.test(value) ? `\u2068${value}\u2069` : value);
+
+const fill = (text, params, rtl = false) =>
   params
-    ? text.replace(/\{(\w+)\}/g, (match, key) =>
-        params[key] === undefined ? match : String(params[key]),
-      )
+    ? text.replace(/\{(\w+)\}/g, (match, key) => {
+        if (params[key] === undefined) return match;
+        const value = String(params[key]);
+        return rtl ? isolate(value) : value;
+      })
     : text;
 
 export const translate = (language, text, params) =>
-  fill((language !== "en" && DICTIONARIES[language]?.[text]) || text, params);
+  fill((language !== "en" && DICTIONARIES[language]?.[text]) || text, params, language === "ar");
 
 // Exact lookup with no placeholders — used by the app's Text component to
 // translate plain strings that come from data (labels, genres, names).

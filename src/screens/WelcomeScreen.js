@@ -2,7 +2,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Mail } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -47,6 +47,7 @@ import {
 import { signInWith } from "../services/sync";
 import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
+import { logDeviceEvent } from "../services/events";
 import { useColors } from "../theme/useColors";
 import {
   SIGN_IN_WALL,
@@ -64,26 +65,20 @@ const COLUMN_GAP = 10;
 const PER_COLUMN = 5;
 const DRIFT_MS = 38000;
 const TILT = "-9deg";
-// What ReelBoard is, in three slides you swipe — or that move on by
-// themselves every few seconds until you touch them.
+// What ReelBoard is, in two slides you swipe at your own pace: the
+// promise, then what a tier is.
 const SLIDES = [
   {
     key: "tonight",
     title: "Know what to watch tonight.",
-    body: "Picks made from your taste, with the reasons why — ready when you are.",
+    body: "Picks from your taste, with the reasons why.",
   },
   {
     key: "tier",
-    title: "Tier every film you watch.",
-    body: "S to F, your way. Your tiers teach ReelBoard your taste and build your profile.",
-  },
-  {
-    key: "together",
-    title: "Decide together.",
-    body: "Bring friends in, swipe a short stack, and land on one film you'll all enjoy.",
+    title: "Tier what you watch.",
+    body: "S = all-time favorite, F = not for me. Every tier sharpens tonight's pick.",
   },
 ];
-const SLIDE_MS = 5000;
 
 // One full-width button: filled, no edge.
 const SignInButton = ({
@@ -173,14 +168,11 @@ export const WelcomeScreen = () => {
   const [emailMode, setEmailMode] = useState(null);
   const [lastEmailMode, setLastEmailMode] = useState("signIn");
   const openEmail = (mode) => {
+    logDeviceEvent("signin_tapped");
     setLastEmailMode(mode);
     setEmailMode(mode);
   };
   const [busy, setBusy] = useState(null); // "google" | "apple" | null
-  // The slides: which one shows, moving on by itself until you swipe.
-  const slidesRef = useRef(null);
-  const [slide, setSlide] = useState(0);
-  const [slidesTouched, setSlidesTouched] = useState(false);
   // Where the slides are, as they move — for the dots.
   const scrollX = useSharedValue(0);
   const onSlidesScroll = useAnimatedScrollHandler((event) => {
@@ -189,20 +181,16 @@ export const WelcomeScreen = () => {
   // A slide is the screen's width (its words inside the page's margins),
   // so each swipe lands exactly on the next.
   const slideWidth = width;
-  useEffect(() => {
-    if (slidesTouched) return undefined;
-    const timer = setInterval(() => setSlide((current) => (current + 1) % SLIDES.length), SLIDE_MS);
-    return () => clearInterval(timer);
-  }, [slidesTouched]);
-  // Moving on by itself: scroll to the slide.
-  useEffect(() => {
-    if (!slidesTouched) slidesRef.current?.scrollTo({ x: slide * slideWidth, animated: true });
-  }, [slide, slidesTouched, slideWidth]);
   const [message, setMessage] = useState(null);
 
   // Light status-bar icons over the wall (even in light mode) — only while
   // this screen is in front.
   const isFocused = useIsFocused();
+
+  // Counted before any account exists (services/events).
+  useEffect(() => {
+    logDeviceEvent("welcome_viewed");
+  }, []);
 
   useEffect(() => {
     if (wallReady) return;
@@ -231,6 +219,7 @@ export const WelcomeScreen = () => {
   const columnWidth = (frame.width - COLUMN_GAP * (COLUMNS - 1)) / COLUMNS;
 
   const continueWith = async (provider, getCredentials) => {
+    logDeviceEvent("signin_tapped");
     setBusy(provider);
     setMessage(null);
     try {
@@ -281,15 +270,12 @@ export const WelcomeScreen = () => {
         {/* What it's for, slide by slide. */}
         <Animated.View entering={FadeInDown.delay(350).duration(700)}>
           <Animated.ScrollView
-            ref={slidesRef}
             onScroll={onSlidesScroll}
             scrollEventThrottle={16}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             style={styles.slides}
-            onScrollBeginDrag={() => setSlidesTouched(true)}
-            onMomentumScrollEnd={(event) => setSlide(Math.round(event.nativeEvent.contentOffset.x / slideWidth))}
           >
             {SLIDES.map(({ key, title, body }) => (
               <View key={key} style={[styles.slide, { width: slideWidth }]}>

@@ -7,6 +7,7 @@ import {
   isSaga,
 } from "./collections";
 import { byWeightedRating } from "./movieFilters";
+import { describeLeft } from "./paths";
 import { getTastePicks, isColdStart } from "./tasteEngine";
 
 // Which movies Home suggests for tonight — a mix, each suggestion there for
@@ -52,15 +53,14 @@ export const getSagaStep = (movieId, watchedIds) => {
   return sagas[0] ? { type: "start", ...sagas[0] } : null;
 };
 
-// The saga step as one line.
+// The saga step as one line, by what the saga is about ("Completes the
+// Harry Potter set", "2 more Harry Potter films to complete the set",
+// "Starts the Harry Potter set · 8 films").
 export const describeSagaStep = (step) => {
   if (!step) return null;
-  const title = step.collection.title;
-  if (step.type === "finish") return t("Finishes {title}", { title });
-  if (step.type === "progress") {
-    return t("{count} left in {title}", { count: step.total - step.watchedCount, title });
-  }
-  return t("Starts {saga} · {total} films", { saga: title, total: step.total });
+  const subject = step.collection.subject ?? step.collection.title;
+  if (step.type === "start") return t("Starts the {subject} set · {total} films", { subject, total: step.total });
+  return describeLeft(subject, step.total - step.watchedCount, { long: true });
 };
 
 // Takes turns through the angles, each time the best candidate (by taste)
@@ -89,8 +89,8 @@ const takeTurns = (candidates, count) => {
 const RECENT_PASSES = 5;
 const RECENT_PASS_DAYS = 3;
 
-// Suggestions for tonight: { movie, match, reason, saga, saved, savedAt,
-// angle }, in turns (see ANGLES). With too little history for taste: your
+// Suggestions for tonight: { movie, match, reason (the best), reasons (all),
+// saga, saved, savedAt, angle }, in turns (see ANGLES). With too little history for taste: your
 // watchlist, oldest save first, then well-rated films you haven't seen.
 // `passes` (tasteStore): films you said "Not for me" to never come back,
 // and the latest few bring fewer like them. `count`: how many (more, to
@@ -158,6 +158,6 @@ export const getTonightSuggestions = (watched, bucketList, passes = [], count = 
   const candidates = [...picks.values()]
     .filter((pick) => !passedIds.has(pick.movie.id))
     .sort((a, b) => b.score - a.score)
-    .map((pick) => describe(pick.movie, { match: pick.match, reason: pick.reasons[0] ?? null }));
+    .map((pick) => describe(pick.movie, { match: pick.match, reason: pick.reasons[0] ?? null, reasons: pick.reasons }));
   return takeTurns(candidates, count);
 };

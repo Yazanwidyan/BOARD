@@ -14,6 +14,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { ScratchCard } from "../components/ScratchCard";
 import { StackHeader } from "../components/ScreenHeader";
 import { t } from "../i18n";
+import { matchWord } from "../utils/tasteWords";
 import { useMovieStore } from "../store/movieStore";
 import { showToast } from "../store/toastStore";
 import { shape, spacing } from "../theme/spacing";
@@ -164,7 +165,7 @@ export const WildcardScreen = ({ navigation }) => {
               {current.match != null && (
                 <View style={styles.chip}>
                   <Text style={[styles.chipText, { color: current.outside ? colors.rating : colors.success }]}>
-                    {t("{match}% match", { match: current.match })}
+                    {matchWord(current.match)}
                   </Text>
                 </View>
               )}

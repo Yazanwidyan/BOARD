@@ -1,4 +1,5 @@
 import {
+  ChevronLeft,
   Pencil,
   Settings as SettingsIcon,
   Share2,
@@ -52,10 +53,11 @@ import { getTasteDna } from "../utils/tasteDna";
 import { orderSTier } from "../utils/tiers";
 import { getMilestones } from "../utils/milestones";
 import { useLanguageStore } from "../store/languageStore";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { useFriends } from "../store/friendsStore";
-import { useTabBarClearance } from "../components/TonightBar";
 import { features } from "../config/features";
+import { showToast } from "../store/toastStore";
+import { countTiered } from "../utils/tasteWords";
 
 // The cover's height for the screen's width, and how much of it shows
 // above your avatar.
@@ -68,6 +70,8 @@ const FAVOURITE_GAP = 8;
 // Milestone medals shown under Achievements.
 const MEDALS = 3;
 const AVATAR = 84;
+// Tiered films it takes for your taste card to unlock.
+const SHARE_CARD_TIERS = 10;
 
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 
@@ -93,7 +97,7 @@ export const ProfileScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
+  const rtl = useIsRTL();
   const { width: screenWidth } = useWindowDimensions();
   const { friends } = useFriends();
   const watched = useMovieStore((state) => state.watched);
@@ -179,8 +183,9 @@ export const ProfileScreen = ({ navigation }) => {
 
   // `openedAt` makes a repeat tap switch Library back even when it was left
   // on another tab.
+  // Library is a tab, under this page: reached through the tabs ("Main").
   const openLibraryTab = (initialTab) =>
-    navigation.navigate("Library", { initialTab, openedAt: Date.now() });
+    navigation.navigate("Main", { screen: "Library", params: { initialTab, openedAt: Date.now() } });
   const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
 
   // Your three numbers, under your name — the only place they show.
@@ -281,7 +286,16 @@ export const ProfileScreen = ({ navigation }) => {
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-            onPress={() => setIsShareOpen(true)}
+            onPress={() => {
+              // The taste card waits for enough tiers to say something
+              // true about you.
+              const left = SHARE_CARD_TIERS - countTiered(watched);
+              if (left > 0) {
+                showToast(t("Tier {count} more films to unlock your taste card.", { count: left }));
+                return;
+              }
+              setIsShareOpen(true);
+            }}
             accessibilityRole="button"
           >
             <Share2 size={17} color={colors.textPrimary} strokeWidth={2.2} />
@@ -323,7 +337,7 @@ export const ProfileScreen = ({ navigation }) => {
         >
           <TasteSnapshot
             dna={tasteDna}
-            onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
+            onSeeUntiered={() => navigation.navigate("Main", { screen: "Library", params: { showUntiered: true } })}
           />
           {(features.pro || isPro) && (
             <View style={styles.tasteStats}>
@@ -384,16 +398,22 @@ export const ProfileScreen = ({ navigation }) => {
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + tabBarClearance }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
         {page}
       </Animated.ScrollView>
       <ScreenBottomFade />
-      {/* "Profile" in the header, Settings in its capsule. */}
+      {/* Back, "Profile" small in the middle, Settings in its capsule. */}
       <DockHeader
         {...header.props}
         title={t("Profile")}
+        centered
         avatar={false}
+        back={
+          <HeaderIconButton round onPress={() => navigation.goBack()} accessibilityLabel={t("Back")}>
+            <ChevronLeft size={22} color={colors.textPrimary} strokeWidth={2} style={rtl && styles.flipped} />
+          </HeaderIconButton>
+        }
         right={
           <HeaderIconButton onPress={() => navigation.navigate("Settings")} accessibilityLabel={t("Settings")}>
             <SettingsIcon size={22} color={colors.textPrimary} strokeWidth={1.75} />
@@ -421,6 +441,9 @@ const createStyles = (colors) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flipped: {
+      transform: [{ scaleX: -1 }],
     },
     pressed: {
       opacity: 0.7,

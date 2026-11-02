@@ -60,10 +60,11 @@ const MOOD_HINTS = {
 
 // `pool`: tonight's suggestions ({ movie }) best first; `lead`: the next
 // film in the collection you're closest to finishing, which opens Tonight's
-// mix (or null); `bucketList` and `watchedIds` your own; `loved` your
+// mix (or null) — and `leadTag`, a few words on why (its card shows them);
+// `bucketList` and `watchedIds` your own; `loved` your
 // favourite recent watch (a movie) and `lovedSimilar` films like it
 // (movies), or nulls.
-export const buildMixes = ({ pool, lead = null, bucketList, watchedIds, loved, lovedSimilar }) => {
+export const buildMixes = ({ pool, lead = null, leadTag = null, bucketList, watchedIds, loved, lovedSimilar }) => {
   const films = pool.map((item) => item.movie);
   const tonight = lead ? [lead, ...films.filter((movie) => movie.id !== lead.id)] : films;
   const mixes = [
@@ -72,6 +73,7 @@ export const buildMixes = ({ pool, lead = null, bucketList, watchedIds, loved, l
       eyebrow: "Made for you",
       title: "Tonight's mix",
       hint: "Your best fits right now",
+      tag: lead ? leadTag : null,
       movies: tonight.slice(0, MAX_FILMS),
     },
     ...MOODS.map((mood) => ({

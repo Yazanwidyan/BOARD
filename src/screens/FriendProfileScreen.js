@@ -35,6 +35,7 @@ import {
 import { ShelfRail } from "../components/ShelfRail";
 import { TrophyCabinet } from "../components/TrophyCabinet";
 import { TasteDnaBars } from "../components/TasteDnaBars";
+import { countTiered, friendMatchLabel } from "../utils/tasteWords";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
 import { useFriends } from "../store/friendsStore";
@@ -217,7 +218,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     },
     match != null && {
       key: "match",
-      value: `${match}%`,
+      value: friendMatchLabel(match, countTiered(watched), countTiered(theirWatched)),
       label: t("match"),
     },
   ].filter(Boolean);
