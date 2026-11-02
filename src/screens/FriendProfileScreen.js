@@ -14,7 +14,6 @@ import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
-import { AvatarRankRing } from "../components/AvatarRankRing";
 import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
@@ -51,8 +50,6 @@ import {
   getTheyLovedYouHavent,
 } from "../utils/friends";
 import { accentColor } from "../utils/pro";
-import { getTitle } from "../utils/ranks";
-import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
 import { getTierInfo, orderSTier } from "../utils/tiers";
 import { t, useIsRTL } from "../i18n";
@@ -79,12 +76,12 @@ const TierChip = ({ tier, styles }) => (
 
 // A friend's page, like your Profile: their name in the header (back left,
 // ⋯ right — to report, remove or block them) and Overview / Taste under it.
-//   Overview: their cover behind their avatar (its ring to their next
-//   title), their handle, their numbers — films, ranks, and how close your
-//   taste is (each once, here) — their bio, their top four, you and them
-//   (what you both loved, what they say you should watch), then their
-//   Films (each dated, with their tier) / Lists / Collections.
-//   Taste: their hours, their title, their tiers and their Taste DNA.
+//   Overview: their cover behind their avatar, their handle, their numbers
+//   — films, finished collections, and how close your taste is (each
+//   once, here) — their bio, their top four, you and them (what you both
+//   loved, what they say you should watch), then their Films (each dated,
+//   with their tier) / Lists / Collections.
+//   Taste: their tiers and their Taste DNA.
 export const FriendProfileScreen = ({ navigation, route }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
@@ -193,10 +190,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const recommendations = getTheyLovedYouHavent(watched, theirWatched);
   const theirBoards = boards.data?.boards ?? [];
   const finishedSagas = getFinishedSagas(theirWatched);
-  const taste = getTasteProfile(theirWatched);
   const tasteDna = getTasteDna(theirWatched);
-  const hours = Math.round(taste.minutesWatched / 60);
-  const title = getTitle(friend.ranks ?? 0);
   const openMovie = (movieId) => navigation.navigate("MovieDetails", { movieId });
   const openTierList = () => navigation.push("TierList", { friendId: friend.id });
 
@@ -213,10 +207,14 @@ export const FriendProfileScreen = ({ navigation, route }) => {
   const favouriteWidth = Math.floor(
     (screenWidth - spacing.md * 2 - FAVOURITE_GAP * (FAVOURITES - 1)) / FAVOURITES,
   );
-  // Their numbers, once: films, ranks, and your match (which opens Taste).
+  // Their numbers, once: films, finished collections, and your match.
   const counts = [
     { key: "films", value: theirWatched.length, label: theirWatched.length === 1 ? t("film") : t("films") },
-    { key: "ranks", value: friend.ranks ?? 0, label: (friend.ranks ?? 0) === 1 ? t("rank") : t("ranks") },
+    {
+      key: "collections",
+      value: finishedSagas.length,
+      label: finishedSagas.length === 1 ? t("collection") : t("collections"),
+    },
     match != null && {
       key: "match",
       value: `${match}%`,
@@ -226,7 +224,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
 
   // Their page, as yours: one page — who they are, then (under bold
   // headings) what you share, their favourites, what they'd have you watch,
-  // their taste, what they've achieved, their lists and their films.
+  // their taste, their collections, their lists and their films.
   const page = (
     <>
       {/* Their cover, fading into the page behind their avatar. */}
@@ -248,9 +246,12 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           { paddingTop: coverImage ? Math.max(Math.round(coverHeight * COVER_ABOVE_AVATAR), header.barBottom) : header.barBottom + spacing.underHeader },
         ]}
       >
-        <AvatarRankRing title={title} avatarSize={AVATAR} color={(friend.pro && accentColor(friend.accent)) || undefined}>
-          <FriendAvatar friend={friend} size={AVATAR} style={styles.ringAvatar} />
-        </AvatarRankRing>
+        {/* Pro: their accent rings it (utils/pro). */}
+        <FriendAvatar
+          friend={friend}
+          size={AVATAR}
+          style={[styles.ringAvatar, friend.pro && accentColor(friend.accent) && { borderWidth: 3, borderColor: accentColor(friend.accent) }]}
+        />
         {/* Their name, as yours is on your Profile, then their handle. */}
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={2} accessibilityRole="header">
@@ -373,27 +374,17 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           )}
         </ProfileSection>
 
-        {/* What they've achieved: their title, the collections they've
-            finished. */}
-        <ProfileSection title={t("Achievements")}>
-          <View style={styles.rankRow}>
-            <Text style={styles.rankName}>{t(title.name)}</Text>
-            <Text style={styles.rankNext}>
-              {title.next
-                ? t("{count} ranks to {title}", { count: title.toNext, title: t(title.next.name) })
-                : t("The top title")}
-              {hours > 0 ? ` · ${t("{hours} hours of film, all time", { hours })}` : ""}
-            </Text>
-          </View>
-          {finishedSagas.length > 0 && (
+        {/* The collections they've finished: a trophy each. */}
+        {finishedSagas.length > 0 && (
+          <ProfileSection title={t("Collections")}>
             <View style={styles.trophies}>
               <TrophyCabinet
                 finished={finishedSagas}
                 onOpen={(collectionId) => navigation.push("CollectionDetails", { collectionId })}
               />
             </View>
-          )}
-        </ProfileSection>
+          </ProfileSection>
+        )}
 
         {/* Their lists. */}
         {theirBoards.length > 0 && (
@@ -566,7 +557,7 @@ const createStyles = (colors) =>
       lineHeight: 18,
       color: colors.textSecondary,
     },
-    // Films · ranks · match, evenly across under their handle.
+    // Films · collections · match, evenly across under their handle.
     counts: {
       flexDirection: "row",
       justifyContent: "center",
@@ -605,22 +596,6 @@ const createStyles = (colors) =>
     },
     trophies: {
       marginTop: spacing.lg,
-    },
-    rankRow: {
-      gap: 2,
-      padding: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
-    },
-    rankName: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.textPrimary,
-    },
-    rankNext: {
-      ...typography.caption,
-      color: colors.textSecondary,
     },
     railPoster: {
       width: POSTER_ITEM - 2,

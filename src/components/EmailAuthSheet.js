@@ -143,7 +143,7 @@ export const EmailAuthSheet = ({ visible, onClose, mode: initialMode = "signIn" 
       title={isRegister ? t("Create your account") : t("Sign in")}
       subtitle={
         isRegister
-          ? t("Your library, tiers, lists and collection ranks, on any phone.")
+          ? t("Your library, tiers, lists and collections, on any phone.")
           : t("Pick up where you left off.")
       }
     >

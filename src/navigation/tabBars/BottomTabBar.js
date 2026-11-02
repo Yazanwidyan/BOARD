@@ -11,11 +11,13 @@ import { spacing } from "../../theme/spacing";
 import { fonts } from "../../theme/typography";
 import { useColors } from "../../theme/useColors";
 
-// The capsule's height, the gap inside it round the open tab's pill, and
-// the least room under it (above the home indicator).
+// The capsule's height, the gap inside it round the open tab's pill, the
+// least room under it, and how far it tucks down into the home
+// indicator's area (closer to the edge, as iOS's own floating bars sit).
 const BAR_HEIGHT = 64;
 const BAR_INSET = 5;
 const MIN_BOTTOM = 8;
+const TUCK = 14;
 const ICON = 22;
 // Lines: thin at rest, a touch bolder on the open tab.
 const STROKE = 1.7;
@@ -48,7 +50,7 @@ export const BottomTabBar = ({ state, navigation }) => {
   };
 
   return (
-    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, MIN_BOTTOM) }]} pointerEvents="box-none">
+    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom - TUCK, MIN_BOTTOM) }]} pointerEvents="box-none">
       <TonightBar navigation={navigation} />
       <View style={styles.row}>
         <View style={styles.bar}>

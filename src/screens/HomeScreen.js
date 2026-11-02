@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Text } from "../components/AppText";
 import { CollectionCollage } from "../components/CollectionCollage";
-import { BENTO_GAP, FriendsNightCard, ProgressRow, ReplayCard } from "../components/HomeBento";
+import { BENTO_GAP, FriendsNightCard, ReplayCard } from "../components/HomeBento";
 import { HomeHero } from "../components/HomeHero";
 import { MixRail } from "../components/MixRail";
 import { MoviePoster } from "../components/MoviePoster";
@@ -18,6 +18,7 @@ import { ScreenBottomFade } from "../components/ScreenBottomFade";
 import { ShelfRail } from "../components/ShelfRail";
 import { DockHeader, HeaderIconButton, useDockHeader } from "../components/ScreenHeader";
 import { SwipeSheet } from "../components/SwipeSheet";
+import { TierNudgeCard } from "../components/TierNudgeCard";
 import { useTabBarClearance } from "../components/TonightBar";
 import { WildcardSheet } from "../components/WildcardSheet";
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -38,7 +39,6 @@ import { getPathNext, usePaths } from "../utils/paths";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
 import { getTier, getTierInfo } from "../utils/tiers";
 import { getTonightSuggestions } from "../utils/tonightPick";
-import { countFinishedDares } from "../utils/useRanks";
 import { features } from "../config/features";
 
 // The space above each of Home's sections.
@@ -88,6 +88,7 @@ const SectionHeading = ({ title, onPress, styles, colors }) => {
 
 // Home — your board for tonight, laid out like Apple Music's Home: the
 // header's large title, then
+//   How was it?         the morning after a watch, until it's tiered
 //   Top picks for you   the mixes (utils/mixes): big cards to pick from,
 //                       each a page with Sort this pile / Pick one for me
 //   the decide ways     Surprise me, Sort a pile, More like…, your dare
@@ -96,7 +97,6 @@ const SectionHeading = ({ title, onPress, styles, colors }) => {
 //                       to watch next (or, with none, ones to start)
 //   Recently watched    tap one to tier it
 //   Replay              your month
-//   Your progress       one row: your title, ranks and medals (Profile)
 // Tonight's pick itself docks above the tabs (TonightBar). A brand-new
 // account gets a welcome card first, since there's no taste to work from.
 export const HomeScreen = ({ navigation }) => {
@@ -115,10 +115,9 @@ export const HomeScreen = ({ navigation }) => {
   const watched = useMovieStore((state) => state.watched);
   const activeChallenge = useChallengeStore((state) => state.activeChallenge);
   const skipChallenge = useChallengeStore((state) => state.skipChallenge);
-  const dares = countFinishedDares(useChallengeStore((state) => state.history));
   const passes = useTasteStore((state) => state.passes);
   const startSession = useSessionStore((state) => state.startSession);
-  const { refresh: refreshFriends } = useFriends();
+  const { friends, refresh: refreshFriends } = useFriends();
   const [isSwipeOpen, setIsSwipeOpen] = useState(false);
   const [isWildcardOpen, setIsWildcardOpen] = useState(false);
 
@@ -144,8 +143,8 @@ export const HomeScreen = ({ navigation }) => {
 
   // The mixes: tonight's suggestions, and films like one you loved.
   const pool = useMemo(
-    () => getTonightSuggestions(watched, bucketList, dares, passes, POOL_SIZE),
-    [watched, bucketList, dares, passes],
+    () => getTonightSuggestions(watched, bucketList, passes, POOL_SIZE),
+    [watched, bucketList, passes],
   );
   // Each collection under way, as the film to watch next — the best fit
   // for your taste of its next few. The closest to done also leads
@@ -246,6 +245,9 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
+        {/* The morning after: how was last night's film? */}
+        <TierNudgeCard navigation={navigation} style={[styles.inset, styles.nudge]} />
+
         {/* Top picks, and the other ways to choose under them. */}
         {mixes.length > 0 && (
           <>
@@ -271,15 +273,19 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
-        <View style={styles.section}>
-          <SectionHeading
-            title={t("Watch with friends")}
-            onPress={() => navigation.navigate("FriendsHub")}
-            styles={styles}
-            colors={colors}
-          />
-          <FriendsNightCard navigation={navigation} style={styles.inset} />
-        </View>
+        {/* Only once you have friends — an empty card just says you're
+            alone. */}
+        {friends.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeading
+              title={t("Watch with friends")}
+              onPress={() => navigation.navigate("FriendsHub")}
+              styles={styles}
+              colors={colors}
+            />
+            <FriendsNightCard navigation={navigation} style={styles.inset} />
+          </View>
+        )}
 
         {/* Finish what you started: each collection under way as the film
             to watch next, how far you are on its corner. Tap for the film. */}
@@ -397,12 +403,6 @@ export const HomeScreen = ({ navigation }) => {
           />
         )}
 
-        {!isFreshAccount && (
-          <View style={styles.section}>
-            <SectionHeading title={t("Your progress")} styles={styles} colors={colors} />
-            <ProgressRow onPress={() => navigation.navigate("Profile")} style={styles.inset} />
-          </View>
-        )}
       </Animated.ScrollView>
       <ScreenBottomFade />
 
@@ -450,6 +450,9 @@ const createStyles = (colors) =>
     // Inside the page's margins.
     inset: {
       marginHorizontal: spacing.md,
+    },
+    nudge: {
+      marginBottom: SECTION_GAP,
     },
     chips: {
       marginTop: BENTO_GAP,

@@ -181,7 +181,6 @@ export const RecapScreen = ({ navigation, route }) => {
           {recap.count > 0 && (
             <Text style={styles.subline}>
               {t("{count} films", { count: recap.count })}
-              {recap.ranks > 0 ? ` · +${recap.ranks} ${recap.ranks === 1 ? t("rank") : t("ranks")}` : ""}
             </Text>
           )}
         </View>

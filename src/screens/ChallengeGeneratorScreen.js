@@ -18,8 +18,6 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { generateChallengeOptions } from "../utils/challenges";
-import { getRanksFromWatching } from "../utils/ranks";
-import { countFinishedDares } from "../utils/useRanks";
 import { formatRuntime } from "../utils/movieFilters";
 
 const HAND_SIZE = 3;
@@ -96,13 +94,6 @@ const DareTicket = ({ challenge, selected, dimmed, onPress, index, styles, color
           ) : (
             <View style={[styles.poster, styles.placeholder]} />
           )}
-          {challenge.rankReward > 0 && (
-            <Text style={styles.reward} numberOfLines={1}>
-              {challenge.rankReward === 1
-                ? t("+1 rank")
-                : t("+{count} ranks", { count: challenge.rankReward })}
-            </Text>
-          )}
         </View>
 
         {selected && (
@@ -125,19 +116,9 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
   const styles = createStyles(colors);
   const acceptChallenge = useChallengeStore((state) => state.acceptChallenge);
 
-  // Each dare's reward is the ranks it would really earn you — its film's
-  // (a saga's next rank, a new decade…) plus finishing a dare (Dare Devil).
   const deal = () => {
     const { watched, bucketList } = useMovieStore.getState();
-    const dares = countFinishedDares(useChallengeStore.getState().history);
-    return generateChallengeOptions({ watched, bucketList }, HAND_SIZE).map(
-      (challenge) => ({
-        ...challenge,
-        rankReward: getRanksFromWatching(watched, challenge.targetMovieId, dares, {
-          finishesDare: true,
-        }).length,
-      }),
-    );
+    return generateChallengeOptions({ watched, bucketList }, HAND_SIZE);
   };
   const [hand, setHand] = useState(deal);
   const [handId, setHandId] = useState(0);
@@ -184,7 +165,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* How it works, in a line. */}
         <Text style={styles.intro}>
-          {t("Pick a dare, watch the film, earn ranks.")}
+          {t("Pick a dare, then watch the film.")}
         </Text>
 
         {hand.length === 0 ? (
@@ -212,11 +193,7 @@ export const ChallengeGeneratorScreen = ({ navigation }) => {
       <View style={styles.footer}>
         <PrimaryButton
           label={
-            selected
-              ? selected.rankReward > 0
-                ? t("Take this dare · +{count} ranks", { count: selected.rankReward })
-                : t("Take this dare")
-              : t("Pick a dare")
+            selected ? t("Take this dare") : t("Pick a dare")
           }
           disabled={!selected}
           onPress={handleAccept}
@@ -350,12 +327,6 @@ const createStyles = (colors) =>
     placeholder: {
       backgroundColor: colors.cardElevatedLight,
       borderRadius: shape.poster,
-    },
-    reward: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.rating,
     },
     check: {
       position: "absolute",

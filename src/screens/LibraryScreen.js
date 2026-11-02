@@ -13,6 +13,7 @@ import {
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   BackHandler,
   Pressable,
   ScrollView,
@@ -561,6 +562,7 @@ export const LibraryScreen = ({ navigation, route }) => {
             onOpen={openCollection}
             onToggleTrack={toggleUnlockedCollection}
             onSeeAll={() => setIsAllCollectionsOpen(true)}
+            onSeeTrophies={() => navigation.navigate("Trophies")}
             onOpenMovie={openDetails}
           />
         ) : tab === "boards" ? (
@@ -811,6 +813,7 @@ export const LibraryScreen = ({ navigation, route }) => {
       <DockHeader
         {...header.props}
         title={tab ? t(currentTab.label) : t("Library")}
+        compact={!!tab}
         back={
           tab && (
             <HeaderIconButton round onPress={() => setTab(null)} accessibilityLabel={t("Back")} style={styles.back}>
@@ -838,7 +841,17 @@ export const LibraryScreen = ({ navigation, route }) => {
         }
         right={
           !tab ? (
-            <HeaderIconButton onPress={() => setIsAddOpen(true)} accessibilityLabel={t("Add")}>
+            // Library itself: a film you've seen, or one to see?
+            <HeaderIconButton
+              onPress={() =>
+                Alert.alert(t("Add a film"), undefined, [
+                  { text: t("I've watched it"), onPress: () => setIsAddWatchedOpen(true) },
+                  { text: t("To my watchlist"), onPress: () => setIsAddOpen(true) },
+                  { text: t("Cancel"), style: "cancel" },
+                ])
+              }
+              accessibilityLabel={t("Add")}
+            >
               <Plus size={22} color={colors.textPrimary} strokeWidth={1.75} />
             </HeaderIconButton>
           ) : tab === "boards" ? (

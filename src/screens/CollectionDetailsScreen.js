@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "../components/AppText";
 import Animated, {
@@ -24,7 +25,7 @@ import {
 } from "react-native-safe-area-context";
 
 import { BackButton } from "../components/BackButton";
-import { CollectionCollage, PersonPhoto, personColors } from "../components/CollectionCollage";
+import { CollectionCollage } from "../components/CollectionCollage";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MovieListRow } from "../components/MovieListRow";
 import { MoviePoster } from "../components/MoviePoster";
@@ -47,9 +48,9 @@ import {
 } from "../utils/scrollEffects";
 import {
   getCollectionById,
+  toCollection,
   getCollectionCompletedAt,
   getCollectionProgress,
-  getSagaRank,
   isSaga,
 } from "../utils/collections";
 import {
@@ -63,11 +64,11 @@ import { TIERS, getTier } from "../utils/tiers";
 import { t } from "../i18n";
 
 // A person's photo's size, and a collection's cover's, on its page.
-const PERSON_PHOTO = 150;
+// A person's portrait (2 : 3) behind the page fills its width from just
+// above the top, so their face shows — not the middle of the picture.
+const PORTRAIT_RATIO = 1.5;
+const PORTRAIT_TOP = 0.04;
 const COVER = 180;
-
-// A rank's node on the ladder.
-const NODE = 22;
 
 const TYPE_LABELS = {
   franchise: "Franchise",
@@ -87,7 +88,6 @@ const SAGA_LABELS = {
 
 const HEADER_BAR_HEIGHT = 40;
 const MARATHON_SIZE = 10;
-const BACKDROP_POSTERS = 4;
 const MONTHS = [
   "Jan",
   "Feb",
@@ -206,10 +206,15 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
     queryFn: () => api.get(`/collections/${collectionId}`),
     staleTime: 60 * 60 * 1000,
   });
-  const collection = getCollectionById(collectionId);
+  // A saga is kept on the phone; any other (a director's) comes with its
+  // page.
+  const serverCollection = page.data?.collection;
+  const collection =
+    getCollectionById(collectionId) ?? (serverCollection ? toCollection(serverCollection) : null);
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const watched = useMovieStore((state) => state.watched);
   const bucketList = useMovieStore((state) => state.bucketList);
   const toggleWatched = useMovieStore((state) => state.toggleWatched);
@@ -294,10 +299,11 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
   const isComplete = total > 0 && watchedCount === total;
   const minutesLeft = unwatched.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
   const totalMinutes = movies.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
-  // A saga: the rank you've reached, the next one, and how many so far.
-  const saga = isSaga(collection) ? getSagaRank(collection, watchedIds) : null;
   const completedAt = isComplete ? getCollectionCompletedAt(collection, watched) : null;
   const art = page.data?.art ?? null;
+  // Without a picture of its own: a still from the first of its films that
+  // has one.
+  const backdropUri = art?.backdrop ?? movies.find((movie) => movie.backdrop)?.backdrop ?? null;
   const friends = page.data?.friends ?? [];
 
   const openMovie = (movieId) => navigation.push("MovieDetails", { movieId });
@@ -345,9 +351,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
         formatRuntime(totalMinutes),
         completedAt ? t("finished {date}", { date: formatShortDate(completedAt) }) : null,
       ]
-    : // Where you are among the ranks (and what's next) is the ladder's
-      // to say — this line is just the films and the time left.
-      [
+    : [
         t("{watched} of {total} watched", { watched: watchedCount, total }),
         minutesLeft > 0 ? t("{time} to go", { time: formatRuntime(minutesLeft) }) : null,
       ];
@@ -398,27 +402,22 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           ]}
           onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
         >
-          {/* The collection's own picture, fading into the page. */}
+          {/* One full picture behind it all, fading into the page: an actor's
+              or a director's face, a franchise's own backdrop, or else a
+              still from one of its films. */}
           <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents="none">
-            {art?.backdrop ? (
-              <Image source={{ uri: art.backdrop }} style={styles.backdropImage} />
-            ) : art?.photo ? (
-              // A person: their cover's colours behind their photo, light
-              // at the top here (the hero's own fade takes it into the
-              // page; the photo itself sits over the title, below).
-              <LinearGradient colors={[...personColors(collection)].reverse()} style={StyleSheet.absoluteFill} />
-            ) : (
-              <View style={styles.collage}>
-                {movies.slice(0, BACKDROP_POSTERS).map((movie) => (
-                  <MoviePoster
-                    key={movie.id}
-                    uri={movie.poster}
-                    blurRadius={14}
-                    style={styles.collagePoster}
-                  />
-                ))}
-              </View>
-            )}
+            {art?.photo ? (
+              <Image
+                source={{ uri: art.photo }}
+                style={[
+                  styles.portrait,
+                  { top: -screenWidth * PORTRAIT_TOP, height: screenWidth * PORTRAIT_RATIO },
+                ]}
+                resizeMode="cover"
+              />
+            ) : backdropUri ? (
+              <Image source={{ uri: backdropUri }} style={styles.backdropImage} />
+            ) : null}
             <LinearGradient
               colors={[`${colors.background}59`, colors.background]}
               locations={[0.2, 1]}
@@ -427,10 +426,10 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
           </Animated.View>
 
           <Animated.View style={heroContentStyle}>
-            {/* Its cover, as an album's: a person's photo in a big circle,
-                anything else its collage. */}
-            {!art?.backdrop && !!art?.photo ? (
-              <PersonPhoto uri={art.photo} size={PERSON_PHOTO} style={styles.personPhoto} />
+            {/* Its cover, as an album's — but a person's face is already the
+                whole picture behind it. */}
+            {art?.photo ? (
+              <View style={styles.personSpace} />
             ) : (
               <View style={styles.cover}>
                 <CollectionCollage collection={collection} watchedIds={watchedIds} size={COVER} />
@@ -438,7 +437,7 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
             )}
             <Text style={styles.eyebrow}>
               {t(
-                (saga ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
+                (isSaga(collection) ? SAGA_LABELS[collection.kind] : TYPE_LABELS[collection.type]) ??
                   "Collection",
               )}
               {isComplete ? t(" · Completed") : ""}
@@ -464,71 +463,6 @@ export const CollectionDetailsScreen = ({ route, navigation }) => {
               </Text>
             </View>
 
-            {/* The ranks you climb, as a ladder: a node on a line for each —
-                ticked once reached, ringed for the next one — its name in
-                full, how many films it takes, and how many more for the
-                next. */}
-            {saga && collection.ranks.length > 0 && (
-              <View style={styles.ladder}>
-                {collection.ranks.map((rank, index) => {
-                  const reached = watchedCount >= rank.at;
-                  const isCurrent = saga.current?.title === rank.title;
-                  const isNext = saga.next?.title === rank.title;
-                  const lineAboveLit = reached;
-                  const lineBelowLit = watchedCount >= (collection.ranks[index + 1]?.at ?? Infinity);
-                  return (
-                    <View key={rank.title} style={styles.step}>
-                      <View style={styles.rail}>
-                        <View
-                          style={[
-                            styles.railLine,
-                            index === 0 && styles.railLineHidden,
-                            lineAboveLit && styles.railLineLit,
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.node,
-                            reached && styles.nodeReached,
-                            isNext && styles.nodeNext,
-                          ]}
-                        >
-                          {reached && <Check size={13} color={colors.background} strokeWidth={3} />}
-                        </View>
-                        <View
-                          style={[
-                            styles.railLine,
-                            index === collection.ranks.length - 1 && styles.railLineHidden,
-                            lineBelowLit && styles.railLineLit,
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.stepText}>
-                        <Text style={[styles.stepTitle, !reached && styles.stepTitleAhead]}>
-                          {rank.title}
-                        </Text>
-                        <Text style={styles.stepMeta}>
-                          {rank.at === total
-                            ? t("All {total}", { total })
-                            : t("{count} films", { count: rank.at })}
-                          {isNext && (
-                            <Text style={styles.stepMore}>
-                              {" · "}
-                              {t("{count} more", { count: rank.at - watchedCount })}
-                            </Text>
-                          )}
-                        </Text>
-                      </View>
-                      {isCurrent && (
-                        <View style={styles.herePill}>
-                          <Text style={styles.hereText}>{t("You're here")}</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
           </Animated.View>
         </View>
 
@@ -795,26 +729,26 @@ const createStyles = (colors) =>
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
     },
+    // Clipped to the header (a portrait is taller than it); the whole of
+    // it still stretches when you pull down.
     backdrop: {
       ...StyleSheet.absoluteFill,
+      overflow: "hidden",
     },
     backdropImage: {
       width: "100%",
       height: "100%",
       opacity: 0.7,
     },
-    collage: {
-      flex: 1,
-      flexDirection: "row",
+    portrait: {
+      position: "absolute",
+      start: 0,
+      width: "100%",
+      opacity: 0.8,
     },
-    collagePoster: {
-      flex: 1,
-      height: "100%",
-      opacity: 0.55,
-    },
-    personPhoto: {
-      alignSelf: "center",
-      marginBottom: spacing.lg,
+    // A person's page: room for their face to show above the title.
+    personSpace: {
+      height: COVER * 0.75,
     },
     // Its kind, small and red; its name big and bold, centred like an
     // album's.
@@ -846,84 +780,6 @@ const createStyles = (colors) =>
       shadowRadius: 16,
       shadowOffset: { width: 0, height: 8 },
       elevation: 10,
-    },
-    // A saga's ranks as a ladder: a rail of nodes down the side, joined
-    // by a line — slate up to where you are, grey beyond.
-    ladder: {
-      marginTop: spacing.md,
-    },
-    step: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      minHeight: 52,
-    },
-    rail: {
-      width: NODE,
-      alignSelf: "stretch",
-      alignItems: "center",
-    },
-    railLine: {
-      flex: 1,
-      width: 2,
-      backgroundColor: colors.border,
-    },
-    railLineHidden: {
-      backgroundColor: "transparent",
-    },
-    railLineLit: {
-      backgroundColor: colors.rating,
-    },
-    node: {
-      width: NODE,
-      height: NODE,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: NODE / 2,
-      borderWidth: 2,
-      borderColor: colors.border,
-      backgroundColor: colors.background,
-    },
-    nodeReached: {
-      borderColor: colors.rating,
-      backgroundColor: colors.rating,
-    },
-    // The next one to reach: ringed in gold, still empty.
-    nodeNext: {
-      borderColor: colors.rating,
-    },
-    stepText: {
-      flex: 1,
-      gap: 1,
-      paddingVertical: spacing.sm,
-    },
-    stepTitle: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.textPrimary,
-    },
-    stepTitleAhead: {
-      color: colors.textSecondary,
-    },
-    stepMeta: {
-      ...typography.caption,
-      color: colors.textMuted,
-    },
-    stepMore: {
-      color: colors.textSecondary,
-    },
-    herePill: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      backgroundColor: colors.rating,
-      borderRadius: shape.control - 2,
-    },
-    hereText: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.background,
     },
     // The film strip: a frame per film, 2px apart.
     strip: {

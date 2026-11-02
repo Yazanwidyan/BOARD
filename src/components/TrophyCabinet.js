@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
@@ -10,13 +9,25 @@ import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getCollectionCompletedAt, getCollectionProgress, getSagas } from "../utils/collections";
 import { Text } from "./AppText";
+import { GOLD, Laurel, PEWTER } from "./icons/Laurel";
 import { MoviePoster } from "./MoviePoster";
 
 // In a sideways row: each trophy's width.
-const ROW_ITEM = 96;
-// The ring around a medal, and the space between it and the posters.
-const RING = 3;
-const RING_GAP = 3;
+const ROW_ITEM = 104;
+// The posters' disc, as a share of the wreath round it.
+const DISC = 0.6;
+
+// Every saga's trophy — the won ones (newest first), then the rest, the
+// closest to won first: [{ collection, finishedAt } | { collection,
+// progress: { watchedCount, total } }].
+export const getAllTrophies = (watched) => {
+  const watchedIds = new Set(watched.map((entry) => entry.movieId));
+  const toWin = getSagas()
+    .map((collection) => ({ collection, progress: getCollectionProgress(collection, watchedIds) }))
+    .filter(({ progress }) => progress.total > 0 && progress.progress < 1)
+    .sort((a, b) => b.progress.progress - a.progress.progress || a.progress.total - b.progress.total);
+  return [...getTrophies(watched), ...toWin];
+};
 
 // The collections fully watched in this watch history, newest first:
 // [{ collection, finishedAt }].
@@ -31,36 +42,32 @@ export const getTrophies = (watched) => {
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
 };
 
-// A medal: the collection's first four posters in a circle, in a violet
-// ring (the collections' colour).
-const Medal = ({ collection, size, styles, colors }) => {
-  const outer = size + (RING + RING_GAP) * 2;
-  const cell = size / 2;
+// A trophy: the collection's first four posters in a gold-rimmed disc,
+// crowned with a film festival's laurels (components/icons/Laurel).
+// `locked`: not won yet — pewter, the posters dimmed.
+const Medal = ({ collection, size, locked, styles }) => {
+  const disc = Math.round(size * DISC);
+  const cell = disc / 2;
   return (
-    <View style={{ width: outer, height: outer }}>
-      <Svg width={outer} height={outer} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={outer / 2}
-          cy={outer / 2}
-          r={(outer - RING) / 2}
-          stroke={colors.collection}
-          strokeWidth={RING}
-          fill="none"
-        />
-      </Svg>
+    <View style={{ width: size, height: size }}>
       <View
         style={[
           styles.medal,
-          { width: size, height: size, borderRadius: size / 2, margin: RING + RING_GAP },
+          { width: disc, height: disc, borderRadius: disc / 2, top: (size - disc) / 2, start: (size - disc) / 2 },
+          locked && styles.medalLocked,
         ]}
       >
         {[0, 1, 2, 3].map((index) => (
           <MoviePoster
             key={index}
+            tile
             uri={getMovieById(collection.movieIds[index % collection.movieIds.length])?.poster}
-            style={{ width: cell, height: cell }}
+            style={[{ width: cell, height: cell }, locked && styles.posterLocked]}
           />
         ))}
+      </View>
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Laurel size={size} muted={locked} />
       </View>
     </View>
   );
@@ -68,7 +75,9 @@ const Medal = ({ collection, size, styles, colors }) => {
 
 // Trophies as a cabinet: a medal for each finished collection, its name and
 // when you finished it under it. `finished`: [{ collection, finishedAt }]
-// (getTrophies); `onOpen(collectionId)`. `columns`: how many across the
+// (getTrophies) — or, with getAllTrophies, also the ones not won yet
+// ({ collection, progress }), in pewter with how far along you are.
+// `onOpen(collectionId)`. `columns`: how many across the
 // width (they wrap); `row`: one sideways row you scroll instead, running to
 // the screen's edges.
 export const TrophyCabinet = ({ finished, onOpen, columns = 3, row = false }) => {
@@ -79,7 +88,7 @@ export const TrophyCabinet = ({ finished, onOpen, columns = 3, row = false }) =>
   const language = useLanguageStore((state) => state.language);
   const [width, setWidth] = useState(0);
   const column = row ? ROW_ITEM : (width - spacing.md * (columns - 1)) / columns;
-  const size = Math.max(0, column - (RING + RING_GAP) * 2);
+  const size = Math.max(0, column);
   const thisYear = new Date().getFullYear();
   const dateOf = (timestamp) => {
     const date = new Date(timestamp);
@@ -90,8 +99,13 @@ export const TrophyCabinet = ({ finished, onOpen, columns = 3, row = false }) =>
     });
   };
 
-  const medals = finished.map(({ collection, finishedAt }) => {
-    const sub = finishedAt ? dateOf(finishedAt) : t("Completed");
+  const medals = finished.map(({ collection, finishedAt, progress }) => {
+    const locked = !!progress;
+    const sub = locked
+      ? t("{watched} of {total}", { watched: progress.watchedCount, total: progress.total })
+      : finishedAt
+        ? dateOf(finishedAt)
+        : t("Completed");
     return (
       <Pressable
         key={collection.id}
@@ -100,11 +114,11 @@ export const TrophyCabinet = ({ finished, onOpen, columns = 3, row = false }) =>
         accessibilityRole="button"
         accessibilityLabel={`${t(collection.title)}. ${sub}`}
       >
-        <Medal collection={collection} size={size} styles={styles} colors={colors} />
-        <Text style={styles.name} numberOfLines={2}>
+        <Medal collection={collection} size={size} locked={locked} styles={styles} />
+        <Text style={[styles.name, locked && styles.nameLocked]} numberOfLines={2}>
           {t(collection.title)}
         </Text>
-        <Text style={styles.sub} numberOfLines={1}>
+        <Text style={[styles.sub, locked && styles.subLocked]} numberOfLines={1}>
           {sub}
         </Text>
       </Pressable>
@@ -148,9 +162,12 @@ const createStyles = (colors) =>
       opacity: 0.7,
     },
     medal: {
+      position: "absolute",
       flexDirection: "row",
       flexWrap: "wrap",
       overflow: "hidden",
+      borderWidth: 2,
+      borderColor: GOLD[1],
       backgroundColor: colors.card,
     },
     name: {
@@ -159,14 +176,26 @@ const createStyles = (colors) =>
       lineHeight: 17,
       color: colors.textPrimary,
       textAlign: "center",
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
     },
-    // When it was finished: green, like the ring.
+    medalLocked: {
+      borderColor: PEWTER[1],
+    },
+    posterLocked: {
+      opacity: 0.35,
+    },
+    nameLocked: {
+      color: colors.textSecondary,
+    },
+    subLocked: {
+      color: colors.textMuted,
+    },
+    // When it was finished: in the laurels' gold.
     sub: {
       ...typography.caption,
       fontSize: 11,
       lineHeight: 14,
-      color: colors.success,
+      color: GOLD[1],
       textAlign: "center",
       marginTop: 2,
     },

@@ -23,7 +23,6 @@ import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { WatchTogetherScreen } from "../screens/WatchTogetherScreen";
 import { GroupNightScreen } from "../screens/GroupNightScreen";
 import { ProScreen } from "../screens/ProScreen";
-import { RanksScreen } from "../screens/RanksScreen";
 import { RecapScreen } from "../screens/RecapScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { PreferencesScreen } from "../screens/PreferencesScreen";
@@ -32,6 +31,7 @@ import { SwipeScreen } from "../screens/SwipeScreen";
 import { TasteScreen } from "../screens/TasteScreen";
 import { TierListScreen } from "../screens/TierListScreen";
 import { TierMovieScreen } from "../screens/TierMovieScreen";
+import { TrophiesScreen } from "../screens/TrophiesScreen";
 import { WildcardScreen } from "../screens/WildcardScreen";
 import { SimilarScreen } from "../screens/SimilarScreen";
 import { FriendProfileScreen } from "../screens/FriendProfileScreen";
@@ -57,7 +57,7 @@ const Stack = createNativeStackNavigator();
 // Links into the app (the "reelboard" scheme in app.json): a movie night
 // invite (reelboard://night/ABC123) opens straight into the room, a movie
 // or a collection (reelboard://movie/155) its page, and notifications open
-// Friends, the recap, Decide or a movie. Only screens that exist
+// Friends, the recap, Decide, a movie or its tier screen. Only screens that exist
 // right now can be opened: signed out, a link just opens the app.
 const LINKING = {
   prefixes: ["reelboard://"],
@@ -69,6 +69,8 @@ const LINKING = {
       // Shared links' pages (the server's /m/:id and /c/:id) open these,
       // and so do pushes about a film.
       MovieDetails: "movie/:movieId",
+      // The morning-after question (services/notifications).
+      TierMovie: "tier/:movieId",
       CollectionDetails: "collection/:collectionId",
       // Old "decide" links land on Home, where deciding lives now.
       Main: { screens: { Home: "decide" } },
@@ -212,7 +214,6 @@ export const AppNavigator = () => {
               name="FriendProfile"
               component={FriendProfileScreen}
             />
-            <Stack.Screen name="Ranks" component={RanksScreen} />
             <Stack.Screen name="WatchTogether" component={WatchTogetherScreen} />
             <Stack.Screen name="Pro" component={ProScreen} />
             <Stack.Screen name="TierList" component={TierListScreen} />
@@ -221,6 +222,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="Account" component={AccountScreen} />
             <Stack.Screen name="BlockedPeople" component={BlockedPeopleScreen} />
+            <Stack.Screen name="Trophies" component={TrophiesScreen} />
             <Stack.Screen name="LetterboxdImport" component={LetterboxdImportScreen} />
           </>
         )}

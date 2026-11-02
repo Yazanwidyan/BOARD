@@ -6,6 +6,7 @@ import { ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { captureRef } from "react-native-view-shot";
 
+import { withAppLink } from "../config/links";
 import { logEvent } from "../services/events";
 import { shareLink } from "../services/shareLinks";
 import { radius, shape, spacing } from "../theme/spacing";
@@ -14,6 +15,7 @@ import { useColors } from "../theme/useColors";
 import { BottomSheet } from "./BottomSheet";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
+import { ShareCardFooter } from "./ShareCardFooter";
 import { TasteDnaBars } from "./TasteDnaBars";
 import { WatcherCard } from "./WatcherCard";
 import { t } from "../i18n";
@@ -46,6 +48,7 @@ export const TasteShareSheet = ({
   const favorites = taste.favorites.slice(0, FAVORITE_POSTERS);
 
   const shareImage = async () => {
+    const message = withAppLink(fallbackMessage);
     if (isSharing) return;
     setIsSharing(true);
     logEvent("dna_shared");
@@ -62,11 +65,11 @@ export const TasteShareSheet = ({
           UTI: "public.png",
         });
       } else {
-        await Share.share({ message: fallbackMessage });
+        await Share.share({ message });
       }
     } catch {
       // Capture can fail on some devices — the text version still goes out.
-      await Share.share({ message: fallbackMessage });
+      await Share.share({ message });
     } finally {
       setIsSharing(false);
     }
@@ -184,7 +187,7 @@ export const TasteShareSheet = ({
             </View>
           )}
 
-          <Text style={styles.brand}>{t("on ReelBoard")}</Text>
+          <ShareCardFooter handle={cardProps.handle} align="end" style={styles.brand} />
         </View>
       </ScrollView>
     </BottomSheet>
@@ -267,12 +270,7 @@ const createStyles = (colors) =>
       marginTop: spacing.sm,
     },
     brand: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textMuted,
       marginTop: spacing.md,
-      alignSelf: "flex-end",
     },
   });
 

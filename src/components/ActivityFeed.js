@@ -22,7 +22,7 @@ const FILTERS = [
   { key: "watched", label: "Watched", types: ["watched"] },
   { key: "tier", label: "Tiers", types: ["tier"] },
   { key: "watchlist", label: "Saved", types: ["watchlist"] },
-  { key: "rank", label: "Ranks", types: ["rank", "badge", "set"] },
+  { key: "set", label: "Collections", types: ["set"] },
 ];
 
 // Events (newest first) in three buckets by how long ago they happened —
@@ -54,7 +54,10 @@ export const ActivityFeed = ({ navigation }) => {
   const [filter, setFilter] = useState("all");
 
   const now = Date.now();
-  const sorted = [...activity].sort((a, b) => b.timestamp - a.timestamp);
+  // Ranks (and the badges before them) are gone; their old events too.
+  const sorted = activity
+    .filter((event) => event.type !== "rank" && event.type !== "badge")
+    .sort((a, b) => b.timestamp - a.timestamp);
   const filters = FILTERS.filter(
     (option) => !option.types || sorted.some((event) => option.types.includes(event.type)),
   );

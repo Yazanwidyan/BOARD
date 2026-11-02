@@ -1,46 +1,17 @@
 import { queryClient, queryKeys, queueChange } from "../services/queryClient";
-import { getRankCount, getTitle } from "../utils/ranks";
 import { createAccountStore } from "./accountStore";
-import { useChallengeStore } from "./challengeStore";
 
 // Your library: watchlist, watched + tiers, tonight's pick and manually
 // unlocked collections. Server data, cached by TanStack Query (see
 // store/accountStore.js) under queryKeys.library = GET /api/me/library.
 const LIBRARY = { invalidate: [queryKeys.library] };
-// Changes to the watch history also change your ranks, which the server
-// works out — so the profile is re-read afterwards too.
+// Changes to the watch history also change your profile's counts, which
+// the server works out — so the profile is re-read afterwards too.
 const WATCHED = { invalidate: [queryKeys.library, queryKeys.profile] };
 // …and the movie's community tiers (if its page is open, it updates).
 const watchedChange = (movieId) => ({
   invalidate: [...WATCHED.invalidate, queryKeys.communityMovie(movieId)],
 });
-
-// Ranks are worked out by the server from the watch history (its
-// lib/ranks.js — the same rules as utils/ranks.js), so nobody can claim
-// ranks they haven't earned. The app doesn't send them; it only updates
-// the cached profile straight away with the same rules, so the count moves
-// the moment you watch something, and the server's copy replaces it on the
-// next refresh.
-let lastShownRanks = null;
-
-export const resetShownRanks = (ranks = null) => {
-  lastShownRanks = ranks;
-};
-
-export const refreshRanks = () => {
-  const dares = useChallengeStore
-    .getState()
-    .history.filter((entry) => entry.status === "completed").length;
-  const ranks = getRankCount(useMovieStore.getState().watched, dares);
-  if (ranks === lastShownRanks) return;
-  lastShownRanks = ranks;
-  const title = getTitle(ranks);
-  queryClient.setQueryData(
-    queryKeys.profile,
-    (profile) =>
-      profile && { ...profile, ranks, level: title.step, title: title.name },
-  );
-};
 
 export const useMovieStore = createAccountStore({
   queryKey: queryKeys.library,
@@ -96,8 +67,6 @@ export const useMovieStore = createAccountStore({
         merge: `watched:${movieId}`,
         ...watchedChange(movieId),
       });
-      // A tier can earn a rank too (Films tiered, Tough Critic).
-      refreshRanks();
     };
 
     return {
@@ -192,7 +161,6 @@ export const useMovieStore = createAccountStore({
             },
           );
         }
-        refreshRanks();
       },
 
       // ReelBoard's rating: a tier (S–F), or null to clear it. Drops any old
@@ -214,7 +182,6 @@ export const useMovieStore = createAccountStore({
             entry.movieId === movieId ? { ...entry, rating } : entry,
           ),
         }));
-        refreshRanks();
       },
 
       // Distinct from toggleWatched on purpose — a rewatch of something
@@ -243,7 +210,6 @@ export const useMovieStore = createAccountStore({
           undefined,
           LIBRARY,
         );
-        refreshRanks();
       },
 
       // Set (not toggle) tonight's pick — e.g. a Movie night match.
@@ -258,7 +224,6 @@ export const useMovieStore = createAccountStore({
       clearWatched: () => {
         set({ watched: [] });
         queueChange("DELETE", "/me/watched", undefined, WATCHED);
-        refreshRanks();
       },
       clearUnlockedCollections: () => {
         const ids = get().unlockedCollections;

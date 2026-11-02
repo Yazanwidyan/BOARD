@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Crown,
   Ellipsis,
   Eye,
   Layers,
@@ -17,7 +16,6 @@ import {
   Play,
   RotateCw,
   Share2,
-  TrendingUp,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -72,11 +70,10 @@ import {
   getSagaForPerson,
 } from "../utils/collections";
 import { getFamilyRating } from "../utils/familyRating";
-import { describeForecast, makeRankForecast } from "../utils/ranks";
 import { getMovieMatch, getTastePicks } from "../utils/tasteEngine";
 import { getAverageTier, getTier, getTierInfo } from "../utils/tiers";
+import { describePathStep, getPathFor, usePaths } from "../utils/paths";
 import { describeSagaStep, getSagaStep } from "../utils/tonightPick";
-import { countFinishedDares } from "../utils/useRanks";
 import {
   useHeroFadeStyle,
   useStretchyBackdropStyle,
@@ -427,17 +424,22 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
     [watched, movie],
   );
   // What watching it would do for you (not for movies you've watched): its
-  // step in a collection ("Makes you Capo in Say Hello"), and for your
-  // ranks — the same lines as Home's pick.
-  const dareHistory = useChallengeStore((state) => state.history);
-  const { sagaStep, forecast } = useMemo(() => {
+  // step in a collection — "2 left in Nolan", "Finishes Nolan" — from the
+  // ones you've started (the server's paths, directors' too), else the saga
+  // it would start. { collectionId, line, finish } or null.
+  const paths = usePaths();
+  const collectionStep = useMemo(() => {
     const seen = new Set(watched.map((entry) => entry.movieId));
-    if (!movie || seen.has(movieId)) return { sagaStep: null, forecast: null };
-    return {
-      sagaStep: getSagaStep(movieId, seen),
-      forecast: makeRankForecast(watched, countFinishedDares(dareHistory))(movie),
-    };
-  }, [watched, movie, movieId, dareHistory]);
+    if (!movie || seen.has(movieId)) return null;
+    const path = getPathFor(paths, movieId);
+    if (path) {
+      return { collectionId: path.id, line: describePathStep(path), finish: path.total - path.watched === 1 };
+    }
+    const step = getSagaStep(movieId, seen);
+    return step
+      ? { collectionId: step.collection.id, line: describeSagaStep(step), finish: step.type === "finish" }
+      : null;
+  }, [watched, paths, movie, movieId]);
 
   if (!movie) {
     return (
@@ -463,10 +465,10 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
   const collections = getCollectionsForMovie(movieId);
   const similarMovies = getMoreLikeThis(movie, like.data?.similar, watched);
   const directorMovies = getDirectorMovies(movie);
+  // What the director's name opens: their saga, else the collection the
+  // server has of their films (its page says which), else nothing.
   const directorSaga = getSagaForPerson(movie.director);
-  const sagaLine = describeSagaStep(sagaStep);
-  const rankLine = forecast ? describeForecast(forecast) : null;
-  const earnsRank = (forecast?.gained.length ?? 0) > 0;
+  const directorCollection = directorSaga ?? page.data?.directorCollection ?? null;
   const details = movie.details;
   // The cast with photos and characters comes with the movie's page — read
   // from the page itself, since other copies of the movie (in lists, the
@@ -682,12 +684,12 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             </View>
             {/* The director (their collection, when they have one). */}
             <View style={styles.heroCredits}>
-              {directorSaga ? (
+              {directorCollection ? (
                 <Pressable
                   style={({ pressed }) => [styles.heroDirector, pressed && styles.actionPressed]}
-                  onPress={() => navigation.push("CollectionDetails", { collectionId: directorSaga.id })}
+                  onPress={() => navigation.push("CollectionDetails", { collectionId: directorCollection.id })}
                   accessibilityRole="link"
-                  accessibilityHint={t("Opens {title}", { title: directorSaga.title })}
+                  accessibilityHint={t("Opens {title}", { title: directorCollection.title })}
                   hitSlop={6}
                 >
                   <Text style={styles.meta} numberOfLines={1}>
@@ -805,40 +807,21 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
             {/* First: the tagline and the overview, then what's yours (a
                 dare, your history). */}
             <View style={styles.overviewTop}>
-            {/* What watching it does for you: a step in a collection, and
-                for your ranks — each line whole, and a way in. */}
-            {(sagaLine || rankLine) && (
+            {/* What watching it does for you: its step in a collection,
+                and a way in. */}
+            {collectionStep && (
               <View style={styles.gains}>
-                {!!sagaLine && (
-                  <Pressable
-                    style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
-                    onPress={() => navigation.push("CollectionDetails", { collectionId: sagaStep.collection.id })}
-                    accessibilityRole="button"
-                  >
-                    {sagaStep.type === "rank" ? (
-                      <Crown size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
-                    ) : (
-                      <Layers size={16} color={colors.collection} strokeWidth={2} style={styles.gainIcon} />
-                    )}
-                    <Text style={[styles.gainText, sagaStep.type === "rank" && styles.gainTextStrong]}>{sagaLine}</Text>
-                    <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
-                  </Pressable>
-                )}
-                {!!rankLine && (
-                  <Pressable
-                    style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
-                    onPress={() => navigation.push("Ranks")}
-                    accessibilityRole="button"
-                  >
-                    {earnsRank ? (
-                      <Crown size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
-                    ) : (
-                      <TrendingUp size={16} color={colors.rating} strokeWidth={2} style={styles.gainIcon} />
-                    )}
-                    <Text style={[styles.gainText, earnsRank && styles.gainTextStrong]}>{rankLine}</Text>
-                    <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
-                  </Pressable>
-                )}
+                <Pressable
+                  style={({ pressed }) => [styles.gain, pressed && styles.actionPressed]}
+                  onPress={() => navigation.push("CollectionDetails", { collectionId: collectionStep.collectionId })}
+                  accessibilityRole="button"
+                >
+                  <Layers size={16} color={colors.collection} strokeWidth={2} style={styles.gainIcon} />
+                  <Text style={[styles.gainText, collectionStep.finish && styles.gainTextStrong]}>
+                    {collectionStep.line}
+                  </Text>
+                  <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} style={[styles.gainIcon, rtl && styles.flipped]} />
+                </Pressable>
               </View>
             )}
             {/* Its tagline in small caps, then the overview; the chevron for
@@ -1108,15 +1091,16 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                   <Text style={[styles.sectionLabel, styles.railHeaderLabel]} numberOfLines={1}>
                     {t("Also by")} {movie.director}
                   </Text>
-                  {directorSaga && (
+                  {directorCollection && (
                     <Pressable
                       hitSlop={8}
                       onPress={() =>
-                        navigation.push("CollectionDetails", { collectionId: directorSaga.id })
+                        navigation.push("CollectionDetails", { collectionId: directorCollection.id })
                       }
                     >
                       <Text style={styles.railHeaderLink} numberOfLines={1}>
-                        {directorSaga.title} ›
+                        {/* A saga by its name; a director's own films need no repeat of theirs. */}
+                        {directorSaga ? directorSaga.title : t("See all")} ›
                       </Text>
                     </Pressable>
                   )}

@@ -62,14 +62,7 @@ const EventText = ({ event, styles }) => {
           {sentence("{name} saved {title} for later", parts)}
         </Text>
       );
-    case "rank":
-      return (
-        <Text style={styles.eventText}>
-          {sentence("{name} is now {rank}", { ...parts, rank: strong(t(event.rank)) })}
-          <Text style={styles.muted}>{` · ${t(event.track)}`}</Text>
-        </Text>
-      );
-    // From before ranks: a badge, a finished collection.
+    // From before: a badge. A finished collection.
     case "badge":
       return (
         <Text style={styles.eventText}>
@@ -102,14 +95,14 @@ const EventBadge = ({ event, styles, colors }) => {
   }
   if (event.type === "watched") content = <Eye size={10} color={colors.success} strokeWidth={2.6} />;
   else if (event.type === "watchlist") content = <Bookmark size={10} color={colors.textPrimary} strokeWidth={2.6} />;
-  else if (["rank", "badge", "set"].includes(event.type)) {
+  else if (["badge", "set"].includes(event.type)) {
     content = <Crown size={10} color={colors.rating} strokeWidth={2.6} />;
   }
   return content ? <View style={styles.badge}>{content}</View> : null;
 };
 
 // The thing on the end of an event: the poster, or a slate crown tile for
-// a rank (or, from before ranks, a badge or a finished collection).
+// a finished collection (or, from before, a badge).
 const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
   if (event.movieId) {
     const movie = getMovieById(event.movieId);
@@ -119,7 +112,7 @@ const EventVisual = ({ event, onOpenMovie, styles, colors }) => {
       </Pressable>
     );
   }
-  if (["rank", "badge", "set"].includes(event.type)) {
+  if (["badge", "set"].includes(event.type)) {
     return (
       <View style={styles.rankTile}>
         <Crown size={20} color={colors.rating} strokeWidth={2.1} />

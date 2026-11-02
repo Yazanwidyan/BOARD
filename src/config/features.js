@@ -13,4 +13,7 @@ export const features = {
   milestones: false,
   // Replay — your month — and the Recap it opens.
   replay: false,
+  // ReelBoard Pro's teasers (Settings' row, Profile's locked taste stats)
+  // while it can't be bought. Pro accounts still see what they have.
+  pro: false,
 };

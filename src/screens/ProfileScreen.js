@@ -316,7 +316,7 @@ export const ProfileScreen = ({ navigation }) => {
         </ProfileSection>
 
         {/* Your taste: its DNA, then how you tier each genre, decade and
-            director (Pro). */}
+            director (Pro — its teaser hidden while Pro can't be bought). */}
         <ProfileSection
           title={t("Your taste")}
           onAction={tasteDna.hasDna ? () => navigation.navigate("Taste") : undefined}
@@ -325,14 +325,17 @@ export const ProfileScreen = ({ navigation }) => {
             dna={tasteDna}
             onSeeUntiered={() => navigation.navigate("Library", { showUntiered: true })}
           />
-          <View style={styles.tasteStats}>
-            <TasteStats watched={watched} isPro={isPro} onSeePro={() => navigation.navigate("Pro")} />
-          </View>
+          {(features.pro || isPro) && (
+            <View style={styles.tasteStats}>
+              <TasteStats watched={watched} isPro={isPro} onSeePro={() => navigation.navigate("Pro")} />
+            </View>
+          )}
         </ProfileSection>
 
-        {/* Collections: a trophy for each one you've finished (and, when
-            switched on, your latest milestones). */}
-        <ProfileSection title={t("Collections")} onAction={() => openLibraryTab("collections")}>
+        {/* Collections: the ones you've completed, each in its laurels
+            (and, when switched on, your latest milestones) — all of them,
+            completed or not, a tap away. */}
+        <ProfileSection title={t("Collections")} onAction={() => navigation.navigate("Trophies")}>
           {features.milestones && (
             <Pressable
               style={({ pressed }) => [styles.medals, pressed && styles.pressed]}
@@ -359,7 +362,7 @@ export const ProfileScreen = ({ navigation }) => {
               />
             </View>
           ) : (
-            <SectionEmpty line={t("Finish a collection and its trophy shows here.")} />
+            <SectionEmpty line={t("Watch every film in a collection to complete it.")} />
           )}
         </ProfileSection>
 
@@ -463,7 +466,7 @@ const createStyles = (colors) =>
       textAlign: "center",
       flexShrink: 1,
     },
-    // Films · friends · ranks, evenly across under your name.
+    // Films · friends · collections, evenly across under your name.
     counts: {
       flexDirection: "row",
       justifyContent: "center",

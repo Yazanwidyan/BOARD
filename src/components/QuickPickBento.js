@@ -4,13 +4,9 @@ import { Text } from "./AppText";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t, useIsRTL } from "../i18n";
-import { useChallengeStore } from "../store/challengeStore";
-import { useMovieStore } from "../store/movieStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getRanksFromWatching } from "../utils/ranks";
-import { countFinishedDares } from "../utils/useRanks";
 import { features } from "../config/features";
 
 // The icon's circle on every card.
@@ -53,8 +49,7 @@ export const ActionList = ({ rows }) => {
 
 // Home's ways to decide, as a row of rounded cards you scroll sideways:
 // each its icon in a circle, its name and a line on what it does. The last
-// is your dare — its film and the ranks it earns, with a small ⟳ to swap
-// it — or what a dare is.
+// is your dare — its film, with a small ⟳ to swap it — or what a dare is.
 // `dare`: the active challenge, or null; `onDare` opens it (or starts one).
 // `chips`: a row of small pills (Home, under the mixes), not cards.
 export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNewDare, chips = false }) => {
@@ -65,17 +60,7 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
   const cardWidth = Math.round((width - spacing.md * 2) * 0.62);
   // Re-render when the dare's film arrives (data/movies).
   useMoviesVersion();
-  const watched = useMovieStore((state) => state.watched);
-  const history = useChallengeStore((state) => state.history);
   const movie = dare ? getMovieById(dare.targetMovieId) : null;
-  // Worked out live, so it stays true as your history changes.
-  const rankGain = dare
-    ? getRanksFromWatching(watched, dare.targetMovieId, countFinishedDares(history), {
-        finishesDare: true,
-      }).length
-    : 0;
-  const reward =
-    rankGain === 0 ? null : rankGain === 1 ? t("+1 rank") : t("+{count} ranks", { count: rankGain });
 
   const ways = [
     { key: "wildcard", Icon: Dices, label: t("Surprise me"), hint: t("One film, a surprise"), onPress: onWildcard },
@@ -86,9 +71,7 @@ export const DecideWays = ({ onWildcard, onSwipe, onSimilar, dare, onDare, onNew
       Icon: Target,
       tint: colors.dare,
       label: dare ? t("Your dare") : t("Dare"),
-      hint: dare
-        ? [movie?.title ?? t(dare.difficultyLabel), reward].filter(Boolean).join(" · ")
-        : t("Watch it, earn ranks"),
+      hint: dare ? movie?.title ?? t(dare.difficultyLabel) : t("A film outside your comfort zone"),
       onPress: onDare,
       onSwap: dare ? onNewDare : undefined,
     },

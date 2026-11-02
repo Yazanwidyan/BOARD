@@ -1,325 +1,211 @@
-import { ListPlus, Plus, Trophy } from "lucide-react-native";
-import { useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { Text } from "./AppText";
+import { Check, ChevronRight, ListPlus, Play, Plus } from "lucide-react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 
+import { getMovieById, useMoviesVersion } from "../data/movies";
+import { t, useIsRTL } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
-import { typography } from "../theme/typography";
+import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import {
-  getCollectionCompletedAt,
-  getCollectionProgress,
-  getCollectionSections,
-  getSagaRank,
-  getSuggestedCollections,
-} from "../utils/collections";
+import { getCollectionProgress, getSagas, getSuggestedCollections } from "../utils/collections";
 import { formatRuntime } from "../utils/movieFilters";
+import { getPathNext, usePaths } from "../utils/paths";
+import { Text } from "./AppText";
 import { CollectionCollage } from "./CollectionCollage";
 import { EmptyState } from "./EmptyState";
-import { ArtworkEdge, MoviePoster } from "./MoviePoster";
-import { TrophyCabinet } from "./TrophyCabinet";
-import { t } from "../i18n";
-import { useMoviesVersion } from "../data/movies";
+import { LaurelIcon } from "./icons/Laurel";
+import { MoviePoster } from "./MoviePoster";
+import { TrophyCabinet, getTrophies } from "./TrophyCabinet";
 
-// By saga kind.
-const TYPE_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "franchise", label: "Franchises" },
-  { key: "studio", label: "Studios" },
-  { key: "theme", label: "Themes" },
-  { key: "director", label: "Directors" },
-  { key: "actor", label: "Actors" },
-];
-const ALMOST_THERE_MAX_LEFT = 2;
-const CAROUSEL_CARD = 136;
-// The gap between cards, in the carousel and the grid.
-const CARD_GAP = spacing.rail;
+const HERO_COVER = 112;
+const ROW_COVER = 64;
+const NEXT_POSTER = 44;
+const START_SHOWN = 6;
 
-
-// 2×2 poster cover — the first four movies, cropped into square cells.
-const Cover = ({ movies, size, dimmed, styles }) => {
-  const cell = size / 2;
-  return (
-    <View style={[styles.cover, { width: size, height: size }]}>
-      {[0, 1, 2, 3].map((index) => {
-        const movie = movies[index % movies.length];
-        return (
-          <MoviePoster
-            key={index}
-            tile
-            uri={movie?.poster}
-            style={[
-              { width: cell, height: cell },
-              dimmed && styles.coverDimmed,
-            ]}
-          />
-        );
-      })}
-      <ArtworkEdge />
-    </View>
-  );
+// What kind of collection, in a word.
+const KIND_LABELS = {
+  franchise: "Franchise",
+  studio: "Studio",
+  theme: "Theme",
+  director: "Director",
+  actor: "Actor",
 };
 
-// One collection as a poster collage with its name and a line underneath.
-const ShelfCard = ({
-  item,
-  width,
-  meta,
-  metaColor,
-  watchedIds,
-  onPress,
-  styles,
-}) => (
-  <Pressable
-    style={({ pressed }) => [{ width }, pressed && styles.pressed]}
-    onPress={onPress}
-  >
-    <CollectionCollage
-      collection={item.collection}
-      watchedIds={watchedIds}
-      size={width}
-    />
-    <View style={styles.shelfCardText}>
-      <Text style={styles.cardTitle} numberOfLines={1}>
-        {item.collection.title}
-      </Text>
-      <Text
-        style={[styles.cardMeta, metaColor && { color: metaColor }]}
-        numberOfLines={1}
-      >
-        {meta}
-      </Text>
-    </View>
-  </Pressable>
-);
+// A collection from the server's paths (sagas and directors' films alike)
+// as the collage wants it: its films as movies.
+const asCollection = (path) => ({
+  ...path,
+  get movies() {
+    return path.movieIds.map(getMovieById).filter(Boolean);
+  },
+});
 
-// Section headers as the little tags clipped to a store shelf.
-const SectionTitle = ({ title, count, icon, color, styles }) => (
-  <View style={styles.tag}>
-    {icon}
-    <Text style={[styles.tagText, color && { color }]}>
-      {title.toUpperCase()}
+// The time the films you haven't seen add up to.
+const timeLeft = (path, watchedIds) =>
+  path.movieIds
+    .filter((id) => !watchedIds.has(id))
+    .reduce((sum, id) => sum + (getMovieById(id)?.runtime ?? 0), 0);
+
+// A section's heading, as Library's: bold, with a quiet count after it.
+const Heading = ({ title, count, styles }) => (
+  <View style={styles.headingRow}>
+    <Text style={styles.headingText} numberOfLines={1}>
+      {title}
     </Text>
-    {count != null && <Text style={styles.tagCount}>{count}</Text>}
+    {count != null && <Text style={styles.headingCount}>{count}</Text>}
   </View>
 );
 
-// Library's Collections tab as shelves: type chips → In progress carousel
-// (cover + ring + what's left) → Almost there (1–2 left, with the exact
-// movie) → Not started → the completed ones, as medals (with the
-// date they were finished) → You might like (untracked collections matching
-// what you watch). The full browser stays one tap away under "See all".
+// A thin progress bar; `strong` in the brand colour (one film left).
+const Bar = ({ value, strong, styles }) => (
+  <View style={styles.barTrack}>
+    <View style={[styles.barFill, strong && styles.barFillStrong, { width: `${Math.round(value * 100)}%` }]} />
+  </View>
+);
+
+// Library's Collections — the one thing to finish in ReelBoard:
+//   Closest to done   the collection you're nearest the end of, big: how
+//                     far, the time left, and its next film to watch
+//   In progress       the rest you've started, one row each
+//   Completed         the ones you've finished (n of all the sagas)
+//   Start one         collections you track or might like, to begin
+// then Browse all. Progress is the server's (utils/paths), so directors'
+// collections count here too.
 export const CollectionsShelf = ({
   watched,
   unlockedCollectionIds,
   onOpen,
   onToggleTrack,
   onSeeAll,
+  onSeeTrophies,
   onOpenMovie,
 }) => {
   // Re-render when movies this screen asked for arrive (data/movies).
   useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
+  const rtl = useIsRTL();
   const { width } = useWindowDimensions();
-  const [typeFilter, setTypeFilter] = useState("all");
+  const paths = usePaths();
 
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  const all = getCollectionSections()
-    .flatMap((section) => section.collections)
-    .map((collection) => {
-      const progressInfo = getCollectionProgress(collection, watchedIds);
-      // Counted from the ids; the next movie is the first the phone has.
-      const unwatched = collection.movies.filter(
-        (movie) => !watchedIds.has(movie.id),
-      );
-      return {
-        collection,
-        ...progressInfo,
-        // The saga rank reached so far ("Prefect"), or null.
-        rank: getSagaRank(collection, watchedIds).current,
-        left: progressInfo.total - progressInfo.watchedCount,
-        nextMovie: unwatched[0] ?? null,
-        minutesLeft: unwatched.reduce((sum, movie) => sum + movie.runtime, 0),
-        tracked:
-          progressInfo.progress > 0 ||
-          unlockedCollectionIds.includes(collection.id),
-      };
-    });
+  const [closest, ...underWay] = paths;
+  const closestNext = closest ? getMovieById(getPathNext(closest)) : null;
+  const trophies = getTrophies(watched);
+  const sagaCount = getSagas().length;
 
-  const tracked = all.filter((item) => item.tracked);
-  const availableTypes = TYPE_FILTERS.filter(
-    ({ key }) =>
-      key === "all" || tracked.some((item) => item.collection.kind === key),
+  // To start: the ones you track but haven't begun, then ones like what you
+  // watch.
+  const tracked = getSagas().filter(
+    (collection) =>
+      unlockedCollectionIds.includes(collection.id) &&
+      getCollectionProgress(collection, watchedIds).watchedCount === 0,
   );
-  const matchesType = (item) =>
-    typeFilter === "all" || item.collection.kind === typeFilter;
+  const suggested = getSuggestedCollections(watched, unlockedCollectionIds, START_SHOWN);
+  const toStart = [
+    ...tracked.map((collection) => ({ collection, tracked: true, genre: null })),
+    ...suggested.map(({ collection, genre }) => ({ collection, tracked: false, genre })),
+  ].slice(0, START_SHOWN);
+  const cell = Math.floor((width - spacing.md * 2 - spacing.rail) / 2);
 
-  const visible = tracked.filter(matchesType);
-  const inProgress = visible
-    .filter((item) => item.progress > 0 && item.progress < 1)
-    .sort((a, b) => b.progress - a.progress);
-  const almostThere = inProgress.filter(
-    (item) => item.left <= ALMOST_THERE_MAX_LEFT,
-  );
-  const notStarted = visible.filter((item) => item.progress === 0);
-  const completed = visible
-    .filter((item) => item.progress === 1)
-    .map((item) => ({
-      ...item,
-      completedAt: getCollectionCompletedAt(item.collection, watched),
-    }))
-    .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
-  const suggestions = getSuggestedCollections(
-    watched,
-    unlockedCollectionIds,
-  ).filter(({ collection }) => matchesType({ collection }));
-
-  // Not started: two collages per row.
-  const gridCell = (width - spacing.md * 2 - CARD_GAP) / 2;
+  const nothing = paths.length === 0 && trophies.length === 0;
 
   return (
-    <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={[styles.flatRow, styles.chipsBar]}
-        contentContainerStyle={styles.chips}
-      >
-        {availableTypes.map(({ key, label }) => (
-          <Pressable
-            key={key}
-            style={[styles.chip, typeFilter === key && styles.chipActive]}
-            onPress={() => setTypeFilter(key)}
-          >
-            <Text
-              style={[
-                styles.chipText,
-                typeFilter === key && styles.chipTextActive,
-              ]}
-            >
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {tracked.length === 0 && (
+    <View style={styles.page}>
+      {nothing && (
         <EmptyState
           art="noCollections"
           title={t("No collections yet")}
-          subtitle={t(
-            "Watch a film from one and its ranks start here, or pick some to track below.",
-          )}
+          subtitle={t("Watch a film from one and it starts here, or pick some to track below.")}
         />
       )}
 
-      {inProgress.length > 0 && (
-        <View style={styles.section}>
-          <SectionTitle
-            title={t("In progress")}
-            count={inProgress.length}
-            styles={styles}
-          />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.flatRow}
-            contentContainerStyle={styles.carousel}
-          >
-            {inProgress.map((item) => (
-              <ShelfCard
-                key={item.collection.id}
-                item={item}
-                width={CAROUSEL_CARD}
-                meta={
-                  item.rank
-                    ? t("{rank} · {watchedCount} of {total}", {
-                        rank: item.rank.title,
-                        watchedCount: item.watchedCount,
-                        total: item.total,
-                      })
-                    : t("{watchedCount} of {total} · {minutesLeft} left", {
-                        watchedCount: item.watchedCount,
-                        total: item.total,
-                        minutesLeft: formatRuntime(item.minutesLeft),
-                      })
-                }
-                watchedIds={watchedIds}
-                onPress={() => onOpen(item.collection.id)}
-                styles={styles}
-              />
-            ))}
-          </ScrollView>
-        </View>
+      {/* Closest to done: the one to finish next, and its next film. */}
+      {closest && (
+        <Pressable
+          style={({ pressed }) => [styles.hero, pressed && styles.pressed]}
+          onPress={() => onOpen(closest.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`${closest.title}, ${t("{watched} of {total}", { watched: closest.watched, total: closest.total })}`}
+        >
+          <View style={styles.heroTop}>
+            <CollectionCollage collection={asCollection(closest)} watchedIds={watchedIds} size={HERO_COVER} />
+            <View style={styles.heroWords}>
+              <Text style={styles.eyebrow}>{t("Closest to done")}</Text>
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {closest.title}
+              </Text>
+              <Text style={styles.heroMeta} numberOfLines={1}>
+                {[
+                  t("{watched} of {total}", { watched: closest.watched, total: closest.total }),
+                  timeLeft(closest, watchedIds) > 0
+                    ? t("{time} to go", { time: formatRuntime(timeLeft(closest, watchedIds)) })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+              <Bar value={closest.watched / closest.total} strong styles={styles} />
+            </View>
+          </View>
+          {closestNext && (
+            <View style={styles.next}>
+              <MoviePoster uri={closestNext.poster} style={styles.nextPoster} />
+              <View style={styles.nextWords}>
+                <Text style={styles.nextLabel}>{t("Up next")}</Text>
+                <Text style={styles.nextTitle} numberOfLines={1}>
+                  {closestNext.title}
+                </Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [styles.watchNext, pressed && styles.pressed]}
+                onPress={() => onOpenMovie(closestNext.id)}
+                hitSlop={4}
+                accessibilityRole="button"
+              >
+                <Play size={13} color={colors.brandText} fill={colors.brandText} />
+                <Text style={styles.watchNextText}>{t("Watch next")}</Text>
+              </Pressable>
+            </View>
+          )}
+        </Pressable>
       )}
 
-      {almostThere.length > 0 && (
+      {/* In progress: the rest you've started, closest first. */}
+      {underWay.length > 0 && (
         <View style={styles.section}>
-          <SectionTitle title={t("Almost there")} styles={styles} />
-          <View style={styles.list}>
-            {/* Missing pieces: the collection's collage, and the posters of
-                the movies that would complete it — tap one to open it, or
-                the row for the whole collection. */}
-            {almostThere.map((item) => {
-              const missing = item.collection.movies.filter(
-                (movie) => !watchedIds.has(movie.id),
-              );
+          <Heading title={t("In progress")} count={underWay.length} styles={styles} />
+          <View style={styles.rows}>
+            {underWay.map((path, index) => {
+              const left = path.total - path.watched;
+              const minutes = timeLeft(path, watchedIds);
               return (
                 <Pressable
-                  key={item.collection.id}
-                  style={({ pressed }) => [
-                    styles.missingCard,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => onOpen(item.collection.id)}
+                  key={path.id}
+                  style={({ pressed }) => [styles.row, index > 0 && styles.rowRule, pressed && styles.pressed]}
+                  onPress={() => onOpen(path.id)}
+                  accessibilityRole="button"
                 >
-                  <CollectionCollage
-                    collection={item.collection}
-                    watchedIds={watchedIds}
-                    size={84}
-                  />
-                  <View style={styles.missingInfo}>
-                    <Text style={styles.missingTitle} numberOfLines={1}>
-                      {item.collection.title}
+                  <CollectionCollage collection={asCollection(path)} watchedIds={watchedIds} size={ROW_COVER} />
+                  <View style={styles.rowWords}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {path.title}
                     </Text>
-                    <Text style={styles.missingMeta}>
-                      <Text style={styles.missingCount}>
-                        {item.left === 1
-                          ? t("1 movie")
-                          : t("{count} movies", { count: item.left })}
-                      </Text>{" "}
-                      {t("to complete it")}
+                    <Text style={styles.rowMeta} numberOfLines={1}>
+                      {[
+                        KIND_LABELS[path.kind] ? t(KIND_LABELS[path.kind]) : null,
+                        t("{watched} of {total}", { watched: path.watched, total: path.total }),
+                        left === 1
+                          ? t("1 left")
+                          : minutes > 0
+                            ? t("{time} to go", { time: formatRuntime(minutes) })
+                            : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </Text>
-                    <View style={styles.missingSlots}>
-                      {missing.map((movie) => (
-                        <Pressable
-                          key={movie.id}
-                          style={styles.missingSlot}
-                          onPress={() =>
-                            onOpenMovie
-                              ? onOpenMovie(movie.id)
-                              : onOpen(item.collection.id)
-                          }
-                          hitSlop={4}
-                          accessibilityLabel={t("Open {title}", {
-                            title: movie.title,
-                          })}
-                        >
-                          <MoviePoster
-                            uri={movie.poster}
-                            style={styles.missingPoster}
-                          />
-                        </Pressable>
-                      ))}
-                    </View>
+                    <Bar value={path.watched / path.total} strong={left === 1} styles={styles} />
                   </View>
+                  <ChevronRight size={18} color={colors.textMuted} strokeWidth={2.2} style={rtl && styles.flipped} />
                 </Pressable>
               );
             })}
@@ -327,83 +213,64 @@ export const CollectionsShelf = ({
         </View>
       )}
 
-      {notStarted.length > 0 && (
-        <View style={styles.section}>
-          <SectionTitle
-            title={t("Not started")}
-            count={notStarted.length}
-            styles={styles}
-          />
-          <View style={styles.shelfGrid}>
-            {notStarted.map((item) => (
-              <ShelfCard
-                key={item.collection.id}
-                item={item}
-                width={gridCell}
-                meta={t("{total} movies · {minutesLeft}", {
-                  total: item.total,
-                  minutesLeft: formatRuntime(item.minutesLeft),
-                })}
-                watchedIds={watchedIds}
-                onPress={() => onOpen(item.collection.id)}
-                styles={styles}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-      {completed.length > 0 && (
-        <View style={styles.section}>
-          <SectionTitle
-            title={t("Completed collections")}
-            count={completed.length}
-            icon={<Trophy size={12} color={colors.collection} />}
-            color={colors.collection}
-            styles={styles}
-          />
-          <TrophyCabinet
-            row
-            finished={completed.map((item) => ({
-              collection: item.collection,
-              finishedAt: item.completedAt,
-            }))}
-            onOpen={onOpen}
-          />
-        </View>
-      )}
+      {/* Completed: every one you've finished, in its laurels. */}
+      <View style={styles.section}>
+        {/* The heading opens all your collections, completed or not. */}
+        <Pressable
+          style={({ pressed }) => [styles.headingRow, pressed && styles.pressed]}
+          onPress={onSeeTrophies}
+          accessibilityRole="button"
+        >
+          <LaurelIcon size={24} />
+          <Text style={styles.headingText}>{t("Completed")}</Text>
+          <Text style={styles.headingCount}>
+            {t("{count} of {total}", { count: trophies.length, total: sagaCount })}
+          </Text>
+          <Text style={styles.seeAllLink}>{t("See all")} ›</Text>
+        </Pressable>
+        {trophies.length > 0 ? (
+          <TrophyCabinet row finished={trophies} onOpen={onOpen} />
+        ) : (
+          <Text style={styles.muted}>{t("Watch every film in a collection to complete it.")}</Text>
+        )}
+      </View>
 
-      {suggestions.length > 0 && (
+      {/* Start one: the ones you track, then ones like what you watch. */}
+      {toStart.length > 0 && (
         <View style={styles.section}>
-          <SectionTitle title={t("You might like")} styles={styles} />
-          <View style={styles.suggestionList}>
-            {suggestions.map(({ collection, genre }) => (
-              <View key={collection.id} style={styles.suggestionRow}>
+          <Heading title={t("Start one")} styles={styles} />
+          <View style={styles.grid}>
+            {toStart.map(({ collection, tracked: isTracked, genre }) => (
+              <View key={collection.id} style={{ width: cell }}>
                 <Pressable
-                  style={styles.suggestionMain}
                   onPress={() => onOpen(collection.id)}
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="button"
+                  accessibilityLabel={collection.title}
                 >
-                  <Cover movies={collection.movies} size={52} styles={styles} />
-                  <View style={styles.almostInfo}>
-                    <Text style={styles.almostTitle} numberOfLines={1}>
-                      {collection.title}
-                    </Text>
-                    <Text style={styles.almostMeta} numberOfLines={1}>
-                      {collection.movieIds.length}{" "}
-                      {t("movies · you watch a lot of")} {genre}
-                    </Text>
-                  </View>
+                  <CollectionCollage collection={collection} watchedIds={watchedIds} size={cell} />
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {collection.title}
+                  </Text>
+                  <Text style={styles.cardMeta} numberOfLines={1}>
+                    {genre
+                      ? t("{count} films · {genre}", { count: collection.movieIds.length, genre: t(genre) })
+                      : t("{count} films", { count: collection.movieIds.length })}
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={styles.trackButton}
+                  style={({ pressed }) => [styles.track, isTracked && styles.trackOn, pressed && styles.pressed]}
                   onPress={() => onToggleTrack(collection.id)}
-                  hitSlop={6}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isTracked }}
                 >
-                  <Plus
-                    size={14}
-                    color={colors.accentContrast}
-                    strokeWidth={3}
-                  />
-                  <Text style={styles.trackText}>{t("Track")}</Text>
+                  {isTracked ? (
+                    <Check size={14} color={colors.textPrimary} strokeWidth={2.6} />
+                  ) : (
+                    <Plus size={14} color={colors.textPrimary} strokeWidth={2.6} />
+                  )}
+                  <Text style={styles.trackText}>{isTracked ? t("Tracking") : t("Track")}</Text>
                 </Pressable>
               </View>
             ))}
@@ -411,8 +278,8 @@ export const CollectionsShelf = ({
         </View>
       )}
 
-      <Pressable style={styles.seeAll} onPress={onSeeAll}>
-        <ListPlus size={16} color={colors.textSecondary} strokeWidth={2.2} />
+      <Pressable style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]} onPress={onSeeAll}>
+        <ListPlus size={16} color={colors.textPrimary} strokeWidth={2.2} />
         <Text style={styles.seeAllText}>{t("Browse all collections")}</Text>
       </Pressable>
     </View>
@@ -421,222 +288,224 @@ export const CollectionsShelf = ({
 
 const createStyles = (colors) =>
   StyleSheet.create({
-    // Horizontal ScrollViews default to flexGrow: 1 — pinned so they don't
-    // stretch inside Library's flexGrow scroll content.
-    flatRow: {
-      flexGrow: 0,
-    },
-    chipsBar: {
-      marginHorizontal: spacing.md,
-      marginVertical: spacing.sm + 2,
-    },
-    // Like Library's tabs: a dark track, the open one a white pill.
-    chips: {
-      flexGrow: 1,
-      gap: 2,
-      padding: 3,
-      // On the page, so the card colour (the dark track would vanish).
-      backgroundColor: colors.card,
-      borderRadius: shape.chip,
-    },
-    chip: {
-      flexGrow: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 6,
-      paddingHorizontal: spacing.sm + 4,
-      borderRadius: shape.chip,
-    },
-    chipActive: {
-      backgroundColor: colors.segmentOn,
-    },
-    chipText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: colors.segmentText,
-    },
-    chipTextActive: {
-      color: colors.segmentOnText,
-    },
-    emptyBox: {
-      alignItems: "center",
-      paddingHorizontal: spacing.xl,
-      paddingVertical: spacing.xl,
-      gap: spacing.xs,
-    },
-    emptyTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    emptyText: {
-      ...typography.body,
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-    section: {
-      marginTop: spacing.lg,
-    },
-    tag: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "flex-start",
-      gap: spacing.xs + 2,
-      marginStart: spacing.md,
-      marginBottom: spacing.sm + 2,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 4,
-      borderRadius: shape.chip,
-      backgroundColor: colors.cardElevated,
-    },
-    tagText: {
-      ...typography.section,
-      color: colors.textSecondary,
-    },
-    tagCount: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-    // Cards an even gap apart, in the page's margins.
-    carousel: {
-      gap: CARD_GAP,
-      paddingHorizontal: spacing.md,
-    },
-    shelfGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      columnGap: CARD_GAP,
-      rowGap: spacing.lg,
-      paddingHorizontal: spacing.md,
-    },
-    shelfCardText: {
-      paddingEnd: spacing.sm,
-      marginTop: spacing.sm,
+    page: {
+      paddingTop: spacing.sm,
     },
     pressed: {
-      opacity: 0.75,
+      opacity: 0.8,
     },
-    // A poster's corners and frame, clipping the posters inside.
-    cover: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      overflow: "hidden",
-      backgroundColor: colors.card,
-      borderRadius: shape.poster,
+    flipped: {
+      transform: [{ scaleX: -1 }],
     },
-    coverDimmed: {
-      opacity: 0.5,
+    section: {
+      marginTop: spacing.section,
     },
-    cardTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-      marginTop: spacing.xs + 2,
-    },
-    cardMeta: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-      marginTop: 1,
-    },
-    // Filled rows, a little apart.
-    list: {
-      gap: 6,
-    },
-    missingCard: {
+    headingRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.md,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm + 2,
+    },
+    headingText: {
+      fontFamily: fonts.extraBold,
+      fontSize: 21,
+      lineHeight: 26,
+      color: colors.textPrimary,
+    },
+    headingCount: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    seeAllLink: {
+      ...typography.bodyBold,
+      fontSize: 14,
+      color: colors.brand,
+      marginStart: "auto",
+    },
+    muted: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.md,
+    },
+
+    // Closest to done: one card, its cover beside the words, the next film
+    // under them.
+    hero: {
+      marginHorizontal: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
       borderRadius: shape.card,
     },
-    missingInfo: {
-      flex: 1,
-    },
-    missingTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-    },
-    missingMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    missingCount: {
-      ...typography.bodyBold,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textPrimary,
-    },
-    // The posters still to watch, a little apart.
-    missingSlots: {
-      flexDirection: "row",
-      gap: 4,
-      marginTop: spacing.sm,
-    },
-    missingSlot: {},
-    missingPoster: {
-      width: 44,
-      height: 66,
-    },
-    almostInfo: {
-      flex: 1,
-      gap: 2,
-    },
-    almostTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
-    almostMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    suggestionList: {
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    suggestionRow: {
+    heroTop: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.sm,
-      borderRadius: shape.card,
-      backgroundColor: colors.card,
+      gap: spacing.md,
     },
-    suggestionMain: {
+    heroWords: {
       flex: 1,
+      gap: 3,
+    },
+    eyebrow: {
+      ...typography.caption,
+      fontFamily: fonts.bold,
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: colors.brand,
+    },
+    heroTitle: {
+      fontFamily: fonts.extraBold,
+      fontSize: 20,
+      lineHeight: 25,
+      color: colors.textPrimary,
+    },
+    heroMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    next: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm + 2,
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
-    trackButton: {
+    nextPoster: {
+      width: NEXT_POSTER,
+      height: NEXT_POSTER * 1.5,
+    },
+    nextWords: {
+      flex: 1,
+    },
+    nextLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    nextTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    watchNext: {
       flexDirection: "row",
       alignItems: "center",
+      gap: 5,
+      height: 34,
+      paddingHorizontal: spacing.md,
+      borderRadius: shape.chip,
+      backgroundColor: colors.brand,
+    },
+    watchNextText: {
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.brandText,
+    },
+
+    // The bar under each one's words.
+    barTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.cardElevated,
+      overflow: "hidden",
+    },
+    barFill: {
+      height: "100%",
+      borderRadius: 2,
+      backgroundColor: colors.collection,
+    },
+    barFillStrong: {
+      backgroundColor: colors.brand,
+    },
+
+    // In progress: rows on one card, hairlines between.
+    rows: {
+      marginHorizontal: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: shape.card,
+      paddingHorizontal: spacing.md,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.sm + 4,
+    },
+    rowRule: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    rowWords: {
+      flex: 1,
       gap: 4,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 7,
-      borderRadius: shape.control,
-      backgroundColor: colors.accent,
+    },
+    rowTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+    },
+    rowMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+
+    // Start one: two across.
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.rail,
+      rowGap: spacing.lg,
+      paddingHorizontal: spacing.md,
+    },
+    cardTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
+      marginTop: spacing.sm,
+    },
+    cardMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    track: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      height: 30,
+      marginTop: spacing.sm,
+      borderRadius: shape.chip,
+      borderWidth: 1,
+      borderColor: colors.outline,
+    },
+    trackOn: {
+      backgroundColor: colors.cardElevated,
+      borderColor: colors.cardElevated,
     },
     trackText: {
-      ...typography.label,
-      fontSize: 11,
-      color: colors.accentContrast,
+      ...typography.bodyBold,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.textPrimary,
     },
+
     seeAll: {
       flexDirection: "row",
       alignItems: "center",
-      alignSelf: "center",
-      gap: 6,
-      marginTop: spacing.lg,
-      padding: spacing.sm,
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 46,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.section,
+      borderRadius: shape.card,
+      borderWidth: 1,
+      borderColor: colors.outline,
     },
     seeAllText: {
       ...typography.bodyBold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.textPrimary,
     },
   });
 

@@ -125,9 +125,10 @@ export const LibraryHome = ({
   const inProgress = getInProgressCollections(watchedIds, 8);
   const listWidth = Math.floor((width - spacing.md * 2 - spacing.rail * (LISTS_SHOWN - 1)) / LISTS_SHOWN);
 
-  // What you keep (your public numbers — films, friends, ranks — are on
+  // What you keep (your public numbers — films, friends, collections — are on
   // Profile).
   const numbers = [
+    { key: "watched", value: watched.length, label: t("Watched") },
     { key: "bucketlist", value: bucketListMovies.length, label: t("Watchlist") },
     { key: "boards", value: boards.length, label: t("Lists") },
     { key: "collections", value: collectionsCount, label: t("Collections") },

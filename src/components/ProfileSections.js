@@ -116,8 +116,7 @@ export const TasteSnapshot = ({ dna, onSeeUntiered }) => {
 };
 
 // The sagas finished in this watch history ({ movieId, timestamp }), the
-// most recently finished first: [{ collection, top }] — `top` its last
-// rank.
+// most recently finished first: [{ collection, finishedAt }].
 export const getFinishedSagas = (watched) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   return getSagas()
@@ -127,7 +126,6 @@ export const getFinishedSagas = (watched) => {
     )
     .map((collection) => ({
       collection,
-      top: (collection.ranks ?? [])[collection.ranks.length - 1] ?? null,
       finishedAt: getCollectionCompletedAt(collection, watched),
     }))
     .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));

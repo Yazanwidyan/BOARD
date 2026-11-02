@@ -168,15 +168,17 @@ export const SettingsScreen = ({ navigation }) => {
           </View>
         </Pressable>
 
-        <SettingsGroup title={t("ReelBoard Pro")}>
-          <SettingsRow
-            Icon={Gem}
-            label={t("ReelBoard Pro")}
-            hint={t("Deeper taste stats and profile style")}
-            value={isPro ? t("Active") : t("Coming soon")}
-            onPress={() => navigation.navigate("Pro")}
-          />
-        </SettingsGroup>
+        {(features.pro || isPro) && (
+          <SettingsGroup title={t("ReelBoard Pro")}>
+            <SettingsRow
+              Icon={Gem}
+              label={t("ReelBoard Pro")}
+              hint={t("Deeper taste stats and profile style")}
+              value={isPro ? t("Active") : t("Coming soon")}
+              onPress={() => navigation.navigate("Pro")}
+            />
+          </SettingsGroup>
+        )}
 
         <SettingsGroup title={t("Your taste")}>
           <SettingsRow
@@ -227,7 +229,7 @@ export const SettingsScreen = ({ navigation }) => {
             hint={
               features.replay
                 ? t("Tonight's pick at 7:30 pm, your monthly recap, friend requests and movie nights.")
-                : t("Tonight's pick at 7:30 pm, friend requests and movie nights.")
+                : t("Tonight's pick at 7:30 pm, how it was the next morning, and friend requests.")
             }
             right={
               <Switch
@@ -255,7 +257,7 @@ export const SettingsScreen = ({ navigation }) => {
               Alert.alert(
                 t("ReelBoard"),
                 t(
-                  "ReelBoard turns deciding what to watch into a game — discover, climb collection ranks, and complete challenges as you go.",
+                  "ReelBoard helps you decide what to watch tonight — tier what you've seen, finish collections, and watch with friends.",
                 ),
               )
             }

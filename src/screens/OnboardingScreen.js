@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { Check, ChevronLeft, Heart, Share2 } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -18,9 +18,13 @@ import { captureRef } from "react-native-view-shot";
 
 import { Confetti } from "../components/AchievementModal";
 import { MoviePoster } from "../components/MoviePoster";
+import { ShareCardFooter } from "../components/ShareCardFooter";
 import { TasteDnaBars } from "../components/TasteDnaBars";
-import { useMoviesVersion } from "../data/movies";
+import { getMovieById, useMoviesVersion } from "../data/movies";
+import { withAppLink } from "../config/links";
 import { logEvent } from "../services/events";
+import { askForReminders } from "../services/notifications";
+import { useAuthStore } from "../store/authStore";
 import { useMovieStore } from "../store/movieStore";
 import { useProfileStore } from "../store/profileStore";
 import { useUserStore } from "../store/userStore";
@@ -29,7 +33,6 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { pickMoreMovies, pickSpreadMovies } from "../utils/onboardingTaste";
 import { buildMyTasteModel, getTastePicks } from "../utils/tasteEngine";
-import { getRankCount } from "../utils/ranks";
 import { t, useIsRTL } from "../i18n";
 
 // Three short steps, after the welcome has said what ReelBoard is for —
@@ -41,8 +44,8 @@ import { t, useIsRTL } from "../i18n";
 //               you've picked
 //   your taste  the payoff: your DNA on a card you can share — your name
 //               on it (asked for here only when the account doesn't have
-//               one yet) and the ranks it earned. Skipped when you picked
-//               nothing.
+//               one yet) and how many films it's from. Skipped when you
+//               picked nothing.
 //   tonight     three picks from the taste engine, with reasons
 //
 // A slim top bar: back (from the second step on), how far along you are,
@@ -183,8 +186,8 @@ const SeenStep = ({ movies, marks, onTap, onLove, onMore, canMore, styles, color
 // ---------- Your taste ----------
 const DnaStep = ({
   fingerprint,
-  ranks,
   seenCount,
+  handle,
   name,
   askName,
   onChangeName,
@@ -207,18 +210,8 @@ const DnaStep = ({
           <TasteDnaBars fingerprint={fingerprint} />
         </View>
         <View style={styles.dnaFooter}>
-          {ranks > 0 ? (
-            <Text style={styles.dnaXP}>
-              +{ranks} {ranks === 1 ? t("rank") : t("ranks")}
-              <Text style={styles.dnaXPDetail}>
-                {"  "}
-                {t("from {count} movies", { count: seenCount })}
-              </Text>
-            </Text>
-          ) : (
-            <View />
-          )}
-          <Text style={styles.dnaBrand}>{t("on ReelBoard")}</Text>
+          <Text style={styles.dnaXPDetail}>{t("Based on {count} films", { count: seenCount })}</Text>
+          <ShareCardFooter handle={handle} align="end" />
         </View>
       </View>
     </Animated.View>
@@ -332,6 +325,7 @@ export const OnboardingScreen = () => {
   const currentName = useProfileStore((state) => state.displayName);
   const setDisplayName = useProfileStore((state) => state.setDisplayName);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
+  const handle = useAuthStore((state) => state.user?.handle ?? null);
 
   // The name given at sign-up goes straight on the card; only an account
   // without one (some Google / Apple sign-ins) is asked for it.
@@ -350,7 +344,6 @@ export const OnboardingScreen = () => {
   // Ids already written to the stores, so Back + Next never toggles the
   // same film twice.
   const [appliedIds, setAppliedIds] = useState([]);
-  const [ranksGained, setRanksGained] = useState(0);
 
   // DNA + picks.
   const [fingerprint, setFingerprint] = useState(null);
@@ -363,6 +356,11 @@ export const OnboardingScreen = () => {
     Haptics.selectionAsync();
     setStep(nextStep);
   };
+  // Each step reached, for the dashboard's funnel — where people stop.
+  useEffect(() => {
+    const names = { [STEP.seen]: "onboarding_seen", [STEP.dna]: "onboarding_dna", [STEP.pick]: "onboarding_pick" };
+    logEvent(names[step]);
+  }, [step]);
   const finish = () => {
     if (name.trim() && name.trim() !== currentName) setDisplayName(name.trim());
     completeOnboarding();
@@ -397,7 +395,6 @@ export const OnboardingScreen = () => {
   // Seen → watched; loved → watched and tiered S — in the real stores.
   const applyMarks = () => {
     const { toggleWatched, setWatchedTier } = useMovieStore.getState();
-    const ranksBefore = getRankCount(useMovieStore.getState().watched);
     const applied = [];
     Object.entries(marks).forEach(([movieId, mark]) => {
       if (appliedIds.includes(movieId)) return;
@@ -406,7 +403,6 @@ export const OnboardingScreen = () => {
       applied.push(movieId);
     });
     setAppliedIds((current) => [...current, ...applied]);
-    setRanksGained((current) => current + getRankCount(useMovieStore.getState().watched) - ranksBefore);
   };
 
   // Everything learnt → the fingerprint and the picks; your taste card if
@@ -424,7 +420,7 @@ export const OnboardingScreen = () => {
     if (isSharing) return;
     setIsSharing(true);
     logEvent("dna_shared");
-    const fallback = `${t("My taste DNA")} ${t("on ReelBoard")}`;
+    const fallback = withAppLink(`${t("My taste DNA")} ${t("on ReelBoard")}`);
     try {
       const uri = await captureRef(cardRef, { format: "png", quality: 1, result: "tmpfile" });
       if (await Sharing.isAvailableAsync()) {
@@ -452,7 +448,9 @@ export const OnboardingScreen = () => {
       }
       // Only the whole way through counts (Skip doesn't).
       logEvent("onboarding_completed");
-      return finish();
+      // A nudge tonight (and the morning after)? Asked once, then in.
+      askForReminders(getMovieById(selectedPickId)?.title ?? null).finally(finish);
+      return undefined;
     }
     return undefined;
   };
@@ -460,6 +458,7 @@ export const OnboardingScreen = () => {
   // Skip: straight to the app, keeping whatever's been picked so far.
   const skipAll = () => {
     if (step === STEP.seen) applyMarks();
+    logEvent("onboarding_skipped");
     finish();
   };
 
@@ -519,8 +518,8 @@ export const OnboardingScreen = () => {
           {step === STEP.dna && (
             <DnaStep
               fingerprint={fingerprint}
-              ranks={ranksGained}
               seenCount={appliedIds.length}
+              handle={handle}
               name={name}
               askName={askName}
               onChangeName={setName}
@@ -710,17 +709,9 @@ const createStyles = (colors) =>
       justifyContent: "space-between",
       marginTop: spacing.lg,
     },
-    dnaXP: {
-      ...typography.bodyBold,
-      color: colors.rating,
-    },
     dnaXPDetail: {
       fontFamily: fonts.medium,
       color: colors.textSecondary,
-    },
-    dnaBrand: {
-      ...typography.caption,
-      color: colors.textMuted,
     },
     nameLabel: {
       ...typography.caption,

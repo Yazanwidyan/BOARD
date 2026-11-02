@@ -10,10 +10,10 @@ import { getMovieById } from "../data/movies";
 //   sagas   type "saga", hand-made — "Potterhead",
 //           "Assembled", "King of the World" — with a `kind` (franchise,
 //           studio, theme, director, actor), a `subtitle`, `ranks`
-//           ([{ title, at }], `at` a film count: you climb them as you
-//           watch), `art` ({ backdrop } or { photo }) and, for an actor's
-//           or a director's, `person` (their name). Library, Home,
-//           badges, dares and XP count these.
+//           ([{ title, at }] — named steps, kept but no longer shown),
+//           `art` ({ backdrop } or { photo }) and, for an actor's or a
+//           director's, `person` (their name). Library, Home, dares and
+//           trophies count these.
 //
 // The server also has automatic lists (an actor's or a director's films, a
 // franchise, a decade, a genre); the app leaves them out. A person without
@@ -37,7 +37,10 @@ export const isSaga = (collection) => collection?.type === "saga";
 const registry = new Map();
 let version = 0;
 
-const toCollection = (definition) => ({
+// A definition as the app uses it — `movies` read from the films the app
+// has. Also for a collection the registry doesn't keep (a director's,
+// from the server's paths or its page).
+export const toCollection = (definition) => ({
   id: definition.id,
   type: definition.type,
   kind: definition.kind ?? null,
@@ -101,7 +104,7 @@ const collectionsByMovie = () => {
   return index.byMovie;
 };
 
-// The sagas: everything below that counts (progress, completion, ranks,
+// The sagas: everything below that counts (progress, completion,
 // suggestions) is about these.
 const allSagas = () => [...registry.values()].filter(isSaga);
 export const getSagas = allSagas;
@@ -153,41 +156,6 @@ export const getCollectionsCompletedBy = (movieId, watchedIdsBeforeAdd) =>
         (id) => id === movieId || watchedIdsBeforeAdd.has(id),
       ),
   );
-
-// Where you are in a saga: the rank you've reached (null before the first),
-// the next one (null at the top), and the counts.
-export const getSagaRank = (collection, watchedIds) => {
-  const { watchedCount, total } = getCollectionProgress(collection, watchedIds);
-  const ranks = collection.ranks ?? [];
-  const reached = ranks.filter((rank) => watchedCount >= rank.at);
-  return {
-    current: reached[reached.length - 1] ?? null,
-    next: ranks.find((rank) => watchedCount < rank.at) ?? null,
-    reached,
-    watchedCount,
-    total,
-  };
-};
-
-// The saga ranks watching movieId reaches, given what was watched before:
-// [{ collection, rank, final }] — `final` is the top rank (the whole saga).
-export const getRanksReachedBy = (movieId, watchedIdsBeforeAdd) => {
-  if (watchedIdsBeforeAdd.has(movieId)) return [];
-  return getCollectionsForMovie(movieId)
-    .filter(isSaga)
-    .flatMap((collection) => {
-      const before = collection.movieIds.filter((id) =>
-        watchedIdsBeforeAdd.has(id),
-      ).length;
-      return (collection.ranks ?? [])
-        .filter((rank) => before < rank.at && before + 1 >= rank.at)
-        .map((rank) => ({
-          collection,
-          rank,
-          final: rank.at >= collection.movieIds.length,
-        }));
-    });
-};
 
 // `watchedIds` is a Set of movie ids, built once by the caller from the
 // real watched list, so progress is always derived live rather than stored.

@@ -42,7 +42,6 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { getTasteMatch } from "../utils/friends";
-import { getTitleName } from "../utils/ranks";
 import { t, useIsRTL } from "../i18n";
 
 const AVATAR = 44;
@@ -50,15 +49,8 @@ const MY_AVATAR = 40;
 const DEFAULT_AVATAR_SOURCE = require("../../assets/avatar-default.png");
 const HANDLE_PATTERN = /^[a-zA-Z0-9_.]{3,20}$/;
 
-// "@sam · Critic · 15 ranks" — who they are, under their name.
-const describe = (person) =>
-  [
-    person.handle,
-    person.title || person.level != null ? t(person.title ?? getTitleName(person.level)) : null,
-    person.ranks != null ? t("{count} ranks", { count: person.ranks }) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+// "@sam" — who they are, under their name.
+const describe = (person) => person.handle;
 
 // Friends: Friends / Requests under the header (Requests first when
 // someone's waiting on you, or when opened with `tab: "requests"`).

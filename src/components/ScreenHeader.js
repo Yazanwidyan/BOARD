@@ -240,6 +240,8 @@ const HeaderAvatar = ({ styles }) => {
 // the title is the app's name — set in its own face (Home).
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
+// `compact`: a smaller title, for a page inside a tab (Library's
+// Watchlist, Lists, Collections…).
 // `scrollY` / `offset` come in through useDockHeader's props. Pass
 // `refreshing` (on a page with pull-to-refresh) and the logo, if there is
 // one, spins while it refreshes — see RefreshSpin. The bar itself is
@@ -251,6 +253,7 @@ export const DockHeader = ({
   eyebrow,
   subtitle,
   onPressTitle,
+  compact = false,
   back,
   left,
   right,
@@ -311,7 +314,12 @@ export const DockHeader = ({
               })}
             >
               <Text
-                style={[styles.largeTitle, subtitle && styles.largeTitleSmall, styles.titleShrink]}
+                style={[
+                  styles.largeTitle,
+                  subtitle && styles.largeTitleSmall,
+                  compact && styles.largeTitleCompact,
+                  styles.titleShrink,
+                ]}
                 numberOfLines={1}
               >
                 {title}
@@ -338,6 +346,7 @@ export const DockHeader = ({
                   style={[
                     styles.largeTitle,
                     (eyebrow || subtitle) && styles.largeTitleSmall,
+                    compact && styles.largeTitleCompact,
                     styles.titleShrink,
                   ]}
                   numberOfLines={1}
@@ -556,6 +565,11 @@ const createStyles = (colors) =>
     largeTitleSmall: {
       fontSize: 24,
       lineHeight: 29,
+    },
+    largeTitleCompact: {
+      fontSize: 22,
+      lineHeight: 27,
+      letterSpacing: -0.4,
     },
     // Every action, together in a rounded capsule (a circle for one).
     capsule: {

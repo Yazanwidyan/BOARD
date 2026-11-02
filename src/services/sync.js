@@ -4,7 +4,6 @@ import { AppState } from "react-native";
 import { changeLanguage } from "../i18n";
 import { useAuthStore } from "../store/authStore";
 import { useLanguageStore } from "../store/languageStore";
-import { resetShownRanks } from "../store/movieStore";
 import { useSessionStore } from "../store/sessionStore";
 import { useThemeStore } from "../store/themeStore";
 import { request } from "./api";
@@ -50,7 +49,6 @@ const signedIn = () => Boolean(useAuthStore.getState().token);
 // switching the language remounts every screen.
 const applyServerState = (state, { full = false } = {}) => {
   setAccountData(state);
-  resetShownRanks(state.profile.ranks);
   if (full) {
     applyingRemote = true;
     try {
@@ -144,7 +142,6 @@ export const register = async ({ displayName, email, password }) => {
 const forgetAccount = () => {
   clearAccountCache();
   forgetMovieData();
-  resetShownRanks();
   useSessionStore.getState().endSession();
 };
 
@@ -181,20 +178,6 @@ export const deleteAccount = async (confirmation) => {
   await request("DELETE", "/me", confirmation);
   // The account's push tokens went with it.
   endSession();
-};
-
-// New ranks are worked out by the app the moment they're earned — the
-// achievement dialog reports them here so they reach friends' feeds.
-export const reportAchievements = (rows) => {
-  rows.forEach((row) => {
-    if (row.rank) {
-      queueChange("POST", "/activity", {
-        type: "rank",
-        rank: row.rank.title.slice(0, 60),
-        track: row.rank.track.title.slice(0, 80),
-      });
-    }
-  });
 };
 
 // ---- Start-up --------------------------------------------------------------

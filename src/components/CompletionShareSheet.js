@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
-import { Link2, Share2, Trophy } from "lucide-react-native";
+import { Link2, Share2 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Share, StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
@@ -16,8 +16,8 @@ import {
   getCollectionById,
   getCollectionCompletedAt,
 } from "../utils/collections";
-import { useRankSummary } from "../utils/useRanks";
 import { BottomSheet } from "./BottomSheet";
+import { LaurelIcon } from "./icons/Laurel";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
 import { t } from "../i18n";
@@ -88,7 +88,6 @@ export const CompletionShareSheet = () => {
   const completedAt = collection
     ? getCollectionCompletedAt(collection, watched)
     : null;
-  const ranks = useRankSummary();
   const cell =
     (CARD_WIDTH - spacing.md * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
     GRID_COLUMNS;
@@ -177,7 +176,7 @@ export const CompletionShareSheet = () => {
               ))}
             </View>
             <View style={styles.trophyRow}>
-              <Trophy size={18} color={colors.collection} />
+              <LaurelIcon size={24} />
               <Text style={styles.completed}>{t("Completed")}</Text>
             </View>
             <Text style={styles.headline}>{bragHeadline(collection)}</Text>
@@ -188,7 +187,7 @@ export const CompletionShareSheet = () => {
                   })
                 : t("Every one, start to finish")}
               {"  ·  "}
-              {t(ranks.title.name)} · {t("{count} ranks", { count: ranks.count })}
+              {t("{count} films", { count: collection.movieIds.length })}
             </Text>
             <Text style={styles.brand}>{t("on ReelBoard")}</Text>
           </View>

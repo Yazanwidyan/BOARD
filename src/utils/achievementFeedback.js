@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
+import { scheduleTierNudge } from "../services/notifications";
 import { useAchievementStore } from "../store/achievementStore";
 import { showToast } from "../store/toastStore";
 import { getCollectionProgress, getCollectionsCompletedBy, getCollectionsForMovie, isSaga } from "./collections";
@@ -70,9 +71,10 @@ const showMoment = ({ reason, movieId = null, completed = [], progress = null, d
 
 // Call right after toggleWatched(movieId), passing the watched array as it
 // was the instant BEFORE that call. Always shows (it's the moment to tier
-// it).
+// it) — and if it isn't tiered by tomorrow morning, the app asks how it was.
 export const giveWatchedFeedback = (movieId, watchedBefore) => {
   const completedChallenge = useChallengeStore.getState().checkAutoCompletion(movieId);
+  if (!watchedBefore.some((entry) => entry.movieId === movieId)) scheduleTierNudge(movieId);
   showMoment({
     reason: "watched",
     movieId,

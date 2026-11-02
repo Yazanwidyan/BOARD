@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronRight, Trophy, UserPlus, Users } from "lucide-react-native";
+import { UserPlus, Users } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
@@ -11,16 +11,13 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 import { buildRecap, getRecapPeriods } from "../utils/recap";
-import { getMilestones } from "../utils/milestones";
-import { useRankSummary } from "../utils/useRanks";
 import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
 import { PrimaryButton } from "./PrimaryButton";
-import { features } from "../config/features";
 
-// Home's cards below the mixes: watching with friends, Replay (your month)
-// and your progress (one row, opening Profile).
+// Home's cards below the mixes: watching with friends and Replay (your
+// month).
 export const BENTO_GAP = spacing.md;
 const FACES = 5;
 const LOVED_SHOWN = 4;
@@ -200,34 +197,6 @@ export const ReplayCard = ({ onPress, language, style }) => {
         ))}
       </View>
     </Pressable>
-  );
-};
-
-// Your progress, in one row: your title, your ranks and your milestones —
-// opening Profile, where your achievements are.
-export const ProgressRow = ({ onPress, style }) => {
-  useMoviesVersion();
-  const colors = useColors();
-  const styles = createStyles(colors);
-  const watched = useMovieStore((state) => state.watched);
-  const summary = useRankSummary();
-  const medals = getMilestones(watched).filter((milestone) => milestone.reachedAt).length;
-  return (
-    <Card onPress={onPress} style={style} accessibilityLabel={t("Achievements")}>
-      <View style={styles.headRow}>
-        <View style={[styles.roundIcon, { backgroundColor: `${colors.rating}2E` }]}>
-          <Trophy size={20} color={colors.rating} strokeWidth={2} />
-        </View>
-        <View style={styles.headWords}>
-          <Text style={styles.cardTitle}>{t(summary.title.name)}</Text>
-          <Text style={styles.cardHint} numberOfLines={1}>
-            {t("{count} ranks", { count: summary.count })}
-            {features.milestones ? ` · ${t("{count} medals", { count: medals })}` : ""}
-          </Text>
-        </View>
-        <ChevronRight size={20} color={colors.textMuted} strokeWidth={2.4} />
-      </View>
-    </Card>
   );
 };
 
