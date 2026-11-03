@@ -7,8 +7,9 @@ import { t } from "../i18n";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { TIERS, getTier, getTierInfo } from "../utils/tiers";
+import { TIERS, getTier } from "../utils/tiers";
 import { Text } from "./AppText";
+import { TierBadge } from "./TierBadge";
 import { PrimaryButton } from "./PrimaryButton";
 
 // A Pro perk: how you tier each genre, decade and director — the average of
@@ -91,13 +92,10 @@ export const TasteStats = ({ watched, isPro, onSeePro }) => {
           <Text style={styles.kind}>{t(label)}</Text>
           <View style={styles.card}>
             {groups[key].map((group, index) => {
-              const info = getTierInfo(group.tier);
               return (
                 <Fragment key={group.name}>
                   <View style={styles.row}>
-                    <View style={[styles.tier, { backgroundColor: info.color }]}>
-                      <Text style={styles.tierText}>{group.tier}</Text>
-                    </View>
+                    <TierBadge tier={group.tier} size={28} />
                     <View style={styles.rowText}>
                       <View style={styles.rowHead}>
                         <Text style={styles.name} numberOfLines={1}>
@@ -144,19 +142,6 @@ const createStyles = (colors) =>
       gap: spacing.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
-    },
-    tier: {
-      width: 28,
-      height: 28,
-      borderRadius: 6,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    tierText: {
-      ...typography.bodyBold,
-      fontSize: 14,
-      lineHeight: 18,
-      color: "#141414",
     },
     rowText: {
       flex: 1,

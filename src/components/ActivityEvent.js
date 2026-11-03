@@ -4,14 +4,14 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { shape, spacing } from "../theme/spacing";
-import { fonts, typography } from "../theme/typography";
+import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { timeAgo } from "../utils/friends";
-import { getTierInfo } from "../utils/tiers";
 import { t } from "../i18n";
 import { Text } from "./AppText";
 import { FriendAvatar } from "./FriendAvatar";
 import { MoviePoster } from "./MoviePoster";
+import { TierBadge } from "./TierBadge";
 
 const AVATAR = 40;
 const BADGE = 18;
@@ -46,11 +46,7 @@ const EventText = ({ event, styles }) => {
         <Text style={styles.eventText}>
           {sentence("{name} tiered {title} {tier}", {
             ...parts,
-            tier: (
-              <Text style={[styles.tierLetter, { color: getTierInfo(event.tier).color }]}>
-                {event.tier}
-              </Text>
-            ),
+            tier: <TierBadge tier={event.tier} size={18} />,
           })}
         </Text>
       );
@@ -86,12 +82,7 @@ const EventText = ({ event, styles }) => {
 const EventBadge = ({ event, styles, colors }) => {
   let content = null;
   if (event.type === "tier") {
-    const info = getTierInfo(event.tier);
-    return (
-      <View style={[styles.badge, { backgroundColor: info.color }]}>
-        <Text style={styles.badgeLetter}>{event.tier}</Text>
-      </View>
-    );
+    return <TierBadge tier={event.tier} size={BADGE} style={styles.badgeTier} />;
   }
   if (event.type === "watched") content = <Eye size={10} color={colors.success} strokeWidth={2.6} />;
   else if (event.type === "watchlist") content = <Bookmark size={10} color={colors.textPrimary} strokeWidth={2.6} />;
@@ -184,11 +175,6 @@ const createStyles = (colors) =>
     muted: {
       color: colors.textMuted,
     },
-    tierLetter: {
-      ...typography.hero,
-      fontSize: 15,
-      lineHeight: 20,
-    },
     eventTime: {
       ...typography.caption,
       fontSize: 11,
@@ -207,11 +193,13 @@ const createStyles = (colors) =>
       borderWidth: 2,
       borderColor: colors.card,
     },
-    badgeLetter: {
-      fontFamily: fonts.extraBold,
-      fontSize: 11,
-      lineHeight: 13,
-      color: "#0C0C0C",
+    // The tier badge, ringed like the others so it stands off the poster.
+    badgeTier: {
+      position: "absolute",
+      end: -3,
+      bottom: -3,
+      borderWidth: 2,
+      borderColor: colors.card,
     },
     eventPoster: {
       width: 40,

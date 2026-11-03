@@ -12,6 +12,7 @@ import { BENTO_GAP, FriendsNightCard, ReplayCard } from "../components/HomeBento
 import { HomeHero } from "../components/HomeHero";
 import { MixRail } from "../components/MixRail";
 import { MoviePoster } from "../components/MoviePoster";
+import { TierBadge } from "../components/TierBadge";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DecideWays } from "../components/QuickPickBento";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
@@ -19,6 +20,7 @@ import { ShelfRail } from "../components/ShelfRail";
 import { SlotStrip } from "../components/SlotStrip";
 import { DockHeader, HeaderIconButton, useDockHeader } from "../components/ScreenHeader";
 import { SwipeSheet } from "../components/SwipeSheet";
+import { InviteFriendCard } from "../components/InviteFriendCard";
 import { TierNudgeCard } from "../components/TierNudgeCard";
 import { useTabBarClearance } from "../components/TonightBar";
 import { WildcardSheet } from "../components/WildcardSheet";
@@ -39,7 +41,7 @@ import { buildMixes, pickLovedFilm } from "../utils/mixes";
 import { getPathNext, subjectOf, usePaths } from "../utils/paths";
 import { toCollection } from "../utils/collections";
 import { openChallengeGenerator } from "../utils/openChallengeGenerator";
-import { getTier, getTierInfo } from "../utils/tiers";
+import { getTier } from "../utils/tiers";
 import { matchWord } from "../utils/tasteWords";
 import { getTonightSuggestions } from "../utils/tonightPick";
 import { features } from "../config/features";
@@ -345,7 +347,9 @@ export const HomeScreen = ({ navigation }) => {
         )}
 
         {/* Only once you have friends — an empty card just says you're
-            alone. */}
+            alone. Until then, once you've tiered enough to compare, an
+            invite (it shows itself only then). */}
+        {friends.length === 0 && <InviteFriendCard navigation={navigation} style={[styles.inset, styles.sectionGap]} />}
         {friends.length > 0 && (
           <View style={styles.section}>
             <SectionHeading
@@ -373,9 +377,7 @@ export const HomeScreen = ({ navigation }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
               {underWay.map(({ path, movie }) => {
                 const subject = subjectOf(path);
-                const seen = path.essentials
-                  ? t("{count} essentials · {watched} seen", { count: path.total, watched: path.watched })
-                  : t("{watched} of {total} seen", { watched: path.watched, total: path.total });
+                const seen = t("{watched} of {total} seen", { watched: path.watched, total: path.total });
                 // The playful name, when there is one, comes second.
                 const meta = path.title !== subject ? `${path.title} · ${seen}` : seen;
                 return (
@@ -457,9 +459,7 @@ export const HomeScreen = ({ navigation }) => {
                     <MoviePoster uri={movie.poster} style={styles.recentPoster} />
                     {/* Its tier, or a nudge to give it one. */}
                     {tier ? (
-                      <View style={[styles.tierBadge, { backgroundColor: getTierInfo(tier)?.color }]}>
-                        <Text style={styles.tierText}>{tier}</Text>
-                      </View>
+                      <TierBadge tier={tier} onPoster />
                     ) : (
                       <View style={styles.tierIt}>
                         <Text style={styles.tierItText}>{t("Tier it")}</Text>
@@ -633,26 +633,10 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
-    // On the poster's corner.
-    tierBadge: {
-      position: "absolute",
-      top: RECENT_WIDTH * 1.5 - 28,
-      start: 6,
-      width: 22,
-      height: 22,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 11,
-    },
-    tierText: {
-      fontFamily: fonts.extraBold,
-      fontSize: 12,
-      lineHeight: 15,
-      color: "#14181C",
-    },
+    // On the poster's corner, where its tier goes once it has one.
     tierIt: {
       position: "absolute",
-      top: RECENT_WIDTH * 1.5 - 28,
+      top: 6,
       start: 6,
       height: 22,
       justifyContent: "center",

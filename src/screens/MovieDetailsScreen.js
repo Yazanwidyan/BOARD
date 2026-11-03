@@ -50,6 +50,7 @@ import { UnderlineTabs } from "../components/UnderlineTabs";
 import { BottomSheet } from "../components/BottomSheet";
 import { WatchDateSheet } from "../components/WatchDateSheet";
 import { MoviePoster } from "../components/MoviePoster";
+import { TierBadge } from "../components/TierBadge";
 import { getKnownMovies, getMovieById, useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
 import { shareLink } from "../services/shareLinks";
@@ -904,16 +905,7 @@ export const MovieDetailsScreen = ({ route, navigation }) => {
                       accessibilityRole="button"
                       accessibilityLabel={tierInfo ? t("Change your tier") : t("Tier it")}
                     >
-                      <View
-                        style={[
-                          styles.tierTile,
-                          tierInfo ? { backgroundColor: tierInfo.color } : styles.tierTileEmpty,
-                        ]}
-                      >
-                        <Text style={[styles.tierTileLetter, !tierInfo && styles.tierTileLetterEmpty]}>
-                          {tierInfo ? tierInfo.key : "?"}
-                        </Text>
-                      </View>
+                      <TierBadge tier={tierInfo?.key} size={52} />
                       <View style={styles.tierButtonText}>
                         <Text style={styles.tierButtonTitle}>
                           {tierInfo ? t("{tier} tier", { tier: tierInfo.key }) : t("Tier it")}
@@ -1404,7 +1396,7 @@ const createStyles = (colors) =>
       letterSpacing: 0.3,
       color: colors.textSecondary,
     },
-    // Your tier, as one button: the tile in its colour, what it means,
+    // Your tier, as one button: its badge, what it means,
     // and "Change" — it opens the tiering screen.
     tierButton: {
       flexDirection: "row",
@@ -1416,27 +1408,6 @@ const createStyles = (colors) =>
     },
     tierButtonPressed: {
       backgroundColor: colors.cardElevated,
-    },
-    tierTile: {
-      width: 52,
-      height: 52,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: shape.control,
-    },
-    tierTileEmpty: {
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: colors.textMuted,
-    },
-    tierTileLetter: {
-      ...typography.hero,
-      fontSize: 28,
-      lineHeight: 34,
-      color: "#0C0C0C",
-    },
-    tierTileLetterEmpty: {
-      color: colors.textMuted,
     },
     tierButtonText: {
       flex: 1,

@@ -5,6 +5,7 @@ import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { MoviePoster } from "./MoviePoster";
+import { TierBadge } from "./TierBadge";
 
 const COLUMNS = 3;
 // Room between posters, and the page's margins around the grid.
@@ -44,7 +45,8 @@ export const PosterMosaic = ({ items, onPressMovie }) => {
 };
 
 // Mosaic split into sections with a header each — a month, a tier…
-// groups: [{ key, label?, color?, items: [{ movie, watchCount }] }]
+// groups: [{ key, label?, tiered?, tier?, items: [{ movie, watchCount }] }] —
+// a tier's section is headed by its badge (the untiered ones by an empty one).
 export const MosaicSections = ({ groups, onPressMovie }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -55,14 +57,8 @@ export const MosaicSections = ({ groups, onPressMovie }) => {
         <View key={group.key} style={styles.section}>
           {group.label && (
             <View style={styles.header}>
-              <Text
-                style={[
-                  styles.headerText,
-                  group.color && { color: group.color },
-                ]}
-              >
-                {group.label}
-              </Text>
+              {group.tiered && <TierBadge tier={group.tier} size={24} />}
+              <Text style={styles.headerText}>{group.label}</Text>
               <Text style={styles.headerCount}>{group.items.length}</Text>
             </View>
           )}
@@ -107,7 +103,7 @@ const createStyles = (colors) =>
     },
     header: {
       flexDirection: "row",
-      alignItems: "baseline",
+      alignItems: "center",
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm + 2,

@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Text } from "./AppText";
+import { TierBadge } from "./TierBadge";
 import YoutubePlayer from "react-native-youtube-iframe";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
@@ -28,7 +29,7 @@ import {
 } from "../utils/achievementFeedback";
 import { formatRuntime } from "../utils/movieFilters";
 import { getTastePicks } from "../utils/tasteEngine";
-import { getTier, getTierInfo } from "../utils/tiers";
+import { getTier } from "../utils/tiers";
 import { t } from "../i18n";
 
 const VIDEO_RATIO = 9 / 16;
@@ -455,15 +456,9 @@ const Reel = ({
             </View>
           )}
           {tier ? (
-            <View
-              style={[
-                styles.chip,
-                { backgroundColor: getTierInfo(tier).color },
-              ]}
-            >
-              <Text style={[styles.chipStrong, styles.chipTierText]}>
-                {t("Your tier")} {tier}
-              </Text>
+            <View style={[styles.chip, styles.chipTier]}>
+              <Text style={styles.chipStrong}>{t("Your tier")}</Text>
+              <TierBadge tier={tier} size={16} />
             </View>
           ) : match != null ? (
             <View style={[styles.chip, styles.chipMatch]}>
@@ -749,8 +744,10 @@ const createStyles = (colors) =>
       lineHeight: 16,
       color: "#FFFFFF",
     },
-    chipTierText: {
-      color: "#0C0C0C",
+    chipTier: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
     },
     rail: {
       position: "absolute",

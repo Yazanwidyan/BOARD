@@ -50,27 +50,24 @@ const SNAP_DURATION = 200;
 // status line, a search field, tab chips) lives at the top of the page
 // instead, in <PageIntro>.
 //
-// As the page scrolls, the bar scrolls away with it, its title and
-// buttons fading out — gone once the page has moved the bar's height —
-// and back as you return to the top, like a large title. `pinned` (a page
-// with a bar fixed under the header: Discover's Browse / Reels, Profile's
-// tabs): the row only fades, and the bar stays, so there's no gap above
-// that one. With `hideOnScroll` the bar slides up out of the way as you
-// scroll down anywhere and comes straight back the moment you scroll up.
-// Only its row moves; a status-bar-tall strip stays put so nothing scrolls
-// under the clock.
-// Bars hanging off the header (Library's chips) follow it with
-// `header.followStyle`; bars inside the content pin under it with
-// useStickyStyle(…, headerOffset: header.offset).
+// The bar stays put — title, buttons and all, every page alike — and is
+// see-through at the top of the page; as the page scrolls, a shade fades
+// in behind it so what passes under it stays out of the way. A bar the
+// page keeps under it (Library's chips) is shaded with it (`shadeBelow`).
+// `pinned: false` brings back the old way — the bar scrolling away with
+// the page, its row fading — and `hideOnScroll` a bar that slides up as
+// you scroll down and back as you scroll up; no page uses either now.
+// Bars inside the content pin under it with useStickyStyle(…,
+// headerOffset: header.offset).
 //
 // Usage:
-//   const header = useDockHeader({ hideOnScroll: true });
+//   const header = useDockHeader();
 //   <Animated.ScrollView onScroll={header.onScroll} scrollEventThrottle={16}
 //     contentContainerStyle={{ paddingTop: header.contentInset }}>
 //     <PageIntro subtitle="…">{controls}</PageIntro>
 //   …
 //   <DockHeader {...header.props} title="Library" right={…} />
-export const useDockHeader = ({ hideOnScroll = false, pinned = false } = {}) => {
+export const useDockHeader = ({ hideOnScroll = false, pinned = true } = {}) => {
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   // 0 = fully shown … HEADER_BAR_HEIGHT = slid away.
@@ -145,15 +142,20 @@ export const useStackHeaderScroll = () => {
 // The header's shade: nothing at the top of the page, fading in as it
 // scrolls — the page colour, nearly solid behind the title and thinning to
 // nothing just below the bar.
-const HeaderShade = ({ scrollY, height, colors, styles }) => {
+// `below`: a bar of the page's own under the header (Library's chips),
+// shaded with it as one — the shade stays dense down to its foot, then
+// thins out.
+const HeaderShade = ({ scrollY, height, below = 0, colors, styles }) => {
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY?.value ?? 0, [0, SHADE_FADE_DISTANCE], [0, 1], Extrapolation.CLAMP),
   }));
+  const total = height + below + SHADE_TAIL;
+  const dense = below > 0 ? (height + below) / total : 0.72;
   return (
-    <Animated.View pointerEvents="none" style={[styles.shade, { height: height + SHADE_TAIL }, style]}>
+    <Animated.View pointerEvents="none" style={[styles.shade, { height: total }, style]}>
       <LinearGradient
-        colors={[`${colors.background}F2`, `${colors.background}C7`, `${colors.background}00`]}
-        locations={[0, 0.72, 1]}
+        colors={[`${colors.background}F2`, `${colors.background}${below > 0 ? "E6" : "C7"}`, `${colors.background}00`]}
+        locations={[0, dense, 1]}
         style={StyleSheet.absoluteFill}
       />
     </Animated.View>
@@ -240,6 +242,8 @@ const HeaderAvatar = ({ styles }) => {
 // the title is the app's name — set in its own face (Home).
 // `onPressTitle` turns the title into a switcher (with a ▾), and
 // `subtitle` adds a small line under it — Library uses the first.
+// `shadeBelow`: the height of a bar the page keeps under the header (its
+// own, drawn above it — Library's chips), so the shade covers both alike.
 // `compact`: a smaller title, for a page inside a tab (Library's
 // Watchlist, Lists, Collections…). `centered`: a small title in the
 // middle of the bar, as a pushed page's — see-through still (Profile, its
@@ -257,6 +261,7 @@ export const DockHeader = ({
   onPressTitle,
   compact = false,
   centered = false,
+  shadeBelow = 0,
   back,
   left,
   right,
@@ -265,7 +270,7 @@ export const DockHeader = ({
   offset,
   refreshing,
   avatar = true,
-  pinned = false,
+  pinned = true,
 }) => {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -276,9 +281,10 @@ export const DockHeader = ({
   const barStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: offset && !pinned ? -offset.value : 0 }],
   }));
-  // The row fades as it slides, so it's gone before it reaches the clock.
+  // The row fades as it slides, so it's gone before it reaches the clock —
+  // a pinned header doesn't slide, so its title never fades either.
   const rowStyle = useAnimatedStyle(() => ({
-    opacity: offset
+    opacity: offset && !pinned
       ? interpolate(
           offset.value,
           [0, HEADER_BAR_HEIGHT * 0.6],
@@ -296,7 +302,13 @@ export const DockHeader = ({
         barStyle,
       ]}
     >
-      <HeaderShade scrollY={scrollY} height={headerTop(insets) + HEADER_BAR_HEIGHT} colors={colors} styles={styles} />
+      <HeaderShade
+        scrollY={scrollY}
+        height={headerTop(insets) + HEADER_BAR_HEIGHT}
+        below={shadeBelow}
+        colors={colors}
+        styles={styles}
+      />
       <Animated.View style={[styles.barRow, rowStyle]}>
         {/* Back, then the large title; the actions and avatar at the end. */}
         {!!back && <View style={styles.back}>{back}</View>}

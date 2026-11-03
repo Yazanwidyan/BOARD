@@ -1,11 +1,11 @@
 import { StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
+import { TierBadge } from "./TierBadge";
 import Svg, { Circle } from "react-native-svg";
 
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { getTierInfo } from "../utils/tiers";
 
 const SIZE = 64;
 const STROKE = 5;
@@ -66,24 +66,9 @@ export const ScoreRings = ({ scores }) => {
     <View style={styles.row}>
       {scores.map((score) => {
         if (score.key === "reelboard") {
-          const info = getTierInfo(score.value);
           return (
             <View key={score.key} style={styles.item}>
-              <View
-                style={[
-                  styles.tierTile,
-                  info ? { backgroundColor: info.color } : styles.tierTileEmpty,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tierLetter,
-                    { color: info ? "#0C0C0C" : colors.textMuted },
-                  ]}
-                >
-                  {info ? info.key : "–"}
-                </Text>
-              </View>
+              <TierBadge tier={score.value} size={SIZE} />
               <Text style={styles.label} numberOfLines={1}>
                 ReelBoard
               </Text>
@@ -136,22 +121,6 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       fontSize: 16,
       lineHeight: 22,
-    },
-    tierTile: {
-      width: SIZE,
-      height: SIZE,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: shape.control,
-    },
-    // Not tiered yet: a plain filled square with a dash.
-    tierTileEmpty: {
-      backgroundColor: colors.cardElevatedLight,
-    },
-    tierLetter: {
-      ...typography.display,
-      fontSize: 30,
-      lineHeight: 36,
     },
     label: {
       ...typography.caption,

@@ -27,8 +27,8 @@ import {
 import { BackButton } from "../components/BackButton";
 import { CollectionCollage } from "../components/CollectionCollage";
 import { FriendAvatar } from "../components/FriendAvatar";
-import { MovieListRow } from "../components/MovieListRow";
 import { MoviePoster } from "../components/MoviePoster";
+import { TierBadge } from "../components/TierBadge";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useMoviesVersion } from "../data/movies";
 import { api } from "../services/api";
@@ -154,10 +154,8 @@ const TierBoard = ({ entries, navigation, styles }) => {
     <View style={styles.board}>
       {rows.map((row) => (
         <View key={row.key} style={styles.boardRow}>
-          <View style={[styles.boardTier, row.color && { backgroundColor: row.color }]}>
-            <Text style={[styles.boardTierText, row.color && styles.boardTierTextOnColor]}>
-              {row.key}
-            </Text>
+          <View style={styles.boardTier}>
+            <TierBadge tier={row.color ? row.key : null} size={32} />
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boardItems}>
             {row.items.map(({ movie }) => (
@@ -942,7 +940,7 @@ const createStyles = (colors) =>
 
     // ---- Your tiers
     board: {
-      gap: spacing.xs + 2,
+      gap: spacing.sm,
     },
     boardRow: {
       flexDirection: "row",
@@ -952,24 +950,13 @@ const createStyles = (colors) =>
       marginHorizontal: spacing.md,
     },
     boardTier: {
-      width: 40,
+      width: 48,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.cardElevated,
-      borderRadius: shape.control,
-    },
-    boardTierText: {
-      ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
-      color: colors.textMuted,
-    },
-    boardTierTextOnColor: {
-      color: "#0C0C0C",
     },
     boardItems: {
-      gap: spacing.xs,
-      padding: spacing.xs + 2,
+      gap: spacing.sm,
+      padding: spacing.sm,
     },
     boardPoster: {
       width: 48,
@@ -1043,10 +1030,11 @@ const createStyles = (colors) =>
       color: colors.textMuted,
       fontVariant: ["tabular-nums"],
     },
+    // Room above and below each poster, so no two touch.
     trackPoster: {
-      width: 40,
-      height: 60,
-      marginVertical: spacing.xs + 2,
+      width: 44,
+      height: 66,
+      marginVertical: spacing.sm,
     },
     trackWords: {
       flex: 1,

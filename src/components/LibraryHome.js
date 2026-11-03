@@ -13,6 +13,7 @@ import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
 import { CollectionCollage } from "./CollectionCollage";
 import { MoviePoster } from "./MoviePoster";
+import { TierBadge } from "./TierBadge";
 
 const SHELF_POSTER = 96;
 const DIARY_POSTER = 76;
@@ -233,9 +234,7 @@ export const LibraryHome = ({
           />
           {tiers.map((tier) => (
             <View key={tier.key} style={styles.tierShelf}>
-              <View style={[styles.tierBadge, { backgroundColor: tier.info.color }]}>
-                <Text style={styles.tierBadgeText}>{tier.key}</Text>
-              </View>
+              <TierBadge tier={tier.key} size={32} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tierRow}>
                 {tier.items.slice(0, SHOWN).map(({ movie }) => (
                   <Pressable
@@ -437,18 +436,6 @@ const createStyles = (colors) =>
       gap: spacing.sm,
       paddingStart: spacing.md,
       marginBottom: spacing.sm + 2,
-    },
-    tierBadge: {
-      width: 32,
-      height: TIER_POSTER * 1.5,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: shape.poster,
-    },
-    tierBadgeText: {
-      fontFamily: fonts.extraBold,
-      fontSize: 18,
-      color: "#14181C",
     },
     tierRow: {
       gap: spacing.sm,

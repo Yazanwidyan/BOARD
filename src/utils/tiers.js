@@ -14,6 +14,10 @@ export const TIERS = [
   { key: "F", meaning: "Hated it", color: "#F6A0AC" },
 ];
 
+// The letter on a tier's colour — every tier colour is light, so one ink
+// works on all of them (components/TierBadge).
+export const TIER_INK = "#121417";
+
 const TIER_BY_KEY = Object.fromEntries(TIERS.map((tier) => [tier.key, tier]));
 
 // ReelBoard's tier for a movie: everyone's tiers averaged (S = 5 … F = 0)

@@ -14,7 +14,6 @@ import { useState } from "react";
 import {
   Image,
   Pressable,
-  Share,
   StyleSheet,
   TextInput,
   View,
@@ -25,6 +24,7 @@ import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FriendAvatar } from "../components/FriendAvatar";
+import { inviteFriend } from "../components/InviteFriendCard";
 import {
   HeaderIconButton,
   StackHeader,
@@ -117,13 +117,7 @@ export const FriendsScreen = ({ navigation, route }) => {
     await Clipboard.setStringAsync(myHandle);
     showToast(t("Handle copied"), { tone: "success" });
   };
-  const invite = () =>
-    Share.share({
-      message: t(
-        "Join me on ReelBoard — I'm {myHandle}. Let's compare tier lists.",
-        { myHandle },
-      ),
-    }).catch(() => {});
+  const invite = () => inviteFriend(myHandle);
 
   const send = async () => {
     const raw = query.trim().replace(/^@/, "");

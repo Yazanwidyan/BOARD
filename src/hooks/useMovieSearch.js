@@ -22,7 +22,8 @@ const STALE_MS = 10 * 60 * 1000;
 // All of it ranked together by utils/movieSearch. A result from TMDB is a
 // card (poster, title, year); opening or saving it fetches the rest.
 //
-// Returns { results: [{ movie, matchedBy }], searching, failed }.
+// Returns { results: [{ movie, matchedBy }], searching, failed, tooShort }
+// — `tooShort`: too few letters to ask the server yet.
 export const useMovieSearch = (query, limit = 20) => {
   useMoviesVersion();
   const [settled, setSettled] = useState(query.trim());
@@ -64,5 +65,6 @@ export const useMovieSearch = (query, limit = 20) => {
     results: [...local, ...extra].slice(0, limit),
     searching: enabled && (pool.isFetching || tmdb.isFetching),
     failed: enabled && pool.isError && tmdb.isError,
+    tooShort: query.trim().length < MIN_LENGTH,
   };
 };

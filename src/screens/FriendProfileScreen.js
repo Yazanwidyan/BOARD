@@ -17,6 +17,7 @@ import { Text } from "../components/AppText";
 import { BottomSheet } from "../components/BottomSheet";
 import { FriendAvatar } from "../components/FriendAvatar";
 import { MoviePoster } from "../components/MoviePoster";
+import { TierBadge } from "../components/TierBadge";
 import { ProBadge } from "../components/ProBadge";
 import { ReportSheet } from "../components/ReportSheet";
 import {
@@ -52,7 +53,7 @@ import {
 } from "../utils/friends";
 import { accentColor } from "../utils/pro";
 import { getTasteDna } from "../utils/tasteDna";
-import { getTierInfo, orderSTier } from "../utils/tiers";
+import { orderSTier } from "../utils/tiers";
 import { t, useIsRTL } from "../i18n";
 
 // The same measures as your Profile (screens/ProfileScreen).
@@ -68,12 +69,6 @@ const SHEET_HANDOFF_MS = 260;
 const RECS_SHOWN = 3;
 // Their latest films shown (four across).
 const RECENT_SHOWN = 12;
-
-const TierChip = ({ tier, styles }) => (
-  <View style={[styles.tierChip, { backgroundColor: getTierInfo(tier).color }]}>
-    <Text style={styles.tierChipText}>{tier}</Text>
-  </View>
-);
 
 // A friend's page, like your Profile: their name in the header (back left,
 // ⋯ right — to report, remove or block them) and Overview / Taste under it.
@@ -342,7 +337,7 @@ export const FriendProfileScreen = ({ navigation, route }) => {
                       </Text>
                       <View style={styles.recMetaRow}>
                         <Text style={styles.recMeta}>{t("They tiered it")}</Text>
-                        <TierChip tier={tier} styles={styles} />
+                        <TierBadge tier={tier} size={20} />
                       </View>
                     </View>
                     <Pressable
@@ -634,17 +629,6 @@ const createStyles = (colors) =>
     recMeta: {
       ...typography.caption,
       color: colors.textSecondary,
-    },
-    tierChip: {
-      minWidth: 20,
-      paddingHorizontal: 5,
-      alignItems: "center",
-      borderRadius: 4,
-    },
-    tierChipText: {
-      ...typography.label,
-      fontSize: 12,
-      color: "#0C0C0C",
     },
     // + Watchlist: a small filled button; Saved: slate.
     saveButton: {

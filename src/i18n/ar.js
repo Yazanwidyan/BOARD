@@ -353,7 +353,8 @@ const ar = {
   "Recommended for you": "مقترح لك",
   "Hidden gems": "جواهر مخفية",
   "Under {SHORT_RUNTIME} minutes": "أقل من {SHORT_RUNTIME} دقيقة",
-  "Top rated you haven't seen": "الأعلى تقييماً مما لم تشاهده",
+  "You haven't seen these?! 😲": "لسه ما شفتها؟! 😲",
+  "The best-rated films you're still missing.": "أعلى الأفلام تقييمًا، وما زالت تنتظرك.",
   "Play clip": "شغّل المقطع",
   "Turn sound on": "شغّل الصوت",
   "Turn sound off": "أطفئ الصوت",
@@ -376,7 +377,6 @@ const ar = {
   "Your recent searches will appear here.": "ستظهر عمليات بحثك الأخيرة هنا.",
   'Nothing found for "{query}"': 'لا نتائج لـ"{query}"',
   "Paste a List of Titles": "الصق قائمة عناوين",
-  "Copy and Paste List of Titles": "انسخ والصق قائمة عناوين",
   "One title per line (or comma-separated).":
     "عنوان في كل سطر (أو مفصولة بفواصل).",
   "The Godfather\nPulp Fiction\nInception":
@@ -1698,7 +1698,6 @@ const ar = {
   // ---- Collections, said plainly ----
   "Watch every film to complete one": "شاهد كل أفلامها لتكملها",
   "{watched} of {total} seen": "شاهدت {watched} من {total}",
-  "{count} essentials · {watched} seen": "أشهر {count} · شاهدت {watched}",
   "Pick a director or series. Watch every film.": "اختر مخرجًا أو سلسلة، وشاهد كل أفلامها.",
   "Completes the {subject} set": "يُكمل مجموعة {subject}",
   "{count} more {subject} films": "بقي {count} من أفلام {subject}",
@@ -1750,6 +1749,22 @@ const ar = {
   "Still on for tonight?": "ما زال لليلة؟",
   "Yes, tonight": "نعم، الليلة",
   "Pick something else": "اختر شيئًا آخر",
+
+  // ---- Inviting a friend, from Home ----
+  "See how your taste matches a friend's": "اكتشف مدى تطابق ذوقك مع ذوق صديق",
+  "You've tiered {count} films — enough to compare. Invite someone and you'll both see your match.": "صنّفت {count} فيلمًا — ما يكفي للمقارنة. ادعُ أحدًا وسيرى كلاكما مدى تطابقكما.",
+  "Add by handle": "أضف باسم المستخدم",
+
+  // ---- Search ----
+  "Top result": "أفضل نتيجة",
+  "People": "أشخاص",
+  "Movies": "أفلام",
+  "Directed by {name}": "إخراج {name}",
+  "Keep typing…": "تابع الكتابة…",
+  "Searching all films…": "نبحث في كل الأفلام…",
+  "Nothing found for \"{query}\". Try a director or an actor.": "لا شيء لـ\"{query}\". جرّب اسم مخرج أو ممثل.",
+  "Paste a list of titles": "الصق قائمة عناوين",
+  "Add a whole list to your watchlist at once.": "أضف قائمة كاملة إلى قائمة المشاهدة دفعة واحدة.",
 };
 
 export default ar;

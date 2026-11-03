@@ -14,19 +14,29 @@
 // director, then cast — ties go to the better-known movie (more TMDB
 // votes), then the higher-rated one.
 
-// Lowercase, accents off, punctuation → spaces, single spaces.
+// Lowercase, accents off, punctuation → spaces, single spaces. Letters of
+// any script stay (an Arabic title is searchable too), Arabic without its
+// vowel marks and with its look-alike letters as one (أ إ آ → ا, ة → ه,
+// ى → ي), as people type them.
 const normalize = (text) =>
   String(text ?? "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f\u064b-\u065f\u0670\u0640]/g, "")
     .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
     .replace(/['’`]/g, "")
     .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 
 // Same, with the spaces gone too — so "spiderman" finds "spider man".
 const squash = (text) => text.replace(/ /g, "");
+
+// Shorter than this, a search only matches the start of a word, spaces and
+// all — "it" anywhere would be half the catalog, and isn't "I, Tonya".
+const MIN_ANYWHERE = 3;
 
 // How well `query` matches one piece of text: 4 the whole of it, 3 its
 // start, 2 the start of one of its words, 1 anywhere in it, 0 not at all.
@@ -35,8 +45,10 @@ const matchStrength = (query, text) => {
   const squashedQuery = squash(query);
   const squashedText = squash(text);
   if (text === query || squashedText === squashedQuery) return 4;
-  if (text.startsWith(query) || squashedText.startsWith(squashedQuery)) return 3;
+  if (text.startsWith(query)) return 3;
+  if (squashedQuery.length >= MIN_ANYWHERE && squashedText.startsWith(squashedQuery)) return 3;
   if (` ${text}`.includes(` ${query}`)) return 2;
+  if (squashedQuery.length < MIN_ANYWHERE) return 0;
   if (text.includes(query) || squashedText.includes(squashedQuery)) return 1;
   return 0;
 };

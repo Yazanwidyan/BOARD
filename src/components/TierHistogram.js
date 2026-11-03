@@ -4,9 +4,10 @@ import { useMovieCommunity } from "../store/communityStore";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { TIERS, getAverageTier, getTierInfo } from "../utils/tiers";
+import { TIERS, getAverageTier } from "../utils/tiers";
 import { t } from "../i18n";
 import { Text } from "./AppText";
+import { TierBadge } from "./TierBadge";
 
 const BAR_HEIGHT = 64;
 const BAR_GAP = 2;
@@ -27,7 +28,6 @@ export const TierHistogram = ({ movieId, style, labelStyle }) => {
   const tiered = data.tieredCount ?? 0;
   const most = Math.max(...ORDER.map((tier) => tiers[tier.key] ?? 0), 1);
   const average = getAverageTier(tiers);
-  const averageInfo = average ? getTierInfo(average) : null;
 
   return (
     <View style={style}>
@@ -39,7 +39,7 @@ export const TierHistogram = ({ movieId, style, labelStyle }) => {
       </View>
       {tiered > 0 ? (
         <View style={styles.chart}>
-          <Text style={[styles.end, { color: getTierInfo("F").color }]}>F</Text>
+          <TierBadge tier="F" size={16} />
           <View style={styles.bars}>
             {ORDER.map((tier) => {
               const count = tiers[tier.key] ?? 0;
@@ -61,10 +61,8 @@ export const TierHistogram = ({ movieId, style, labelStyle }) => {
             })}
           </View>
           <View style={styles.average}>
-            <Text style={[styles.averageLetter, averageInfo && { color: averageInfo.color }]}>
-              {average ?? "–"}
-            </Text>
-            <Text style={[styles.end, { color: getTierInfo("S").color }]}>S</Text>
+            <TierBadge tier={average} size={36} />
+            <TierBadge tier="S" size={16} />
           </View>
         </View>
       ) : (
@@ -107,21 +105,10 @@ const createStyles = (colors) =>
     barEmpty: {
       backgroundColor: colors.border,
     },
-    end: {
-      ...typography.label,
-      fontSize: 12,
-      lineHeight: 14,
-    },
     average: {
       alignItems: "flex-end",
-      gap: 2,
+      gap: spacing.xs,
       minWidth: 40,
-    },
-    averageLetter: {
-      ...typography.hero,
-      fontSize: 34,
-      lineHeight: 38,
-      color: colors.textSecondary,
     },
     none: {
       ...typography.body,

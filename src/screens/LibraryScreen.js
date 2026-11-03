@@ -141,8 +141,9 @@ const groupByTier = (items) => {
       const info = getTierInfo(key);
       group = {
         key,
-        label: info ? `${info.key} · ${info.meaning}` : t("Not tiered yet"),
-        color: info?.color,
+        label: info ? t(info.meaning) : t("Not tiered yet"),
+        tier: info?.key ?? null,
+        tiered: true,
         items: [],
       };
       groups.push(group);
@@ -333,9 +334,10 @@ export const LibraryScreen = ({ navigation, route }) => {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState({ top: 0, right: spacing.md });
   const sortButtonRef = useRef(null);
-  // The header slides away as you scroll down; the chip bar under it
-  // follows, so it ends up pinned just under the status bar.
-  const header = useDockHeader({ hideOnScroll: true });
+  // The header stays put, as on every page — in a section with the chip
+  // bar under it, shaded with it.
+  const header = useDockHeader();
+  const scrollRef = useRef(null);
   const [isAllCollectionsOpen, setIsAllCollectionsOpen] = useState(false);
   const [query, setQuery] = useState("");
   // Search lives behind the header's search icon; open while there's text.
@@ -370,10 +372,13 @@ export const LibraryScreen = ({ navigation, route }) => {
     };
   }, [isFocused, tab, navigation]);
 
-  // A new section starts with the header showing — a short one might not
-  // scroll at all, and would leave it stuck out of sight.
+  // A new section (or the front page again) starts at its top, with the
+  // header showing — the sections share one scroll view, so without this
+  // they'd open wherever the last one was left.
   useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
     header.offset.value = 0;
+    header.scrollY.value = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -524,6 +529,7 @@ export const LibraryScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <Animated.ScrollView
+        ref={scrollRef}
         onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
@@ -674,7 +680,6 @@ export const LibraryScreen = ({ navigation, route }) => {
           style={[
             styles.toolBar,
             { top: header.barBottom },
-            header.followStyle,
           ]}
           onLayout={(event) =>
             setToolBarHeight(event.nativeEvent.layout.height)
@@ -814,6 +819,7 @@ export const LibraryScreen = ({ navigation, route }) => {
         {...header.props}
         title={tab ? t(currentTab.label) : t("Library")}
         compact={!!tab}
+        shadeBelow={hasToolBar ? toolBarHeight : 0}
         back={
           tab && (
             <HeaderIconButton round onPress={() => setTab(null)} accessibilityLabel={t("Back")}>
@@ -1177,16 +1183,19 @@ const createStyles = (colors) =>
     },
     // Spaced like Discover's switch: right under the header row, a little
     // room below, no line.
+    // The chips under the header — part of it: see-through like it, the
+    // header's shade fading in behind both as the page scrolls (DockHeader
+    // `shadeBelow`), and drawn above it so the shade doesn't dim them.
     toolBar: {
       position: "absolute",
       start: 0,
       end: 0,
-      zIndex: 99,
-      elevation: 16,
+      zIndex: 101,
+      elevation: 17,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
       gap: spacing.sm,
-      backgroundColor: colors.headerBackground,
+      backgroundColor: "transparent",
     },
     toolRow: {
       flexGrow: 0,

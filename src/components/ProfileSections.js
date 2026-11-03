@@ -11,6 +11,7 @@ import { TIERS, getTier, getTierInfo } from "../utils/tiers";
 import { Text } from "./AppText";
 import { BoardCover } from "./BoardCover";
 import { MoviePoster } from "./MoviePoster";
+import { TierBadge } from "./TierBadge";
 import { ShelfRail } from "./ShelfRail";
 import { TasteDnaBars } from "./TasteDnaBars";
 
@@ -161,16 +162,14 @@ export const TierSummary = ({ entries, onSeeUntiered }) => {
         .map((tier) => `${tier.key} ${tier.entries.length}`)
         .join(", ")}
     >
-      {/* Six boxes, S to F: filled in the tier's colour when it has films,
-          dark when it's empty — each with its count under it. */}
+      {/* Six badges, S to F: in the tier's colour when it has films,
+          plain when it's empty — each with its count under it. */}
       <View style={styles.tierBar}>
         {counts.map((tier) => {
           const has = tier.entries.length > 0;
           return (
             <View key={tier.key} style={styles.tierColumn}>
-              <View style={[styles.tierBox, has && { backgroundColor: tier.color }]}>
-                <Text style={[styles.tierBoxText, !has && styles.tierBoxTextEmpty]}>{tier.key}</Text>
-              </View>
+              <TierBadge tier={tier.key} size={36} muted={!has} />
               <Text style={[styles.tierLegendItem, !has && styles.tierLegendEmpty]}>
                 <Text style={styles.tierLegendKey}>{tier.key}</Text> {tier.entries.length}
               </Text>
@@ -256,11 +255,7 @@ export const RecentPosters = ({ entries, count = 8, onOpen }) => {
           >
             <View>
               <MoviePoster uri={movie.poster} style={{ width: posterWidth, aspectRatio: 2 / 3 }} />
-              {tier && (
-                <View style={[styles.recentTier, { backgroundColor: tier.color }]}>
-                  <Text style={styles.recentTierText}>{tier.key}</Text>
-                </View>
-              )}
+              {tier && <TierBadge tier={tier.key} onPoster />}
             </View>
             <Text style={styles.recentDate} numberOfLines={1}>
               {t(RECENT_MONTHS[date.getMonth()])} {date.getDate()}
@@ -345,23 +340,6 @@ const createStyles = (colors) =>
       gap: RECENT_GAP,
       rowGap: spacing.md,
     },
-    // The tier, a small square on the poster's top-left corner.
-    recentTier: {
-      position: "absolute",
-      top: 4,
-      start: 4,
-      width: 22,
-      height: 22,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 5,
-    },
-    recentTierText: {
-      ...typography.label,
-      fontSize: 11,
-      lineHeight: 14,
-      color: "#0C0C0C",
-    },
     recentDate: {
       ...typography.caption,
       fontSize: 11,
@@ -391,22 +369,6 @@ const createStyles = (colors) =>
       flex: 1,
       alignItems: "center",
       gap: spacing.xs + 2,
-    },
-    tierBox: {
-      alignSelf: "stretch",
-      height: 36,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevatedLight,
-      borderRadius: shape.control - 4,
-    },
-    tierBoxText: {
-      ...typography.label,
-      fontSize: 13,
-      color: "#0C0C0C",
-    },
-    tierBoxTextEmpty: {
-      color: colors.textMuted,
     },
     tierLegendItem: {
       ...typography.caption,

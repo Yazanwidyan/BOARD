@@ -9,6 +9,7 @@ import { TIERS, getTier, orderSTier } from "../utils/tiers";
 import { t } from "../i18n";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
+import { TierBadge } from "./TierBadge";
 
 const POSTER_WIDTH = 64;
 
@@ -35,21 +36,21 @@ export const TierListRows = ({ entries, onOpen, onSeeUntiered, sOrder = [], onOr
 
   return (
     <View style={styles.list}>
-      {rows.map(({ key, meaning, color, movies }) => (
+      {rows.map(({ key, meaning, movies }) => (
         <View key={key} style={styles.row}>
           {key === "S" && onOrderS && movies.length > 1 ? (
             <Pressable
               onPress={onOrderS}
-              style={({ pressed }) => [styles.letter, { backgroundColor: color }, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.letter, pressed && styles.pressed]}
               accessibilityRole="button"
               accessibilityLabel={t("Order your S tier")}
             >
-              <Text style={styles.letterText}>{key}</Text>
-              <ArrowUpDown size={14} color={colors.background} strokeWidth={2.4} />
+              <TierBadge tier={key} size={36} />
+              <ArrowUpDown size={14} color={colors.textMuted} strokeWidth={2.4} />
             </Pressable>
           ) : (
-            <View style={[styles.letter, { backgroundColor: color }]}>
-              <Text style={styles.letterText}>{key}</Text>
+            <View style={styles.letter}>
+              <TierBadge tier={key} size={36} />
             </View>
           )}
           {movies.length > 0 ? (
@@ -98,19 +99,13 @@ const createStyles = (colors) =>
       borderRadius: shape.card,
     },
     letter: {
-      width: 48,
+      width: 56,
       alignItems: "center",
       justifyContent: "center",
-      gap: 2,
+      gap: spacing.xs,
     },
     pressed: {
       opacity: 0.8,
-    },
-    letterText: {
-      ...typography.hero,
-      fontSize: 24,
-      lineHeight: 28,
-      color: colors.background,
     },
     posters: {
       gap: 2,

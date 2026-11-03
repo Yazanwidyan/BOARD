@@ -49,6 +49,15 @@ export const buildDiscoverRails = ({ watched, community }) => {
       .map((row) => getMovieById(row.movieId))
       .filter(Boolean);
 
+  // First: the best films you haven't seen yet — said the way a friend
+  // would.
+  rails.push({
+    key: "top",
+    title: t("You haven't seen these?! 😲"),
+    subtitle: "The best-rated films you're still missing.",
+    movies: [...unwatched].sort(byRating),
+  });
+
   // Trending on ReelBoard — most watched and saved by everyone this week.
   rails.push({
     key: "trending",
@@ -129,7 +138,7 @@ export const buildDiscoverRails = ({ watched, community }) => {
 
   rails.push({
     key: "gems",
-    title: "Hidden gems",
+    title: t("Hidden gems"),
     subtitle: "Loved by few, worth your night.",
     movies: unwatched.filter(isHiddenGem).sort(byRating),
   });
@@ -140,12 +149,6 @@ export const buildDiscoverRails = ({ watched, community }) => {
     movies: unwatched
       .filter((movie) => movie.runtime <= SHORT_RUNTIME)
       .sort(byRating),
-  });
-
-  rails.push({
-    key: "top",
-    title: "Top rated you haven't seen",
-    movies: [...unwatched].sort(byRating),
   });
 
   // The rows built on one film or person ("More like…", "More from…",
