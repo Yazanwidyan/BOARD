@@ -1,17 +1,17 @@
-import { Bookmark, BookmarkCheck, ChevronRight, ClipboardPaste, Clock, Search, X } from "lucide-react-native";
+import { ChevronRight, ClipboardPaste, Clock } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { Text } from "../components/AppText";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as Clipboard from "expo-clipboard";
 
@@ -19,12 +19,17 @@ import { BottomSheet } from "../components/BottomSheet";
 import { BrowseTiles } from "../components/BrowseTiles";
 import { MoviePoster } from "../components/MoviePoster";
 import { EmptyState } from "../components/EmptyState";
+import { FilmAction, FilmRow, filmMeta } from "../components/FilmRow";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { TierBadge } from "../components/TierBadge";
+import { ScreenBottomFade } from "../components/ScreenBottomFade";
+import { DockHeader, useDockHeader } from "../components/ScreenHeader";
+import { useTabBarClearance } from "../components/TonightBar";
 import { getAllKnownMovies, rememberMovies } from "../data/movies";
+import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import { useMovieSearch } from "../hooks/useMovieSearch";
 import { api } from "../services/api";
 import { useRecentSearchStore } from "../store/recentSearchStore";
+import { useSearchStore } from "../store/searchStore";
 import { showToast } from "../store/toastStore";
 import { useMovieStore } from "../store/movieStore";
 import { shape, spacing } from "../theme/spacing";
@@ -32,8 +37,7 @@ import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { toggleBucketListWithFeedback } from "../utils/achievementFeedback";
 import { getSagaForPerson } from "../utils/collections";
-import { byWeightedRating, formatRuntime, isInBucketList } from "../utils/movieFilters";
-import { getTier } from "../utils/tiers";
+import { byWeightedRating, isInBucketList } from "../utils/movieFilters";
 import { t, useIsRTL } from "../i18n";
 
 const RESULTS_LIMIT = 60;
@@ -118,47 +122,30 @@ const noteOf = (matchedBy) =>
     ? t("Directed by {name}", { name: matchedBy.name })
     : t("With {name}", { name: matchedBy.name });
 
-const metaOf = (movie) =>
-  [movie.year, movie.runtime ? formatRuntime(movie.runtime) : null, movie.genres?.[0]].filter(Boolean).join(" · ");
-
-// A film's end of its row: your tier when you've seen it (dashed until
-// you tier it), else a bookmark to save it.
-const SaveOrTier = ({ movie, entry, saved, colors, styles }) =>
-  entry ? (
-    <TierBadge tier={getTier(entry)} size={28} />
-  ) : (
-    <Pressable
-      onPress={() => toggleBucketListWithFeedback(movie.id)}
-      hitSlop={8}
-      style={({ pressed }) => [styles.save, saved && styles.saveOn, pressed && styles.pressed]}
-      accessibilityRole="button"
-      accessibilityLabel={saved ? t("Watchlisted") : t("Watchlist")}
-    >
-      {saved ? (
-        <BookmarkCheck size={17} color={colors.brandText} strokeWidth={2.2} />
-      ) : (
-        <Bookmark size={17} color={colors.textPrimary} strokeWidth={2} />
-      )}
-    </Pressable>
-  );
-
-// Search, over whatever you were on: the field at the top (Cancel puts it
-// away). Before you type — what you searched lately, the kinds of film to
-// browse, pasting a list. As you type — the top result, big; the people
-// it found (their collection, or all their films); then every film, each
-// with why it came up and your tier or a bookmark.
+// The Search tab, as Apple TV's. Its field is in the tab bar
+// (navigation/tabBars — it rises over the keyboard); this is the page:
+//   nothing typed      a big "Search" title and the kinds of film as tall
+//                      tiles, three across — then pasting a list.
+//   typing, nothing    what you searched lately.
+//   something typed    the top result, big; the people it found (their
+//                      collection, or all their films); then every film,
+//                      each with why it came up and your tier or a
+//                      bookmark.
 export const SearchScreen = ({ navigation }) => {
   const colors = useColors();
   const styles = createStyles(colors);
-  const insets = useSafeAreaInsets();
   const rtl = useIsRTL();
-  const [query, setQuery] = useState("");
+  const header = useDockHeader();
+  const tabBarClearance = useTabBarClearance();
+  const { height: keyboard } = useKeyboardHeight();
+  const query = useSearchStore((state) => state.query);
+  const setQuery = useSearchStore((state) => state.setQuery);
+  const focused = useSearchStore((state) => state.focused);
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pasteResult, setPasteResult] = useState(null);
   const [matching, setMatching] = useState(false);
   const bucketList = useMovieStore((state) => state.bucketList);
-  const watched = useMovieStore((state) => state.watched);
   const recentSearches = useRecentSearchStore((state) => state.recentSearches);
   const addSearch = useRecentSearchStore((state) => state.addSearch);
   const clearSearches = useRecentSearchStore((state) => state.clearSearches);
@@ -167,18 +154,26 @@ export const SearchScreen = ({ navigation }) => {
   // Any movie — by title, director or cast, best matches first
   // (hooks/useMovieSearch).
   const search = useMovieSearch(query, RESULTS_LIMIT);
-  const entryOf = (movieId) => watched.find((entry) => entry.movieId === movieId) ?? null;
   // The first film is the top result when its title is what matched.
   const top = search.results[0] && !search.results[0].matchedBy ? search.results[0] : null;
   const rest = top ? search.results.slice(1) : search.results;
   const people = peopleIn(search.results);
 
+  // Room under the page: the tab bar, and the keyboard while it's up.
+  const contentStyle = {
+    paddingTop: header.barBottom + spacing.underHeader,
+    paddingBottom: (keyboard > 0 ? keyboard : tabBarClearance) + spacing.xl,
+  };
+
   const openMovie = (movie) => {
-    // A search that found something: remembered.
+    // A search that found something: remembered. The keyboard goes, so it
+    // isn't left over the film's page.
+    Keyboard.dismiss();
     addSearch(query);
     navigation.navigate("MovieDetails", { movieId: movie.id });
   };
   const openPerson = (person) => {
+    Keyboard.dismiss();
     addSearch(query);
     if (person.saga) navigation.navigate("CollectionDetails", { collectionId: person.saga.id });
     else navigation.navigate("BrowseMovies", { title: person.name, movieIds: person.movieIds });
@@ -235,7 +230,7 @@ export const SearchScreen = ({ navigation }) => {
             {top.movie.title}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {metaOf(top.movie)}
+            {filmMeta(top.movie)}
           </Text>
           {!!top.movie.director && (
             <Text style={styles.note} numberOfLines={1}>
@@ -243,13 +238,7 @@ export const SearchScreen = ({ navigation }) => {
             </Text>
           )}
         </View>
-        <SaveOrTier
-          movie={top.movie}
-          entry={entryOf(top.movie.id)}
-          saved={isInBucketList(bucketList, top.movie.id)}
-          colors={colors}
-          styles={styles}
-        />
+        <FilmAction movie={top.movie} />
       </Pressable>
     </View>
   );
@@ -316,161 +305,114 @@ export const SearchScreen = ({ navigation }) => {
     />
   );
 
+  const scrollProps = {
+    onScroll: header.onScroll,
+    scrollEventThrottle: 16,
+    showsVerticalScrollIndicator: false,
+    keyboardShouldPersistTaps: "handled",
+    keyboardDismissMode: "on-drag",
+  };
+
+  let page;
+  if (trimmed && search.results.length > 0) {
+    page = (
+      <Animated.FlatList
+        {...scrollProps}
+        data={rest}
+        keyExtractor={(item) => item.movie.id}
+        contentContainerStyle={contentStyle}
+        ListHeaderComponent={
+          <>
+            {topResult}
+            {peopleRow}
+            {rest.length > 0 && <Text style={styles.heading}>{t("Movies")}</Text>}
+          </>
+        }
+        ListFooterComponent={
+          search.searching ? (
+            <View style={styles.more}>
+              <ActivityIndicator size="small" color={colors.textMuted} />
+              <Text style={styles.meta}>{t("Searching all films…")}</Text>
+            </View>
+          ) : null
+        }
+        renderItem={({ item: { movie, matchedBy }, index }) => (
+          <FilmRow
+            movie={movie}
+            note={matchedBy ? noteOf(matchedBy) : null}
+            onPress={() => openMovie(movie)}
+            last={index === rest.length - 1}
+          />
+        )}
+      />
+    );
+  } else if (trimmed) {
+    page = (
+      <Animated.ScrollView {...scrollProps} contentContainerStyle={contentStyle}>
+        {nothing}
+      </Animated.ScrollView>
+    );
+  } else if (focused) {
+    // Typing, nothing yet: what you searched lately.
+    page = (
+      <Animated.ScrollView {...scrollProps} contentContainerStyle={contentStyle}>
+        {recentSearches.length > 0 ? (
+          <View style={styles.block}>
+            <View style={styles.headingRow}>
+              <Text style={[styles.heading, styles.headingInRow]}>{t("Recent")}</Text>
+              <Pressable onPress={clearSearches} hitSlop={8} accessibilityRole="button">
+                <Text style={styles.clear}>{t("Clear")}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.chips}>
+              {recentSearches.map((term) => (
+                <Pressable
+                  key={term}
+                  style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+                  onPress={() => setQuery(term)}
+                  accessibilityRole="button"
+                >
+                  <Clock size={13} color={colors.textMuted} strokeWidth={2.2} />
+                  <Text style={styles.chipText} numberOfLines={1}>
+                    {term}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.hint}>{t("Search films, directors and actors.")}</Text>
+        )}
+      </Animated.ScrollView>
+    );
+  } else {
+    // Nothing typed: the kinds of film, then pasting a list.
+    page = (
+      <Animated.ScrollView {...scrollProps} contentContainerStyle={contentStyle}>
+        <BrowseTiles navigation={navigation} />
+        <Pressable
+          style={({ pressed }) => [styles.pasteCard, pressed && styles.pressed]}
+          onPress={() => setPasteMode(true)}
+          accessibilityRole="button"
+        >
+          <View style={styles.pasteIcon}>
+            <ClipboardPaste size={18} color={colors.brand} strokeWidth={2.2} />
+          </View>
+          <View style={styles.pasteCardWords}>
+            <Text style={styles.rowTitle}>{t("Paste a list of titles")}</Text>
+            <Text style={styles.meta}>{t("Add a whole list to your watchlist at once.")}</Text>
+          </View>
+          <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
+        </Pressable>
+      </Animated.ScrollView>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* The field, and Cancel to put Search away. */}
-      <View style={[styles.top, { paddingTop: insets.top + spacing.sm }]}>
-        <View style={styles.field}>
-          {search.searching ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} style={styles.fieldIcon} />
-          ) : (
-            <Search size={18} color={colors.textSecondary} strokeWidth={2.2} style={styles.fieldIcon} />
-          )}
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t("Search movies, directors, actors...")}
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, rtl && styles.inputRtl]}
-            autoCorrect={false}
-            returnKeyType="search"
-            onSubmitEditing={() => addSearch(query)}
-            autoFocus
-          />
-          {query.length > 0 && (
-            <Pressable
-              onPress={() => setQuery("")}
-              hitSlop={10}
-              style={styles.clearButton}
-              accessibilityRole="button"
-              accessibilityLabel={t("Clear")}
-            >
-              <X size={13} color={colors.background} strokeWidth={3} />
-            </Pressable>
-          )}
-        </View>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.cancel}>{t("Cancel")}</Text>
-        </Pressable>
-      </View>
-
-      {trimmed ? (
-        search.results.length === 0 ? (
-          nothing
-        ) : (
-          <FlatList
-            data={rest}
-            keyExtractor={(item) => item.movie.id}
-            contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            ListHeaderComponent={
-              <>
-                {topResult}
-                {peopleRow}
-                {rest.length > 0 && <Text style={styles.heading}>{t("Movies")}</Text>}
-              </>
-            }
-            ListFooterComponent={
-              search.searching ? (
-                <View style={styles.more}>
-                  <ActivityIndicator size="small" color={colors.textMuted} />
-                  <Text style={styles.meta}>{t("Searching all films…")}</Text>
-                </View>
-              ) : null
-            }
-            renderItem={({ item: { movie, matchedBy }, index }) => (
-              <Pressable
-                style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                onPress={() => openMovie(movie)}
-                accessibilityRole="button"
-                accessibilityLabel={movie.title}
-              >
-                <MoviePoster uri={movie.poster} style={styles.rowPoster} />
-                <View style={[styles.rowWords, index < rest.length - 1 && styles.rule]}>
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>
-                      {movie.title}
-                    </Text>
-                    <Text style={styles.meta} numberOfLines={1}>
-                      {metaOf(movie)}
-                    </Text>
-                    {!!matchedBy && (
-                      <Text style={styles.note} numberOfLines={1}>
-                        {noteOf(matchedBy)}
-                      </Text>
-                    )}
-                  </View>
-                  <SaveOrTier
-                    movie={movie}
-                    entry={entryOf(movie.id)}
-                    saved={isInBucketList(bucketList, movie.id)}
-                    colors={colors}
-                    styles={styles}
-                  />
-                </View>
-              </Pressable>
-            )}
-          />
-        )
-      ) : (
-        // Before you type: what you searched lately, the kinds of film to
-        // browse, and pasting a list.
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
-        >
-          {recentSearches.length > 0 && (
-            <View style={styles.block}>
-              <View style={styles.headingRow}>
-                <Text style={[styles.heading, styles.headingInRow]}>{t("Recent")}</Text>
-                <Pressable onPress={clearSearches} hitSlop={8} accessibilityRole="button">
-                  <Text style={styles.clear}>{t("Clear")}</Text>
-                </Pressable>
-              </View>
-              <View style={styles.chips}>
-                {recentSearches.map((term) => (
-                  <Pressable
-                    key={term}
-                    style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-                    onPress={() => setQuery(term)}
-                    accessibilityRole="button"
-                  >
-                    <Clock size={13} color={colors.textMuted} strokeWidth={2.2} />
-                    <Text style={styles.chipText} numberOfLines={1}>
-                      {term}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View style={styles.block}>
-            <Text style={styles.heading}>{t("Browse")}</Text>
-            <BrowseTiles navigation={navigation} />
-          </View>
-
-          {/* Pasting a list: a row at the end, what it does under it. */}
-          <Pressable
-            style={({ pressed }) => [styles.pasteCard, pressed && styles.pressed]}
-            onPress={() => setPasteMode(true)}
-            accessibilityRole="button"
-          >
-            <View style={styles.pasteIcon}>
-              <ClipboardPaste size={18} color={colors.brand} strokeWidth={2.2} />
-            </View>
-            <View style={styles.pasteCardWords}>
-              <Text style={styles.rowTitle}>{t("Paste a list of titles")}</Text>
-              <Text style={styles.meta}>{t("Add a whole list to your watchlist at once.")}</Text>
-            </View>
-            <ChevronRight size={18} color={colors.textMuted} style={rtl && styles.flipped} />
-          </Pressable>
-        </ScrollView>
-      )}
+      {page}
+      <ScreenBottomFade />
+      <DockHeader {...header.props} title={t("Search")} />
 
       {/* Paste a list: the app's sheet (it rises above the keyboard) — the
           titles, then what they matched, then Add. */}
@@ -568,49 +510,6 @@ const createStyles = (colors) =>
     flipped: {
       transform: [{ scaleX: -1 }],
     },
-    // The field and Cancel, at the top.
-    top: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-    },
-    field: {
-      flex: 1,
-      height: 46,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.card,
-      borderRadius: shape.card,
-    },
-    fieldIcon: {
-      width: 18,
-    },
-    input: {
-      ...typography.subtitle,
-      flex: 1,
-      height: "100%",
-      paddingHorizontal: spacing.sm + 2,
-      color: colors.textPrimary,
-    },
-    inputRtl: {
-      textAlign: "right",
-    },
-    // ✕, a small filled circle.
-    clearButton: {
-      width: 20,
-      height: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.textMuted,
-      borderRadius: 10,
-    },
-    cancel: {
-      ...typography.subtitle,
-      color: colors.brand,
-    },
     block: {
       marginBottom: spacing.lg + spacing.sm,
     },
@@ -665,6 +564,7 @@ const createStyles = (colors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
+      marginTop: spacing.section,
       marginHorizontal: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
@@ -741,40 +641,6 @@ const createStyles = (colors) =>
       ...typography.bodyBold,
       color: colors.textPrimary,
     },
-    // A film: its poster, then the words over a hairline, then your tier
-    // or a bookmark.
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingStart: spacing.md,
-    },
-    // Room above and below each poster, so no two touch.
-    rowPoster: {
-      width: 44,
-      height: 66,
-      marginVertical: spacing.sm,
-    },
-    rowWords: {
-      flex: 1,
-      alignSelf: "stretch",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      marginStart: spacing.md,
-      paddingEnd: spacing.md,
-    },
-    rule: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    rowText: {
-      flex: 1,
-      gap: 2,
-    },
-    rowTitle: {
-      ...typography.bodyBold,
-      color: colors.textPrimary,
-    },
     meta: {
       ...typography.caption,
       color: colors.textSecondary,
@@ -783,16 +649,9 @@ const createStyles = (colors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    save: {
-      width: 36,
-      height: 36,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.cardElevated,
-      borderRadius: 18,
-    },
-    saveOn: {
-      backgroundColor: colors.brand,
+    rowTitle: {
+      ...typography.bodyBold,
+      color: colors.textPrimary,
     },
     more: {
       flexDirection: "row",

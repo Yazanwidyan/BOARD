@@ -25,7 +25,7 @@ import {
   useDockHeader,
 } from "../components/ScreenHeader";
 import { ScreenBottomFade } from "../components/ScreenBottomFade";
-import { useTrending } from "../store/communityStore";
+import { useNewReleases, useTrending } from "../store/communityStore";
 import { useMovieStore } from "../store/movieStore";
 import { spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
@@ -144,6 +144,7 @@ export const DiscoverScreen = ({ navigation }) => {
   const bucketList = useMovieStore((state) => state.bucketList);
   const watched = useMovieStore((state) => state.watched);
   const { data: community, refetch: refetchCommunity } = useTrending();
+  const { data: newReleases } = useNewReleases();
   const header = useDockHeader();
   const rtl = useIsRTL();
   const { width } = useWindowDimensions();
@@ -162,9 +163,9 @@ export const DiscoverScreen = ({ navigation }) => {
   const [refreshCount, setRefreshCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const rails = useMemo(
-    () => buildDiscoverRails({ watched, community }),
+    () => buildDiscoverRails({ watched, community, newReleases }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [watched, community, refreshCount],
+    [watched, community, newReleases, refreshCount],
   );
   const onRefresh = () => {
     setRefreshing(true);

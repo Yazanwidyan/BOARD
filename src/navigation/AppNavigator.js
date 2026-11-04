@@ -19,6 +19,7 @@ import { BrowseMoviesScreen } from "../screens/BrowseMoviesScreen";
 import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
 import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { WatchTogetherScreen } from "../screens/WatchTogetherScreen";
@@ -40,7 +41,6 @@ import { FriendsScreen } from "../screens/FriendsScreen";
 import { FriendsHubScreen } from "../screens/FriendsHubScreen";
 import { MixScreen } from "../screens/MixScreen";
 import { MilestonesScreen } from "../screens/MilestonesScreen";
-import { SearchScreen } from "../screens/SearchScreen";
 import { AccountLoadingScreen } from "../screens/AccountLoadingScreen";
 import { LetterboxdImportScreen } from "../screens/LetterboxdImportScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
@@ -202,15 +202,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="BrowseMovies" component={BrowseMoviesScreen} />
             <Stack.Screen name="Friends" component={FriendsScreen} />
             <Stack.Screen name="FriendsHub" component={FriendsHubScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Mix" component={MixScreen} />
             <Stack.Screen name="Milestones" component={MilestonesScreen} />
-            {/* Search: slides up over whatever you're on, filling the
-                screen (not iOS's shorter card, which starts below the top). */}
-            <Stack.Screen
-              name="Search"
-              component={SearchScreen}
-              options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
-            />
             <Stack.Screen
               name="FriendProfile"
               component={FriendProfileScreen}

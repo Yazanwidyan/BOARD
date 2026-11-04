@@ -21,6 +21,9 @@ const isHiddenGem = (movie) => {
   return votes != null && movie.rating >= GEM_RATING && votes < GEM_MAX_VOTES;
 };
 const SHORT_RUNTIME = 100;
+// "New releases" without the cinema list (offline): the catalog's films
+// from this year and last.
+const NEW_YEARS = 1;
 // "Because you watched": how alike two movies must feel (Taste DNA, 0–1)
 // to make the row.
 const BECAUSE_MIN_SIMILARITY = 0.72;
@@ -31,7 +34,8 @@ const byRating = byWeightedRating;
 // Discover is for finding something new. Rows with nothing to show are
 // dropped. Each row carries its full list (`movies`) for "All ›".
 // `community` is GET /api/community/trending (store/communityStore), when
-// it's loaded: what everyone else is watching and loving.
+// it's loaded: what everyone else is watching and loving. `newReleases`:
+// what's in cinemas now (store/communityStore's useNewReleases), as cards.
 // A person's photo for a "More from / More with" heading — their
 // collection's, when they have one (round, as Apple Music's artists).
 const personThumb = (name) => {
@@ -39,7 +43,7 @@ const personThumb = (name) => {
   return photo ? { uri: photo, round: true } : null;
 };
 
-export const buildDiscoverRails = ({ watched, community }) => {
+export const buildDiscoverRails = ({ watched, community, newReleases }) => {
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
   const unwatched = MOVIES.filter((movie) => !watchedIds.has(movie.id));
   const rails = [];
@@ -56,6 +60,20 @@ export const buildDiscoverRails = ({ watched, community }) => {
     title: t("You haven't seen these?! 😲"),
     subtitle: "The best-rated films you're still missing.",
     movies: [...unwatched].sort(byRating),
+  });
+
+  // New releases — in cinemas now; without that list, the catalog's
+  // newest, the latest first.
+  const thisYear = new Date().getFullYear();
+  rails.push({
+    key: "new",
+    title: t("New releases"),
+    subtitle: "In cinemas now and just out.",
+    movies: newReleases?.length
+      ? newReleases.filter((card) => !watchedIds.has(card.id)).map((card) => getMovieById(card.id) ?? card)
+      : unwatched
+          .filter((movie) => movie.year >= thisYear - NEW_YEARS)
+          .sort((a, b) => b.year - a.year || byRating(a, b)),
   });
 
   // Trending on ReelBoard — most watched and saved by everyone this week.

@@ -505,9 +505,9 @@ export const HomeScreen = ({ navigation }) => {
           <HeaderIconButton
             onPress={() => {
               Haptics.selectionAsync();
-              navigation.navigate("FriendsHub");
+              navigation.navigate("Notifications");
             }}
-            accessibilityLabel={t("Activity")}
+            accessibilityLabel={t("Notifications")}
             badge={notificationCount}
           >
             <Bell size={22} strokeWidth={1.75} color={colors.textPrimary} />

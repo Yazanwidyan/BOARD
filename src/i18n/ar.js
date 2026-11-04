@@ -1765,6 +1765,24 @@ const ar = {
   "Nothing found for \"{query}\". Try a director or an actor.": "لا شيء لـ\"{query}\". جرّب اسم مخرج أو ممثل.",
   "Paste a list of titles": "الصق قائمة عناوين",
   "Add a whole list to your watchlist at once.": "أضف قائمة كاملة إلى قائمة المشاهدة دفعة واحدة.",
+  "Films, directors, actors": "أفلام، مخرجون، ممثلون",
+  "Search films, directors and actors.": "ابحث عن الأفلام والمخرجين والممثلين.",
+  "In cinemas now and just out.": "في السينما الآن وصدرت للتو.",
+
+  // ---- Lists of films ----
+  "Top": "الأفضل",
+  "Newest": "الأحدث",
+  "A–Z": "أ–ي",
+  "Not seen": "لم تشاهدها",
+  "No films match.": "لا أفلام مطابقة.",
+  "Show as a list": "اعرض كقائمة",
+  "Show as a grid": "اعرض كشبكة",
+
+  // ---- Notifications ----
+  "Friend requests": "طلبات الصداقة",
+  "{handle} wants to be friends": "{handle} يريد أن يكون صديقك",
+  "You're all caught up": "لا جديد الآن",
+  "Friend requests, the morning question and news from friends show up here.": "طلبات الصداقة وسؤال الصباح وأخبار الأصدقاء تظهر هنا.",
 };
 
 export default ar;

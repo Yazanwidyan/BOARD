@@ -115,13 +115,42 @@ export const useBlocked = () => {
 
 // What the bell counts: friend requests waiting on you, plus friends'
 // activity since you last opened Activity.
+// What the server has told you (GET /api/me/notifications — every push it
+// sent, kept whether or not a phone showed it), newest first, for the
+// Notifications page: { notifications, unread, markRead, refresh }.
+// `markRead` marks everything up to now as seen.
+export const useNotifications = () => {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api.get("/me/notifications"),
+    enabled: useSignedIn(),
+  });
+  const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey: ["notifications"] }), [queryClient]);
+  useRefetchOnFocus(refresh);
+  const read = useMutation({
+    mutationFn: () => api.post("/me/notifications/read"),
+    onSuccess: refresh,
+  });
+  return {
+    notifications: query.data?.notifications ?? EMPTY,
+    loaded: query.data !== undefined,
+    markRead: read.mutate,
+    refresh,
+  };
+};
+
+// The bell's badge: friend requests waiting on you, plus anything new the
+// server told you (a request is counted once, as a request).
 export const useNotificationCount = () => {
   const userId = useAuthStore((state) => state.user?.id);
   const seenAt = useActivitySeenStore((state) => state.seenAt[userId] ?? 0);
   const { incoming, activity } = useFriends();
+  const { notifications } = useNotifications();
+  const unread = notifications.filter((item) => !item.read && item.kind !== "friendRequest").length;
   // The feed's news counts only while the feed is on.
   const unseen = features.activityFeed ? activity.filter((event) => event.timestamp > seenAt).length : 0;
-  return incoming.length + unseen;
+  return incoming.length + unread + unseen;
 };
 
 export default useFriends;
