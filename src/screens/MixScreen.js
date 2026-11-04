@@ -1,37 +1,39 @@
-import { Dices, Layers } from "lucide-react-native";
+import { ChevronLeft, Dices, Layers } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../components/AppText";
+import { FilmRow } from "../components/FilmRow";
 import { MixArt } from "../components/MixRail";
-import { MoviePoster } from "../components/MoviePoster";
-import { StackHeader, useStackHeaderScroll } from "../components/ScreenHeader";
+import { DockHeader, HeaderIconButton, useDockHeader } from "../components/ScreenHeader";
 import { getMovieById, useMoviesVersion } from "../data/movies";
-import { t } from "../i18n";
+import { t, useIsRTL } from "../i18n";
 import { useSessionStore } from "../store/sessionStore";
 import { shape, spacing } from "../theme/spacing";
 import { fonts, typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
 import { formatRuntime } from "../utils/movieFilters";
 
-const COVER = 236;
-const POSTER_WIDTH = 46;
+const COVER = 220;
 
-// A mix (utils/mixes) on its own page, laid out like an Apple Music
-// playlist: its artwork, its name and label, two buttons side by side —
-// sort the pile (Swipe), or let it pick one for you — and the films, each
-// opening its page.
+// A mix from Home's "Top picks for you" (utils/mixes) on its own page, laid
+// out like an Apple Music playlist: its artwork, its name, its label, how
+// many films and how long they'd take; two buttons side by side — sort the
+// pile (Swipe), the main one, or let it pick one for you — and the films
+// as every list's rows (components/FilmRow: your tier, or a bookmark).
 export const MixScreen = ({ navigation, route }) => {
   useMoviesVersion();
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
-  const headerScroll = useStackHeaderScroll();
+  const rtl = useIsRTL();
+  const header = useDockHeader();
   const startSession = useSessionStore((state) => state.startSession);
   const { title, titleIsName, eyebrow, hint, tint, movieIds } = route.params;
   const movies = movieIds.map((id) => getMovieById(id)).filter(Boolean);
   const name = titleIsName ? title : t(title);
+  const minutes = movies.reduce((sum, movie) => sum + (movie.runtime ?? 0), 0);
 
   const sort = () => {
     startSession(movies);
@@ -44,17 +46,11 @@ export const MixScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StackHeader
-        title={name}
-        onBack={() => navigation.goBack()}
-        scrollY={headerScroll.scrollY}
-        titleRevealAt={COVER + spacing.xl + 24}
-      />
       <Animated.ScrollView
-        onScroll={headerScroll.onScroll}
+        onScroll={header.onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+        contentContainerStyle={{ paddingTop: header.barBottom, paddingBottom: insets.bottom + spacing.xl }}
       >
         <View style={styles.hero}>
           <View style={styles.cover}>
@@ -64,24 +60,27 @@ export const MixScreen = ({ navigation, route }) => {
             {name}
           </Text>
           <Text style={styles.eyebrow}>{t(eyebrow)}</Text>
+          <Text style={styles.stats}>
+            {[t("{count} films", { count: movies.length }), minutes > 0 ? formatRuntime(minutes) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
         </View>
 
         {/* Two buttons, as Play and Shuffle are on a playlist. */}
         <View style={styles.actions}>
           <Pressable
-            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.action, styles.actionMain, pressed && styles.pressed]}
             onPress={sort}
             accessibilityRole="button"
-            accessibilityLabel={t("Sort this pile")}
           >
-            <Layers size={18} color={colors.textPrimary} strokeWidth={2.2} />
-            <Text style={styles.actionText}>{t("Sort this pile")}</Text>
+            <Layers size={18} color={colors.selectedText} strokeWidth={2.2} />
+            <Text style={[styles.actionText, styles.actionMainText]}>{t("Sort this pile")}</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.action, pressed && styles.pressed]}
             onPress={surprise}
             accessibilityRole="button"
-            accessibilityLabel={t("Pick one for me")}
           >
             <Dices size={18} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t("Pick one for me")}</Text>
@@ -89,28 +88,25 @@ export const MixScreen = ({ navigation, route }) => {
         </View>
 
         {movies.map((movie, index) => (
-          <Pressable
+          <FilmRow
             key={movie.id}
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            movie={movie}
             onPress={() => navigation.navigate("MovieDetails", { movieId: movie.id })}
-            accessibilityRole="button"
-            accessibilityLabel={movie.title}
-          >
-            <MoviePoster uri={movie.poster} style={styles.poster} />
-            {/* A hairline under the words, not the poster, as in a list of songs. */}
-            <View style={[styles.rowWords, index < movies.length - 1 && styles.rowRule]}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {movie.title}
-              </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {[movie.year, movie.genres?.[0] && t(movie.genres[0]), movie.runtime ? formatRuntime(movie.runtime) : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </Text>
-            </View>
-          </Pressable>
+            last={index === movies.length - 1}
+          />
         ))}
       </Animated.ScrollView>
+      <DockHeader
+        {...header.props}
+        title={name}
+        centered
+        avatar={false}
+        back={
+          <HeaderIconButton round onPress={() => navigation.goBack()} accessibilityLabel={t("Back")}>
+            <ChevronLeft size={22} color={colors.textPrimary} strokeWidth={2} style={rtl && styles.flipped} />
+          </HeaderIconButton>
+        }
+      />
     </View>
   );
 };
@@ -121,9 +117,12 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    flipped: {
+      transform: [{ scaleX: -1 }],
+    },
     hero: {
       alignItems: "center",
-      paddingTop: spacing.md,
+      paddingTop: spacing.sm,
       paddingHorizontal: spacing.md,
     },
     cover: {
@@ -147,13 +146,19 @@ const createStyles = (colors) =>
       color: colors.brand,
       marginTop: 2,
     },
+    stats: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.xs,
+    },
     actions: {
       flexDirection: "row",
       gap: spacing.md,
       paddingHorizontal: spacing.md,
       marginTop: spacing.lg,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
     },
+    // Sort is the main one, filled; Pick one sits beside it, outlined.
     action: {
       flex: 1,
       flexDirection: "row",
@@ -165,44 +170,20 @@ const createStyles = (colors) =>
       borderColor: colors.outline,
       borderRadius: shape.card,
     },
+    actionMain: {
+      backgroundColor: colors.selected,
+      borderColor: colors.selected,
+    },
     actionText: {
       ...typography.bodyBold,
       fontSize: 15,
       color: colors.textPrimary,
     },
+    actionMainText: {
+      color: colors.selectedText,
+    },
     pressed: {
       opacity: 0.75,
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingStart: spacing.md,
-    },
-    poster: {
-      width: POSTER_WIDTH,
-      height: POSTER_WIDTH * 1.5,
-    },
-    rowWords: {
-      flex: 1,
-      alignSelf: "stretch",
-      justifyContent: "center",
-      gap: 2,
-      paddingEnd: spacing.md,
-      paddingVertical: spacing.sm + 2,
-    },
-    rowRule: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    rowTitle: {
-      ...typography.bodyBold,
-      fontSize: 15,
-      color: colors.textPrimary,
-    },
-    rowMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
     },
   });
 
