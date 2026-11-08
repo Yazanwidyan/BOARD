@@ -1,8 +1,18 @@
 import * as Haptics from "expo-haptics";
 import { Bookmark, Compass, Search, X } from "lucide-react-native";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import Animated, { Easing, FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "../../components/AppText";
@@ -31,6 +41,10 @@ const STROKE_OPEN = 2.2;
 const MORPH = LinearTransition.duration(280).easing(Easing.out(Easing.cubic));
 const SWAP_IN = FadeIn.duration(180);
 const SWAP_OUT = FadeOut.duration(120);
+// The open tab's pill: how it settles on a tab, and how much it swells
+// while you hold it.
+const SETTLE = { duration: 240, easing: Easing.out(Easing.cubic) };
+const HELD_SCALE = 1.06;
 
 // Each tab's icon — simple line icons, and the app's own mark for Home —
 // and its name, written under it. Profile has no tab (the headers' avatar
@@ -41,9 +55,109 @@ const TABS = {
   Library: { label: "Library", Icon: Bookmark },
 };
 
+// The tabs inside the capsule. Tap one, or press and slide: the pill
+// follows your finger and the tab under it lights up (a tick as you cross
+// into each), but nothing opens until you let go — then the tab you let go
+// on does. `tabs`: [{ key, label, Icon }] in order; `open` the open one's
+// place; `onSelect(place)`.
+const TabStrip = ({ tabs, open, onSelect, rtl, colors, styles }) => {
+  const [width, setWidth] = useState(0);
+  // The tab under your finger while you hold (null when you're not).
+  const [hover, setHover] = useState(null);
+  const count = tabs.length;
+  const slot = width / count;
+  const pillX = useSharedValue(0);
+  const held = useSharedValue(0);
+  const under = useSharedValue(-1);
+
+  // Places run right to left in Arabic; the pill's x is from the left.
+  const xOf = (place) => (rtl ? count - 1 - place : place) * slot;
+  useEffect(() => {
+    if (width > 0 && under.value < 0) pillX.value = withTiming(xOf(open), SETTLE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, width, rtl]);
+
+  const crossInto = (place) => {
+    setHover(place);
+    Haptics.selectionAsync();
+  };
+  const letGo = (place) => {
+    setHover(null);
+    if (place >= 0) onSelect(place);
+  };
+
+  const gesture = Gesture.Pan()
+    .minDistance(0)
+    .shouldCancelWhenOutside(false)
+    .onBegin((event) => {
+      if (slot <= 0) return;
+      held.value = withTiming(1, { duration: 140 });
+      const spot = Math.min(count - 1, Math.max(0, Math.floor(event.x / slot)));
+      const place = rtl ? count - 1 - spot : spot;
+      under.value = place;
+      pillX.value = withTiming(spot * slot, { duration: 120 });
+      runOnJS(setHover)(place);
+    })
+    .onUpdate((event) => {
+      if (slot <= 0) return;
+      // The pill follows the finger, kept inside the capsule.
+      pillX.value = Math.min(width - slot, Math.max(0, event.x - slot / 2));
+      const spot = Math.min(count - 1, Math.max(0, Math.floor(event.x / slot)));
+      const place = rtl ? count - 1 - spot : spot;
+      if (place !== under.value) {
+        under.value = place;
+        runOnJS(crossInto)(place);
+      }
+    })
+    .onFinalize(() => {
+      const place = under.value;
+      held.value = withTiming(0, { duration: 160 });
+      if (place >= 0) pillX.value = withTiming((rtl ? count - 1 - place : place) * slot, SETTLE);
+      under.value = -1;
+      runOnJS(letGo)(place);
+    });
+
+  const pillStyle = useAnimatedStyle(() => ({
+    width: slot,
+    transform: [{ translateX: pillX.value }, { scale: 1 + (HELD_SCALE - 1) * held.value }],
+  }));
+
+  const lit = hover ?? open;
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={styles.items} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        {width > 0 && <Animated.View pointerEvents="none" style={[styles.pill, pillStyle]} />}
+        {tabs.map((tab, place) => {
+          const on = lit === place;
+          const ink = on ? colors.textPrimary : colors.textSecondary;
+          const { Icon } = tab;
+          return (
+            <View
+              key={tab.key}
+              style={styles.item}
+              accessible
+              accessibilityRole="tab"
+              accessibilityLabel={t(tab.label)}
+              accessibilityState={{ selected: open === place }}
+              onAccessibilityTap={() => onSelect(place)}
+            >
+              <Icon size={ICON} color={ink} strokeWidth={on ? STROKE_OPEN : STROKE} open={on} />
+              <Text style={[styles.label, on && styles.labelOpen, { color: ink }]} numberOfLines={1}>
+                {t(tab.label)}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </GestureDetector>
+  );
+};
+
 // The app's bottom tabs, as Apple TV's:
 //   on a tab     a floating dark capsule with the tabs (the open one in a
-//                lighter pill) and Search beside it, a round button.
+//                lighter pill — press and slide to move it, it opens the
+//                tab you let go on: TabStrip) and Search beside it, a round
+//                button.
 //   on Search    the capsule shrinks to a round button with the tab you
 //                came from (tap to go back) and Search's button stretches
 //                into the search field.
@@ -100,6 +214,11 @@ export const BottomTabBar = ({ state, navigation }) => {
   };
 
   const BackIcon = (TABS[from] ?? TABS.Home).Icon;
+  // The tabs the capsule shows, in order (Search has its own button).
+  const tabRoutes = state.routes
+    .map((route, index) => ({ route, index, tab: TABS[route.name] }))
+    .filter((item) => item.tab);
+  const openPlace = tabRoutes.findIndex((item) => item.index === state.index);
 
   return (
     <Animated.View style={[styles.dock, { paddingBottom: bottom }, dockStyle]} pointerEvents="box-none">
@@ -127,28 +246,14 @@ export const BottomTabBar = ({ state, navigation }) => {
               </Animated.View>
             ) : (
               <Animated.View key="items" entering={SWAP_IN} exiting={SWAP_OUT} style={styles.items}>
-                {state.routes.map((route, index) => {
-                  const tab = TABS[route.name];
-                  if (!tab) return null;
-                  const open = state.index === index;
-                  const { Icon } = tab;
-                  const ink = open ? colors.textPrimary : colors.textSecondary;
-                  return (
-                    <Pressable
-                      key={route.key}
-                      style={({ pressed }) => [styles.item, open && styles.itemOpen, pressed && styles.pressed]}
-                      onPress={() => select(route, index)}
-                      accessibilityRole="tab"
-                      accessibilityLabel={t(tab.label)}
-                      accessibilityState={{ selected: open }}
-                    >
-                      <Icon size={ICON} color={ink} strokeWidth={open ? STROKE_OPEN : STROKE} open={open} />
-                      <Text style={[styles.label, open && styles.labelOpen, { color: ink }]} numberOfLines={1}>
-                        {t(tab.label)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                <TabStrip
+                  tabs={tabRoutes.map(({ route, tab }) => ({ key: route.key, ...tab }))}
+                  open={openPlace}
+                  onSelect={(place) => select(tabRoutes[place].route, tabRoutes[place].index)}
+                  rtl={rtl}
+                  colors={colors}
+                  styles={styles}
+                />
               </Animated.View>
             )}
           </Animated.View>
@@ -278,9 +383,15 @@ const createStyles = (colors) =>
       gap: 3,
       borderRadius: (BAR_HEIGHT - BAR_INSET * 2) / 2,
     },
-    // The open tab: a lighter pill behind its icon and name.
-    itemOpen: {
+    // The open tab's pill, behind its icon and name — it slides between
+    // the tabs.
+    pill: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
       backgroundColor: colors.cardElevatedLight,
+      borderRadius: (BAR_HEIGHT - BAR_INSET * 2) / 2,
     },
     fieldInner: {
       flex: 1,
