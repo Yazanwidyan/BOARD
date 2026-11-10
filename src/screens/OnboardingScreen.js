@@ -156,7 +156,7 @@ const SeenStep = ({ movies, marks, onTap, onLove, onMore, canMore, styles, color
     <View style={styles.step}>
       <Heading
         title={t("What have you seen?")}
-        subtitle={t("Tap the ones you've seen. Tap ♥ on films you loved — they go straight into your S tier.")}
+        subtitle={t("Tap the ones you've seen. Tap ♥ on films you loved.")}
         styles={styles}
       />
       <View style={styles.grid}>
@@ -356,14 +356,16 @@ export const OnboardingScreen = () => {
     setGridMovies((current) => [...current, ...pickMoreMovies(GRID_MORE, shown, picked)]);
   };
 
-  // Seen → watched; loved → watched and tiered S — in the real stores.
+  // Seen → watched; loved → watched and tiered A ("Loved it" — a quick
+  // tap isn't an all-time favourite; S is yours to give) — in the real
+  // stores.
   const applyMarks = () => {
     const { toggleWatched, setWatchedTier } = useMovieStore.getState();
     const applied = [];
     Object.entries(marks).forEach(([movieId, mark]) => {
       if (appliedIds.includes(movieId)) return;
       toggleWatched(movieId);
-      if (mark === "loved") setWatchedTier(movieId, "S");
+      if (mark === "loved") setWatchedTier(movieId, "A");
       applied.push(movieId);
     });
     setAppliedIds((current) => [...current, ...applied]);

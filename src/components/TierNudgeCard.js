@@ -1,4 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
 import { X } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -11,21 +12,31 @@ import { useMovieStore } from "../store/movieStore";
 import { shape, spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 import { useColors } from "../theme/useColors";
-import { giveWatchedFeedback } from "../utils/achievementFeedback";
+import { tierWithFeedback } from "../utils/achievementFeedback";
 import { isRated } from "../utils/tiers";
 import { Text } from "./AppText";
 import { MoviePoster } from "./MoviePoster";
 
 const POSTER = 46;
+// The one-tap answers, and the tiers they give.
+const QUICK = [
+  { tier: "A", label: "Loved it" },
+  { tier: "C", label: "It was fine" },
+  { tier: "D", label: "Not for me" },
+];
 
-// The morning-after question, on Home — the same one the notification
-// asks (services/notifications), here for everyone, notifications on or
-// not, from the day after:
-//   tonight's pick   "Did you watch Inception?" [Tier it] [Didn't watch it]
-//                    → didn't: "Still on for tonight?" [Yes, tonight]
-//                      [Pick something else]
-//   a watched film   "How was Inception?" [Tier it]
-// ✕ dismisses it; it goes once the film is tiered.
+// The morning-after question, on Home (and Notifications) — the same one
+// the notification asks (services/notifications), here for everyone,
+// notifications on or not, from the day after. One tap answers it:
+//   tonight's pick   "Did you watch Inception?" [Loved it] [It was fine]
+//                    [Not for me] — watched and tiered (A / C / D) at once;
+//                    under them "Exact tier" (the slider) and "Didn't
+//                    watch it" → "Still on for tonight?" [Yes, tonight]
+//                    [Pick something else]
+//   a watched film   "How was Inception?" — the same three, and "Exact
+//                    tier".
+// ✕ dismisses it; it goes once the film is tiered. How it was answered
+// (one tap, the slider, dismissed) goes to the launch numbers.
 export const TierNudgeCard = ({ navigation, style }) => {
   useMoviesVersion();
   const colors = useColors();
@@ -62,13 +73,31 @@ export const TierNudgeCard = ({ navigation, style }) => {
     setNudge(null);
     clearTierNudge();
   };
-  // Watched it: it's logged, and the Watched moment leads to its tier.
-  const watchedIt = () => {
+  const close = () => {
+    logEvent("nudge_dismissed");
+    dismiss();
+  };
+  // Logged as watched first, when it was tonight's pick — quietly: the
+  // answer is the tier.
+  const markWatched = () => {
+    if (!isPick) return;
     logEvent("nudge_watched");
-    const { watched: watchedBefore, toggleWatched } = useMovieStore.getState();
-    toggleWatched(movie.id);
-    giveWatchedFeedback(movie.id, watchedBefore);
+    useMovieStore.getState().toggleWatched(movie.id);
+  };
+  // One tap: watched (if it was the pick) and tiered.
+  const answer = (tier) => {
+    Haptics.selectionAsync();
+    logEvent("nudge_quick");
+    markWatched();
+    tierWithFeedback(movie.id, tier);
     setNudge(null);
+  };
+  // The full slider, for an exact tier.
+  const exactTier = () => {
+    logEvent("nudge_slider");
+    markWatched();
+    setNudge(null);
+    navigation.navigate("TierMovie", { movieId: movie.id });
   };
   const didntWatch = () => {
     logEvent("nudge_not_watched");
@@ -94,26 +123,22 @@ export const TierNudgeCard = ({ navigation, style }) => {
   const hint = stillOn
     ? movie.title
     : isPick
-      ? t("Tier it, or tell us you didn't — your next pick gets sharper.")
-      : t("Tier it while it's fresh — it sharpens your picks.");
+      ? t("One tap — or tell us you didn't. Your next pick gets sharper.")
+      : t("One tap while it's fresh — it sharpens your picks.");
   const actions = stillOn
     ? [
         { key: "yes", label: t("Yes, tonight"), onPress: keepForTonight, main: true },
         { key: "other", label: t("Pick something else"), onPress: pickAnother },
       ]
-    : isPick
-      ? [
-          { key: "tier", label: t("Tier it"), onPress: watchedIt, main: true },
-          { key: "no", label: t("Didn't watch it"), onPress: didntWatch },
-        ]
-      : [
-          {
-            key: "tier",
-            label: t("Tier it"),
-            onPress: () => navigation.navigate("TierMovie", { movieId: movie.id }),
-            main: true,
-          },
-        ];
+    : QUICK.map(({ tier, label }) => ({ key: tier, label: t(label), onPress: () => answer(tier), answer: true }));
+  // Quieter, under the answers: the exact tier, and (for the pick) "I
+  // didn't watch it".
+  const links = stillOn
+    ? []
+    : [
+        { key: "exact", label: t("Exact tier"), onPress: exactTier },
+        ...(isPick ? [{ key: "no", label: t("Didn't watch it"), onPress: didntWatch }] : []),
+      ];
 
   return (
     <View style={[styles.card, style]}>
@@ -129,7 +154,7 @@ export const TierNudgeCard = ({ navigation, style }) => {
         </View>
         <Pressable
           style={({ pressed }) => [styles.close, pressed && styles.pressed]}
-          onPress={dismiss}
+          onPress={close}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t("Dismiss")}
@@ -141,7 +166,11 @@ export const TierNudgeCard = ({ navigation, style }) => {
         {actions.map((action) => (
           <Pressable
             key={action.key}
-            style={({ pressed }) => [styles.button, action.main ? styles.buttonMain : styles.buttonQuiet, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.button,
+              action.answer ? styles.buttonAnswer : action.main ? styles.buttonMain : styles.buttonQuiet,
+              pressed && styles.pressed,
+            ]}
             onPress={action.onPress}
             accessibilityRole="button"
           >
@@ -151,6 +180,15 @@ export const TierNudgeCard = ({ navigation, style }) => {
           </Pressable>
         ))}
       </View>
+      {links.length > 0 && (
+        <View style={styles.links}>
+          {links.map((link) => (
+            <Pressable key={link.key} onPress={link.onPress} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.linkText}>{link.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -199,6 +237,11 @@ const createStyles = (colors) =>
     buttonMain: {
       backgroundColor: colors.brand,
     },
+    // A one-tap answer: filled, quieter than a main button — three of them
+    // side by side.
+    buttonAnswer: {
+      backgroundColor: colors.cardElevated,
+    },
     buttonQuiet: {
       borderWidth: 1,
       borderColor: colors.outline,
@@ -211,6 +254,17 @@ const createStyles = (colors) =>
     },
     buttonMainText: {
       color: colors.brandText,
+    },
+    // "Exact tier", "Didn't watch it": quiet words under the answers.
+    links: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.lg,
+    },
+    linkText: {
+      ...typography.caption,
+      fontFamily: typography.bodyBold.fontFamily,
+      color: colors.textSecondary,
     },
     close: {
       width: 28,

@@ -115,8 +115,12 @@ const tonightsTopPick = () => {
 // A D or an F says the picks will steer away. (The engine's guessed vibe
 // words are never claimed — only the film it now picks.)
 export const tierWithFeedback = (movieId, tier) => {
-  // Activation: a tier for the film the morning question was about.
-  if (getNudgeMovieId() === movieId) logEvent("pick_tiered");
+  // Activation: a tier for the film the morning question was about — and
+  // how it landed (S/A loved, B/C fine, D/F not), the grade of the picks.
+  if (getNudgeMovieId() === movieId) {
+    logEvent("pick_tiered");
+    logEvent(tier === "S" || tier === "A" ? "pick_tier_high" : tier === "D" || tier === "F" ? "pick_tier_low" : "pick_tier_mid");
+  }
   const before = tonightsTopPick();
   useMovieStore.getState().setWatchedTier(movieId, tier);
   const after = tonightsTopPick();

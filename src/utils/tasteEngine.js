@@ -38,7 +38,9 @@ import { t } from "../i18n";
 
 // How much each tier says about your taste. Watched-but-untiered still
 // counts a little — you chose to watch it.
-const TIER_WEIGHT = { S: 3, A: 2, B: 1, C: 0, D: -1.5, F: -2.5 };
+// C ("it was fine") counts as much as a film watched and never tiered,
+// so an honest answer never teaches less than no answer.
+const TIER_WEIGHT = { S: 3, A: 2, B: 1, C: 0.5, D: -1.5, F: -2.5 };
 const UNTIERED_WEIGHT = 0.5;
 // A skip is a weak "no", fading by half every PASS_HALF_LIFE_DAYS.
 const PASS_WEIGHT = -0.6;

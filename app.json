@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/reelboard-android-monochrome.png"
       },
       "package": "com.yazanwidyan.reelboard",
-      "permissions": [
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },

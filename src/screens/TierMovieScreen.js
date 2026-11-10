@@ -288,12 +288,19 @@ export const TierMovieScreen = ({ navigation, route }) => {
 
       <View style={styles.words}>
         {shownTier ? (
-          // The tier is the headline — its letter, huge — and what it means
-          // a quiet line under it.
+          // What it means is the headline, in plain words ("Loved it") —
+          // the tier's letter a quiet line under it, learnt by seeing it.
           <Animated.View key={shownTier.key} entering={FadeIn.duration(140)} style={styles.wordsInner}>
-            <Animated.Text style={[styles.tierLetter, wordStyle]}>{shownTier.key}</Animated.Text>
+            <Animated.Text
+              style={[styles.tierWord, wordStyle]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {t(shownTier.meaning)}
+            </Animated.Text>
             <Animated.Text style={[styles.tierMeaning, inkStyle]} numberOfLines={1}>
-              {t("{tier} tier", { tier: shownTier.key })} · {t(shownTier.meaning)}
+              {t("{tier} tier", { tier: shownTier.key })}
             </Animated.Text>
           </Animated.View>
         ) : (
@@ -407,11 +414,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "stretch",
   },
-  tierLetter: {
+  tierWord: {
     fontFamily: fonts.extraBold,
-    fontSize: 112,
-    lineHeight: 120,
-    letterSpacing: -4,
+    fontSize: 46,
+    lineHeight: 54,
+    letterSpacing: -1,
     textAlign: "center",
   },
   tierMeaning: {

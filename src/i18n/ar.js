@@ -1731,7 +1731,6 @@ const ar = {
   "Picks from your taste, with the reasons why.": "اختيارات من ذوقك، مع السبب.",
   "Tier what you watch.": "صنّف ما تشاهده.",
   "S = all-time favorite, F = not for me. Every tier sharpens tonight's pick.": "S = المفضل على الإطلاق، F = ليس لي. كل تصنيف يجعل اختيار الليلة أدق.",
-  "Tap the ones you've seen. Tap ♥ on films you loved — they go straight into your S tier.": "اضغط على ما شاهدته. اضغط ♥ على الأفلام التي أحببتها — تدخل مباشرة في فئة S.",
   "Show more like these": "اعرض المزيد مثلها",
   "Show me different films": "اعرض أفلامًا أخرى",
   "Skip — I'll tier as I go": "تخطَّ — سأصنّف لاحقًا",
@@ -1783,6 +1782,12 @@ const ar = {
   "{handle} wants to be friends": "{handle} يريد أن يكون صديقك",
   "You're all caught up": "لا جديد الآن",
   "Friend requests, the morning question and news from friends show up here.": "طلبات الصداقة وسؤال الصباح وأخبار الأصدقاء تظهر هنا.",
+
+  // ---- Taste: one-tap answers ----
+  "Tap the ones you've seen. Tap ♥ on films you loved.": "اضغط على ما شاهدته. اضغط ♥ على الأفلام التي أحببتها.",
+  "One tap — or tell us you didn't. Your next pick gets sharper.": "ضغطة واحدة — أو أخبرنا أنك لم تشاهده. يصبح اختيارك القادم أدق.",
+  "One tap while it's fresh — it sharpens your picks.": "ضغطة واحدة وهو في ذاكرتك — تجعل اختياراتك أدق.",
+  "Exact tier": "فئة دقيقة",
 };
 
 export default ar;
