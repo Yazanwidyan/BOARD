@@ -4,6 +4,9 @@ import { useChallengeStore } from "../store/challengeStore";
 import { useMovieStore } from "../store/movieStore";
 import { getMovieById } from "../data/movies";
 import { logEvent } from "../services/events";
+import { placeNewS } from "./myTen";
+import { getTier } from "./tiers";
+import { logPickOutcome, outcomeOfTier } from "../services/pickLog";
 import { getNudgeMovieId, scheduleTierNudge } from "../services/notifications";
 import { useAchievementStore } from "../store/achievementStore";
 import { useTasteStore } from "../store/tasteStore";
@@ -115,15 +118,25 @@ const tonightsTopPick = () => {
 // A D or an F says the picks will steer away. (The engine's guessed vibe
 // words are never claimed — only the film it now picks.)
 export const tierWithFeedback = (movieId, tier) => {
+  const fromPick = getNudgeMovieId() === movieId;
+  const wasS = getTier(useMovieStore.getState().watched.find((entry) => entry.movieId === movieId)) === "S";
   // Activation: a tier for the film the morning question was about — and
   // how it landed (S/A loved, B/C fine, D/F not), the grade of the picks.
-  if (getNudgeMovieId() === movieId) {
+  if (fromPick) {
     logEvent("pick_tiered");
+    logPickOutcome(movieId, outcomeOfTier(tier), tier);
     logEvent(tier === "S" || tier === "A" ? "pick_tier_high" : tier === "D" || tier === "F" ? "pick_tier_low" : "pick_tier_mid");
   }
   const before = tonightsTopPick();
   useMovieStore.getState().setWatchedTier(movieId, tier);
   const after = tonightsTopPick();
+  // A new S joins your Ten (utils/myTen) — that's the news, or the sheet
+  // asking what makes room when it's full.
+  if (tier === "S" && !wasS) {
+    const line = placeNewS(movieId, { fromPick });
+    if (line) showToast(line, { tone: "success", duration: 3200 });
+    return;
+  }
   const title = getMovieById(movieId)?.title ?? t("This film");
   const changed = after && after.id !== before?.id ? after : null;
   const disliked = tier === "D" || tier === "F";

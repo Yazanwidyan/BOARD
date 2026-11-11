@@ -22,7 +22,6 @@ import Animated from "react-native-reanimated";
 import { Text } from "../components/AppText";
 import { ProBadge } from "../components/ProBadge";
 import { TasteStats } from "../components/TasteStats";
-import { MoviePoster } from "../components/MoviePoster";
 import { ReplayCard } from "../components/HomeBento";
 import { MilestoneMedal } from "../components/MilestoneMedal";
 import {
@@ -50,7 +49,8 @@ import { getMovieById, useMoviesVersion } from "../data/movies";
 import { getCollectionProgress, getSagas } from "../utils/collections";
 import { getTasteProfile } from "../utils/taste";
 import { getTasteDna } from "../utils/tasteDna";
-import { orderSTier } from "../utils/tiers";
+import { CrownTitle, TenGrid } from "../components/MyTen";
+import { getTen } from "../utils/myTen";
 import { getMilestones } from "../utils/milestones";
 import { useLanguageStore } from "../store/languageStore";
 import { t, useIsRTL } from "../i18n";
@@ -63,10 +63,8 @@ import { countTiered } from "../utils/tasteWords";
 // above your avatar.
 const COVER_RATIO = 0.5;
 const COVER_ABOVE_AVATAR = 0.55;
-const FAVOURITES = 4;
 // Trophies shown on the profile, in one row; the rest are in Library.
 const PROFILE_TROPHIES = 4;
-const FAVOURITE_GAP = 8;
 // Milestone medals shown under Achievements.
 const MEDALS = 3;
 const AVATAR = 84;
@@ -118,11 +116,9 @@ export const ProfileScreen = ({ navigation }) => {
 
   const watchedCount = watched.length;
   const watchedIds = new Set(watched.map((entry) => entry.movieId));
-  // Your favourites: your S tier, in your order (set on the tier list).
+  // Your title and your Ten: your S tier, in your order (utils/myTen).
   const sOrder = useProfileStore((state) => state.topTen) ?? [];
-  const favoriteMovies = orderSTier(watched, sOrder)
-    .map((entry) => getMovieById(entry.movieId))
-    .filter(Boolean);
+  const { ten, crown } = getTen(watched, sOrder);
   const header = useDockHeader();
   const language = useLanguageStore((state) => state.language);
   // Your latest milestones — the reached ones first.
@@ -139,9 +135,6 @@ export const ProfileScreen = ({ navigation }) => {
   const trophies = getTrophies(watched);
   const completedSets = getSagas().filter(
     (collection) => getCollectionProgress(collection, watchedIds).progress === 1,
-  );
-  const favouriteWidth = Math.floor(
-    (screenWidth - spacing.md * 2 - FAVOURITE_GAP * (FAVOURITES - 1)) / FAVOURITES,
   );
 
   const getShareText = () => {
@@ -251,6 +244,8 @@ export const ProfileScreen = ({ navigation }) => {
           </Text>
           {isPro && <ProBadge accent={accent} />}
         </View>
+        {/* Your title: your #1 S film. */}
+        <CrownTitle crown={crown} onPress={() => openMovie(crown.id)} style={styles.crownTitle} />
         {/* Your numbers — here and nowhere else — each opening its place. */}
         <View style={styles.counts}>
           {counts.map(({ key, value, label, onPress }) => (
@@ -305,28 +300,15 @@ export const ProfileScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.padded}>
-        {/* Your top four: your S tier, in your order. */}
+        {/* My Ten: the first ten of your S tier, in your order — empty
+            frames until S films fill them. Its order is set on the tier
+            list. */}
         <ProfileSection
-          title={t("Favourites")}
-          onAction={favoriteMovies.length > 0 ? () => navigation.navigate("TierList") : undefined}
+          title={t("My Ten · {count}/10", { count: ten.length })}
+          onAction={ten.length > 0 ? () => navigation.navigate("TierList") : undefined}
         >
-          {favoriteMovies.length > 0 ? (
-            <View style={styles.favourites}>
-              {favoriteMovies.slice(0, FAVOURITES).map((movie) => (
-                <Pressable
-                  key={movie.id}
-                  onPress={() => openMovie(movie.id)}
-                  style={({ pressed }) => pressed && styles.pressed}
-                  accessibilityRole="button"
-                  accessibilityLabel={movie.title}
-                >
-                  <MoviePoster uri={movie.poster} style={{ width: favouriteWidth, aspectRatio: 2 / 3 }} />
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <SectionEmpty line={t("Tier films S and your top four show here.")} />
-          )}
+          <TenGrid movies={ten} onPressSlot={(movie) => openMovie(movie.id)} />
+          {ten.length === 0 && <Text style={styles.tenHint}>{t("Only S films get in.")}</Text>}
         </ProfileSection>
 
         {/* Your taste: its DNA, then how you tier each genre, decade and
@@ -543,10 +525,20 @@ const createStyles = (colors) =>
       fontSize: 15,
       color: colors.textPrimary,
     },
-    // Your top four, across.
-    favourites: {
-      flexDirection: "row",
-      gap: FAVOURITE_GAP,
+    // Your title, centred under your name.
+    crownTitle: {
+      alignSelf: "center",
+      marginTop: spacing.sm,
+    },
+    tenHint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+    },
+    tenShared: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
     },
     // Taste
     hours: {

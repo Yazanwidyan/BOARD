@@ -1158,7 +1158,6 @@ const ar = {
   "Change cover": "تغيير الغلاف",
   "Add a cover": "أضف غلافاً",
   // Profile
-  "Tier films S and your top four show here.": "صنّف أفلامًا في الفئة S وستظهر أفضل أربعة هنا.",
   "Stats": "الإحصاءات",
   "Films": "الأفلام",
   "Lists": "القوائم",
@@ -1788,6 +1787,22 @@ const ar = {
   "One tap — or tell us you didn't. Your next pick gets sharper.": "ضغطة واحدة — أو أخبرنا أنك لم تشاهده. يصبح اختيارك القادم أدق.",
   "One tap while it's fresh — it sharpens your picks.": "ضغطة واحدة وهو في ذاكرتك — تجعل اختياراتك أدق.",
   "Exact tier": "فئة دقيقة",
+
+  // ---- My Ten ----
+  "Your first S is still out there": "أول S لك لم يأتِ بعد",
+  "No S yet": "لا يوجد S بعد",
+  "My Ten · {count}/10": "أفلامي العشرة · {count}/10",
+  "Their Ten · {count}/10": "أفلام العشرة · {count}/10",
+  "Only S films get in.": "لا يدخلها إلا فيلم S.",
+  "{count} in common with your S tier": "{count} مشتركة مع فئة S لديك",
+  "Your first S. {title} now heads your Ten.": "أول S لك. {title} يتصدّر الآن أفلامك العشرة.",
+  "Tonight's pick made your Ten.": "اختيار الليلة دخل أفلامك العشرة.",
+  "Into your Ten · {count}/10": "دخل أفلامك العشرة · {count}/10",
+  "{title} is in your Ten.": "{title} دخل أفلامك العشرة.",
+  "Your Ten is full. What makes room?": "اكتملت أفلامك العشرة. أيّها يُفسح المكان؟",
+  "{title} is your new S. Tap the film it replaces.": "{title} هو S الجديد لديك. اضغط على الفيلم الذي سيحلّ محلّه.",
+  "Keep it outside the Ten": "أبقِه خارج العشرة",
+  "The one you swap out stays S.": "الفيلم الذي تستبدله يبقى في S.",
 };
 
 export default ar;

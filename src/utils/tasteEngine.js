@@ -36,12 +36,25 @@ import { t } from "../i18n";
 // aspects ("the twist", "too slow"…) and passes (skips in Swipe and AI
 // pick), which fade over a few weeks.
 
-// How much each tier says about your taste. Watched-but-untiered still
-// counts a little — you chose to watch it.
-// C ("it was fine") counts as much as a film watched and never tiered,
-// so an honest answer never teaches less than no answer.
+// How much each tier says about your taste. C ("it was fine") counts a
+// little; a film watched and never tiered — onboarding's "seen" taps, most
+// of all — says nothing either way, so it counts 0 (and an honest answer
+// always teaches more than none). The server's copy (lib/candidates.js)
+// must match: its tests check.
 const TIER_WEIGHT = { S: 3, A: 2, B: 1, C: 0.5, D: -1.5, F: -2.5 };
-const UNTIERED_WEIGHT = 0.5;
+const UNTIERED_WEIGHT = 0;
+// "Feels like your taste": a film is measured against the NEAREST_COUNT
+// films you loved (S or A) it's closest to, not against the average of
+// them all — averaging, say, Paddington and Se7en lands on a bland middle
+// that's like neither (a backtest on real tiers ranked loved films worse
+// than chance that way: Reelboard-backend/scripts/evaluate-taste.js).
+// Closeness to your nearest films runs higher than to an average, so its
+// centre is higher too, keeping the match words where they were. Before
+// you've loved anything, the fingerprint (onboarding's leanings) stands
+// in.
+const NEAREST_COUNT = 3;
+const NEAREST_CENTER = 0.74;
+const FINGERPRINT_CENTER = 0.65;
 // A skip is a weak "no", fading by half every PASS_HALF_LIFE_DAYS.
 const PASS_WEIGHT = -0.6;
 const PASS_HALF_LIFE_DAYS = 21;
@@ -93,6 +106,16 @@ const weightedCloseness = (a, b, weights) => {
     0,
   );
   return 1 - Math.sqrt((squared / total) * a.length) / MAX_DISTANCE;
+};
+
+// How close a film feels to the NEAREST_COUNT of `vibes` it's closest
+// to, 0–1 (their average closeness).
+const nearestFit = (vibes, dims) => {
+  const nearest = vibes
+    .map((other) => closeness(other, dims))
+    .sort((a, b) => b - a)
+    .slice(0, NEAREST_COUNT);
+  return nearest.reduce((sum, value) => sum + value, 0) / nearest.length;
 };
 
 // How alike two movies feel, 0–1 (dimensions, plus a little for each
@@ -160,7 +183,7 @@ export const buildTasteModel = (watched, signals = {}) => {
     tierOf.set(movie.id, tier);
     const weight = tier ? TIER_WEIGHT[tier] : UNTIERED_WEIGHT;
     if (weight >= TIER_WEIGHT.A) lovedMovies.push(movie);
-    learn(movie, weight);
+    if (weight !== 0) learn(movie, weight);
   });
 
   passes.forEach((pass) => {
@@ -238,6 +261,8 @@ export const buildTasteModel = (watched, signals = {}) => {
     fingerprintWeights,
     dislikedCentroid: centroid(disliked),
     lovedMovies,
+    // Each loved film's Taste DNA, for "feels like your taste".
+    lovedVibes: lovedMovies.map((movie) => getVibe(movie.id).dims),
     prefersShorter,
   };
 };
@@ -277,14 +302,16 @@ const scoreMovie = (movie, model, context) => {
     if (value !== 0) signals.push({ key, value, reason });
   };
 
-  // Vibe: how close it feels to your fingerprint.
-  if (model.fingerprint) {
-    const fit = weightedCloseness(
-      model.fingerprint,
-      vibe.dims,
-      model.fingerprintWeights,
-    );
-    const value = WEIGHTS.vibe * (fit - 0.65) * 5;
+  // Vibe: how close it feels to the films you loved nearest to it (to your
+  // fingerprint before you've loved any).
+  const lovedVibes = model.lovedVibes ?? [];
+  if (lovedVibes.length > 0 || model.fingerprint) {
+    const value =
+      lovedVibes.length > 0
+        ? WEIGHTS.vibe * (nearestFit(lovedVibes, vibe.dims) - NEAREST_CENTER) * 5
+        : WEIGHTS.vibe *
+          (weightedCloseness(model.fingerprint, vibe.dims, model.fingerprintWeights) - FINGERPRINT_CENTER) *
+          5;
     let reason = null;
     if (value > 0) {
       // The movie you loved that it feels most like — plainly, without

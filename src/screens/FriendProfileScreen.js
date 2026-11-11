@@ -53,14 +53,14 @@ import {
 } from "../utils/friends";
 import { accentColor } from "../utils/pro";
 import { getTasteDna } from "../utils/tasteDna";
-import { orderSTier } from "../utils/tiers";
+import { CrownTitle, TenGrid } from "../components/MyTen";
+import { getTen } from "../utils/myTen";
+import { getTier } from "../utils/tiers";
 import { t, useIsRTL } from "../i18n";
 
 // The same measures as your Profile (screens/ProfileScreen).
 const COVER_RATIO = 0.5;
 const COVER_ABOVE_AVATAR = 0.55;
-const FAVOURITES = 4;
-const FAVOURITE_GAP = 8;
 const AVATAR = 84;
 const POSTER_ITEM = 104;
 // How long the ⋯ sheet takes to leave before the next one opens.
@@ -196,13 +196,11 @@ export const FriendProfileScreen = ({ navigation, route }) => {
     : null;
   const coverHeight = Math.round(screenWidth * COVER_RATIO);
 
-  // Their top four: their S tier, in their order.
-  const favoriteMovies = orderSTier(theirWatched, friend.topTen ?? [])
-    .map((entry) => getMovieById(entry.movieId))
-    .filter(Boolean);
-  const favouriteWidth = Math.floor(
-    (screenWidth - spacing.md * 2 - FAVOURITE_GAP * (FAVOURITES - 1)) / FAVOURITES,
-  );
+  // Their title and their Ten (utils/myTen) — ringed in gold where you
+  // tiered the film S too.
+  const { ten: theirTen, crown: theirCrown } = getTen(theirWatched, friend.topTen ?? []);
+  const mySIds = new Set(watched.filter((entry) => getTier(entry) === "S").map((entry) => entry.movieId));
+  const sharedS = new Set(theirTen.filter((movie) => mySIds.has(movie.id)).map((movie) => movie.id));
   // Their numbers, once: films, finished collections, and your match.
   const counts = [
     { key: "films", value: theirWatched.length, label: theirWatched.length === 1 ? t("film") : t("films") },
@@ -256,6 +254,8 @@ export const FriendProfileScreen = ({ navigation, route }) => {
           {friend.pro && <ProBadge accent={friend.accent} />}
         </View>
         <Text style={styles.handle}>{friend.handle}</Text>
+        {/* Their title: their #1 S film. */}
+        <CrownTitle crown={theirCrown} mine={false} onPress={() => openMovie(theirCrown.id)} style={styles.crownTitle} />
         {/* Their numbers — here and nowhere else. */}
         <View style={styles.counts}>
           {counts.map(({ key, value, label, onPress }) => (
@@ -294,25 +294,12 @@ export const FriendProfileScreen = ({ navigation, route }) => {
         )}
 
         <ProfileSection
-          title={t("Favourites")}
-          onAction={favoriteMovies.length > 0 ? openTierList : undefined}
+          title={t("Their Ten · {count}/10", { count: theirTen.length })}
+          onAction={theirTen.length > 0 ? openTierList : undefined}
         >
-          {favoriteMovies.length > 0 ? (
-            <View style={styles.favourites}>
-              {favoriteMovies.slice(0, FAVOURITES).map((movie) => (
-                <Pressable
-                  key={movie.id}
-                  onPress={() => openMovie(movie.id)}
-                  style={({ pressed }) => pressed && styles.pressed}
-                  accessibilityRole="button"
-                  accessibilityLabel={movie.title}
-                >
-                  <MoviePoster uri={movie.poster} style={{ width: favouriteWidth, aspectRatio: 2 / 3 }} />
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <SectionEmpty line={t("{name} hasn't tiered anything yet.", { name: firstName })} />
+          <TenGrid movies={theirTen} onPressSlot={(movie) => openMovie(movie.id)} ring={sharedS} />
+          {sharedS.size > 0 && (
+            <Text style={styles.tenShared}>{t("{count} in common with your S tier", { count: sharedS.size })}</Text>
           )}
         </ProfileSection>
 
@@ -583,9 +570,20 @@ const createStyles = (colors) =>
       color: colors.textSecondary,
       textAlign: "center",
     },
-    favourites: {
-      flexDirection: "row",
-      gap: FAVOURITE_GAP,
+    // Their title, centred under their handle.
+    crownTitle: {
+      alignSelf: "center",
+      marginTop: spacing.sm,
+    },
+    tenHint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+    },
+    tenShared: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
     },
     dna: {
       marginTop: spacing.lg,

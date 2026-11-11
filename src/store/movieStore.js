@@ -1,4 +1,5 @@
 import { logEvent } from "../services/events";
+import { logPick } from "../services/pickLog";
 import { queryClient, queryKeys, queueChange } from "../services/queryClient";
 import { createAccountStore } from "./accountStore";
 
@@ -41,9 +42,14 @@ export const useMovieStore = createAccountStore({
     unlockedCollections: [],
   },
   actions: ({ get, set }) => {
-    const setPick = (movieId, mood = null) => {
+    // `source`: why it was suggested (services/pickLog) — taste,
+    // collection, watchlist, onboarding or other.
+    const setPick = (movieId, mood = null, source = "other") => {
       // The taste metric: a pick for tonight taken (and, below, watched).
-      if (movieId && movieId !== get().pickedMovie) logEvent("pick_accepted");
+      if (movieId && movieId !== get().pickedMovie) {
+        logEvent("pick_accepted");
+        logPick(movieId, source, get().watched);
+      }
       set({ pickedMovie: movieId, pickMood: mood ? { movieId, mood } : null });
       queueChange(
         "PUT",
@@ -113,6 +119,7 @@ export const useMovieStore = createAccountStore({
         // A mood from an earlier pick doesn't carry over (readers ignore a
         // mismatch, so it's left as it was).
         logEvent("pick_accepted");
+        logPick(movieId, "other", get().watched);
         set({ pickedMovie: movieId, pickMood });
         queueChange(
           "PUT",
@@ -218,7 +225,7 @@ export const useMovieStore = createAccountStore({
       },
 
       // Set (not toggle) tonight's pick — e.g. a Movie night match.
-      setPickedMovie: (movieId) => setPick(movieId),
+      setPickedMovie: (movieId, source) => setPick(movieId, null, source),
 
       clearBucketList: () => {
         set({ bucketList: [] });

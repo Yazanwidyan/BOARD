@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { getMovieById, useMoviesVersion } from "../data/movies";
 import { t } from "../i18n";
 import { logEvent } from "../services/events";
+import { logPickOutcome } from "../services/pickLog";
 import { clearTierNudge, getTierNudge, scheduleTierNudge } from "../services/notifications";
 import { useMovieStore } from "../store/movieStore";
 import { shape, spacing } from "../theme/spacing";
@@ -75,6 +76,7 @@ export const TierNudgeCard = ({ navigation, style }) => {
   };
   const close = () => {
     logEvent("nudge_dismissed");
+    if (isPick) logPickOutcome(movie.id, "dismissed");
     dismiss();
   };
   // Logged as watched first, when it was tonight's pick — quietly: the
@@ -101,6 +103,7 @@ export const TierNudgeCard = ({ navigation, style }) => {
   };
   const didntWatch = () => {
     logEvent("nudge_not_watched");
+    logPickOutcome(movie.id, "not_watched");
     setStillOn(true);
   };
   // Still tonight's: ask again tomorrow if it slips again.

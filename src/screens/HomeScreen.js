@@ -200,9 +200,11 @@ export const HomeScreen = ({ navigation }) => {
   };
   // Films watched but not tiered: tiering a few sharpens tonight's pick.
   const untieredCount = watched.filter((entry) => !getTier(entry)).length;
+  // From "One for tonight": logged with why it was suggested (its angle).
   const pickForTonight = (movieId) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    useMovieStore.getState().setPickedMovie(movieId);
+    const source = onePickItem?.movie.id === movieId ? (onePickItem.angle?.key ?? "taste") : "other";
+    useMovieStore.getState().setPickedMovie(movieId, source);
   };
   const lovedId = pickLovedFilm(watched);
   const like = useQuery({

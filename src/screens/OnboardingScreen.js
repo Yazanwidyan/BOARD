@@ -393,8 +393,8 @@ export const OnboardingScreen = () => {
       // Only the whole way through counts (Skip doesn't).
       logEvent("onboarding_completed");
       if (!selectedPickId) return notTonight();
-      const { pickedMovie, togglePickedMovie } = useMovieStore.getState();
-      if (pickedMovie !== selectedPickId) togglePickedMovie(selectedPickId);
+      const { pickedMovie, setPickedMovie } = useMovieStore.getState();
+      if (pickedMovie !== selectedPickId) setPickedMovie(selectedPickId, "onboarding");
       // A nudge tonight (and the morning after)? Asked once, then in.
       askForReminders(getMovieById(selectedPickId)?.title ?? null).finally(finish);
       return undefined;

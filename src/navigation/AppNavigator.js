@@ -20,6 +20,7 @@ import { ChallengeGeneratorScreen } from "../screens/ChallengeGeneratorScreen";
 import { CollectionDetailsScreen } from "../screens/CollectionDetailsScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
+import { MakeRoomSheet } from "../components/MakeRoomSheet";
 import { MovieDetailsScreen } from "../screens/MovieDetailsScreen";
 import { MovieNightScreen } from "../screens/MovieNightScreen";
 import { WatchTogetherScreen } from "../screens/WatchTogetherScreen";
@@ -225,6 +226,8 @@ export const AppNavigator = () => {
       </Stack.Navigator>
       <AchievementModal />
       <CompletionShareSheet />
+      {/* A new S when your Ten is full: what makes room (utils/myTen). */}
+      <MakeRoomSheet />
       <Toast />
     </NavigationContainer>
   );
